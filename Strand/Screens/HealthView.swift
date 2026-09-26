@@ -789,7 +789,7 @@ private struct FitnessAgeSection: View {
                 case .trend:
                     if let m = fitnessAgeMetric { MetricDetailView(metric: m) }
                 case .settings:
-                    SettingsView()
+                    ProfileDetailsView().settingsDestinations()
                 }
             }
             #if os(macOS)

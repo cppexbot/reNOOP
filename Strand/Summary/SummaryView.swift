@@ -112,17 +112,9 @@ struct SummaryView: View {
                 hostedCardsRaw: $hostedCardsRaw
             )
         }
+        // Health's profile sheet: the avatar opens the photo + name, Health Details, and the pages behind them.
         .sheet(isPresented: $showSettings) {
-            NavigationStack {
-                SettingsView()
-                    .background(StrandPalette.surfaceBase.ignoresSafeArea())
-                    .toolbar {
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button("Done") { showSettings = false }
-                                .foregroundStyle(StrandPalette.accent)
-                        }
-                    }
-            }
+            ProfileSheet(onClose: { showSettings = false })
         }
         #if os(macOS)
         .sheet(isPresented: $showLiveSession) {
@@ -436,7 +428,7 @@ private extension View {
 
 /// Health's profile circle: the user's photo, else their initials on Contacts' grey monogram gradient,
 /// else — with no name either — a white silhouette on the same grey.
-private struct SummaryAvatar: View {
+struct SummaryAvatar: View {
     let imageData: Data?
     var initials: String = ""
     let size: CGFloat

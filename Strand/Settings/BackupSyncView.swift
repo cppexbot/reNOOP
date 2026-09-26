@@ -1,10 +1,10 @@
 import SwiftUI
 import StrandDesign
 
-/// Backup & Sync (folder destination). The Apple mirror of the Android `BackupSyncScreen`: pick a
-/// folder, turn on daily auto-backup (an on-launch catch-up), back up now, or restore from a snapshot
-/// already in that folder. Snapshots are the existing `.noopbak` whole-DB format. Point the folder at
-/// Google Drive / iCloud / Dropbox for off-device sync with no in-app cloud account.
+/// Settings → Backup, laid out like Settings → iCloud Backup. Folder backup (pick a folder, daily
+/// auto-backup as an on-launch catch-up, back up now, restore a snapshot from that folder) plus the
+/// whole-file export / import and the WHOOP-format CSV export. Snapshots are the `.noopbak` whole-DB
+/// format. Point the folder at Google Drive / iCloud / Dropbox for off-device sync with no account.
 struct BackupSyncView: View {
     @EnvironmentObject var model: AppModel
 
@@ -26,21 +26,89 @@ struct BackupSyncView: View {
     @State private var pendingRestore: FolderBackup.Snapshot?
     @State private var confirmRestore = false
 
+    // Whole-file export / import / CSV (the old Settings "Backup & restore" card), on the same page.
+    @State private var showOversizeRestoreConfirm = false
+    @State private var oversizeRestoreMessage = ""
+
     var body: some View {
-        ScreenScaffold(
-            title: "Backup & Sync",
-            subtitle: "Save a full backup to a folder you choose - point it at Google Drive, iCloud or Dropbox for off-device sync."
-        ) {
-            VStack(alignment: .leading, spacing: NoopMetrics.sectionGap) {
-                folderCard
-                autoCard
-                restoreCard
+        Form {
+            Section {
+                Button {
+                    backupNow()
+                } label: {
+                    HStack {
+                        Text(busy ? "Working…" : "Back up now")
+                        if busy { Spacer(); ProgressView().controlSize(.small) }
+                    }
+                }
+                .disabled(folderLabel == nil || busy)
+            } footer: {
+                Text(lastMs > 0 ? "Last backup: \(relativeTime(lastMs))" : "No backup yet.")
             }
+
+            Section {
+                Toggle("Daily auto-backup", isOn: $auto)
+                    .disabled(folderLabel == nil)
+                    .onChangeCompat(of: auto) { on in FolderBackup.autoEnabled = on }
+                // Wired to FolderBackup.keepCount; the next backup prunes the oldest beyond this count.
+                Picker("Keep last snapshots", selection: $keep) {
+                    ForEach(FolderBackup.keepOptions, id: \.self) { n in Text("\(n)").tag(n) }
+                }
+                .settingsPicker()
+                .onChangeCompat(of: keep) { n in FolderBackup.keepCount = n }
+            } footer: {
+                // Auto is ON but the last successful backup is stale: a moved or disconnected cloud folder
+                // stops backups silently, so say so here rather than at restore time.
+                if auto, folderLabel != nil, lastMs > 0,
+                   BackupSync.isBackupStale(lastBackupMs: lastMs,
+                                            nowMs: Int(Date().timeIntervalSince1970 * 1000.0)) {
+                    Text("Auto-backup hasn't run in a few days. Check the backup folder is still available — a moved or disconnected cloud folder stops backups silently.")
+                        .foregroundStyle(StrandPalette.statusWarning)
+                }
+            }
+
+            Section {
+                LabeledContent("Folder", value: folderLabel ?? String(localized: "Not set"))
+                Button(folderLabel == nil ? "Choose folder" : "Change folder") { chooseFolder() }
+                    .disabled(busy)
+                #if os(iOS)
+                // #52: some iOS 26 pickers never return a folder; back up inside NOOP's own Files folder.
+                if !FolderBackup.useInternalFolder {
+                    Button("Use NOOP's own folder (browse in Files)") { useNoopFolder() }
+                        .disabled(busy)
+                }
+                #endif
+            } footer: {
+                // #644: the snapshots are a plain ZIP; a cloud-synced folder uploads the readable file.
+                Text("These backups are unencrypted too. If this folder syncs to Drive, Dropbox or iCloud, the readable file goes there as well — only point it at a service you trust.")
+            }
+
+            Section {
+                Button("Restore from a backup…") { openRestorePicker() }
+                    .disabled(folderLabel == nil || busy)
+            }
+
+            Section {
+                Button("Export…") { runExport() }
+                Button("Import…") { runImport() }
+                Button("Export CSV…") { runCsvExport() }
+            } footer: {
+                Text("This is a plain, unencrypted archive — anyone who gets the file can open it with any zip tool. Store it somewhere you trust.")
+            }
+            .disabled(busy)
         }
+        .settingsPage("Backup")
         // Result of a backup or a restore.
         .alert(alertTitle, isPresented: $showAlert) {
             Button("OK", role: .cancel) {}
         } message: { Text(alertMessage) }
+        // #1807: a restore refused only for size is recoverable, so it gets its own two-button alert.
+        .alert("Backup problem", isPresented: $showOversizeRestoreConfirm) {
+            Button("Restore") { runImport(allowOversize: true) }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text(oversizeRestoreMessage)
+        }
         // Pick which snapshot to restore - the folder's own snapshots, newest first (must-fix #1).
         .sheet(isPresented: $showRestoreSheet) {
             RestorePickerSheet(snapshots: snapshots) { chosen in
@@ -61,122 +129,73 @@ struct BackupSyncView: View {
         }
     }
 
-    // MARK: - Cards
+    // MARK: - File export / import
 
-    private var folderCard: some View {
-        StrandCard(padding: 20) {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Backup folder")
-                    .font(StrandFont.headline).foregroundStyle(StrandPalette.textPrimary)
-                Text(folderLabel.map { String(localized: "Saving to: \($0)") }
-                     ?? String(localized: "No folder chosen yet. Pick one your cloud app already syncs, or any local folder."))
-                    .font(StrandFont.footnote).foregroundStyle(StrandPalette.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text("Tip: choose a folder in iCloud Drive and your backups sync to all your Apple devices automatically, no account setup needed.")
-                    .font(StrandFont.caption).foregroundStyle(StrandPalette.accent)
-                    .fixedSize(horizontal: false, vertical: true)
-                // #644: these .noopbak snapshots are a plain, unencrypted ZIP — pointing this folder at
-                // a cloud sync app (per the tip above) also uploads that readable file there. Say so
-                // plainly next to the folder picker, before anyone turns auto-backup on.
-                HStack(alignment: .top, spacing: 8) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(StrandPalette.statusWarning)
-                        .font(.system(size: 12))
-                        .accessibilityHidden(true)
-                    Text("These backups are unencrypted too. If this folder syncs to Drive, Dropbox or iCloud, the readable file goes there as well — only point it at a service you trust.")
-                        .font(StrandFont.caption).foregroundStyle(StrandPalette.statusWarning)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                NoopButton(folderLabel == nil ? "Choose folder" : "Change folder",
-                           systemImage: "folder", kind: .secondary) { chooseFolder() }
-                    .disabled(busy)
-                #if os(iOS)
-                // #52: some iOS 26 users can't select a folder in the system picker (its "Open" button
-                // never fires). This backs up inside NOOP's own Files-visible folder instead — no picker.
-                if !FolderBackup.useInternalFolder {
-                    NoopButton("Use NOOP's own folder (browse in Files)",
-                               systemImage: "iphone", kind: .tertiary) { useNoopFolder() }
-                        .disabled(busy)
-                }
-                #endif
+    private func runExport() {
+        busy = true
+        Task {
+            let result = await DataBackup.runExport(checkpoint: { await model.repo.checkpointForBackup() })
+            handleBackup(result)
+        }
+    }
+
+    private func runImport(allowOversize: Bool = false) {
+        busy = true
+        Task {
+            let result = await DataBackup.runImport(allowOversize: allowOversize)
+            handleBackup(result)
+        }
+    }
+
+    private func runCsvExport() {
+        busy = true
+        Task {
+            let result = await CsvExport.run(repo: model.repo)
+            busy = false
+            switch result {
+            case .cancelled:
+                return
+            case .exported(let url):
+                alertTitle = String(localized: "CSV exported")
+                alertMessage = String(localized: "Saved to \(url.lastPathComponent). The zip re-imports into NOOP (Data Sources → WHOOP Export) on any Mac, iPhone, or Android device.")
+                showAlert = true
+            case .failure(let message):
+                alertTitle = String(localized: "Export problem")
+                alertMessage = message
+                showAlert = true
             }
         }
     }
 
-    private var autoCard: some View {
-        StrandCard(padding: 20, tint: auto && folderLabel != nil ? StrandPalette.accent : nil) {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .center, spacing: 16) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Daily auto-backup")
-                            .font(StrandFont.body).foregroundStyle(StrandPalette.textPrimary)
-                        Text("Backs up to your folder about once a day and keeps the latest \(keep). On this platform it runs when you next open NOOP.")
-                            .font(StrandFont.footnote).foregroundStyle(StrandPalette.textTertiary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    Spacer(minLength: 0)
-                    Toggle("Daily auto-backup", isOn: $auto)
-                        .labelsHidden().toggleStyle(.switch).tint(StrandPalette.accent)
-                        .disabled(folderLabel == nil)
-                        .onChangeCompat(of: auto) { on in FolderBackup.autoEnabled = on }
-                }
-                // Retention: how many dated snapshots to keep. Wired to FolderBackup.keepCount; the next
-                // backup prunes the oldest beyond this count (BackupSync.snapshotsToPrune, unchanged).
-                HStack(alignment: .center, spacing: 16) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Keep last snapshots")
-                            .font(StrandFont.body).foregroundStyle(StrandPalette.textPrimary)
-                        Text("Older backups beyond this many are pruned, oldest first (≈ that many days). If data ever corrupts, restore the newest.")
-                            .font(StrandFont.footnote).foregroundStyle(StrandPalette.textTertiary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    Spacer(minLength: 0)
-                    Picker("Keep last snapshots", selection: $keep) {
-                        ForEach(FolderBackup.keepOptions, id: \.self) { n in Text("\(n)").tag(n) }
-                    }
-                    .labelsHidden().pickerStyle(.menu).tint(StrandPalette.accent)
-                    .onChangeCompat(of: keep) { n in FolderBackup.keepCount = n }
-                }
-                Text(lastMs > 0 ? "Last backup: \(relativeTime(lastMs))" : "No backup yet.")
-                    .font(StrandFont.caption).foregroundStyle(StrandPalette.textTertiary)
-                // Auto is ON but the last SUCCESSFUL backup is stale — the on-launch catch-up isn't landing
-                // (a moved/disconnected cloud folder stops backups silently, or NOOP hasn't been opened).
-                // Surface it so a silently-failing auto-backup is visible, not discovered only at restore.
-                // `lastMs > 0` excludes the never-backed-up state (the "No backup yet." line above owns that,
-                // and it would otherwise false-fire the moment auto is switched on, before the first backup).
-                if auto, folderLabel != nil, lastMs > 0,
-                   BackupSync.isBackupStale(lastBackupMs: lastMs,
-                                            nowMs: Int(Date().timeIntervalSince1970 * 1000.0)) {
-                    HStack(alignment: .top, spacing: 8) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(StrandPalette.statusWarning)
-                            .font(.system(size: 12))
-                            .accessibilityHidden(true)
-                        Text("Auto-backup hasn't run in a few days. Check the backup folder is still available — a moved or disconnected cloud folder stops backups silently.")
-                            .font(StrandFont.caption).foregroundStyle(StrandPalette.statusWarning)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-                NoopButton(busy ? "Working…" : "Back up now",
-                           systemImage: "icloud.and.arrow.up", kind: .primary, fullWidth: true) { backupNow() }
-                    .disabled(folderLabel == nil || busy)
-            }
-        }
-    }
-
-    private var restoreCard: some View {
-        StrandCard(padding: 20) {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Restore")
-                    .font(StrandFont.headline).foregroundStyle(StrandPalette.textPrimary)
-                Text("Replace this device's data with one of the backups in your folder. This overwrites current data, so back up first if you're unsure.")
-                    .font(StrandFont.footnote).foregroundStyle(StrandPalette.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-                NoopButton("Restore from a backup…", systemImage: "arrow.uturn.backward", kind: .secondary) {
-                    openRestorePicker()
-                }
-                .disabled(folderLabel == nil || busy)
-            }
+    @MainActor
+    private func handleBackup(_ result: DataBackup.BackupResult) {
+        busy = false
+        switch result {
+        case .cancelled:
+            return
+        case .exported(let url):
+            alertTitle = String(localized: "Backup exported")
+            alertMessage = String(localized: "Saved to \(url.lastPathComponent). Copy this file to your other \(Platform.deviceNoun) and use Import there to restore everything.")
+            showAlert = true
+        case .exportedOversize(let url, let bytes, let limit):
+            // #1807: the file is written and worth keeping — say so, then what restoring it will ask.
+            let size = ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
+            let cap = ByteCountFormatter.string(fromByteCount: limit, countStyle: .file)
+            alertTitle = String(localized: "Backup exported")
+            alertMessage = String(localized: "Saved to \(url.lastPathComponent). Your database is \(size), over the \(cap) NOOP restores without asking — the backup is complete and valid, and restoring it will ask you to confirm once.")
+            showAlert = true
+        case .restoreTooLarge(let name, let limit):
+            let cap = ByteCountFormatter.string(fromByteCount: limit, countStyle: .file)
+            oversizeRestoreMessage = String(localized: "\(name) is larger than the \(cap) NOOP restores without asking. That limit guards against a malicious archive expanding to fill this \(Platform.deviceNoun) — a backup you exported yourself is not that. Restoring it needs the space the database will take. You'll be asked to choose the file again.")
+            showOversizeRestoreConfirm = true
+        case .imported:
+            alertTitle = String(localized: "Backup imported")
+            alertMessage = String(localized: "Your data has been restored. Quit and reopen NOOP for it to take effect.")
+            showAlert = true
+        case .failure(let message):
+            alertTitle = String(localized: "Backup problem")
+            alertMessage = message
+            showAlert = true
         }
     }
 

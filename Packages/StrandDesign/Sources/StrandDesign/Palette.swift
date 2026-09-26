@@ -377,6 +377,25 @@ public enum StrandPalette {
     public static let sleepScoreInterruption = Color(light: "#FF7A5C", dark: "#FF8C70")
     public static let sleepScoreRestorative  = Color(light: "#1FC4B4", dark: "#3ED8C8")
     public static let sleepScoreRegularity   = Color(light: "#A86CF0", dark: "#BE8CFF")
+    /// Settings rows (iOS Settings idiom): the solid rounded squares behind each row's white glyph, in
+    /// Apple's system hues.
+    public static let settingsGray   = Color(light: "#8E8E93", dark: "#8E8E93")
+    public static let settingsBlue   = Color(light: "#007AFF", dark: "#0A84FF")
+    public static let settingsGreen  = Color(light: "#34C759", dark: "#30D158")
+    public static let settingsRed    = Color(light: "#FF3B30", dark: "#FF453A")
+    public static let settingsOrange = Color(light: "#FF9500", dark: "#FF9F0A")
+    public static let settingsPink   = Color(light: "#FF2D55", dark: "#FF375F")
+    public static let settingsPurple = Color(light: "#AF52DE", dark: "#BF5AF2")
+    public static let settingsIndigo = Color(light: "#5856D6", dark: "#5E5CE6")
+    public static let settingsTeal   = Color(light: "#30B0C7", dark: "#40C8E0")
+    public static let settingsCyan   = Color(light: "#32ADE6", dark: "#64D2FF")
+    /// Display → Appearance: the two miniature screens, fixed light and dark whatever the app shows.
+    public static let settingsAppearanceLightPage = Color(hex: "#E9E9EE")
+    public static let settingsAppearanceLightCard = Color(hex: "#FFFFFF")
+    public static let settingsAppearanceLightText = Color(hex: "#000000")
+    public static let settingsAppearanceDarkPage  = Color(hex: "#000000")
+    public static let settingsAppearanceDarkCard  = Color(hex: "#2C2C2E")
+    public static let settingsAppearanceDarkText  = Color(hex: "#FFFFFF")
     /// Top wash, leading → trailing: warm → violet → cool (sampled from Health's iOS 26 Summary), faded
     /// into `summaryCanvas` by the view.
     public static let summaryWashWarm   = Color(light: "#FFBBA3", dark: "#4E2A24")

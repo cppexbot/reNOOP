@@ -52,7 +52,7 @@ enum TrendChartStyle: String, CaseIterable, Identifiable {
     case bar
     var id: String { rawValue }
     /// Segmented-control label.
-    var label: String { self == .bar ? "Bars" : "Line" }
+    var label: String { self == .bar ? String(localized: "Bars") : String(localized: "Line") }
 }
 
 /// Which sleep window the nightly HRV is measured over (#141). NOOP historically averages RMSSD across the

@@ -565,7 +565,11 @@ enum DemoScreens {
             let key = args.firstIndex(of: "--demo-metric").flatMap { $0 + 1 < args.count ? args[$0 + 1] : nil } ?? "hrv"
             return MetricCatalog.all.first { $0.key == key }.map { AnyView(MetricDetailView(metric: $0)) }
         case "compare":  return AnyView(CompareView())
-        case "settings": return AnyView(SettingsView())
+        // Settings, optionally opened on one page: `--demo-screen settings --settings-page display`.
+        case "settings":
+            let page = args.firstIndex(of: "--settings-page").flatMap { $0 + 1 < args.count ? args[$0 + 1] : nil }
+            return AnyView(SettingsDemoHost(pageName: page))
+        case "profile": return AnyView(ProfileSheet(onClose: {}))
         case "chargebreakdown": return AnyView(ChargeBreakdownDemoHost())
         case "devices":  return AnyView(DevicesView())
         case "devicescatalog": return AnyView(DeviceCardCatalog())
@@ -591,6 +595,26 @@ enum DemoScreens {
 #endif
 
 #if DEBUG
+/// DEBUG-only: Settings in its own stack, with one page already pushed so its back button shows.
+private struct SettingsDemoHost: View {
+    @State private var path: [SettingsPage]
+
+    init(pageName: String?) {
+        let pages: [String: SettingsPage] = [
+            "profile": .profile, "zones": .heartRateZones, "general": .general, "units": .units,
+            "display": .display, "workouts": .workouts, "sync": .sync, "scores": .scores,
+            "backup": .backup, "about": .about, "iphone": .iphone, "developer": .developer,
+        ]
+        _path = State(initialValue: pageName.flatMap { pages[$0] }.map { [$0] } ?? [])
+    }
+
+    var body: some View {
+        NavigationStack(path: $path) {
+            SettingsView().settingsDestinations()
+        }
+    }
+}
+
 /// DEBUG-only host so `--demo-screen addwizard` can render the multi-step Add-a-device wizard.
 /// A SwiftUI View body is main-actor, so it can pull the injected LiveState and hand it to the
 /// wizard's `init(live:)` (the nonisolated DemoScreens switch can't construct a LiveState itself).

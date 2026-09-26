@@ -477,11 +477,7 @@ struct RootView: View {
     // enclosing NavigationStack of its own, so the same #753 fix applies: wrap the Settings pane in its
     // own NavigationStack so the Test Centre push gets Back chrome. iOS already wraps each tab.
     @ViewBuilder private var settingsDetail: some View {
-        #if os(macOS)
-        NavigationStack { SettingsView() }
-        #else
-        SettingsView()
-        #endif
+        NavigationStack { SettingsView().settingsDestinations() }
     }
 
     // Live's strap-log card pushes into Test Centre (#507/#509). Same macOS NavigationStack wrap so the
