@@ -1,6 +1,10 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Last time: %@": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Прошлый раз: %@"}} } },
+    "Remove set": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Убрать подход"}} } },
+    "Session RPE (1–10)": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "RPE сессии (1–10)"}} } },
+    "Nothing will be saved.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Ничего не сохранится."}} } },
     "Resume Intervals": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Продолжить интервалы"}} } },
     "TOTAL\nLEFT": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "ВСЕГО\nОСТАЛОСЬ"}} } },
     "REPS": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "ПОВТ."}} } },

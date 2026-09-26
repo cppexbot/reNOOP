@@ -66,7 +66,7 @@ struct LiveWorkoutView: View {
             ScreenIdle.keepAwake(false)
         }
         .task { await loadRings() }
-        .confirmationDialog("End this workout?", isPresented: $showEndConfirm, titleVisibility: .visible) {
+        .confirmationDialog("End this workout?", isPresented: $showEndConfirm, titleVisibility: .hidden) {
             Button("End Workout") {
                 model.endWorkout()
                 onClose()
@@ -76,8 +76,6 @@ struct LiveWorkoutView: View {
                 onClose()
             }
             Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Ending saves what's captured so far. It can't be resumed.")
         }
     }
 
