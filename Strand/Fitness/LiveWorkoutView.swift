@@ -46,7 +46,7 @@ struct LiveWorkoutView: View {
             #if os(iOS)
             .tabViewStyle(.page(indexDisplayMode: .never))
             #endif
-            pageDots
+            RecordingPageDots(count: 2, selection: page)
                 .padding(.vertical, 12)
             controlPanel
         }
@@ -87,7 +87,7 @@ struct LiveWorkoutView: View {
     private var figuresPage: some View {
         VStack(alignment: .leading, spacing: 0) {
             Spacer(minLength: 8)
-            LiveFigure(value: "\(Int(model.activeWorkoutCalories.rounded()))", label: "ACTIVE\nKCAL")
+            LiveFigure(value: "\(Int(model.activeWorkoutCalories.rounded()))", label: String(localized: "ACTIVE\nKCAL"))
             Spacer(minLength: 8)
             heartRateFigure
             Spacer(minLength: 8)
@@ -95,7 +95,7 @@ struct LiveWorkoutView: View {
                 effortFigure
                 Spacer(minLength: 8)
                 LiveFigure(value: (model.activeWorkout?.avgHr ?? 0) > 0 ? "\(model.activeWorkout!.avgHr)" : "--",
-                           label: "AVERAGE\nHEART RATE")
+                           label: String(localized: "AVERAGE\nHEART RATE"))
             }
             SensorFigures()
             Spacer(minLength: 8)
@@ -130,20 +130,11 @@ struct LiveWorkoutView: View {
         .padding(.horizontal, 28)
     }
 
-    private var pageDots: some View {
-        HStack(spacing: 8) {
-            ForEach(0..<2, id: \.self) { i in
-                Circle().fill(.white.opacity(i == page ? 1 : 0.35)).frame(width: 7, height: 7)
-            }
-        }
-        .accessibilityHidden(true)
-    }
-
     private var effortFigure: some View {
         let strain = model.activeWorkout?.liveStrain ?? 0
         let shown = UnitFormatter.effortValue(strain, scale: effortScale)
         return LiveFigure(value: effortScale == .whoop ? String(format: "%.1f", shown) : "\(Int(shown.rounded()))",
-                          label: "EFFORT")
+                          label: String(localized: "EFFORT"))
     }
 
     private var heartRateFigure: some View {
@@ -165,80 +156,27 @@ struct LiveWorkoutView: View {
     // MARK: - Control panel
 
     private var controlPanel: some View {
-        VStack(spacing: 18) {
-            Capsule()
-                .fill(.white.opacity(0.3))
-                .frame(width: 36, height: 5)
-                .padding(.top, 8)
-            HStack {
-                WorkoutTypeIcon(workoutType: model.activeWorkout?.sport ?? WorkoutCatalog.defaultSportName,
-                                size: 20, weight: .semibold, color: StrandPalette.activityExerciseText)
-                    .frame(width: 44, height: 44)
-                    .background(Circle().fill(StrandPalette.fitnessCard))
-                Spacer()
-                clock
-                Spacer()
-                ActivityRingsView(rings: rings, diameter: 44)
-                    .opacity(rings.isEmpty ? 0 : 1)
-            }
-            HStack {
-                controlButton("xmark", label: "End workout") { showEndConfirm = true }
-                Spacer()
-                pauseButton
-                Spacer()
-                controlButton("waveform.path.ecg", label: "Heart rate zones") {
+        let paused = model.activeWorkout?.isPaused == true
+        return RecordingPanel(
+            glyph: AnyView(WorkoutTypeIcon(workoutType: model.activeWorkout?.sport ?? WorkoutCatalog.defaultSportName,
+                                           size: 20, weight: .semibold, color: StrandPalette.activityExerciseText)),
+            clock: {
+                TimelineView(.animation(minimumInterval: 0.05)) { ctx in
+                    RecordingClockText(text: Self.stopwatch(model.activeWorkout?.elapsed(at: ctx.date) ?? 0))
+                }
+                .accessibilityLabel(Text("Elapsed time"))
+            },
+            trailing: { ActivityRingsView(rings: rings, diameter: 44).opacity(rings.isEmpty ? 0 : 1) },
+            leading: { RecordingButton(symbol: "xmark", label: "End workout") { showEndConfirm = true } },
+            center: {
+                RecordingButton(symbol: paused ? "play.fill" : "pause.fill", size: 112, prominent: paused,
+                                label: paused ? "Resume" : "Pause") { model.toggleWorkoutPause() }
+            },
+            right: {
+                RecordingButton(symbol: "waveform.path.ecg", label: "Heart rate zones") {
                     withAnimation { page = page == 0 ? 1 : 0 }
                 }
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.bottom, 20)
-        .background(
-            UnevenRoundedRectangle(topLeadingRadius: 38, topTrailingRadius: 38, style: .continuous)
-                .fill(Color(white: 0.11))
-                .ignoresSafeArea(edges: .bottom)
-        )
-    }
-
-    /// Minutes, seconds and hundredths — the stopwatch Fitness runs while recording.
-    private var clock: some View {
-        TimelineView(.animation(minimumInterval: 0.05)) { ctx in
-            Text(Self.stopwatch(model.activeWorkout?.elapsed(at: ctx.date) ?? 0))
-                .font(.system(size: 42, weight: .medium, design: .rounded))
-                .monospacedDigit()
-                .foregroundStyle(StrandPalette.activityExerciseText)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-        }
-        .accessibilityLabel(Text("Elapsed time"))
-    }
-
-    private var pauseButton: some View {
-        let paused = model.activeWorkout?.isPaused == true
-        return Button { model.toggleWorkoutPause() } label: {
-            Image(systemName: paused ? "play.fill" : "pause.fill")
-                .font(.system(size: 40, weight: .semibold))
-                .foregroundStyle(paused ? StrandPalette.fitnessOnAccent : .white)
-                .frame(width: 112, height: 112)
-                .background(Circle().fill(paused ? StrandPalette.activityExerciseText : Color(white: 0.2)))
-                .contentShape(Circle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(Text(paused ? "Resume" : "Pause"))
-    }
-
-    private func controlButton(_ symbol: String, label: LocalizedStringKey,
-                               action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: symbol)
-                .font(.system(size: 24, weight: .semibold))
-                .foregroundStyle(.white)
-                .frame(width: 76, height: 76)
-                .background(Circle().fill(Color(white: 0.2)))
-                .contentShape(Circle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(Text(label))
+            })
     }
 
     private func loadRings() async {
@@ -266,35 +204,6 @@ struct LiveWorkoutView: View {
     }
 }
 
-// MARK: - Figure
-
-/// One live figure: a large rounded numeral with its small-caps label beside it, as Fitness stacks them.
-private struct LiveFigure: View {
-    static let numeral = Font.system(size: 88, weight: .regular, design: .rounded)
-
-    let value: String
-    var unit: String = ""
-    let label: LocalizedStringKey
-
-    var body: some View {
-        HStack(alignment: .center, spacing: 8) {
-            (Text(value).font(Self.numeral)
-             + Text(unit.uppercased()).font(.system(size: 40, weight: .medium, design: .rounded)))
-                .monospacedDigit()
-                .foregroundStyle(.white)
-                .lineLimit(1)
-                .minimumScaleFactor(0.5)
-            Text(label)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.6))
-                .textCase(.uppercase)
-                .lineLimit(2)
-                .padding(.top, 14)
-        }
-        .accessibilityElement(children: .combine)
-    }
-}
-
 // MARK: - Live-observing leaves
 
 /// Distance and pace from the on-device GPS recorder (#1195). Observes the recorder on its own, so a fix
@@ -313,7 +222,7 @@ private struct DistancePaceFigures<Fallback: View>: View {
     var body: some View {
         if recorder.isRecording, recorder.pointCount > 0 {
             LiveFigure(value: UnitFormatter.paceFromSecPerKm(recorder.paceSecPerKm, system: system),
-                       label: "AVERAGE\nPACE")
+                       label: String(localized: "AVERAGE\nPACE"))
             if spacer { Spacer(minLength: 8) }
             let (d, du) = WorkoutDetailView.split(WorkoutDetailView.distance(recorder.distanceM, system: system))
             LiveFigure(value: d, unit: du, label: "")
@@ -337,13 +246,13 @@ private struct SensorFigures: View {
         if live.hasSensorMetrics {
             if let speed = UnitFormatter.speedFromKilometersPerHour(live.sensorSpeedKmh, system: system) {
                 let (v, u) = WorkoutDetailView.split(speed)
-                LiveFigure(value: v, unit: u, label: "SPEED")
+                LiveFigure(value: v, unit: u, label: String(localized: "SPEED"))
             }
             if let cadence = LiveState.formatCadence(live.sensorCadence) {
-                LiveFigure(value: "\(cadence)", label: "CADENCE")
+                LiveFigure(value: "\(cadence)", label: String(localized: "CADENCE"))
             }
             if let power = LiveState.formatPowerWatts(live.sensorPowerWatts) {
-                LiveFigure(value: "\(power)", unit: "W", label: "POWER")
+                LiveFigure(value: "\(power)", unit: "W", label: String(localized: "POWER"))
             }
         }
     }

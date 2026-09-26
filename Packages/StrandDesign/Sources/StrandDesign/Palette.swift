@@ -324,6 +324,16 @@ public enum StrandPalette {
     /// Fitness's workout-page hues: durations in yellow, Effort in blue.
     public static let fitnessTime          = Color(light: "#C29200", dark: "#FFD60A")
     public static let fitnessEffort        = Color(light: "#007AFF", dark: "#0A84FF")
+    /// Fitness's workout-goal card hues (purple, teal, blue, pink, orange), cycled per card.
+    public static func fitnessGoal(_ index: Int) -> Color {
+        switch index % 5 {
+        case 0:  return Color(light: "#A34BD6", dark: "#BF5AF2")
+        case 1:  return Color(light: "#0F9BB0", dark: "#40C8E0")
+        case 2:  return Color(light: "#007AFF", dark: "#0A84FF")
+        case 3:  return Color(light: "#E0284F", dark: "#FF375F")
+        default: return Color(light: "#E07F00", dark: "#FF9F0A")
+        }
+    }
     /// Fitness's five heart-rate zone hues (blue, teal, lime, orange, pink), Zone 1 first.
     public static func fitnessZone(_ zone: Int) -> Color {
         switch zone {

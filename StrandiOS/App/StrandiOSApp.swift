@@ -552,7 +552,11 @@ enum DemoScreens {
         case "summary":  return AnyView(SummaryView())
         case "live":     return AnyView(LiveView())
         case "stress":   return AnyView(StressView())
-        case "workouts": return AnyView(WorkoutsHomeView())
+        case "workouts": return AnyView(NavigationStack { WorkoutsHomeView().tabRouteDestinations() })
+        case "intervals": return AnyView(NavigationStack { IntervalTimerView() })
+        case "liftlog":  return AnyView(NavigationStack { LiftLogView().tabRouteDestinations() })
+        // The running gym session (start one from "liftlog" first; it persists across launches).
+        case "liftsession": return AnyView(LiftSessionView { })
         case "health":   return AnyView(HealthView())
         case "insights": return AnyView(InsightsView())
         case "explore":  return AnyView(MetricExplorerView())

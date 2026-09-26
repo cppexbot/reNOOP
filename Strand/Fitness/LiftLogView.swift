@@ -41,6 +41,7 @@ struct LiftLogView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 programsSection
+                    .padding(.top, 4)
                 weekSection
                 historySection
             }
@@ -101,89 +102,81 @@ struct LiftLogView: View {
         }
     }
 
-    /// The empty state: one Fitness-style card that opens the editor.
+    /// The empty state: one card that opens the editor.
     private var newProgramCard: some View {
         Button {
             editing = ProgramEditTarget(id: "new", program: nil)
         } label: {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack(alignment: .top) {
-                    Image(systemName: "dumbbell.fill")
-                        .font(.system(size: 30, weight: .semibold))
-                        .foregroundStyle(StrandPalette.activityExerciseText)
-                        .frame(width: 44, height: 44, alignment: .topLeading)
-                    Spacer()
-                    Image(systemName: "plus")
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundStyle(StrandPalette.fitnessOnAccent)
-                        .frame(width: 50, height: 50)
-                        .background(Circle().fill(StrandPalette.activityExerciseText))
-                }
-                Text("New Program")
-                    .font(StrandFont.pro(22, weight: .bold))
-                    .foregroundStyle(StrandPalette.textPrimary)
-            }
-            .padding(20)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(StrandPalette.fitnessCard, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
-            .contentShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+            goalCard(title: String(localized: "New Program"), subtitle: nil,
+                     tint: StrandPalette.activityExerciseText, symbol: "plus")
         }
         .buttonStyle(.plain)
     }
 
-    /// One program as a Fitness start card: tapping the card edits it, the play circle starts it.
+    /// One program as a card on Fitness's workout-type page: tapping the card edits it, the play circle
+    /// starts it. Each program takes the next goal hue, as Fitness colours its goal cards.
     private func programCard(_ program: LiftProgramRow) -> some View {
         let count = exerciseCounts[program.id] ?? 0
+        let tint = StrandPalette.fitnessGoal(programs.firstIndex(where: { $0.id == program.id }) ?? 0)
+        let empty = count == 0 && !session.isActive
         return Button {
             editing = ProgramEditTarget(id: program.id, program: program)
         } label: {
-            VStack(alignment: .leading, spacing: 16) {
-                Image(systemName: "dumbbell.fill")
-                    .font(.system(size: 30, weight: .semibold))
-                    .foregroundStyle(StrandPalette.activityExerciseText)
-                    .frame(width: 44, height: 44, alignment: .topLeading)
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(program.name)
-                        .font(StrandFont.pro(22, weight: .bold))
-                        .foregroundStyle(StrandPalette.textPrimary)
-                        .multilineTextAlignment(.leading)
-                    Text("\(count) exercises")
-                        .font(StrandFont.pro(17))
-                        .foregroundStyle(StrandPalette.activityExerciseText)
-                    if let note = program.note, !note.isEmpty {
-                        Text(note)
-                            .font(StrandFont.pro(15))
-                            .foregroundStyle(StrandPalette.textSecondary)
-                            .lineLimit(2)
-                            .multilineTextAlignment(.leading)
-                    }
-                }
-                .padding(.trailing, 60)
-            }
-            .padding(20)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(StrandPalette.fitnessCard, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
-            .contentShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+            goalCard(title: program.name, subtitle: String(localized: "\(count) exercises"), tint: tint, symbol: nil)
         }
         .buttonStyle(.plain)
         .accessibilityHint(Text("Edit program"))
-        .overlay(alignment: .topTrailing) {
+        .overlay(alignment: .trailing) {
             Button { Task { await start(program) } } label: {
                 Image(systemName: "play.fill")
                     .font(.system(size: 20, weight: .bold))
                     .foregroundStyle(StrandPalette.fitnessOnAccent)
                     .frame(width: 50, height: 50)
-                    .background(Circle().fill(StrandPalette.activityExerciseText))
+                    .background(Circle().fill(tint))
                     .contentShape(Circle())
             }
             .buttonStyle(.plain)
-            .padding(20)
+            .padding(.trailing, 18)
             // An empty program has nothing to run; `start` would return without a word.
-            .disabled(count == 0 && !session.isActive)
-            .opacity(count == 0 && !session.isActive ? 0.4 : 1)
+            .disabled(empty)
+            .opacity(empty ? 0.4 : 1)
             .accessibilityLabel(Text("Start this program"))
         }
+    }
+
+    /// The compact goal card: glyph, title, a line in the card's hue, and room for the trailing circle.
+    private func goalCard(title: String, subtitle: String?, tint: Color, symbol: String?) -> some View {
+        HStack(spacing: 14) {
+            Image(systemName: "dumbbell.fill")
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundStyle(tint)
+                .frame(width: 32)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(StrandFont.pro(20, weight: .semibold))
+                    .foregroundStyle(StrandPalette.textPrimary)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                if let subtitle {
+                    Text(subtitle)
+                        .font(StrandFont.pro(17))
+                        .foregroundStyle(tint)
+                }
+            }
+            Spacer(minLength: 64)
+            if let symbol {
+                Image(systemName: symbol)
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundStyle(StrandPalette.fitnessOnAccent)
+                    .frame(width: 50, height: 50)
+                    .background(Circle().fill(tint))
+            }
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(tint.opacity(0.2), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
 
     // MARK: - Start a session

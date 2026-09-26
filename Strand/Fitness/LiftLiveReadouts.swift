@@ -50,3 +50,23 @@ struct LiftHeartRate: View {
                             ?? String(localized: "Heart rate"))
     }
 }
+
+/// The live heart rate as a large figure on the session's first page. Its own view for the same reason as
+/// `LiftHeartRate`: a beat redraws this number, not the page.
+struct LiftHeartRateFigure: View {
+    @EnvironmentObject private var model: AppModel
+
+    var body: some View {
+        HStack(alignment: .lastTextBaseline, spacing: 4) {
+            Text(model.bpm.map(String.init) ?? "--")
+                .font(LiveFigure.numeral)
+                .monospacedDigit()
+                .foregroundStyle(.white)
+            Image(systemName: "heart.fill")
+                .font(.system(size: 26, weight: .bold))
+                .foregroundStyle(StrandPalette.healthHeart)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(model.bpm.map { String(localized: "Heart rate \($0)") } ?? String(localized: "Heart rate"))
+    }
+}

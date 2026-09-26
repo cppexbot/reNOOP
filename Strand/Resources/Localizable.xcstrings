@@ -1,6 +1,14 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Resume Intervals": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Продолжить интервалы"}} } },
+    "TOTAL\nLEFT": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "ВСЕГО\nОСТАЛОСЬ"}} } },
+    "REPS": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "ПОВТ."}} } },
+    "Skip": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Пропустить"}} } },
+    "End session": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Завершить сессию"}} } },
+    "End this session?": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Завершить сессию?"}} } },
+    "Finish Session": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Сохранить сессию"}} } },
+    "Discard Session": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Удалить сессию"}} } },
     "ACTIVE\nKCAL": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "АКТИВНЫЕ\nККАЛ"}} } },
     "AVERAGE\nHEART RATE": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "СРЕДНИЙ\nПУЛЬС"}} } },
     "AVERAGE\nPACE": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "СРЕДНИЙ\nТЕМП"}} } },

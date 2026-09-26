@@ -46,6 +46,9 @@ struct LiftSessionView: View {
     @State private var addingExercise = false
     /// The exercise the card shows when the user picked one; nil follows the session.
     @State private var shownExercise: Int?
+    /// 0 = the set in progress in large figures, 1 = every set in a table — the two pages swiped between.
+    @State private var page = 0
+    @State private var confirmingEnd = false
     /// What was lifted for each exercise LAST session, by set number — the "Previous" column. The same
     /// read `loadLastTime` hands the controller for the grey numbers.
     @State private var lastTime: [String: [Int: LiftSetCarry]] = [:]
@@ -81,10 +84,20 @@ struct LiftSessionView: View {
     var body: some View {
         Group {
             if let engine {
-                sheet(engine)
-                    // The control panel never scrolls away: at the rack the clock and the one action have
-                    // to be where your thumb already is.
-                    .safeAreaInset(edge: .bottom, spacing: 0) { controlPanel(engine) }
+                // The control panel never scrolls away: at the rack the clock and the one action have to be
+                // where your thumb already is.
+                VStack(spacing: 0) {
+                    TabView(selection: $page) {
+                        nowPage(engine).tag(0)
+                        sheet(engine).tag(1)
+                    }
+                    #if os(iOS)
+                    .tabViewStyle(.page(indexDisplayMode: .never))
+                    #endif
+                    RecordingPageDots(count: 2, selection: page)
+                        .padding(.vertical, 12)
+                    controlPanel(engine)
+                }
             } else {
                 VStack(spacing: 10) {
                     Image(systemName: "dumbbell")
@@ -126,9 +139,6 @@ struct LiftSessionView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     header(engine)
-                    if case .resting(let slot, _) = engine.stage, !engine.allCompleted {
-                        restTimer(engine, slot: slot)
-                    }
                     if engine.plan.indices.contains(shown) {
                         exerciseCard(engine, index: shown, item: engine.plan[shown])
                             .id(Self.cardAnchor)
@@ -185,45 +195,86 @@ struct LiftSessionView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    // MARK: - Rest
+    // MARK: - Now
 
-    /// The running rest, as large numerals in the duration yellow, with the set it follows.
-    ///
-    /// It sits above the exercise card rather than tinting the finished set's row: the set is over, and
-    /// what is running is the gap after it. The control panel carries the same number from the same
-    /// clock, but that panel is pinned to the bottom and this is where your eyes already are.
-    ///
-    /// Skip is the panel's "Start next set", one tap closer to the countdown it ends.
-    private func restTimer(_ engine: LiftSessionEngine, slot: LiftSlot) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Rest period")
-                .font(StrandFont.pro(17))
-                .foregroundStyle(StrandPalette.textPrimary)
-            HStack(alignment: .center, spacing: 12) {
-                LiftRunningClock { engine.restRemaining(now: $0) ?? 0 }
-                    .font(.system(size: 76, weight: .medium, design: .rounded))
-                    .foregroundStyle(StrandPalette.fitnessTime)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-                Spacer(minLength: 0)
-                glassCircleButton("forward.end.fill", size: 56, tint: StrandPalette.textPrimary,
-                                  label: "Start next set") { session.advance() }
+    /// The set in progress as the Fitness recording screen shows a workout: the stage and exercise, the
+    /// running clock (the rest counting down in yellow), the set's weight and reps, the heart rate, and
+    /// what comes next.
+    private func nowPage(_ engine: LiftSessionEngine) -> some View {
+        let slot: LiftSlot? = {
+            if case .resting = engine.stage { return engine.upcomingSlot }
+            return engine.currentSlot ?? engine.nextPendingSlot
+        }()
+        let item = slot.flatMap { engine.planItem(for: $0) }
+        return VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .top) {
+                RecordingHeading(caption: stageCaption(engine), tint: stageTint(engine),
+                                 title: item?.exercise ?? session.programName ?? String(localized: "Session"))
+                if engine.canUndo {
+                    RecordingButton(symbol: "arrow.uturn.backward", size: 44, label: "Undo") { session.undo() }
+                }
             }
-            Text(restCaption(engine, slot: slot))
-                .font(StrandFont.pro(15))
-                .foregroundStyle(StrandPalette.textSecondary)
+            .padding(.top, 24)
+            Spacer(minLength: 8)
+            stageFigure(engine)
+            Spacer(minLength: 8)
+            if let slot {
+                let v = session.values(of: slot)
+                LiveFigure(value: v.weightKg.map { LiftFormat.trim(LiftFormat.display(fromKilograms: $0, system: unitSystem)) } ?? "--",
+                           unit: v.weightKg == nil ? "" : weightSymbol, label: "")
+                Spacer(minLength: 8)
+                LiveFigure(value: v.reps.map(String.init) ?? "--", label: String(localized: "REPS"))
+                Spacer(minLength: 8)
+            }
+            LiftHeartRateFigure()
+            Spacer(minLength: 8)
+            Text(LiftSessionController.nextLine(engine))
+                .font(.system(size: 17, weight: .medium))
+                .foregroundStyle(.white.opacity(0.6))
                 .lineLimit(1)
+            Spacer(minLength: 8)
         }
-        .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(StrandPalette.summaryCard, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
-        .accessibilityElement(children: .contain)
+        .padding(.horizontal, 28)
     }
 
-    private func restCaption(_ engine: LiftSessionEngine, slot: LiftSlot) -> String {
-        let after = String(localized: "Resting after set \(slot.setIndex)")
-        guard let item = engine.planItem(for: slot) else { return after }
-        return "\(after) · \(item.exercise)"
+    /// The stage's own clock as a large figure: this set counting up, or the rest counting down.
+    private func stageFigure(_ engine: LiftSessionEngine) -> some View {
+        TimelineView(.periodic(from: Date(timeIntervalSince1970: floor(Date().timeIntervalSince1970)), by: 1)) { ctx in
+            let now = Int(ctx.date.timeIntervalSince1970)
+            switch engine.stage {
+            case .resting:
+                LiveFigure(value: ActiveWorkoutClock.clock(engine.restRemaining(now: now) ?? 0),
+                           label: String(localized: "Remaining"), tint: StrandPalette.fitnessTime)
+            case .working:
+                LiveFigure(value: ActiveWorkoutClock.clock(now - engine.stageStartedAt), label: String(localized: "This set"))
+            case .warmup, .finished:
+                LiveFigure(value: ActiveWorkoutClock.clock(now - engine.stageStartedAt), label: String(localized: "Time"))
+            }
+        }
+    }
+
+    /// "кг" / "lb" in the reader's language, set after the weight like Fitness sets "КМ".
+    private var weightSymbol: String {
+        let f = MeasurementFormatter()
+        f.unitStyle = .short
+        return f.string(from: unitSystem == .imperial ? UnitMass.pounds : UnitMass.kilograms)
+    }
+
+    private func stageCaption(_ engine: LiftSessionEngine) -> String {
+        switch engine.stage {
+        case .warmup, .finished: return String(localized: "Warm-up")
+        case .working(let slot): return String(localized: "Set \(slot.setIndex)")
+        case .resting: return String(localized: "Rest period")
+        }
+    }
+
+    private func stageTint(_ engine: LiftSessionEngine) -> Color {
+        switch engine.stage {
+        case .working: return StrandPalette.activityExerciseText
+        case .resting: return StrandPalette.fitnessTime
+        case .warmup, .finished: return .white.opacity(0.6)
+        }
     }
 
     // MARK: - One exercise, with all its sets
@@ -645,39 +696,29 @@ struct LiftSessionView: View {
     // MARK: - The control panel
 
     private func controlPanel(_ engine: LiftSessionEngine) -> some View {
-        VStack(spacing: 16) {
-            HStack(alignment: .center) {
-                Image(systemName: "dumbbell.fill")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(StrandPalette.activityExerciseText)
-                    .frame(width: 44, height: 44)
-                    .background(Circle().fill(StrandPalette.fitnessCard))
-                    .accessibilityHidden(true)
-                Spacer(minLength: 8)
-                VStack(spacing: 2) {
-                    LiftRunningClock { $0 - engine.startTs }
-                        .font(.system(size: 40, weight: .semibold, design: .rounded))
-                        .foregroundStyle(StrandPalette.activityExerciseText)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
-                        .accessibilityLabel(Text("Session"))
-                    HStack(spacing: 12) {
-                        stageClock(engine)
-                        heartRate()
-                    }
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+        RecordingPanel(
+            glyph: AnyView(Image(systemName: "dumbbell.fill")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(StrandPalette.activityExerciseText)),
+            clock: {
+                TimelineView(.periodic(from: Date(timeIntervalSince1970: floor(Date().timeIntervalSince1970)), by: 1)) { ctx in
+                    RecordingClockText(text: ActiveWorkoutClock.clock(Int(ctx.date.timeIntervalSince1970) - engine.startTs))
                 }
-                Spacer(minLength: 8)
-                glassCircleButton("arrow.uturn.backward", size: 44,
-                                  tint: engine.canUndo ? StrandPalette.textPrimary : StrandPalette.textTertiary,
-                                  label: "Undo") { session.undo() }
-                    .disabled(!engine.canUndo)
-            }
-
-            HStack(spacing: 14) {
-                glassCircleButton("trash", size: 60, tint: StrandPalette.statusCritical,
-                                  label: "Discard session") { confirmingPanelDiscard = true }
+                .accessibilityLabel(Text("Session"))
+            },
+            trailing: { LiftHeartRate() },
+            leading: {
+                RecordingButton(symbol: "xmark", label: "End session") { confirmingEnd = true }
+                    .confirmationDialog("End this session?", isPresented: $confirmingEnd, titleVisibility: .visible) {
+                        Button("Finish Session") {
+                            unfinishedChoice = nil
+                            programChoice = nil
+                            setCountChanges = []
+                            showingFinish = true
+                        }
+                        Button("Discard Session", role: .destructive) { confirmingPanelDiscard = true }
+                        Button("Keep going", role: .cancel) { }
+                    }
                     .confirmationDialog("Discard this session?",
                                         isPresented: $confirmingPanelDiscard, titleVisibility: .visible) {
                         Button("Discard", role: .destructive) { session.discard() }
@@ -685,74 +726,26 @@ struct LiftSessionView: View {
                     } message: {
                         Text("\(engine.completedWorkingSets) recorded sets will be thrown away. Nothing is saved and no workout is created.")
                     }
-
-                Button { session.advance() } label: {
-                    Text(actionLabel(engine))
-                        .font(StrandFont.pro(17, weight: .semibold))
-                        .foregroundStyle(StrandPalette.fitnessOnAccent)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                        .padding(.horizontal, 12)
-                        .frame(maxWidth: .infinity, minHeight: 60)
-                        .background(Capsule().fill(StrandPalette.activityExerciseText))
-                        .contentShape(Capsule())
+            },
+            center: {
+                RecordingButton(symbol: actionSymbol(engine), size: 112, prominent: true,
+                                label: actionLabel(engine)) { session.advance() }
+                    .disabled(engine.stage == .finished)
+            },
+            right: {
+                RecordingButton(symbol: page == 0 ? "list.bullet" : "dumbbell", label: "Sets") {
+                    withAnimation { page = page == 0 ? 1 : 0 }
                 }
-                .buttonStyle(.plain)
-
-                glassCircleButton("checkmark", size: 60, tint: StrandPalette.textPrimary,
-                                  label: "Finish session") {
-                    unfinishedChoice = nil
-                    programChoice = nil
-                    setCountChanges = []
-                    showingFinish = true
-                }
-            }
-        }
-        .padding(20)
-        .liftPanelGlass()
-        .padding(.horizontal, 12)
-        .padding(.bottom, 4)
+            })
     }
 
-    /// Live heart rate, beside the stage clock in the panel that never scrolls away: a glance mid-set is
-    /// the whole use — you are holding a bar, not browsing. Asked for after a real session. Always shown,
-    /// dash included, and display only (`LiftHeartRate`).
-    private func heartRate() -> some View {
-        LiftHeartRate()
-    }
-
-    /// The stage's own clock under the session clock: this set counting up, or the rest counting down.
-    @ViewBuilder
-    private func stageClock(_ engine: LiftSessionEngine) -> some View {
+    private func actionSymbol(_ engine: LiftSessionEngine) -> String {
         switch engine.stage {
-        case .working:
-            stageLine(String(localized: "This set"), tint: StrandPalette.activityExerciseText) {
-                $0 - engine.stageStartedAt
-            }
-        case .resting:
-            // "Rest period", never "Rest": the catalog's "Rest" key is NOOP's SLEEP metric, so this
-            // label rendered as "Erholung" (recovery) in German — the exact collision CLAUDE.md and
-            // the handover brief both warn about. Reintroduced by the workout-sheet rewrite.
-            stageLine(String(localized: "Rest period"), tint: StrandPalette.fitnessTime) {
-                engine.restRemaining(now: $0) ?? 0
-            }
-        case .warmup, .finished:
-            stageLine(String(localized: "Warm-up"), tint: StrandPalette.textSecondary) {
-                $0 - engine.stageStartedAt
-            }
+        case .warmup:   return "play.fill"
+        case .working:  return "checkmark"
+        case .resting:  return engine.allCompleted ? "checkmark" : "forward.end.fill"
+        case .finished: return "hourglass"
         }
-    }
-
-    /// A label and a running clock on one line. `seconds` turns the current unix second into what it reads.
-    private func stageLine(_ label: String, tint: Color, seconds: @escaping (Int) -> Int) -> some View {
-        HStack(spacing: 5) {
-            Text(label)
-                .foregroundStyle(StrandPalette.textSecondary)
-            LiftRunningClock(seconds: seconds)
-                .foregroundStyle(tint)
-        }
-        .font(StrandFont.pro(15, weight: .semibold))
-        .accessibilityElement(children: .combine)
     }
 
     private func actionLabel(_ engine: LiftSessionEngine) -> LocalizedStringKey {
@@ -762,20 +755,6 @@ struct LiftSessionView: View {
         case .resting:  return engine.allCompleted ? "All sets done" : "Start next set"
         case .finished: return "Saving…"
         }
-    }
-
-    private func glassCircleButton(_ symbol: String, size: CGFloat, tint: Color, label: LocalizedStringKey,
-                                   action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: symbol)
-                .font(.system(size: size >= 56 ? 22 : 17, weight: .semibold))
-                .foregroundStyle(tint)
-                .frame(width: size, height: size)
-                .liftCircleGlass()
-                .contentShape(Circle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(Text(label))
     }
 
     // MARK: - Finish
@@ -1104,37 +1083,4 @@ struct LiftSessionView: View {
     /// The sport every logged session is filed under — the same token the Hevy/Liftosaur importer
     /// uses, so a typed session and an imported one land in one bucket with one icon.
     static let sport = "Strength Training"
-}
-
-// MARK: - Glass
-
-private extension View {
-    /// The bottom panel's surface: Liquid Glass on iOS 26 / macOS 26, a dark material before.
-    @ViewBuilder
-    func liftPanelGlass() -> some View {
-        let shape = RoundedRectangle(cornerRadius: 40, style: .continuous)
-        #if compiler(>=6.2)
-        if #available(iOS 26.0, macOS 26.0, *) {
-            self.glassEffect(.regular, in: shape)
-        } else {
-            self.background(.ultraThinMaterial, in: shape)
-        }
-        #else
-        self.background(.ultraThinMaterial, in: shape)
-        #endif
-    }
-
-    /// A round control's surface: interactive Liquid Glass on iOS 26 / macOS 26, a light wash before.
-    @ViewBuilder
-    func liftCircleGlass() -> some View {
-        #if compiler(>=6.2)
-        if #available(iOS 26.0, macOS 26.0, *) {
-            self.glassEffect(.regular.interactive(), in: Circle())
-        } else {
-            self.background(Circle().fill(Color.white.opacity(0.14)))
-        }
-        #else
-        self.background(Circle().fill(Color.white.opacity(0.14)))
-        #endif
-    }
 }
