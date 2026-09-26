@@ -25,13 +25,14 @@ struct SettingsView: View {
                 NavigationLink(value: SettingsPage.profile) { profileRow }
             }
 
+            // Settings' own order: the connection and power rows first, then General / Display, then the
+            // app's features, then backup, and About / Developer at the foot.
             Section {
-                SettingsLink(.devices, "Devices", icon: "applewatch.radiowaves.left.and.right", color: StrandPalette.settingsBlue)
-                SettingsLink(.dataSources, "Data Sources", icon: "tray.and.arrow.down.fill", color: StrandPalette.settingsBlue)
-                SettingsLink(.appleHealth, "Apple Health", icon: "heart.fill", color: StrandPalette.settingsPink, style: .appTile)
+                SettingsLink(.devices, "Devices", icon: "dot.radiowaves.left.and.right", color: StrandPalette.settingsBlue)
                 #if os(iOS)
-                SettingsLink(.shortcutsExport, "Shortcuts Export", icon: "square.and.arrow.up", color: StrandPalette.settingsBlue)
+                SettingsLink(.sync, "Sync", icon: "arrow.triangle.2.circlepath", color: StrandPalette.settingsGreen)
                 #endif
+                SettingsLink(.powerSaving, "Power saving", icon: "battery.100percent", color: StrandPalette.settingsGreen)
             }
 
             Section {
@@ -40,21 +41,22 @@ struct SettingsView: View {
                 #if os(macOS)
                 SettingsLink(.notifications, "Notifications", icon: "bell.badge.fill", color: StrandPalette.settingsRed)
                 #endif
-                SettingsLink(.powerSaving, "Power saving", icon: "battery.100percent", color: StrandPalette.settingsGreen)
                 #if os(iOS)
-                SettingsLink(.siri, "Siri & Shortcuts", icon: "square.2.layers.3d.fill", color: StrandPalette.settingsIndigo)
+                SettingsLink(.siri, "Siri & Shortcuts", icon: "mic.fill", color: StrandPalette.settingsPurple)
                 #endif
-                SettingsLink(.automations, "Automations", icon: "clock.badge.checkmark.fill", color: StrandPalette.settingsOrange)
+                SettingsLink(.automations, "Automations", icon: "clock.fill", color: StrandPalette.settingsOrange)
             }
 
             Section {
+                SettingsLink(.appleHealth, "Apple Health", icon: "heart.fill", color: StrandPalette.settingsPink, style: .appTile)
+                SettingsLink(.dataSources, "Data Sources", icon: "square.stack.3d.up.fill", color: StrandPalette.settingsIndigo)
+                #if os(iOS)
+                SettingsLink(.shortcutsExport, "Shortcuts Export", icon: "square.and.arrow.up", color: StrandPalette.settingsBlue)
+                #endif
+                SettingsLink(.workouts, "Workouts", icon: "figure.run", color: StrandPalette.settingsGreen)
+                SettingsLink(.scores, "Scores", icon: "gauge.with.needle.fill", color: StrandPalette.settingsRed)
                 SettingsToggle("AI Coach", icon: "sparkles", color: StrandPalette.settingsPurple, isOn: $coachEnabled)
                 SettingsToggle("Hydration tracking", icon: "drop.fill", color: StrandPalette.settingsCyan, isOn: $hydrationEnabled)
-                SettingsLink(.workouts, "Workouts", icon: "figure.run", color: StrandPalette.settingsGreen)
-                #if os(iOS)
-                SettingsLink(.sync, "Sync", icon: "arrow.triangle.2.circlepath", color: StrandPalette.settingsTeal)
-                #endif
-                SettingsLink(.scores, "Scores", icon: "gauge.with.dots.needle.67percent", color: StrandPalette.settingsRed)
             }
 
             Section {

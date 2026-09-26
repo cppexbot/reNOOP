@@ -51,20 +51,10 @@ struct BrowseView: View {
             ]),
             Category(id: String(localized: "Data"), entries: [
                 Entry(id: .fusedRecord, title: String(localized: "Your Data, Fused"), icon: "square.stack.3d.up.fill", tint: StrandPalette.accent),
-                Entry(id: .appleHealth, title: String(localized: "Apple Health"), icon: "heart.fill", tint: StrandPalette.metricRose),
                 Entry(id: .miBand, title: String(localized: "Mi Band"), icon: "figure.walk.motion", tint: StrandPalette.summaryChargeRing),
-                Entry(id: .dataSources, title: String(localized: "Data Sources"), icon: "externaldrive.fill", tint: StrandPalette.accent),
-                Entry(id: .backupSync, title: String(localized: "Backup & Sync"), icon: "externaldrive.fill.badge.icloud", tint: StrandPalette.accent),
-                // #155: HealthKit-free Apple Health path for sideloaded installs.
-                Entry(id: .shortcutsExport, title: String(localized: "Shortcuts Export"), icon: "square.and.arrow.up.fill", tint: StrandPalette.accent),
-                Entry(id: .noopLimitations, title: String(localized: "NOOP Limitations"), icon: "list.bullet.rectangle", tint: StrandPalette.textSecondary),
             ]),
             Category(id: String(localized: "App"), entries: [
                 Entry(id: .alarms, title: String(localized: "Alarms"), icon: "alarm.fill", tint: StrandPalette.summaryEffortRing),
-                Entry(id: .automations, title: String(localized: "Automations"), icon: "wand.and.stars", tint: StrandPalette.metricPurple),
-                Entry(id: .testCentre, title: String(localized: "Test Centre"), icon: "stethoscope", tint: StrandPalette.metricCyan),
-                Entry(id: .siriShortcuts, title: String(localized: "Siri & Shortcuts"), icon: "mic.fill", tint: StrandPalette.metricPurple),
-                Entry(id: .powerSaving, title: String(localized: "Power saving"), icon: "battery.25", tint: StrandPalette.summaryChargeRing),
                 Entry(id: .settings, title: String(localized: "Settings"), icon: "gearshape.fill", tint: StrandPalette.textSecondary),
             ]),
         ]
@@ -135,8 +125,8 @@ enum MoreDestination: Hashable {
     case insightsHub, intelligence, coach, insights, allMetrics, compare
     case trends
     case live, health, labBook, stress, breathe, rhythm
-    case fusedRecord, appleHealth, miBand, dataSources, backupSync, shortcutsExport, noopLimitations
-    case alarms, automations, testCentre, siriShortcuts, powerSaving, settings
+    case fusedRecord, miBand
+    case alarms, settings
 
     @ViewBuilder var destination: some View {
         switch self {
@@ -154,17 +144,8 @@ enum MoreDestination: Hashable {
         case .breathe:         BreathingView()
         case .rhythm:          RhythmHost()
         case .fusedRecord:     FusedRecordHost()
-        case .appleHealth:     AppleHealthView()
         case .miBand:          XiaomiBandView()
-        case .dataSources:     DataSourcesView()
-        case .noopLimitations: NoopLimitationsView()
-        case .backupSync:      BackupSyncView()
-        case .shortcutsExport: ShortcutExportSettingsView()
         case .alarms:          SmartAlarmView()
-        case .automations:     AutomationsView()
-        case .testCentre:      TestCentreView()
-        case .siriShortcuts:   SiriShortcutsSettingsView()
-        case .powerSaving:     PowerSavingView()
         case .settings:        SettingsView()
         }
     }
