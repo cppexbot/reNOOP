@@ -41,6 +41,7 @@ struct LiftSessionView: View {
     /// Program lines whose set count this session changed, read when the finish sheet opens.
     @State private var setCountChanges: [LiftSessionController.SetCountChange] = []
     @State private var addingExercise = false
+    @State private var editingSet: SetEditTarget?
     /// 0 = the set in progress in large figures, 1 = every set in a table — the two pages swiped between.
     @State private var page = 0
     @State private var confirmingEnd = false
@@ -56,21 +57,9 @@ struct LiftSessionView: View {
 
     @FocusState private var focused: FocusTarget?
     private enum FocusTarget: Hashable {
-        case weight(LiftSlot), reps(LiftSlot), rpe(LiftSlot), sessionRpe
+        case sessionRpe
     }
 
-    /// What the user has TYPED into a field, held until they leave it.
-    ///
-    /// Without this a numeric field cannot accept a decimal at all. Each binding read its text back
-    /// out of the engine, so every keystroke round-tripped through `LiftFormat` and was replaced by
-    /// the canonical rendering of the parsed value. Typing "45." parsed to 45, re-rendered as "45",
-    /// and the point vanished as it was typed — then the next keystroke made "455". A user entering
-    /// 45.5 kg silently got 455 kg, which is the shape of bug this feature has to stop having.
-    ///
-    /// So while a field is focused it shows exactly what was typed; the parsed value still goes to
-    /// the engine and to disk on every keystroke, so nothing about durability changes. The draft is
-    /// dropped when focus leaves and the row goes back to the canonical formatting.
-    @State private var draft: [FocusTarget: String] = [:]
 
     private var engine: LiftSessionEngine? { session.engine }
 
@@ -116,34 +105,37 @@ struct LiftSessionView: View {
         // Re-read whenever the session's exercises change, so an exercise added mid-session that was
         // done before shows last time's numbers in grey, like every other line.
         .task(id: engine?.plan.map(\.exercise)) { await loadLastTime() }
-        // Release a field's draft once the user leaves it, so the row returns to the canonical
-        // formatting ("45.50" typed becomes "45.5"). The single-argument form on purpose: the
-        // two-argument `onChange` is macOS 14+ and this file also builds for macOS 13.
-        .onChange(of: focused) { now in
-            draft = draft.filter { $0.key == now }
-        }
         .sheet(isPresented: $showingFinish) { finishSheet }
     }
 
     // MARK: - The page
 
-    /// Every exercise of the session, in order, each set a block of its own — the Fitness custom-workout
-    /// editor's layout. Follows the session to the exercise it moves to.
+    /// Every exercise of the session as a plain grouped list: one row per set with its numbers, a checkmark
+    /// once done, and "Add Set" at the end of each exercise. A tap opens the set in a small sheet.
     private func sheet(_ engine: LiftSessionEngine) -> some View {
         ScrollViewReader { proxy in
-            ScrollView {
-                VStack(alignment: .leading, spacing: 28) {
-                    header(engine)
-                    ForEach(engine.plan.indices, id: \.self) { index in
-                        exerciseSection(engine, index: index, item: engine.plan[index])
-                            .id(index)
-                    }
-                    addExerciseRow(engine)
+            List {
+                Text(session.programName ?? String(localized: "Session"))
+                    .font(StrandFont.pro(34, weight: .bold))
+                    .foregroundStyle(StrandPalette.textPrimary)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 16, leading: 4, bottom: 0, trailing: 4))
+                ForEach(engine.plan.indices, id: \.self) { index in
+                    exerciseSection(engine, index: index, item: engine.plan[index])
+                        .id(index)
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 24)
-                .padding(.bottom, 16)
+                Section {
+                    Button { addingExercise = true } label: {
+                        Label("Add Exercise", systemImage: "plus")
+                            .foregroundStyle(StrandPalette.activityExerciseText)
+                    }
+                    .disabled(engine.plan.count >= LiftSessionEngine.maxExercises)
+                }
             }
+            #if os(iOS)
+            .listStyle(.insetGrouped)
+            #endif
+            .scrollContentBackground(.hidden)
             .onChange(of: engine.currentSlot) { slot in
                 guard let slot else { return }
                 withAnimation { proxy.scrollTo(slot.exerciseIndex, anchor: .top) }
@@ -153,20 +145,10 @@ struct LiftSessionView: View {
                     _ = session.addExercise(name, primaryMuscle: primary, secondaryMuscles: secondaries)
                 }
             }
+            .sheet(item: $editingSet) { target in
+                setEditor(engine, slot: target.slot)
+            }
         }
-    }
-
-    private func header(_ engine: LiftSessionEngine) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(session.programName ?? String(localized: "Session"))
-                .font(StrandFont.pro(34, weight: .bold))
-                .foregroundStyle(StrandPalette.textPrimary)
-                .lineLimit(2)
-            Text(String(localized: "\(engine.completedWorkingSets) of \(engine.plannedWorkingSets) sets done"))
-                .font(StrandFont.pro(15))
-                .foregroundStyle(StrandPalette.textSecondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: - Now
@@ -255,162 +237,118 @@ struct LiftSessionView: View {
 
     private func exerciseSection(_ engine: LiftSessionEngine, index: Int, item: LiftPlanItem) -> some View {
         let slots = engine.slots(forExercise: index)
-        let done = slots.filter { engine.isCompleted($0) }.count
-        return VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(item.exercise)
-                    .font(StrandFont.pro(22, weight: .bold))
-                    .foregroundStyle(StrandPalette.textPrimary)
-                    .lineLimit(2)
-                Spacer(minLength: 8)
-                Text(verbatim: "\(done)/\(slots.count)")
-                    .font(StrandFont.pro(17))
-                    .monospacedDigit()
-                    .foregroundStyle(StrandPalette.textSecondary)
-            }
-            .padding(.horizontal, 4)
-            if let note = item.note, !note.isEmpty {
-                Text(note)
-                    .font(StrandFont.pro(15))
-                    .foregroundStyle(StrandPalette.textSecondary)
-                    // The sets are what this page is for; a note must never push them off it.
-                    .lineLimit(3)
-                    .padding(.horizontal, 4)
-            }
+        return Section {
             ForEach(slots, id: \.self) { slot in
-                setBlock(engine, slot: slot)
+                setRow(engine, slot: slot)
+                    // Drop the last set with a swipe, as a list drops a row. This session only: whether the
+                    // program keeps the new count is asked when the session is finished.
+                    .swipeActions {
+                        if slot == slots.last, engine.canRemoveSet(fromExercise: index) {
+                            Button(role: .destructive) { session.removeSet(fromExercise: index) } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
+                    }
             }
-            setCountRow(engine, index: index, item: item)
-        }
-    }
-
-    /// Add one more set, or drop the last planned one — at the END of the exercise, where the question
-    /// comes up. **Both change this session only**: whether the program keeps the new count is asked when
-    /// the session is finished.
-    private func setCountRow(_ engine: LiftSessionEngine, index: Int, item: LiftPlanItem) -> some View {
-        let canAdd = item.targetSets < LiftSessionEngine.maxSetsPerExercise
-        let canRemove = engine.canRemoveSet(fromExercise: index)
-        return HStack(spacing: 20) {
             Button { session.addSet(toExercise: index) } label: {
-                Label("Add set", systemImage: "plus")
-                    .foregroundStyle(canAdd ? StrandPalette.activityExerciseText : StrandPalette.textTertiary)
+                Label("Add Set", systemImage: "plus")
+                    .foregroundStyle(StrandPalette.activityExerciseText)
             }
-            .disabled(!canAdd)
-            .accessibilityLabel(String(localized: "Add a set to \(item.exercise)"))
-            Button { session.removeSet(fromExercise: index) } label: {
-                Label("Remove set", systemImage: "minus")
-                    .foregroundStyle(canRemove ? StrandPalette.textSecondary : StrandPalette.textTertiary)
+            .disabled(item.targetSets >= LiftSessionEngine.maxSetsPerExercise)
+        } header: {
+            Text(item.exercise)
+                .font(StrandFont.pro(20, weight: .semibold))
+                .foregroundStyle(StrandPalette.textPrimary)
+                .textCase(nil)
+        } footer: {
+            if let note = item.note, !note.isEmpty {
+                Text(note).lineLimit(3)
             }
-            .disabled(!canRemove)
-            .accessibilityLabel(String(localized: "Remove the last set from \(item.exercise)"))
-            Spacer()
         }
-        .font(StrandFont.pro(17))
-        .buttonStyle(.plain)
-        .padding(.horizontal, 4)
-        .padding(.top, 2)
     }
 
     /// Width of the set-number column. Read by `LiftSessionEditSheet`, which lays its rows out the same.
     static let setColumnWidth: CGFloat = 34
 
-    /// The number fields' well. This screen is always dark, so a light wash reads as a field.
-    private static let fieldFill = Color.white.opacity(0.08)
-
     // MARK: - One set
 
-    /// One set as a block: its number (tap: warm-up), weight × reps and RPE, last session's numbers under
-    /// them, and the round button that starts the set — or, once done, redoes it.
-    private func setBlock(_ engine: LiftSessionEngine, slot: LiftSlot) -> some View {
+    /// A set as a list row: done / in progress / its number, "Set 2" (or "Warm-up"), and its numbers —
+    /// grey until entered, the way the whole session reads them.
+    private func setRow(_ engine: LiftSessionEngine, slot: LiftSlot) -> some View {
         let recorded = engine.recordedSet(for: slot) != nil
         let isWorking = engine.stage == .working(slot)
         let warmup = isWarmup(slot)
-        let last = previous(engine, slot: slot)
+        let entered = session.enteredValues(for: slot)
+        let typed = entered.weightKg != nil || entered.reps != nil
 
-        return HStack(spacing: 12) {
-            // The set number IS the warm-up toggle: warm-ups are left out of volume and the per-muscle
-            // counts, so marking one has to be a single tap without leaving the row.
-            Button { toggleWarmup(slot) } label: {
-                Text(warmup ? String(localized: "W") : "\(slot.setIndex)")
-                    .font(StrandFont.pro(17, weight: .semibold))
+        return Button { editingSet = SetEditTarget(slot: slot) } label: {
+            HStack(spacing: 12) {
+                Group {
+                    if recorded {
+                        Image(systemName: "checkmark.circle.fill").foregroundStyle(StrandPalette.activityExerciseText)
+                    } else if isWorking {
+                        Image(systemName: "record.circle").foregroundStyle(StrandPalette.activityExerciseText)
+                    } else {
+                        Image(systemName: "circle").foregroundStyle(StrandPalette.textTertiary)
+                    }
+                }
+                .font(.system(size: 22))
+                Text(warmup ? String(localized: "Warm-up") : String(localized: "Set \(slot.setIndex)"))
+                    .foregroundStyle(warmup ? StrandPalette.fitnessTime : StrandPalette.textPrimary)
+                Spacer()
+                Text(numbers(slot))
                     .monospacedDigit()
-                    .foregroundStyle(recorded && !warmup ? StrandPalette.fitnessOnAccent
-                                     : (warmup ? StrandPalette.fitnessTime : StrandPalette.textPrimary))
-                    .frame(width: 36, height: 36)
-                    .background(Circle().fill(recorded && !warmup ? StrandPalette.activityExerciseText
-                                              : (warmup ? StrandPalette.fitnessTime.opacity(0.2) : Color(white: 0.2))))
-                    .contentShape(Circle())
+                    .foregroundStyle(typed || recorded ? StrandPalette.textPrimary : StrandPalette.textTertiary)
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel(warmup
-                                ? String(localized: "Warm-up set — tap to make it a working set")
-                                : String(localized: "Set \(slot.setIndex) — tap to mark it a warm-up"))
-
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(alignment: .center, spacing: 6) {
-                    numberField(field: .weight(slot), text: weightBinding(slot), ghost: ghostWeight(slot))
-                        .frame(width: 70)
-                    Text(weightSymbol)
-                        .foregroundStyle(StrandPalette.textSecondary)
-                    Text(verbatim: "×")
-                        .foregroundStyle(StrandPalette.textSecondary)
-                    numberField(field: .reps(slot), text: repsBinding(slot), ghost: ghostReps(slot))
-                        .frame(width: 50)
-                    Spacer(minLength: 4)
-                    Text(verbatim: "RPE")
-                        .font(StrandFont.pro(13))
-                        .foregroundStyle(StrandPalette.textSecondary)
-                    numberField(field: .rpe(slot), text: rpeBinding(slot), ghost: ghostRpe(engine, slot: slot))
-                        .frame(width: 44)
-                }
-                .font(StrandFont.pro(15))
-                if last != "—" {
-                    Text("Last time: \(last)")
-                        .font(StrandFont.pro(13))
-                        .monospacedDigit()
-                        .foregroundStyle(StrandPalette.textSecondary)
-                        .lineLimit(1)
-                }
-            }
-
-            // Reports and acts: done, running, or a tap to start this set — how you jump to another set.
-            Button { session.start(slot) } label: {
-                Image(systemName: recorded ? "checkmark.circle.fill" : (isWorking ? "record.circle" : "play.circle"))
-                    .font(.system(size: 30, weight: .regular))
-                    .foregroundStyle(recorded || isWorking ? StrandPalette.activityExerciseText
-                                                           : StrandPalette.textTertiary)
-                    .frame(width: 40, height: 44)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(recorded ? String(localized: "Redo this set") : String(localized: "Start this set"))
+            .font(StrandFont.pro(17))
+            .contentShape(Rectangle())
         }
-        .padding(.leading, 12)
-        .padding(.trailing, 8)
-        .padding(.vertical, 10)
-        .background(isWorking ? StrandPalette.activityExerciseText.opacity(0.16) : Color(white: 0.11),
-                    in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .buttonStyle(.plain)
+        .listRowBackground(isWorking ? StrandPalette.activityExerciseText.opacity(0.16) : nil)
+    }
+
+    /// "80 kg × 10", from what was entered, else the grey chain; "—" when neither has anything.
+    private func numbers(_ slot: LiftSlot) -> String {
+        let v = session.values(of: slot)
+        switch (v.weightKg.map { "\(display($0)) \(weightSymbol)" }, v.reps) {
+        case (let w?, let r?): return "\(w) × \(r)"
+        case (let w?, nil):    return w
+        case (nil, let r?):    return "× \(r)"
+        case (nil, nil):       return "—"
+        }
     }
 
     /// Warm-up state lives in the controller, so a mark survives the sheet being minimised and applies
     /// however the set was closed out — button, strap, or the minimised bar.
     private func isWarmup(_ slot: LiftSlot) -> Bool { session.isWarmup(slot) }
 
-    private func toggleWarmup(_ slot: LiftSlot) {
-        session.setWarmup(slot, !session.isWarmup(slot))
+    // MARK: - Editing a set
+
+    private struct SetEditTarget: Identifiable {
+        let slot: LiftSlot
+        let id = UUID()
     }
 
-    private func numberField(field: FocusTarget, text: Binding<String>, ghost: String) -> some View {
-        TextField(ghost, text: text)
-            .textFieldStyle(.plain)
-            .font(StrandFont.pro(22, weight: .semibold))
-            .monospacedDigit()
-            .multilineTextAlignment(.center)
-            .foregroundStyle(StrandPalette.textPrimary)
-            .numericKeyboard()
-            .focused($focused, equals: field)
-            .frame(height: 40)
-            .background(Self.fieldFill, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+    private func setEditor(_ engine: LiftSessionEngine, slot: LiftSlot) -> some View {
+        let v = session.values(of: slot)
+        let rpe = session.enteredValues(for: slot).rpe ?? engine.planItem(for: slot)?.targetRpe
+        return LiftSetEditor(
+            title: isWarmup(slot) ? String(localized: "Warm-up") : String(localized: "Set \(slot.setIndex)"),
+            exercise: engine.planItem(for: slot)?.exercise ?? "",
+            system: unitSystem,
+            weightKg: v.weightKg, reps: v.reps, rpe: rpe, warmup: isWarmup(slot),
+            lastTime: previous(engine, slot: slot) == "—" ? nil : previous(engine, slot: slot),
+            canStart: engine.stage != .working(slot),
+            isDone: engine.recordedSet(for: slot) != nil,
+            onSave: { weightKg, reps, rpe, warmup in
+                if warmup != session.isWarmup(slot) { session.setWarmup(slot, warmup) }
+                write(slot) {
+                    $0.weightKg = weightKg
+                    $0.reps = reps
+                    $0.rpe = rpe
+                }
+            },
+            onStart: { session.start(slot) })
     }
 
     /// Last session's numbers for this set number, as "60 × 8": the Previous column.
@@ -425,94 +363,14 @@ struct LiftSessionView: View {
         }
     }
 
-    // MARK: - Ghost values
-    //
-    // The grey numbers come from ONE chain, `LiftSessionController.carry(for:)`: this exercise earlier
-    // in the session (set 2 almost always mirrors set 1), then the same set last session, then the
-    // program's target. The minimised bar and the Lock Screen read the same chain.
-    //
-    // A set keeps its grey numbers after it is done, until something is typed over them — grey means
-    // "not entered". What they are worth is decided when the session is finished: every set without
-    // typed numbers is completed with them, or discarded, in one choice.
-
-    private func ghostWeight(_ slot: LiftSlot) -> String {
-        session.carry(for: slot).weightKg.map { display($0) } ?? "—"
-    }
-
-    private func ghostReps(_ slot: LiftSlot) -> String {
-        session.carry(for: slot).reps.map(String.init) ?? "—"
-    }
-
-    /// Grey RPE is the line's max RPE when the program sets one — and, like every other grey number, it is
-    /// what the set saves if nothing is typed over it (RULES 34). A previous set's own rating is shown as a
-    /// reminder when the plan sets no maximum, and that one is never saved: it belongs to another set.
-    private func ghostRpe(_ engine: LiftSessionEngine, slot: LiftSlot) -> String {
-        if let planned = engine.planItem(for: slot)?.targetRpe { return LiftFormat.trim(planned) }
-        return engine.previousSetInSession(for: slot)?.rpe.map { LiftFormat.trim($0) } ?? "—"
-    }
-
     private func display(_ kg: Double) -> String {
         LiftFormat.trim(LiftFormat.display(fromKilograms: kg, system: unitSystem))
     }
 
-    // MARK: - Field bindings
+    // MARK: - Writing a set
     //
-    // Each field reads and writes THROUGH the controller, so a keystroke lands in the engine and on
-    // disk immediately.
-    //
-    // TYPING INTO ANY SET, AT ANY TIME. A set that has already been performed is edited in place; one
-    // that has not is held in `LiftSessionController.pendingValues` and applied the moment it is
-    // recorded. The two are indistinguishable from the row, which is the requirement: being mid-set
-    // on one machine is no reason to refuse a correction to another row you are looking at.
-    //
-    // This used to be a claim rather than a behaviour — the comment here said the value was "held
-    // until the set is recorded" while `write` silently dropped it — and a real session found it:
-    // "when I type something during an active set to other sets it refreshes to the empty".
-
-    /// A text binding that does not fight the user while they type: reads the draft if there is one,
-    /// otherwise the canonical rendering of what is stored.
-    ///
-    /// A typed comma becomes a point on the way in. iOS's `.decimalPad` labels its separator key
-    /// from the DEVICE's region — a German or French phone offers "," and the app cannot relabel it
-    /// — so the two would otherwise disagree with the "." this screen displays everywhere else.
-    /// Normalising here means the field always reads back in the notation it shows, whichever key
-    /// the keyboard happened to offer.
-    private func fieldBinding(_ field: FocusTarget,
-                              formatted: @escaping () -> String,
-                              store: @escaping (String) -> Void) -> Binding<String> {
-        Binding(
-            get: { draft[field] ?? formatted() },
-            set: { typed in
-                let text = typed.replacingOccurrences(of: ",", with: ".")
-                draft[field] = text
-                store(text)
-            })
-    }
-
-    private func weightBinding(_ slot: LiftSlot) -> Binding<String> {
-        fieldBinding(.weight(slot),
-                     formatted: { session.enteredValues(for: slot).weightKg.map { display($0) } ?? "" },
-                     store: { text in
-                         let kg = LiftFormat.number(text).map {
-                             LiftFormat.kilograms(fromDisplay: $0, system: unitSystem)
-                         }
-                         write(slot) { $0.weightKg = kg }
-                     })
-    }
-
-    private func repsBinding(_ slot: LiftSlot) -> Binding<String> {
-        fieldBinding(.reps(slot),
-                     formatted: { session.enteredValues(for: slot).reps.map(String.init) ?? "" },
-                     store: { text in
-                         write(slot) { $0.reps = Int(text.trimmingCharacters(in: .whitespaces)) }
-                     })
-    }
-
-    private func rpeBinding(_ slot: LiftSlot) -> Binding<String> {
-        fieldBinding(.rpe(slot),
-                     formatted: { session.enteredValues(for: slot).rpe.map { LiftFormat.trim($0) } ?? "" },
-                     store: { text in write(slot) { $0.rpe = LiftFormat.number(text) } })
-    }
+    // Through the controller, so a change lands in the engine and on disk at once — on a set already
+    // performed (edited in place) or one still to come (held in `pendingValues`, applied when recorded).
 
     /// Apply one field change to a set, leaving its other fields as they were.
     ///
@@ -527,37 +385,6 @@ struct LiftSessionView: View {
         mutate(&row)
         session.updateSet(slot, weightKg: row.weightKg, reps: row.reps,
                           rpe: row.rpe, isWarmup: row.isWarmup)
-    }
-
-    // MARK: - Adding an exercise
-
-    /// Add an exercise the program does not have — at the END of the session, after everything planned,
-    /// because that is where it goes: the program's lines keep their order, and the new one is tapped to
-    /// start whenever the lifter gets to it (Utku, 21 Sep 2026). Finishing asks whether the program keeps
-    /// it; until then it changes this session only, like ⊕/⊖.
-    private func addExerciseRow(_ engine: LiftSessionEngine) -> some View {
-        let canAdd = engine.plan.count < LiftSessionEngine.maxExercises
-        return Button {
-            addingExercise = true
-        } label: {
-            HStack(spacing: 14) {
-                Image(systemName: "plus")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(canAdd ? StrandPalette.activityExerciseText : StrandPalette.textTertiary)
-                    .frame(width: 40, height: 40)
-                    .background(Circle().fill(StrandPalette.fitnessCard))
-                Text("Add exercise")
-                    .font(StrandFont.pro(17))
-                    .foregroundStyle(canAdd ? StrandPalette.activityExerciseText : StrandPalette.textTertiary)
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(StrandPalette.summaryCard, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .disabled(!canAdd)
     }
 
     // MARK: - The control panel

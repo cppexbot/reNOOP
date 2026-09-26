@@ -1,6 +1,9 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Redo Set": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Переделать подход"}} } },
+    "Start Set": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Начать подход"}} } },
+    "reps": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "повт."}} } },
     "Last time: %@": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Прошлый раз: %@"}} } },
     "Remove set": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Убрать подход"}} } },
     "Session RPE (1–10)": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "RPE сессии (1–10)"}} } },
