@@ -1,6 +1,13 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "ACTIVE\nKCAL": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "АКТИВНЫЕ\nККАЛ"}} } },
+    "AVERAGE\nHEART RATE": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "СРЕДНИЙ\nПУЛЬС"}} } },
+    "AVERAGE\nPACE": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "СРЕДНИЙ\nТЕМП"}} } },
+    "End Workout": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Завершить тренировку"}} } },
+    "Delete Workout": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Удалить тренировку"}} } },
+    "Ending saves what's captured so far. It can't be resumed.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "При завершении сохранится всё записанное. Продолжить будет нельзя."}} } },
+    "Heart rate zones": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Пульсовые зоны"}} } },
     "Reorder": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Порядок"}} } },
     "Add Exercise": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Добавить упражнение"}} } },
     "Edit Exercise": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Изменить упражнение"}} } },

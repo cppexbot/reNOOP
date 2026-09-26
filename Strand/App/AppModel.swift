@@ -970,6 +970,25 @@ final class AppModel: ObservableObject {
         elapsedSeconds < minimumWorkoutSeconds
     }
 
+    /// Calories for a workout's captured HR window, from the same Keytel/Harris–Benedict model the
+    /// auto-detector uses, so a manual session shows energy too, not just duration/strain (#117). The live
+    /// screen and the saved row both read this, so the figure shown while recording is the one saved.
+    /// #983: takes the measured resting HR, not nil — the model's active-vs-resting threshold sits at resting
+    /// + 30% HRR, so the default would shift what counts as active and disagree with a later re-score.
+    func workoutCalories(_ samples: [HRSample], restingHR: Double) -> Double {
+        guard samples.count >= 2 else { return 0 }
+        let up = UserProfile(weightKg: profile.weightKg, heightCm: profile.heightCm,
+                             age: Double(profile.age), sex: profile.sex)
+        return Calories.estimateBoutCalories(samples, profile: up, hrmax: Double(profile.hrMax),
+                                             restingHR: restingHR).0
+    }
+
+    /// Calories so far for the workout in progress (see `workoutCalories`); 0 before two HR samples.
+    var activeWorkoutCalories: Double {
+        guard let w = activeWorkout else { return 0 }
+        return workoutCalories(w.samples, restingHR: repo.today?.restingHr.map(Double.init) ?? StrainScorer.defaultRestingHR)
+    }
+
     func endWorkout() {
         guard let w = activeWorkout else { return }
         activeWorkout = nil
@@ -1033,18 +1052,7 @@ final class AppModel: ObservableObject {
             ? StrainScorer.strain(samples, maxHR: Double(profile.hrMax),
                                   restingHR: restingHR,
                                   method: PuffinExperiment.effortMethod, sex: profile.sex) : nil
-        // Estimate calories from the captured HR window (same Keytel/Harris–Benedict model the
-        // auto-detector uses) so a manual session shows energy too, not just duration/strain. (#117)
-        let up = UserProfile(weightKg: profile.weightKg, heightCm: profile.heightCm,
-                             age: Double(profile.age), sex: profile.sex)
-        let kcal = samples.count >= 2
-            // #983: same measured resting HR as the strain above, not nil. The calories model's
-            // active-vs-resting threshold sits at resting + 30% HRR, so the default silently shifts what
-            // counts as active — and #972 already threads it in the rescore path, so leaving it nil here
-            // meant a saved workout's kcal disagreed with its own re-score just as its Effort did.
-            ? Calories.estimateBoutCalories(samples, profile: up, hrmax: Double(profile.hrMax),
-                                            restingHR: restingHR).0
-            : 0
+        let kcal = workoutCalories(samples, restingHR: restingHR)
         let startTs = Int(w.start.timeIntervalSince1970)
         let row = WorkoutRow(
             startTs: startTs, endTs: Int(end.timeIntervalSince1970),

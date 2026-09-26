@@ -1,7 +1,7 @@
 //  LiveWorkoutView.swift
 //  NOOP · the workout in progress, laid out as the iOS 26 Fitness app records one on iPhone: always dark,
-//  the live figures stacked in large rounded numerals, and a glass panel at the bottom holding the activity,
-//  the running clock in Exercise green and the controls.
+//  the live figures spread down the screen in large rounded numerals, a second page for heart-rate zones, and a
+//  dark panel at the bottom holding the activity, the running clock in Exercise green, today's rings and the controls.
 //
 //  Every figure comes from the same live feed and scorers as the rest of the app (#238): heart rate is the
 //  smoothed `AppModel.bpm`, Effort the running `ActiveWorkout.liveStrain`, distance and pace the on-device
@@ -14,6 +14,8 @@ import WhoopStore
 
 struct LiveWorkoutView: View {
     @EnvironmentObject private var model: AppModel
+    @EnvironmentObject private var repo: Repository
+    @EnvironmentObject private var profile: ProfileStore
     // PERF: deliberately does NOT observe `LiveState` — a strap publishes it ~1 Hz and every packet would
     // re-render the whole screen. The sensor rows are a leaf (`SensorFigures`) that owns that observation.
     let onClose: () -> Void
@@ -22,27 +24,32 @@ struct LiveWorkoutView: View {
     private var effortScale: EffortScale { UnitPrefs.resolveEffortScale(effortScaleRaw) }
     /// Keep the screen awake while recording (#703). Opt-in; the toggle lives in Settings.
     @AppStorage("workoutKeepScreenOn") private var keepScreenOn = false
+    @AppStorage(DayCycleMode.storageKey) private var dayCycleModeRaw = DayCycleMode.sleepOnset.rawValue
+    @AppStorage(UnitPrefs.systemKey) private var unitSystemRaw = UnitSystem.metric.rawValue
 
-    /// End and Delete both confirm first (#517): a stray tap must not end or discard the recording.
+    /// Ending confirms first (#517), and offers discarding there too, so a stray tap loses nothing.
     @State private var showEndConfirm = false
-    @State private var showDeleteConfirm = false
+    /// 0 = figures, 1 = heart-rate zones — the two pages Fitness swipes between.
+    @State private var page = 0
+    /// Today's Charge / Effort / Rest, drawn as the small rings beside the clock.
+    @State private var rings: [ActivityRing] = []
+
+    private var zoneSet: HRZoneSet { model.profile.hrZoneSet }
+    private var zone: Int { model.bpm.map { zoneSet.zoneNumber(forBPM: Double($0)) } ?? 0 }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-                effortFigure
-                heartRateFigure
-                if let avg = model.activeWorkout?.avgHr, avg > 0 {
-                    LiveFigure(value: "\(avg)", label: "AVERAGE\nHEART RATE")
-                }
-                DistancePaceFigures(recorder: model.gpsRecorder)
-                SensorFigures()
+        VStack(spacing: 0) {
+            TabView(selection: $page) {
+                figuresPage.tag(0)
+                zonesPage.tag(1)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 24)
-            .padding(.top, 28)
+            #if os(iOS)
+            .tabViewStyle(.page(indexDisplayMode: .never))
+            #endif
+            pageDots
+                .padding(.vertical, 12)
+            controlPanel
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) { controlPanel }
         .background(Color.black.ignoresSafeArea())
         .preferredColorScheme(.dark)
         // The workout ended elsewhere (e.g. a restart cleared it): close.
@@ -58,25 +65,79 @@ struct LiveWorkoutView: View {
             // Always release, even if the toggle was flipped off mid-workout.
             ScreenIdle.keepAwake(false)
         }
-        .alert("End this workout?", isPresented: $showEndConfirm) {
-            Button("Cancel", role: .cancel) {}
-            Button("End", role: .destructive) {
+        .task { await loadRings() }
+        .confirmationDialog("End this workout?", isPresented: $showEndConfirm, titleVisibility: .visible) {
+            Button("End Workout") {
                 model.endWorkout()
                 onClose()
             }
-        } message: {
-            Text("This stops recording and saves what's captured so far. It can't be resumed.")
-        }
-        .confirmationDialog("Delete this workout?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
-            Button("Delete", role: .destructive) {
+            Button("Delete Workout", role: .destructive) {
                 model.discardWorkout()
                 onClose()
             }
             Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Ending saves what's captured so far. It can't be resumed.")
         }
     }
 
-    // MARK: - Figures
+    // MARK: - Pages
+
+    /// The figures, spread down the screen as Fitness spaces them.
+    private var figuresPage: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Spacer(minLength: 8)
+            LiveFigure(value: "\(Int(model.activeWorkoutCalories.rounded()))", label: "ACTIVE\nKCAL")
+            Spacer(minLength: 8)
+            heartRateFigure
+            Spacer(minLength: 8)
+            DistancePaceFigures(recorder: model.gpsRecorder, spacer: true) {
+                effortFigure
+                Spacer(minLength: 8)
+                LiveFigure(value: (model.activeWorkout?.avgHr ?? 0) > 0 ? "\(model.activeWorkout!.avgHr)" : "--",
+                           label: "AVERAGE\nHEART RATE")
+            }
+            SensorFigures()
+            Spacer(minLength: 8)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 28)
+    }
+
+    /// Heart-rate zones: the current zone named in its hue over five segments, as the Workout app shows it.
+    private var zonesPage: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            Spacer()
+            Text(zone >= 1 ? String(localized: "Zone \(zone)") : String(localized: "Below Zone 1"))
+                .font(.system(size: 34, weight: .semibold, design: .rounded))
+                .foregroundStyle(zone >= 1 ? StrandPalette.fitnessZone(zone) : .white.opacity(0.6))
+            HStack(spacing: 6) {
+                ForEach(1...5, id: \.self) { z in
+                    Capsule()
+                        .fill(StrandPalette.fitnessZone(z).opacity(z == zone ? 1 : 0.25))
+                        .frame(height: z == zone ? 14 : 8)
+                }
+            }
+            heartRateFigure
+            if let band = zoneSet.zones.first(where: { $0.number == zone }) {
+                Text("\(Int(band.lower))–\(Int(band.upper)) \(String(localized: "bpm"))")
+                    .font(.system(size: 20, weight: .medium, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.6))
+            }
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 28)
+    }
+
+    private var pageDots: some View {
+        HStack(spacing: 8) {
+            ForEach(0..<2, id: \.self) { i in
+                Circle().fill(.white.opacity(i == page ? 1 : 0.35)).frame(width: 7, height: 7)
+            }
+        }
+        .accessibilityHidden(true)
+    }
 
     private var effortFigure: some View {
         let strain = model.activeWorkout?.liveStrain ?? 0
@@ -86,14 +147,14 @@ struct LiveWorkoutView: View {
     }
 
     private var heartRateFigure: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 6) {
+        HStack(alignment: .lastTextBaseline, spacing: 4) {
             Text(model.bpm.map { "\($0)" } ?? "--")
                 .font(LiveFigure.numeral)
                 .monospacedDigit()
                 .foregroundStyle(.white)
                 .contentTransition(.numericText())
             Image(systemName: "heart.fill")
-                .font(.system(size: 34, weight: .semibold))
+                .font(.system(size: 26, weight: .bold))
                 .foregroundStyle(StrandPalette.healthHeart)
         }
         .accessibilityElement(children: .ignore)
@@ -104,37 +165,46 @@ struct LiveWorkoutView: View {
     // MARK: - Control panel
 
     private var controlPanel: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 18) {
+            Capsule()
+                .fill(.white.opacity(0.3))
+                .frame(width: 36, height: 5)
+                .padding(.top, 8)
             HStack {
                 WorkoutTypeIcon(workoutType: model.activeWorkout?.sport ?? WorkoutCatalog.defaultSportName,
-                                size: 22, weight: .semibold, color: StrandPalette.activityExerciseText)
+                                size: 20, weight: .semibold, color: StrandPalette.activityExerciseText)
                     .frame(width: 44, height: 44)
                     .background(Circle().fill(StrandPalette.fitnessCard))
                 Spacer()
                 clock
                 Spacer()
-                Color.clear.frame(width: 44, height: 44)
+                ActivityRingsView(rings: rings, diameter: 44)
+                    .opacity(rings.isEmpty ? 0 : 1)
             }
             HStack {
-                controlButton("trash", size: 64, tint: StrandPalette.statusCritical,
-                              label: "Delete") { showDeleteConfirm = true }
+                controlButton("xmark", label: "End workout") { showEndConfirm = true }
                 Spacer()
                 pauseButton
                 Spacer()
-                controlButton("xmark", size: 64, tint: .white, label: "End workout") { showEndConfirm = true }
+                controlButton("waveform.path.ecg", label: "Heart rate zones") {
+                    withAnimation { page = page == 0 ? 1 : 0 }
+                }
             }
         }
-        .padding(20)
-        .liveWorkoutPanelGlass()
-        .padding(.horizontal, 12)
-        .padding(.bottom, 4)
+        .padding(.horizontal, 20)
+        .padding(.bottom, 20)
+        .background(
+            UnevenRoundedRectangle(topLeadingRadius: 38, topTrailingRadius: 38, style: .continuous)
+                .fill(Color(white: 0.11))
+                .ignoresSafeArea(edges: .bottom)
+        )
     }
 
     /// Minutes, seconds and hundredths — the stopwatch Fitness runs while recording.
     private var clock: some View {
         TimelineView(.animation(minimumInterval: 0.05)) { ctx in
             Text(Self.stopwatch(model.activeWorkout?.elapsed(at: ctx.date) ?? 0))
-                .font(.system(size: 40, weight: .semibold, design: .rounded))
+                .font(.system(size: 42, weight: .medium, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(StrandPalette.activityExerciseText)
                 .lineLimit(1)
@@ -147,28 +217,43 @@ struct LiveWorkoutView: View {
         let paused = model.activeWorkout?.isPaused == true
         return Button { model.toggleWorkoutPause() } label: {
             Image(systemName: paused ? "play.fill" : "pause.fill")
-                .font(.system(size: 34, weight: .bold))
+                .font(.system(size: 40, weight: .semibold))
                 .foregroundStyle(paused ? StrandPalette.fitnessOnAccent : .white)
-                .frame(width: 88, height: 88)
-                .background(Circle().fill(paused ? StrandPalette.activityExerciseText : Color.white.opacity(0.14)))
+                .frame(width: 112, height: 112)
+                .background(Circle().fill(paused ? StrandPalette.activityExerciseText : Color(white: 0.2)))
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text(paused ? "Resume" : "Pause"))
     }
 
-    private func controlButton(_ symbol: String, size: CGFloat, tint: Color, label: LocalizedStringKey,
+    private func controlButton(_ symbol: String, label: LocalizedStringKey,
                                action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(tint)
-                .frame(width: size, height: size)
-                .background(Circle().fill(Color.white.opacity(0.14)))
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 76, height: 76)
+                .background(Circle().fill(Color(white: 0.2)))
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text(label))
+    }
+
+    private func loadRings() async {
+        let system = UnitSystem(rawValue: unitSystemRaw) ?? .metric
+        let prefs = SummaryLoader.Prefs(dayCycleMode: DayCycleMode.persisted(dayCycleModeRaw), unitSystem: system,
+                                        fahrenheit: false, skinTempKind: .absolute)
+        let snap = await SummaryLoader.load(repo: repo, profile: profile, offset: 0, prefs: prefs)
+        rings = [
+            ActivityRing(id: "charge", fraction: RingFraction.of(snap.charge.pct, max: 100),
+                         start: StrandPalette.activityMoveStart, end: StrandPalette.activityMoveEnd),
+            ActivityRing(id: "effort", fraction: RingFraction.of(snap.effort, max: 100),
+                         start: StrandPalette.activityExerciseStart, end: StrandPalette.activityExerciseEnd),
+            ActivityRing(id: "rest", fraction: RingFraction.of(snap.rest, max: 100),
+                         start: StrandPalette.activityStandStart, end: StrandPalette.activityStandEnd),
+        ]
     }
 
     static func stopwatch(_ seconds: TimeInterval) -> String {
@@ -185,14 +270,14 @@ struct LiveWorkoutView: View {
 
 /// One live figure: a large rounded numeral with its small-caps label beside it, as Fitness stacks them.
 private struct LiveFigure: View {
-    static let numeral = Font.system(size: 76, weight: .medium, design: .rounded)
+    static let numeral = Font.system(size: 88, weight: .regular, design: .rounded)
 
     let value: String
     var unit: String = ""
     let label: LocalizedStringKey
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
+        HStack(alignment: .center, spacing: 8) {
             (Text(value).font(Self.numeral)
              + Text(unit.uppercased()).font(.system(size: 40, weight: .medium, design: .rounded)))
                 .monospacedDigit()
@@ -200,10 +285,11 @@ private struct LiveFigure: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
             Text(label)
-                .font(.system(size: 15, weight: .semibold))
+                .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.6))
                 .textCase(.uppercase)
                 .lineLimit(2)
+                .padding(.top, 14)
         }
         .accessibilityElement(children: .combine)
     }
@@ -213,8 +299,11 @@ private struct LiveFigure: View {
 
 /// Distance and pace from the on-device GPS recorder (#1195). Observes the recorder on its own, so a fix
 /// re-renders only these rows; renders nothing before the first accepted fix.
-private struct DistancePaceFigures: View {
+private struct DistancePaceFigures<Fallback: View>: View {
     @ObservedObject var recorder: GpsWorkoutRecorder
+    var spacer = false
+    /// Shown instead while there is no GPS fix (an indoor or non-GPS session).
+    @ViewBuilder let fallback: () -> Fallback
     @AppStorage(UnitPrefs.systemKey) private var unitSystemRaw = UnitSystem.metric.rawValue
     @AppStorage(UnitPrefs.distanceSystemKey) private var distanceSystemRaw = ""
     private var system: UnitSystem {
@@ -223,10 +312,13 @@ private struct DistancePaceFigures: View {
 
     var body: some View {
         if recorder.isRecording, recorder.pointCount > 0 {
-            let (d, du) = WorkoutDetailView.split(WorkoutDetailView.distance(recorder.distanceM, system: system))
-            LiveFigure(value: d, unit: du, label: "")
             LiveFigure(value: UnitFormatter.paceFromSecPerKm(recorder.paceSecPerKm, system: system),
                        label: "AVERAGE\nPACE")
+            if spacer { Spacer(minLength: 8) }
+            let (d, du) = WorkoutDetailView.split(WorkoutDetailView.distance(recorder.distanceM, system: system))
+            LiveFigure(value: d, unit: du, label: "")
+        } else {
+            fallback()
         }
     }
 }
@@ -254,24 +346,5 @@ private struct SensorFigures: View {
                 LiveFigure(value: "\(power)", unit: "W", label: "POWER")
             }
         }
-    }
-}
-
-// MARK: - Glass
-
-private extension View {
-    /// The bottom panel's surface: Liquid Glass on iOS 26 / macOS 26, a dark material before.
-    @ViewBuilder
-    func liveWorkoutPanelGlass() -> some View {
-        let shape = RoundedRectangle(cornerRadius: 40, style: .continuous)
-        #if compiler(>=6.2)
-        if #available(iOS 26.0, macOS 26.0, *) {
-            self.glassEffect(.regular, in: shape)
-        } else {
-            self.background(.ultraThinMaterial, in: shape)
-        }
-        #else
-        self.background(.ultraThinMaterial, in: shape)
-        #endif
     }
 }
