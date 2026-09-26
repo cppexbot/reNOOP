@@ -28,41 +28,42 @@ struct LiftProgramImportSheet: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: NoopMetrics.gap) {
-                    if let parsed {
-                        preview(parsed)
-                    } else {
-                        intro
-                    }
-                    if let failure {
-                        NoopCard {
-                            Text(failure)
-                                .font(StrandFont.footnote)
-                                .foregroundStyle(StrandPalette.statusCritical)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
+            Form {
+                if let parsed {
+                    preview(parsed)
+                } else {
+                    Section {
+                        chooseButton(String(localized: "Choose a file"), systemImage: "doc.badge.plus")
+                    } footer: {
+                        Text("Download the template from the NOOP repository, fill in one row per exercise, then bring the file here. Excel, Numbers, Google Sheets and LibreOffice all work — .xlsx or .csv.")
                     }
                 }
-                .padding(NoopMetrics.screenPadding)
+                if let failure {
+                    Section {
+                        Text(failure)
+                            .font(StrandFont.pro(15))
+                            .foregroundStyle(StrandPalette.statusCritical)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
             }
-            .background(StrandPalette.surfaceBase)
-            .navigationTitle("Import a program")
+            .navigationTitle(Text("Import Program"))
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
+                ToolbarItem(placement: .cancellationAction) { WorkoutSheetCloseButton { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    if let parsed, !parsed.programs.isEmpty {
-                        Button("Import") { Task { await performImport(parsed) } }
-                            .disabled(importing)
+                    WorkoutSheetConfirmButton {
+                        if let parsed { Task { await performImport(parsed) } }
                     }
+                    .disabled(importing || (parsed?.programs.isEmpty ?? true))
                 }
             }
         }
+        #if os(macOS)
+        .frame(minWidth: 480, minHeight: 560)
+        #endif
         .fileImporter(isPresented: $picking,
                       allowedContentTypes: Self.acceptedTypes,
                       allowsMultipleSelection: false) { result in
@@ -78,92 +79,71 @@ struct LiftProgramImportSheet: View {
         return types
     }()
 
-    private var intro: some View {
-        VStack(alignment: .leading, spacing: NoopMetrics.gap) {
-            NoopCard {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Fill it in on a computer")
-                        .font(StrandFont.headline)
-                        .foregroundStyle(StrandPalette.textPrimary)
-                    Text("Download the template from the NOOP repository, fill in one row per exercise, then bring the file here. Excel, Numbers, Google Sheets and LibreOffice all work — .xlsx or .csv.")
-                        .font(StrandFont.footnote)
-                        .foregroundStyle(StrandPalette.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text("Only the exercise name is required. Anything you leave blank can be filled in later, or during the session.")
-                        .font(StrandFont.footnote)
-                        .foregroundStyle(StrandPalette.textTertiary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+    private func chooseButton(_ title: String, systemImage: String) -> some View {
+        Button {
+            failure = nil
+            parsed = nil
+            picking = true
+        } label: {
+            Label {
+                Text(title).foregroundStyle(StrandPalette.activityExerciseText)
+            } icon: {
+                Image(systemName: systemImage).foregroundStyle(StrandPalette.activityExerciseText)
             }
-            Button {
-                failure = nil
-                picking = true
-            } label: {
-                Label("Choose a file", systemImage: "doc.badge.plus")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.noopPrimary)
         }
     }
 
-    private func preview(_ result: LiftProgramImportResult) -> some View {
-        VStack(alignment: .leading, spacing: NoopMetrics.gap) {
-            ForEach(Array(result.programs.enumerated()), id: \.offset) { _, program in
-                NoopCard {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(program.name)
-                            .font(StrandFont.headline)
+    /// What the file WILL create, shown before anything is written.
+    @ViewBuilder private func preview(_ result: LiftProgramImportResult) -> some View {
+        ForEach(Array(result.programs.enumerated()), id: \.offset) { _, program in
+            Section {
+                ForEach(Array(program.lines.enumerated()), id: \.offset) { _, line in
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(line.exercise)
+                            .font(StrandFont.pro(17))
                             .foregroundStyle(StrandPalette.textPrimary)
-                        Text("\(program.lines.count) exercises")
-                            .font(StrandFont.caption)
-                            .foregroundStyle(StrandPalette.textTertiary)
-                        ForEach(Array(program.lines.enumerated()), id: \.offset) { _, line in
-                            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                                Text(line.exercise)
-                                    .font(StrandFont.footnote)
-                                    .foregroundStyle(StrandPalette.textSecondary)
-                                Spacer(minLength: 8)
-                                Text(summary(line))
-                                    .font(StrandFont.captionNumber)
-                                    .foregroundStyle(StrandPalette.textTertiary)
-                            }
-                        }
+                        Spacer(minLength: 8)
+                        Text(summary(line))
+                            .font(StrandFont.pro(15).monospacedDigit())
+                            .foregroundStyle(StrandPalette.textSecondary)
                     }
                 }
+            } header: {
+                Text(program.name)
+                    .font(StrandFont.pro(20, weight: .bold))
+                    .foregroundStyle(StrandPalette.textPrimary)
+                    .textCase(nil)
+            } footer: {
+                Text("\(program.lines.count) exercises")
             }
+        }
 
-            if !result.warnings.isEmpty {
-                NoopCard {
-                    VStack(alignment: .leading, spacing: 6) {
-                        // No count in the heading: the warnings are listed directly beneath it, so
-                        // the number adds nothing — and it dodges plural agreement in ten languages.
-                        Text("Worth checking")
-                            .font(StrandFont.headline)
-                            .foregroundStyle(StrandPalette.metricAmber)
-                        // Shown in full rather than summarised: each one names a row the user can go
-                        // and fix, and a count alone would send them hunting.
-                        ForEach(Array(result.warnings.enumerated()), id: \.offset) { _, w in
-                            Text(w)
-                                .font(StrandFont.footnote)
-                                .foregroundStyle(StrandPalette.textSecondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        Text("These lines still import — anything unclassified can be set in the app.")
-                            .font(StrandFont.footnote)
-                            .foregroundStyle(StrandPalette.textTertiary)
+        if !result.warnings.isEmpty {
+            Section {
+                // Shown in full rather than summarised: each one names a row the user can go and fix,
+                // and a count alone would send them hunting.
+                ForEach(Array(result.warnings.enumerated()), id: \.offset) { _, w in
+                    Label {
+                        Text(w)
+                            .font(StrandFont.pro(15))
+                            .foregroundStyle(StrandPalette.textPrimary)
                             .fixedSize(horizontal: false, vertical: true)
+                    } icon: {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(StrandPalette.metricAmber)
                     }
                 }
+            } header: {
+                // No count in the heading: the warnings are listed directly beneath it, so the number
+                // adds nothing — and it dodges plural agreement in ten languages.
+                Text("Worth checking")
+            } footer: {
+                Text("These lines still import — anything unclassified can be set in the app.")
             }
+        }
 
-            Button {
-                failure = nil
-                parsed = nil
-                picking = true
-            } label: {
-                Label("Choose a different file", systemImage: "arrow.triangle.2.circlepath")
-            }
-            .buttonStyle(NoopButtonStyle(.secondary))
+        Section {
+            chooseButton(String(localized: "Choose a different file"), systemImage: "arrow.triangle.2.circlepath")
         }
     }
 

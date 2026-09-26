@@ -65,21 +65,39 @@ struct LiftSessionEditSheet: View {
     }
 
     var body: some View {
-        ScreenScaffold(title: "Edit sets",
-                       subtitle: "Fix numbers, or add and remove sets. Sets left at 0 reps stay out of the figures, and only this session changes — not the program.") {
-            VStack(alignment: .leading, spacing: NoopMetrics.sectionGap) {
-                sessionRpeCard
-                ForEach(exercises.indices, id: \.self) { exerciseCard($0) }
-                footer
+        NavigationStack {
+            Form {
+                Section {
+                    LabeledContent("RPE") {
+                        TextField("", text: Binding(
+                            get: { sessionRpeText },
+                            set: { sessionRpeText = $0.replacingOccurrences(of: ",", with: ".") }),
+                                  prompt: Text(verbatim: "1–10"))
+                            .multilineTextAlignment(.trailing)
+                            .numericKeyboard()
+                            .focused($focused, equals: .sessionRpe)
+                    }
+                } header: {
+                    Text("Session")
+                }
+                ForEach(exercises.indices, id: \.self) { exerciseSection($0) }
             }
+            .navigationTitle(Text("Edit Sets"))
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { WorkoutSheetCloseButton { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    WorkoutSheetConfirmButton { Task { await save() } }
+                        .disabled(saving || !hasChanges)
+                }
+            }
+            .liftKeyboardDone($focused)
         }
-        #if os(iOS)
-        .presentationDragIndicator(.visible)
-        #else
-        .frame(width: 560, height: 780)
+        #if os(macOS)
+        .frame(minWidth: 520, minHeight: 640)
         #endif
-        .background(StrandPalette.surfaceBase)
-        .keyboardDoneToolbar($focused)
         .dismissesKeyboardOnTap($focused)
         // A field holding 0 (a discarded set) empties when focused, so typing replaces the 0 instead of
         // appending to it ("0" then "60" read "600" in the simulator); left empty, it goes back to 0. The
@@ -91,38 +109,44 @@ struct LiftSessionEditSheet: View {
         .onAppear(perform: fill)
     }
 
-    private var sessionRpeCard: some View {
-        NoopCard {
-            VStack(alignment: .leading, spacing: NoopMetrics.gap) {
-                Text("How hard was the whole session? (1–10)").strandOverline()
-                field(.sessionRpe, text: Binding(
-                    get: { sessionRpeText },
-                    set: { sessionRpeText = $0.replacingOccurrences(of: ",", with: ".") }))
-            }
-        }
-    }
-
-    private func exerciseCard(_ index: Int) -> some View {
+    /// One exercise: a column heading, its sets (swipe to delete, keeping at least one) and Add Set.
+    private func exerciseSection(_ index: Int) -> some View {
         let group = exercises[index]
-        return NoopCard {
-            VStack(alignment: .leading, spacing: NoopMetrics.rowSpacing) {
-                Text(group.name)
-                    .font(StrandFont.headline)
-                    .foregroundStyle(StrandPalette.textPrimary)
-                HStack(spacing: 8) {
-                    Text("Set").strandOverline()
-                        .frame(width: LiftSessionView.setColumnWidth, alignment: .center)
-                    Text(weightHeading).strandOverline().frame(maxWidth: .infinity, alignment: .leading)
-                    Text("Reps").strandOverline().frame(maxWidth: .infinity, alignment: .leading)
-                    Text("RPE").strandOverline().frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-                ForEach(Array(group.entries.enumerated()), id: \.element.id) { position, entry in
-                    setRow(exercise: index, position: position, entry: entry)
-                }
-                setCountRow(index)
+        let canAdd = group.entries.count < LiftSessionEngine.maxSetsPerExercise
+        return Section {
+            HStack(spacing: 8) {
+                Text("Set").frame(width: Self.setColumnWidth, alignment: .center)
+                Text(weightHeading).frame(maxWidth: .infinity, alignment: .leading)
+                Text("Reps").frame(maxWidth: .infinity, alignment: .leading)
+                Text("RPE").frame(maxWidth: .infinity, alignment: .leading)
             }
+            .font(StrandFont.pro(13))
+            .foregroundStyle(StrandPalette.textSecondary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            .accessibilityHidden(true)
+
+            ForEach(Array(group.entries.enumerated()), id: \.element.id) { position, entry in
+                setRow(exercise: index, position: position, entry: entry)
+                    .deleteDisabled(group.entries.count <= 1)
+            }
+            .onDelete { removeSets(index, at: $0) }
+
+            Button { addSet(index) } label: {
+                Label {
+                    Text("Add Set")
+                } icon: {
+                    Image(systemName: "plus")
+                }
+                .foregroundStyle(canAdd ? StrandPalette.activityExerciseText : StrandPalette.textTertiary)
+            }
+            .disabled(!canAdd)
+            .accessibilityLabel(String(localized: "Add a set to \(group.name)"))
+        } header: {
+            Text(group.name)
+                .font(StrandFont.pro(20, weight: .bold))
+                .foregroundStyle(StrandPalette.textPrimary)
+                .textCase(nil)
         }
     }
 
@@ -133,9 +157,12 @@ struct LiftSessionEditSheet: View {
         return HStack(spacing: 8) {
             Button { update(exercise, entry.id) { $0.form.isWarmup.toggle() } } label: {
                 Text(warmup ? String(localized: "W") : "\(position + 1)")
-                    .font(StrandFont.captionNumber)
-                    .foregroundStyle(warmup ? StrandPalette.metricAmber : StrandPalette.textSecondary)
-                    .frame(width: LiftSessionView.setColumnWidth, alignment: .center)
+                    .font(StrandFont.pro(15, weight: .semibold).monospacedDigit())
+                    .foregroundStyle(warmup ? StrandPalette.metricAmber : StrandPalette.activityExerciseText)
+                    .frame(width: 30, height: 30)
+                    .background(Circle().fill(warmup ? StrandPalette.metricAmber.opacity(0.18)
+                                                     : StrandPalette.fitnessCard))
+                    .frame(width: Self.setColumnWidth, alignment: .center)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -146,48 +173,12 @@ struct LiftSessionEditSheet: View {
             field(.reps(entry.id), text: binding(exercise, entry.id, \.reps))
             field(.rpe(entry.id), text: binding(exercise, entry.id, \.rpe))
         }
-        .padding(.vertical, 6)
-    }
-
-    /// Add a set at the end of an exercise, or drop its last one — the same control as the session
-    /// sheet. An exercise keeps at least one row: set it to 0 reps to take it out of the figures.
-    private func setCountRow(_ index: Int) -> some View {
-        let group = exercises[index]
-        let canAdd = group.entries.count < LiftSessionEngine.maxSetsPerExercise
-        let canRemove = group.entries.count > 1
-        return HStack(spacing: 8) {
-            Button { addSet(index) } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "plus.circle")
-                        .font(.system(size: 17, weight: .semibold))
-                    Text("Add set").font(StrandFont.caption)
-                }
-                .foregroundStyle(canAdd ? StrandPalette.effortColor : StrandPalette.textTertiary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .disabled(!canAdd)
-            .accessibilityLabel(String(localized: "Add a set to \(group.name)"))
-
-            Button { removeSet(index) } label: {
-                Image(systemName: "minus.circle")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(canRemove ? StrandPalette.textSecondary
-                                               : StrandPalette.textTertiary.opacity(0.4))
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .disabled(!canRemove)
-            .accessibilityLabel(String(localized: "Remove the last set from \(group.name)"))
-        }
-        .padding(.top, 2)
     }
 
     private func field(_ target: Field, text: Binding<String>) -> some View {
-        TextField(Self.empty, text: text)
+        TextField("", text: text, prompt: Text(verbatim: Self.empty))
             .textFieldStyle(.plain)
-            .font(StrandFont.bodyNumber)
+            .font(StrandFont.pro(17).monospacedDigit())
             .foregroundStyle(StrandPalette.textPrimary)
             .numericKeyboard()
             .focused($focused, equals: target)
@@ -247,24 +238,12 @@ struct LiftSessionEditSheet: View {
             form: SetForm(weight: last.form.weight, reps: last.form.reps, rpe: "", isWarmup: false)))
     }
 
-    private func removeSet(_ exercise: Int) {
-        guard exercises[exercise].entries.count > 1 else { return }
-        exercises[exercise].entries.removeLast()
-    }
-
-    private var footer: some View {
-        HStack {
-            Button("Cancel") { dismiss() }
-                .buttonStyle(.plain)
-                .font(StrandFont.body)
-                .foregroundStyle(StrandPalette.textSecondary)
-            Spacer()
-            Button("Save changes") { Task { await save() } }
-                .buttonStyle(.noopPrimary)
-                .frame(maxWidth: 180)
-                .disabled(saving || !hasChanges)
-                .opacity(saving || !hasChanges ? NoopButtonMetrics.disabledOpacity : 1)
-        }
+    /// Swipe-to-delete. An exercise keeps at least one row: set it to 0 reps to take it out of the figures.
+    private func removeSets(_ exercise: Int, at offsets: IndexSet) {
+        guard exercises.indices.contains(exercise),
+              exercises[exercise].entries.count - offsets.count >= 1 else { return }
+        restoreClearedZero()
+        exercises[exercise].entries.remove(atOffsets: offsets)
     }
 
     private func fill() {
@@ -364,4 +343,6 @@ struct LiftSessionEditSheet: View {
     }
 
     private static let empty = "—"
+    /// The set-number column, wide enough for the number's circle.
+    private static let setColumnWidth: CGFloat = 34
 }

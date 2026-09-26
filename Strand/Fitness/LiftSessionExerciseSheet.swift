@@ -3,10 +3,10 @@ import StrandDesign
 import WhoopStore
 
 // Add an exercise to the running session (Utku, 21 Sep 2026): one done before, picked from the user's own
-// exercise names, or a new one, typed and given its muscles — and remembered, like a name typed into the
-// program editor. It joins the session at the end of the sheet as one set planned at 0 kg × 0 reps; ⊕/⊖
-// change its sets like any other line, and finishing asks whether the program keeps it. Sets, rest and
-// max RPE are not asked here: they belong to the program editor, later.
+// exercise names in a searchable list, or a new one, typed into the search and given its muscles on the
+// next page — and remembered, like a name typed into the program editor. It joins the session at the end
+// as one set planned at 0 kg × 0 reps; ⊕/⊖ change its sets like any other line, and finishing asks whether
+// the program keeps it. Sets, rest and max RPE are not asked here: they belong to the program editor, later.
 
 struct LiftSessionExerciseSheet: View {
     /// Handed the exercise once it is remembered; the session adds it.
@@ -23,9 +23,8 @@ struct LiftSessionExerciseSheet: View {
     /// Set when the vocabulary is full, so the refusal is explained rather than silent.
     @State private var vocabularyFullLimit: Int?
     @State private var adding = false
-
-    @FocusState private var focused: Field?
-    private enum Field: Hashable { case exercise }
+    /// Drives the pushed muscles page once a name is picked.
+    @State private var confirming = false
 
     private var trimmedExercise: String {
         exercise.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -33,26 +32,25 @@ struct LiftSessionExerciseSheet: View {
     private var canAdd: Bool { !trimmedExercise.isEmpty && !adding }
 
     var body: some View {
-        ScreenScaffold(title: "Add exercise",
-                       subtitle: "Pick one you have done before, or type a new name.") {
-            VStack(alignment: .leading, spacing: NoopMetrics.sectionGap) {
-                exerciseSection
-                LiftMusclePicker(primary: $primary, secondaries: $secondaries)
-                Text("It joins this session with one set, its weight and reps at 0 until you type what you lift. Finishing asks whether the program keeps it.")
-                    .font(StrandFont.footnote)
-                    .foregroundStyle(StrandPalette.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-                footer
-            }
+        NavigationStack {
+            LiftExerciseList(vocabulary: vocabulary,
+                             selected: trimmedExercise.isEmpty ? nil : trimmedExercise,
+                             onPick: { name, known in
+                                 if let known { adopt(known) } else { exercise = name }
+                                 confirming = true
+                             })
+                .navigationTitle(Text("Add exercise"))
+                #if os(iOS)
+                .navigationBarTitleDisplayMode(.inline)
+                #endif
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) { WorkoutSheetCloseButton { dismiss() } }
+                }
+                .navigationDestination(isPresented: $confirming) { musclesPage }
         }
-        #if os(iOS)
-        .presentationDragIndicator(.visible)
-        #else
-        .frame(width: 520, height: 640)
+        #if os(macOS)
+        .frame(minWidth: 520, minHeight: 640)
         #endif
-        .background(StrandPalette.surfaceBase)
-        .keyboardDoneToolbar($focused)
-        .dismissesKeyboardOnTap($focused)
         .task { await load() }
         // A name typed out in full that is already known brings its muscles with it, as picking it from
         // the list does — unless muscles were already chosen here.
@@ -71,43 +69,26 @@ struct LiftSessionExerciseSheet: View {
         }
     }
 
-    private var exerciseSection: some View {
-        let suggestions = LiftExerciseVocabulary.suggestions(vocabulary, matching: exercise, limit: 8)
-        return VStack(alignment: .leading, spacing: NoopMetrics.gap) {
-            SectionHeader("Exercise", overline: "Movement")
-            NoopCard {
-                VStack(alignment: .leading, spacing: NoopMetrics.gap) {
-                    TextField("Incline dumbbell press", text: $exercise)
-                        .textFieldStyle(.plain)
-                        .font(StrandFont.body)
-                        .foregroundStyle(StrandPalette.textPrimary)
-                        .focused($focused, equals: .exercise)
-                    if !suggestions.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Used before").strandOverline()
-                            ForEach(suggestions, id: \.id) { row in
-                                Button { adopt(row) } label: { LiftExerciseSuggestionLabel(row: row) }
-                                    .buttonStyle(.plain)
-                            }
-                        }
-                    }
-                }
+    /// The picked name with its muscles, and the ✓ that adds it.
+    private var musclesPage: some View {
+        Form {
+            Section {
+                LabeledContent("Exercise", value: trimmedExercise)
+            } footer: {
+                Text("It joins this session with one set, its weight and reps at 0 until you type what you lift. Finishing asks whether the program keeps it.")
             }
+            LiftMusclePicker(primary: $primary, secondaries: $secondaries)
         }
-    }
-
-    private var footer: some View {
-        HStack {
-            Button("Cancel") { dismiss() }
-                .buttonStyle(.plain)
-                .font(StrandFont.body)
-                .foregroundStyle(StrandPalette.textSecondary)
-            Spacer()
-            Button("Add to session") { Task { await add() } }
-                .buttonStyle(.noopPrimary)
-                .frame(maxWidth: 200)
-                .disabled(!canAdd)
-                .opacity(canAdd ? 1 : NoopButtonMetrics.disabledOpacity)
+        .navigationTitle(Text("Add exercise"))
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                WorkoutSheetConfirmButton { Task { await add() } }
+                    .disabled(!canAdd)
+                    .accessibilityLabel(Text("Add to session"))
+            }
         }
     }
 
@@ -116,7 +97,6 @@ struct LiftSessionExerciseSheet: View {
         exercise = row.name
         primary = row.primaryMuscle
         secondaries = Set(row.secondaryMuscles)
-        focused = nil
     }
 
     private func load() async {

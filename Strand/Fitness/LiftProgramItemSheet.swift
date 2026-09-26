@@ -46,12 +46,12 @@ struct LiftProgramItemSheet: View {
     /// setting of its own, so the plan is typed in the same unit the session records in.
     @AppStorage(UnitPrefs.systemKey) private var unitSystemRaw = UnitSystem.metric.rawValue
     private var unitSystem: UnitSystem { UnitSystem(rawValue: unitSystemRaw) ?? .metric }
-    private var weightLabel: LocalizedStringKey {
-        unitSystem == .imperial ? "Weight (lb)" : "Weight (kg)"
-    }
+
+    /// Drives the pushed exercise list; a pick sets the exercise and pops back.
+    @State private var pickingExercise = false
 
     @FocusState private var focused: Field?
-    private enum Field: Hashable { case exercise, sets, reps, weight, rest, maxRpe, note }
+    private enum Field: Hashable { case sets, reps, weight, rest, maxRpe, note }
 
     private var trimmedExercise: String {
         exercise.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -65,30 +65,88 @@ struct LiftProgramItemSheet: View {
     }
     private var canSave: Bool { !trimmedExercise.isEmpty && !maxRpeInvalid }
 
-    private var suggestions: [LiftExerciseRow] {
-        LiftExerciseVocabulary.suggestions(vocabulary, matching: exercise)
-    }
-
     var body: some View {
-        ScreenScaffold(
-            title: item == nil ? "Add exercise" : "Edit exercise",
-            subtitle: "Type any name you like. NOOP remembers it, with the muscles you give it."
-        ) {
-            VStack(alignment: .leading, spacing: NoopMetrics.sectionGap) {
-                exerciseSection
+        NavigationStack {
+            Form {
+                Section {
+                    Button { pickingExercise = true } label: {
+                        LabeledContent("Exercise") {
+                            HStack(spacing: 6) {
+                                Text(trimmedExercise.isEmpty ? String(localized: "Choose") : trimmedExercise)
+                                    .lineLimit(1)
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(StrandPalette.textTertiary)
+                            }
+                        }
+                    }
+                    .foregroundStyle(StrandPalette.textPrimary)
+                }
+
                 LiftMusclePicker(primary: $primary, secondaries: $secondaries)
-                targetsSection
-                noteSection
-                footer
+
+                // Max RPE is a CEILING, not effort planned in advance (Utku, 15 Sep 2026): the hardest a
+                // set should feel, so a lifter knows where to hold back. It is shown grey in the session
+                // and, like every other grey number, a set left unrated saves it (Utku, 16 Sep 2026;
+                // RULES 34) — typing a rating always wins.
+                Section {
+                    numberRow("Working sets", text: $setsText, field: .sets)
+                    numberRow("Reps", text: $repsText, field: .reps)
+                    numberRow("Weight", text: $weightText, unit: LiftFormat.weightUnit(unitSystem), field: .weight)
+                    numberRow("Rest (seconds)", text: $restText, field: .rest)
+                    numberRow("Max RPE (1–10)", text: $maxRpeText, field: .maxRpe)
+                } header: {
+                    Text("Targets")
+                } footer: {
+                    if maxRpeInvalid {
+                        Text("Max RPE must be between 1 and 10.")
+                            .foregroundStyle(StrandPalette.statusWarning)
+                    } else {
+                        Text("Max RPE is a ceiling: the hardest a set should feel, where 10 means nothing left. It shows grey during the session, and a set you leave unrated saves it as its rating.")
+                    }
+                }
+
+                Section {
+                    TextField("", text: $note, prompt: Text("Slow eccentric, pause at the bottom"), axis: .vertical)
+                        // A cue read between sets, and it renders directly above the set rows — every
+                        // line pushes them down the screen.
+                        .onChange(of: note) { new in
+                            if new.count > WhoopStore.maxExerciseNoteLength {
+                                note = String(new.prefix(WhoopStore.maxExerciseNoteLength))
+                            }
+                        }
+                        .lineLimit(1...4)
+                        .focused($focused, equals: .note)
+                } header: {
+                    Text("Technique note")
+                }
             }
+            .navigationDestination(isPresented: $pickingExercise) {
+                LiftExerciseList(vocabulary: vocabulary,
+                                 selected: trimmedExercise.isEmpty ? nil : trimmedExercise,
+                                 onPick: { name, known in
+                                     if let known { adopt(known) } else { exercise = name }
+                                     pickingExercise = false
+                                 },
+                                 onForget: { forgetting = $0 })
+                    .navigationTitle(Text("Exercise"))
+            }
+            .navigationTitle(item == nil ? Text("Add Exercise") : Text("Edit Exercise"))
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { WorkoutSheetCloseButton { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    WorkoutSheetConfirmButton { Task { await save() } }
+                        .disabled(!canSave)
+                }
+            }
+            .liftKeyboardDone($focused)
         }
-        #if os(iOS)
-        .presentationDragIndicator(.visible)
-        #else
-        .frame(width: 520, height: 720)
+        #if os(macOS)
+        .frame(minWidth: 480, minHeight: 640)
         #endif
-        .background(StrandPalette.surfaceBase)
-        .keyboardDoneToolbar($focused)
         .dismissesKeyboardOnTap($focused)
         .task { await loadIfNeeded() }
         .confirmationDialog(
@@ -120,162 +178,20 @@ struct LiftProgramItemSheet: View {
         forgetting = nil
     }
 
-    // MARK: - Exercise name + suggestions
-
-    private var exerciseSection: some View {
-        VStack(alignment: .leading, spacing: NoopMetrics.gap) {
-            SectionHeader("Exercise", overline: "Movement")
-            NoopCard {
-                VStack(alignment: .leading, spacing: NoopMetrics.gap) {
-                    TextField("Incline dumbbell press", text: $exercise)
-                        .textFieldStyle(.plain)
-                        .font(StrandFont.body)
-                        .foregroundStyle(StrandPalette.textPrimary)
-                        .focused($focused, equals: .exercise)
-
-                    if !suggestions.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Used before").strandOverline()
-                            ForEach(suggestions, id: \.id) { row in
-                                HStack(spacing: 8) {
-                                    Button {
-                                        adopt(row)
-                                    } label: {
-                                        LiftExerciseSuggestionLabel(row: row)
-                                    }
-                                    .buttonStyle(.plain)
-
-                                    // A typo becomes a permanent picker entry otherwise. Forgetting a
-                                    // name is safe by construction: every logged set SNAPSHOTS its
-                                    // exercise name and classification, so history is untouched.
-                                    Button(role: .destructive) {
-                                        forgetting = row
-                                    } label: {
-                                        Image(systemName: "trash")
-                                            .font(.system(size: 12, weight: .semibold))
-                                            .foregroundStyle(StrandPalette.textTertiary)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .accessibilityLabel("Forget this exercise")
-                                }
-                            }
-                        }
-                    }
+    /// One target typed in by hand: the label, a trailing number field and, for weight, its unit.
+    private func numberRow(_ label: LocalizedStringKey, text: Binding<String>, unit: String? = nil,
+                           field: Field) -> some View {
+        LabeledContent(label) {
+            HStack(spacing: 4) {
+                TextField("", text: text, prompt: Text("Optional"))
+                    .multilineTextAlignment(.trailing)
+                    .numericKeyboard()
+                    .focused($focused, equals: field)
+                if let unit {
+                    Text(unit).foregroundStyle(StrandPalette.textSecondary)
                 }
             }
         }
-    }
-
-    // MARK: - Targets
-
-    private var targetsSection: some View {
-        VStack(alignment: .leading, spacing: NoopMetrics.gap) {
-            SectionHeader("Targets", overline: "What you're aiming for")
-            NoopCard {
-                VStack(alignment: .leading, spacing: 14) {
-                    HStack(spacing: NoopMetrics.gap) {
-                        field("Working sets") {
-                            numberInput("4", text: $setsText, field: .sets)
-                        }
-                        field("Reps") {
-                            numberInput("8", text: $repsText, field: .reps)
-                        }
-                    }
-                    HStack(spacing: NoopMetrics.gap) {
-                        field(weightLabel) {
-                            numberInput("60", text: $weightText, field: .weight)
-                        }
-                        field("Rest (seconds)") {
-                            numberInput("120", text: $restText, field: .rest)
-                        }
-                    }
-                    // Max RPE is a CEILING, not effort planned in advance (Utku, 15 Sep 2026): the
-                    // hardest a set should feel, so a lifter knows where to hold back. It is shown grey in
-                    // the session and, like every other grey number, a set left unrated saves it
-                    // (Utku, 16 Sep 2026; RULES 34) — typing a rating always wins.
-                    HStack(spacing: NoopMetrics.gap) {
-                        field("Max RPE (1–10)") {
-                            numberInput("8", text: $maxRpeText, field: .maxRpe)
-                        }
-                        Color.clear.frame(maxWidth: .infinity, maxHeight: 0)
-                    }
-                    if maxRpeInvalid {
-                        Text("Max RPE must be between 1 and 10.")
-                            .font(StrandFont.footnote)
-                            .foregroundStyle(StrandPalette.statusWarning)
-                    }
-                    Text("Max RPE is a ceiling: the hardest a set should feel, where 10 means nothing left. It shows grey during the session, and a set you leave unrated saves it as its rating.")
-                        .font(StrandFont.footnote)
-                        .foregroundStyle(StrandPalette.textTertiary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text("Every target is optional — this is the plan, not the record. What you actually lift is entered set by set during the session.")
-                        .font(StrandFont.footnote)
-                        .foregroundStyle(StrandPalette.textTertiary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-        }
-    }
-
-    private var noteSection: some View {
-        VStack(alignment: .leading, spacing: NoopMetrics.gap) {
-            SectionHeader("Technique note", overline: "In your words")
-            NoopCard {
-                TextField("Slow eccentric, pause at the bottom", text: $note, axis: .vertical)
-                    // A cue read between sets, and it renders directly above the set rows — every
-                    // line pushes them down the screen.
-                    .onChange(of: note) { new in
-                        if new.count > WhoopStore.maxExerciseNoteLength {
-                            note = String(new.prefix(WhoopStore.maxExerciseNoteLength))
-                        }
-                    }
-                    .textFieldStyle(.plain)
-                    .font(StrandFont.body)
-                    .foregroundStyle(StrandPalette.textPrimary)
-                    .lineLimit(1...4)
-                    .focused($focused, equals: .note)
-            }
-        }
-    }
-
-    // MARK: - Footer
-
-    private var footer: some View {
-        HStack {
-            Button("Cancel") { dismiss() }
-                .buttonStyle(.plain)
-                .font(StrandFont.body)
-                .foregroundStyle(StrandPalette.textSecondary)
-            Spacer()
-            Button("Save") { Task { await save() } }
-                .buttonStyle(.noopPrimary)
-                .frame(maxWidth: 160)
-                .disabled(!canSave)
-                .opacity(canSave ? 1 : NoopButtonMetrics.disabledOpacity)
-                .accessibilityLabel("Save exercise")
-        }
-    }
-
-    // MARK: - Field helpers (the house form idiom)
-
-    private func field<Content: View>(_ label: LocalizedStringKey,
-                                      @ViewBuilder _ content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(label).strandOverline()
-            content()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private func numberInput(_ placeholder: LocalizedStringKey,
-                             text: Binding<String>,
-                             field: Field) -> some View {
-        TextField(placeholder, text: text)
-            .textFieldStyle(.plain)
-            .font(StrandFont.bodyNumber)
-            .foregroundStyle(StrandPalette.textPrimary)
-            .numericKeyboard()
-            .focused($focused, equals: field)
     }
 
     // MARK: - Behaviour

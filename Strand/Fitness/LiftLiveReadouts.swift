@@ -31,34 +31,22 @@ struct LiftRunningClock: View {
 /// the first thing that produced was "there is no HR in the minimised tab" — an absent readout is
 /// indistinguishable from an absent feature, while a dash says the strap is not reading, which is something to
 /// act on. Display only: nothing here feeds a score; Effort stays what the strap measured.
+///
+/// A heart and the number, in the Health heart red — the session panel and the minimised bar both show it so.
 struct LiftHeartRate: View {
-    enum Style {
-        /// Heart and number in caption size — the minimised bar.
-        case compact
-        /// The number alone in body size, under the sheet's "HR" label.
-        case plain
-    }
-
-    let style: Style
     @EnvironmentObject private var model: AppModel
 
     var body: some View {
-        let tint = model.bpm == nil ? StrandPalette.textTertiary : StrandPalette.metricRose
-        let value = Text(model.bpm.map(String.init) ?? "—").monospacedDigit()
-        switch style {
-        case .compact:
-            HStack(spacing: 3) {
-                Image(systemName: "heart.fill")
-                    .font(.system(size: 10, weight: .semibold))
-                value.font(StrandFont.captionNumber)
-            }
-            .foregroundStyle(tint)
-            .accessibilityLabel(model.bpm.map { String(localized: "Heart rate \($0)") }
-                                ?? String(localized: "Heart rate"))
-        case .plain:
-            value
-                .font(StrandFont.bodyNumber)
-                .foregroundStyle(tint)
+        HStack(spacing: 3) {
+            Image(systemName: "heart.fill")
+                .font(.system(size: 11, weight: .semibold))
+            Text(model.bpm.map(String.init) ?? "—")
+                .font(StrandFont.pro(15, weight: .semibold))
+                .monospacedDigit()
         }
+        .foregroundStyle(model.bpm == nil ? StrandPalette.textTertiary : StrandPalette.healthHeart)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(model.bpm.map { String(localized: "Heart rate \($0)") }
+                            ?? String(localized: "Heart rate"))
     }
 }
