@@ -155,12 +155,14 @@ struct IntervalRunView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // Minimising leaves the timer running; the setup page offers to resume it.
+            RecordingTopBar(onMinimize: onClose)
             VStack(alignment: .leading, spacing: 0) {
                 RecordingHeading(caption: runner.isFinished
                                     ? String(localized: "\(runner.rounds) rounds")
                                     : String(localized: "Round \(min(runner.currentRound, runner.rounds)) of \(runner.rounds)"),
                                  tint: runner.phaseColor, title: runner.phase.label)
-                    .padding(.top, 24)
+                    .padding(.top, 8)
                 Spacer(minLength: 8)
                 Text(IntervalTimerRunner.clock(runner.isFinished ? runner.elapsed : runner.remaining))
                     .font(.system(size: 120, weight: .regular, design: .rounded))

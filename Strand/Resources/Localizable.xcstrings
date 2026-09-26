@@ -1,6 +1,7 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Minimize": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Свернуть"}} } },
     "Redo Set": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Переделать подход"}} } },
     "Start Set": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Начать подход"}} } },
     "reps": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "повт."}} } },

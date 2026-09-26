@@ -39,6 +39,8 @@ struct LiveWorkoutView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // Minimising leaves the workout running; the Workouts tab shows it until it is ended.
+            RecordingTopBar(onMinimize: onClose)
             TabView(selection: $page) {
                 figuresPage.tag(0)
                 zonesPage.tag(1)

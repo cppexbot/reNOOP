@@ -70,6 +70,8 @@ struct LiftSessionView: View {
                 // The control panel never scrolls away: at the rack the clock and the one action have to be
                 // where your thumb already is.
                 VStack(spacing: 0) {
+                    // Minimising leaves the session running as the bar above the tab bar.
+                    RecordingTopBar { dismiss() }
                     TabView(selection: $page) {
                         nowPage(engine).tag(0)
                         sheet(engine).tag(1)
@@ -170,7 +172,7 @@ struct LiftSessionView: View {
                     RecordingButton(symbol: "arrow.uturn.backward", size: 44, label: "Undo") { session.undo() }
                 }
             }
-            .padding(.top, 24)
+            .padding(.top, 8)
             Spacer(minLength: 8)
             stageFigure(engine)
             Spacer(minLength: 8)

@@ -152,3 +152,17 @@ struct RecordingClockText: View {
             .minimumScaleFactor(0.6)
     }
 }
+
+/// The top row of a recording screen: ⌄ to put the screen away while what it records keeps running.
+struct RecordingTopBar: View {
+    let onMinimize: () -> Void
+
+    var body: some View {
+        HStack {
+            RecordingButton(symbol: "chevron.down", size: 44, label: "Minimize", action: onMinimize)
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+    }
+}
