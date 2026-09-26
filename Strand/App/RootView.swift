@@ -200,8 +200,6 @@ struct RootView: View {
     /// Cross-screen navigation requests (e.g. Live → "Manage devices"). Observed here so a screen can
     /// switch the sidebar selection without owning it — see `NavRouter`.
     @EnvironmentObject var router: NavRouter
-    /// The liquid Today (default) vs the classic Today, same flag the iOS shell + Settings toggle read.
-    @AppStorage("noop.liquidTodayEnabled") private var liquidTodayEnabled = true
     /// The Coach master switch (`noop.coachEnabled`, shared by name with Android and iOS). Default ON.
     @AppStorage("noop.coachEnabled") private var coachEnabled = true
 
@@ -441,7 +439,7 @@ struct RootView: View {
         case .explore: MetricExplorerView()
         case .compare: CompareView()
         case .insights: InsightsView()
-        case .sleep: SleepView()
+        case .sleep: NavigationStack { SleepHealthView().tabRouteDestinations() }
         case .trends: TrendsView()
         case .workouts: WorkoutsView()
         case .health: HealthView()
@@ -475,10 +473,8 @@ struct RootView: View {
         NavigationStack {
             // Today's root-level links push TabRoute VALUES (#198), so this stack must register
             // their destinations (once per stack — a double registration double-pushes, #38).
-            Group {
-                if liquidTodayEnabled { LiquidTodayView() } else { TodayView() }
-            }
-            .tabRouteDestinations()
+            SummaryView()
+                .tabRouteDestinations()
         }
         #else
         TodayView()

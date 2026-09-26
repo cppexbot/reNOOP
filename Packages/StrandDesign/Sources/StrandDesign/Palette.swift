@@ -307,6 +307,66 @@ public enum StrandPalette {
 
     public static var restGradient: Gradient { Gradient(colors: [restDeep, restBright]) }
 
+    // MARK: Summary home (Apple-Health-style) — rings, canvas, card, top wash.
+    // The three concentric rings need three clearly separate hues at a glance, which the Titanium score
+    // family (green / blue / steel-blue) cannot give, so the Summary owns its own trio.
+    public static let summaryChargeRing       = Color(light: "#34C759", dark: "#30D158")
+    public static let summaryEffortRing       = Color(light: "#FF9500", dark: "#FF9F0A")
+    public static let summaryRestRing         = Color(light: "#5E5CE6", dark: "#7D7AFF")
+    /// The Activity rings as Apple Watch draws them (sampled from Apple's own ring artwork): each ring
+    /// runs from a deeper start hue to a brighter end hue. The rings always sit on a black disc, as they
+    /// do in Health, so one set of values serves both appearances.
+    public static let activityMoveStart     = Color(hex: "#E8182F")
+    public static let activityMoveEnd       = Color(hex: "#FA2E6C")
+    public static let activityExerciseStart = Color(hex: "#3BDC00")
+    public static let activityExerciseEnd   = Color(hex: "#B4FF00")
+    public static let activityStandStart    = Color(hex: "#00BDEA")
+    public static let activityStandEnd      = Color(hex: "#00F2F0")
+    /// The same three hues as text on a card: the lime and cyan are darkened in light mode to stay legible.
+    public static let activityMoveText     = Color(light: "#F5174F", dark: "#FF2D6C")
+    public static let activityExerciseText = Color(light: "#2BB800", dark: "#A6FF00")
+    public static let activityStandText    = Color(light: "#00A9CC", dark: "#00E5F0")
+    /// Health's Activity category tint (the flame in the card's title row).
+    public static let activityTitle        = Color(light: "#FA3C1E", dark: "#FF5A36")
+    /// The Calendar app's "today" red: today's date in the Summary day strip.
+    public static let calendarToday = Color(light: "#FF3B30", dark: "#FF453A")
+    /// Grouped-list canvas behind the Summary cards.
+    public static let summaryCanvas = Color(light: "#F2F2F7", dark: "#000000")
+    /// Solid Summary card surface.
+    public static let summaryCard   = Color(light: "#FFFFFF", dark: "#1C1C1E")
+    /// The default (no photo) profile circle: Contacts-style grey gradient behind a white silhouette.
+    public static let summaryAvatarTop    = Color(light: "#A9AEBB", dark: "#8E929E")
+    public static let summaryAvatarBottom = Color(light: "#868A96", dark: "#6B6F7A")
+    /// Sleep screen (Apple Health idiom): the four stage hues, and the plain page colour the chart sits on.
+    public static let healthSleepAwake = Color(light: "#FF7B6B", dark: "#FF8A7A")
+    public static let healthSleepRem   = Color(light: "#35C3EC", dark: "#5AD1F4")
+    public static let healthSleepCore  = Color(light: "#1F7EFF", dark: "#3D8FFF")
+    public static let healthSleepDeep  = Color(light: "#3B33B5", dark: "#5E57E6")
+    public static let healthSleepPage  = Color(light: "#FFFFFF", dark: "#000000")
+    /// "Show More Sleep Data" → Comparisons: the Health category hue each overlaid vital is drawn in.
+    public static let healthHeart       = Color(light: "#FF2D55", dark: "#FF375F")
+    public static let healthRespiratory = Color(light: "#00C7BE", dark: "#63E6E2")
+    public static let healthOxygen      = Color(light: "#32ADE6", dark: "#64D2FF")
+    public static let healthTemperature = Color(light: "#FF9500", dark: "#FF9F0A")
+    /// Health category hues for the metric pages and their Summary cards (Heart / Respiratory above).
+    public static let healthBody      = Color(light: "#AF52DE", dark: "#BF5AF2")
+    public static let healthMind      = Color(light: "#30B0C7", dark: "#40C8E0")
+    public static let healthNutrition = Color(light: "#34C759", dark: "#30D158")
+    /// A daily score's state on its chart, in Apple's system red / yellow / green.
+    public static let healthZoneLow   = Color(light: "#FF3B30", dark: "#FF453A")
+    public static let healthZoneMid   = Color(light: "#FFCC00", dark: "#FFD60A")
+    public static let healthZoneHigh  = Color(light: "#34C759", dark: "#30D158")
+    /// Sleep score ring: one hue per part of the score, as the Health app's Sleep Score segments.
+    public static let sleepScoreDuration     = Color(light: "#3F6FF5", dark: "#5B86FF")
+    public static let sleepScoreInterruption = Color(light: "#FF7A5C", dark: "#FF8C70")
+    public static let sleepScoreRestorative  = Color(light: "#1FC4B4", dark: "#3ED8C8")
+    public static let sleepScoreRegularity   = Color(light: "#A86CF0", dark: "#BE8CFF")
+    /// Top wash, leading → trailing: warm → violet → cool (sampled from Health's iOS 26 Summary), faded
+    /// into `summaryCanvas` by the view.
+    public static let summaryWashWarm   = Color(light: "#FFBBA3", dark: "#4E2A24")
+    public static let summaryWashViolet = Color(light: "#EDC4D8", dark: "#3E2A48")
+    public static let summaryWashCool   = Color(light: "#BACDFF", dark: "#1F2C52")
+
     /// Stress — blue→gold→orange world / Classic green→amber→red.
     public static var stressColor: Color   { isClassic ? Color(light: "#CFA528", dark: "#F2C53D") : Color(light: "#C7891A", dark: "#F0A020") }
     public static var stressDeep: Color    { isClassic ? Color(light: "#2E9E4F", dark: "#46B45A") : Color(light: "#3A80D6", dark: "#4A90E2") }

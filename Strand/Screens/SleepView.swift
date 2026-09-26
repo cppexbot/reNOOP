@@ -2582,12 +2582,7 @@ struct SleepMarkCard: View {
     private func logMark(_ type: SleepMarkType) {
         let mark = SleepMark(type: type)
         withAnimation(.easeOut(duration: 0.2)) { lastMark = mark }
-        // The shareable strap log is the human-readable surface that lands in a debug export.
-        live.append(log: mark.logLine)
-        Task {
-            guard let store = await repo.storeHandle() else { return }
-            try? await store.upsertMetricSeries([mark.metricPoint], deviceId: repo.deviceId)
-        }
+        SleepMark.log(mark, repo: repo, live: live)
     }
 }
 
@@ -2618,7 +2613,7 @@ func resolveSleepFreshness(hasCurrentNight: Bool, morningReady: Bool, syncing: B
 
 /// Explicit state for the expected current night. Older sleep can remain available underneath, but it is
 /// never left to impersonate today's result while a sync, calculation, or failed detection is unresolved.
-private struct SleepFreshnessNote: View {
+struct SleepFreshnessNote: View {
     @EnvironmentObject private var live: LiveState
     @EnvironmentObject private var intelligence: IntelligenceEngine
     let latestWakeTs: Int?
@@ -2706,7 +2701,7 @@ private struct SleepUndoBanner {
     let windowEnd: Int
 }
 
-private struct WakeEdit: Identifiable {
+struct WakeEdit: Identifiable {
     let detectedStartTs: Int   // immutable detected key the edit writes against
     let bedTs: Int             // current effective onset (seeds the bed picker)
     let wakeTs: Int            // current wake (seeds the wake picker)
@@ -2721,7 +2716,7 @@ private struct WakeEdit: Identifiable {
 /// Seeds the "Add nap" picker (#508). A nap is short, so seed a 30-minute window anchored to the night's
 /// wake (a natural place to look for a missed afternoon nap), clamped to never start before the night's
 /// onset. The identity is the seed start so `.sheet(item:)` presents once per request.
-private struct AddNapSeed: Identifiable {
+struct AddNapSeed: Identifiable {
     let bedTs: Int
     let wakeTs: Int
     var id: Int { bedTs }
@@ -2736,7 +2731,7 @@ private struct AddNapSeed: Identifiable {
 /// A small sheet to hand-correct a night's bed (onset) and wake (end) instants. Seeds both pickers with
 /// the current values, including each calendar date. Hands the chosen unix-second (bed, wake) back via
 /// `onSave`. Pure presentation + a single async save — persistence lives in the repo.
-private struct SleepTimeEditor: View {
+struct SleepTimeEditor: View {
     let onSave: (Int, Int) async -> Void
     /// Optional destructive delete (#68). Non-nil for an existing main-sleep / nap edit (the editor then
     /// shows a "Delete this sleep" button gated behind a confirmation); nil for the "Add a nap" sheet,

@@ -1222,16 +1222,37 @@ public enum AnalyticsEngine {
             return min(max(q, floor), maxNeedHours)
         }
 
-        /// Build the composite. `tstSeconds` = total sleep time, `restorativeSeconds` = deep+REM
-        /// seconds, `deepSeconds` = deep-stage seconds (nil → no deep-adequacy adjustment, pooled
-        /// behaviour). Returns a value in [0,100].
-        public static func composite(tstSeconds: Double,
-                                     inBedSeconds: Double,
-                                     efficiency: Double,
-                                     restorativeSeconds: Double,
-                                     needHours: Double,
-                                     consistency: Double?,
-                                     deepSeconds: Double? = nil) -> Double {
+        /// The four sub-scores of the composite, each clamped to [0,1] before weighting. The composite
+        /// is exactly `weighted` scaled to [0,100], so a surface that breaks the score into its parts
+        /// (the Sleep score ring) reads the same numbers the score was made of.
+        public struct Components: Equatable, Sendable {
+            public let duration: Double
+            public let efficiency: Double
+            public let restorative: Double
+            public let consistency: Double
+
+            public init(duration: Double, efficiency: Double, restorative: Double, consistency: Double) {
+                self.duration = duration; self.efficiency = efficiency
+                self.restorative = restorative; self.consistency = consistency
+            }
+
+            /// The weighted sum in [0,1] (weights sum to 1).
+            public var weighted: Double {
+                wDuration * duration
+                    + wEfficiency * efficiency
+                    + wRestorative * restorative
+                    + wConsistency * consistency
+            }
+        }
+
+        /// The composite's sub-scores. Same inputs and meaning as `composite(tstSeconds:…)`.
+        public static func components(tstSeconds: Double,
+                                      inBedSeconds: Double,
+                                      efficiency: Double,
+                                      restorativeSeconds: Double,
+                                      needHours: Double,
+                                      consistency: Double?,
+                                      deepSeconds: Double? = nil) -> Components {
             func clamp01(_ x: Double) -> Double { max(0.0, min(1.0, x)) }
 
             let needSeconds = max(needHours, 0.1) * 3600.0
@@ -1248,11 +1269,24 @@ public enum AnalyticsEngine {
                 ? clamp01((restorativeSeconds / tstSeconds) / restorativeTarget) * deepFactor
                 : 0.0
             let consistencyScore = clamp01(consistency ?? neutralConsistency)
+            return Components(duration: durationScore, efficiency: efficiencyScore,
+                              restorative: restorativeScore, consistency: consistencyScore)
+        }
 
-            let weighted = wDuration * durationScore
-                + wEfficiency * efficiencyScore
-                + wRestorative * restorativeScore
-                + wConsistency * consistencyScore
+        /// Build the composite. `tstSeconds` = total sleep time, `restorativeSeconds` = deep+REM
+        /// seconds, `deepSeconds` = deep-stage seconds (nil → no deep-adequacy adjustment, pooled
+        /// behaviour). Returns a value in [0,100].
+        public static func composite(tstSeconds: Double,
+                                     inBedSeconds: Double,
+                                     efficiency: Double,
+                                     restorativeSeconds: Double,
+                                     needHours: Double,
+                                     consistency: Double?,
+                                     deepSeconds: Double? = nil) -> Double {
+            let weighted = components(tstSeconds: tstSeconds, inBedSeconds: inBedSeconds,
+                                      efficiency: efficiency, restorativeSeconds: restorativeSeconds,
+                                      needHours: needHours, consistency: consistency,
+                                      deepSeconds: deepSeconds).weighted
             // weighted is in [0,1] (weights sum to 1). Scale to [0,100] and round to 2dp.
             return (weighted * 10000.0).rounded() / 100.0
         }
@@ -1263,14 +1297,21 @@ public enum AnalyticsEngine {
         /// "Rest quality" term agree. `consistency` is the caller's regularity signal (nil → neutral).
         public static func composite(daily d: DailyMetric, needHours: Double = defaultNeedHours,
                                      consistency: Double? = nil) -> Double? {
+            guard let c = components(daily: d, needHours: needHours, consistency: consistency) else { return nil }
+            return (c.weighted * 10000.0).rounded() / 100.0
+        }
+
+        /// The sub-scores behind `composite(daily:…)`, from the same persisted totals.
+        public static func components(daily d: DailyMetric, needHours: Double = defaultNeedHours,
+                                      consistency: Double? = nil) -> Components? {
             guard let tstMin = d.totalSleepMin, tstMin > 0, let eff = d.efficiency else { return nil }
             let tstSec = tstMin * 60.0
             let deepSec = (d.deepMin ?? 0) * 60.0
             let restorativeSec = (d.deepMin ?? 0) * 60.0 + (d.remMin ?? 0) * 60.0
-            return composite(tstSeconds: tstSec, inBedSeconds: tstSec / max(eff, 0.01),
-                             efficiency: eff, restorativeSeconds: restorativeSec,
-                             needHours: needHours, consistency: consistency,
-                             deepSeconds: deepSec)
+            return components(tstSeconds: tstSec, inBedSeconds: tstSec / max(eff, 0.01),
+                              efficiency: eff, restorativeSeconds: restorativeSec,
+                              needHours: needHours, consistency: consistency,
+                              deepSeconds: deepSec)
         }
     }
 

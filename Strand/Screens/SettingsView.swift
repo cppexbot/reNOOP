@@ -553,6 +553,13 @@ struct SettingsView: View {
     private var profilePhotoRow: some View {
         let hasAvatar = profile.hasAvatar
         return VStack(alignment: .leading, spacing: NoopMetrics.space2) {
+            // The name only feeds the Summary's monogram avatar (its initials) when no photo is set.
+            TextField("Name", text: $profile.displayName)
+                .textFieldStyle(.roundedBorder)
+                .font(StrandFont.body)
+                #if os(iOS)
+                .textContentType(.name)
+                #endif
             HStack(spacing: NoopMetrics.space3) {
                 ProfileAvatarView(
                     imageData: profile.avatarImageData,
@@ -1086,7 +1093,7 @@ struct SettingsView: View {
         SettingsSection(
             icon: "circle.lefthalf.filled",
             title: "Appearance",
-            blurb: "Choose Light, Dark, or follow your system. Dark is the signature near-black; Light keeps the same clean look on a bright canvas."
+            blurb: "Choose Light, Dark, or follow your system."
         ) {
             VStack(spacing: 0) {
                 // App-owned copy language. Apple binds a bundle localization at process launch, so this
@@ -1165,20 +1172,6 @@ struct SettingsView: View {
                 }
                 #endif
                 rowDivider
-                // Theme presets — one-tap bundles coordinating accent + chart world + backdrop + card
-                // opacity. Derived (no stored value): tweaking any control below flips this to Custom.
-                FormRow(label: "Preset") {
-                    Picker("Preset", selection: themePresetBinding) {
-                        ForEach(ThemePreset.allCases) { p in
-                            Text(p.label).tag(p)
-                        }
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.menu)
-                    .tint(StrandPalette.accent)
-                    .accessibilityLabel("Theme preset")
-                }
-                rowDivider
                 FormRow(label: "Theme") {
                     Picker("Theme", selection: $appearanceRaw) {
                         ForEach(AppearanceMode.allCases) { mode in
@@ -1189,20 +1182,6 @@ struct SettingsView: View {
                     .pickerStyle(.menu)
                     .tint(StrandPalette.accent)
                     .accessibilityLabel("Theme")
-                }
-                rowDivider   // #79: the segmented rows sat flush against each other (missing separator)
-                FormRow(label: "Chart colours") {
-                    // Default = NOOP's clean metric ramps; Classic = the throwback red→amber→green
-                    // readiness scale (cool→hot zones, green→red stress). Both schemes.
-                    Picker("Chart colours", selection: $chartStyleRaw) {
-                        ForEach(ChartStyle.allCases) { style in
-                            Text(style.label).tag(style.rawValue)
-                        }
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.menu)
-                    .tint(StrandPalette.accent)
-                    .accessibilityLabel("Chart colours")
                 }
                 rowDivider
                 FormRow(label: "Sleep chart") {
@@ -1218,28 +1197,6 @@ struct SettingsView: View {
                     .pickerStyle(.menu)
                     .tint(StrandPalette.accent)
                     .accessibilityLabel("Sleep chart")
-                }
-                rowDivider
-                // Chrome accent colour — the links/buttons/selection tint only. The recovery/strain/sleep
-                // DATA colours follow "Chart colours" above, never this. Custom reveals a colour well.
-                FormRow(label: "Accent") {
-                    Picker("Accent", selection: $accentRaw) {
-                        ForEach(AccentColor.allCases) { c in
-                            Text(c.label).tag(c.rawValue)
-                        }
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.menu)
-                    .tint(StrandPalette.accent)
-                    .accessibilityLabel("Accent colour")
-                }
-                if AccentColor.resolve(accentRaw) == .custom {
-                    rowDivider
-                    FormRow(label: "Custom colour") {
-                        ColorPicker("Custom colour", selection: customAccentBinding, supportsOpacity: false)
-                            .labelsHidden()
-                            .accessibilityLabel("Custom accent colour")
-                    }
                 }
                 rowDivider
                 // Trend chart style (line vs bar). Display-only: flips the Trends tab's charts between the
@@ -1287,88 +1244,6 @@ struct SettingsView: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                rowDivider
-                // MARK: Day-cycle background — the time-of-day scene behind Today (#698). On by default.
-                // Off swaps it for the plain dark canvas for people who find the moving scene distracting.
-                Toggle(isOn: $showDayCycleBackground) {
-                    Text("Day-cycle background")
-                        .font(StrandFont.subhead)
-                        .foregroundStyle(StrandPalette.textPrimary)
-                }
-                .toggleStyle(.switch)
-                .tint(StrandPalette.accent)
-                Text("Shows a soft sunrise, day, dusk and night scene behind the Today screen. Turn it off for a plain dark canvas. Your cards stay exactly as readable.")
-                    .font(StrandFont.caption)
-                    .foregroundStyle(StrandPalette.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                // MARK: Sky behind cards — extend the day-cycle sky behind the WHOLE Today scroll so the
-                // Card-transparency slider reveals it under every card (not just the hero). Opt-in, off by
-                // default; pairs with Card transparency below.
-                Toggle(isOn: $skyBehindCards) {
-                    Text("Sky behind cards")
-                        .font(StrandFont.subhead)
-                        // Greyed when day-cycle is off — the sky it extends isn't drawn then (Android parity).
-                        .foregroundStyle(showDayCycleBackground ? StrandPalette.textPrimary : StrandPalette.textTertiary)
-                }
-                .toggleStyle(.switch)
-                .tint(StrandPalette.accent)
-                .disabled(!showDayCycleBackground)
-                Text("Extends the sky behind the whole Today screen, so lowering Card transparency lets it show through every card. Needs the day-cycle background on.")
-                    .font(StrandFont.caption)
-                    .foregroundStyle(StrandPalette.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                // MARK: Transparent cards — a quick on/off over the SAME cardOpacityPercent (no separate
-                // pref), so it stays in lock-step with the slider below. Off = solid (100%); on = a sensible
-                // see-through default the slider then fine-tunes. Lets the custom background (or the sky)
-                // show through the cards. `isOn` is derived from the opacity, so dragging to solid flips off.
-                Toggle(isOn: Binding(
-                    get: { cardOpacityPercent < 100 },
-                    set: { on in cardOpacityPercent = on ? (cardOpacityPercent >= 100 ? 70 : cardOpacityPercent) : 100 }
-                )) {
-                    Text("Transparent cards")
-                        .font(StrandFont.subhead)
-                        .foregroundStyle(StrandPalette.textPrimary)
-                }
-                .toggleStyle(.switch)
-                .tint(StrandPalette.accent)
-                Text("Let the background show through every card. Tune how much just below.")
-                    .font(StrandFont.caption)
-                    .foregroundStyle(StrandPalette.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                // MARK: Card transparency — fade every frosted card's glass toward the background. Reactive
-                // @AppStorage, so all cards (incl. the ones on this screen) update live as you drag. The
-                // slider shows TRANSPARENCY (0 = solid, 100 = clear); we store the OPACITY percent.
-                HStack {
-                    Text("Card transparency")
-                        .font(StrandFont.subhead)
-                        .foregroundStyle(StrandPalette.textPrimary)
-                    Spacer()
-                    Text("\(100 - cardOpacityPercent)%")
-                        .font(StrandFont.subhead)
-                        .foregroundStyle(StrandPalette.accent)
-                }
-                Slider(
-                    value: Binding(
-                        get: { Double(100 - cardOpacityPercent) },
-                        set: { cardOpacityPercent = 100 - Int($0.rounded()) }
-                    ),
-                    in: 0...100, step: 1
-                )
-                .tint(StrandPalette.accent)
-                Text("How see-through the cards (Heart Rate, Key Metrics, Recovery Vitals, …) are. Left = solid, right = clear.")
-                    .font(StrandFont.caption)
-                    .foregroundStyle(StrandPalette.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                rowDivider
-                backgroundImageControls
             }
         }
     }
@@ -1832,38 +1707,12 @@ struct SettingsView: View {
     /// model — a 4.0 owner still needs the export to share decoded streams. The SpO2 candidate card is
     /// split out the same way (see `spo2CandidateCard`'s comment) — it is NOT WHOOP-5/MG-specific.
     @ViewBuilder private var experimentalCard: some View {
-        liquidTodayCard
         liveSessionsCard
         // WHOOP 5/MG protocol research now lives in Test Centre. Everyday Settings no longer carries
         // a second copy; the persisted keys and reversible disable actions remain unchanged there.
         if showFiveMGControls || model.repo.activeDeviceIsOura { spo2CandidateCard }
         sleepStagingCard
         rawSensorDiagnosticsCard
-    }
-
-    /// Opt-in liquid Today redesign (default ON in this build). Off falls back to the
-    /// classic dashboard immediately, no rebuild. Same data either way.
-    @AppStorage("noop.liquidTodayEnabled") private var liquidTodayEnabled = true
-    private var liquidTodayCard: some View {
-        SettingsSection(
-            icon: "drop.fill",
-            title: "Experimental · Liquid Today",
-            blurb: "A redesigned Today screen in the new liquid language: the scores as living liquid, a time-of-day sky, and a calmer layout. Same numbers, new look."
-        ) {
-            VStack(alignment: .leading, spacing: NoopMetrics.rowSpacing) {
-                Toggle(isOn: $liquidTodayEnabled) {
-                    Text("Liquid Today (prototype)")
-                        .font(StrandFont.subhead)
-                        .foregroundStyle(StrandPalette.textPrimary)
-                }
-                .toggleStyle(.switch)
-                .tint(StrandPalette.accent)
-                Text("Replaces the Today tab with the prototype redesign. Turn it off any time to return to the classic dashboard. Reads the same live data from your strap.")
-                    .font(StrandFont.caption)
-                    .foregroundStyle(StrandPalette.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
     }
 
     /// Live Sessions (beta) — the silent-guardian in-workout coach. Default ON (the entry itself is

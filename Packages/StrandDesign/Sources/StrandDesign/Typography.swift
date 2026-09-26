@@ -108,6 +108,12 @@ public enum StrandFont {
     /// Helvetica-Neue caption number — for small live values (sparklines, chips). Scales with Dynamic Type.
     public static let captionNumber = Font.system(.caption, design: .rounded, weight: .medium).monospacedDigit()
 
+    /// SF Pro (the default design, not Rounded) at an arbitrary size/weight — the Health-style pages,
+    /// which Apple sets in SF Pro. Digits stay proportional, as Health's figures are.
+    public static func pro(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
+        Font.system(size: size, weight: weight)
+    }
+
     /// Mono at an arbitrary size.
     public static func mono(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
         .system(size: size, weight: weight, design: .monospaced)

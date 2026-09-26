@@ -399,7 +399,7 @@ struct CoupledView: View {
 
     private var sleepCard: some View {
         NavigationLink {
-            SleepView()
+            SleepHealthView()
         } label: {
             card {
                 VStack(alignment: .leading, spacing: 14) {

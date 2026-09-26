@@ -79,6 +79,22 @@ final class ProfileStore: ObservableObject {
         }
     }
 
+    /// The user's name, for the monogram avatar ("Denis Balasov" → "DB") when no photo is set. Optional,
+    /// on-device only like every field here.
+    @Published var displayName: String {
+        didSet { d.set(displayName, forKey: K.name) }
+    }
+
+    /// Up to two initials from `displayName`, upper-cased; empty when no name is set.
+    var initials: String { Self.initials(of: displayName) }
+
+    nonisolated static func initials(of name: String) -> String {
+        name.split(whereSeparator: { $0.isWhitespace })
+            .prefix(2)
+            .compactMap { $0.first.map { String($0).uppercased() } }
+            .joined()
+    }
+
     private let d = UserDefaults.standard
     private enum K {
         static let dateOfBirth = "profile.dateOfBirth"
@@ -97,6 +113,7 @@ final class ProfileStore: ObservableObject {
         static let stepsManualCoeff = "profile.stepsManualCoefficient"
         static let stepsHasMotion = "profile.stepsHasBankedMotion"
         static let avatar = "profile.avatarImageData"
+        static let name = "profile.displayName"
     }
 
     init() {
@@ -137,6 +154,7 @@ final class ProfileStore: ObservableObject {
         stepsManualCoefficient = max(0, d.object(forKey: K.stepsManualCoeff) as? Double ?? 0)
         stepsHasBankedMotion = d.object(forKey: K.stepsHasMotion) as? Bool ?? false
         avatarImageData = d.data(forKey: K.avatar)
+        displayName = d.string(forKey: K.name) ?? ""
     }
 
     // MARK: - Profile picture

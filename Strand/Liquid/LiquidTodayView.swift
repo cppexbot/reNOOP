@@ -2322,8 +2322,9 @@ private struct DebouncedSyncSignal: ViewModifier {
     }
 }
 
-private extension View {
-    /// Drive `debounced` from the raw sync signal through the shared debounce above.
+extension View {
+    /// Drive `debounced` from the raw sync signal through the shared debounce above. Also used by the
+    /// Summary's strap status so neither control flashes between the chunks of one logical sync.
     func debouncedSyncSignal(_ raw: Bool, into debounced: Binding<Bool>) -> some View {
         modifier(DebouncedSyncSignal(raw: raw, debounced: debounced))
     }
@@ -2763,6 +2764,16 @@ private struct LiquidBatteryButton: View {
         }
     }
 
+    private var button: some View {
+        Button { router.openDevices() } label: {
+            ChargeSyncIndicator(
+                batteryState: indicatorState,
+                syncing: syncing,
+                chunks: syncChunks
+            )
+        }
+    }
+
     var body: some View {
         // Not drawn at all when the active device is neither the strap nor a ring with a charge of its
         // own to show. The alternative is a glyph that has to say SOMETHING about a strap nobody is
@@ -2773,13 +2784,7 @@ private struct LiquidBatteryButton: View {
         if case .notActiveDevice = batteryDisplay {
             EmptyView()
         } else {
-            Button { router.openDevices() } label: {
-                ChargeSyncIndicator(
-                    batteryState: indicatorState,
-                    syncing: syncing,
-                    chunks: syncChunks
-                )
-            }
+            button
             .nativeLiquidGlassSyncButton()
             .accessibilityLabel(batteryAccessibility)
             .debouncedSyncSignal(syncingRaw, into: $syncing)
@@ -2911,8 +2916,10 @@ private extension View {
     /// 36-point label, so a Capsule over the identical 36×36 frame is already that circle.
     @ViewBuilder
     func nativeLiquidGlassSyncButton() -> some View {
-        #if os(iOS)
-        if #available(iOS 26.0, *) {
+        // Native glass wherever the toolchain and OS have it (iOS 26 / macOS 26 on Xcode 26), matching
+        // the Summary header's `summaryGlassCircle` siblings; the material capsule everywhere else.
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, macOS 26.0, *) {
             self
                 .buttonStyle(.plain)
                 .padding(NoopMetrics.syncIndicatorGlassPadding)

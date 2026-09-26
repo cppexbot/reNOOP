@@ -55,6 +55,8 @@ struct StrandiOSApp: App {
         // #1008: pin the pre-change Overnight-only default for existing installs before
         // anything reads it. Idempotent; a no-op on fresh installs and after the first launch.
         PuffinExperiment.migrateContinuousHrvOvernightDefault()
+        // One fixed look (System / Light / Dark only): pin the retired theme knobs before any view reads them.
+        AppearanceLock.apply()
         #if DEBUG
         // DEBUG-only promo-screenshot harness: when launched with `--demo-hour <Int>`, pin Today to that
         // hour's day-cycle scene + a per-hour stat frame. No-op (active stays nil) when the arg is absent.
@@ -563,13 +565,20 @@ enum DemoScreens {
         // capture.
         case "liquidtoday": return AnyView(LiquidTodayView())
         case "trends":   return AnyView(TrendsView())
-        case "sleep":    return AnyView(SleepView())
+        // The Sleep tab root (Health-style page); "sleepdetail" is the retired full screen, kept for comparison.
+        case "sleep":    return AnyView(SleepHealthView())
+        case "sleepdetail": return AnyView(SleepView())
+        case "summary":  return AnyView(SummaryView())
         case "live":     return AnyView(LiveView())
         case "stress":   return AnyView(StressView())
         case "workouts": return AnyView(WorkoutsView())
         case "health":   return AnyView(HealthView())
         case "insights": return AnyView(InsightsView())
         case "explore":  return AnyView(MetricExplorerView())
+        // One metric's page: `--demo-screen metric --demo-metric hrv` (a catalog key; defaults to HRV).
+        case "metric":
+            let key = args.firstIndex(of: "--demo-metric").flatMap { $0 + 1 < args.count ? args[$0 + 1] : nil } ?? "hrv"
+            return MetricCatalog.all.first { $0.key == key }.map { AnyView(MetricDetailView(metric: $0)) }
         case "compare":  return AnyView(CompareView())
         case "settings": return AnyView(SettingsView())
         case "chargebreakdown": return AnyView(ChargeBreakdownDemoHost())

@@ -40,7 +40,7 @@ enum KeyMetric: String, CaseIterable, Identifiable {
         case .charge:      return String(localized: "Charge")
         case .effort:      return String(localized: "Effort")
         case .rest:        return String(localized: "Rest")
-        case .hrv:         return "HRV"
+        case .hrv:         return String(localized: "HRV")
         case .restingHr:   return String(localized: "Resting HR")
         case .bloodOxygen: return String(localized: "Blood Oxygen")
         case .respiratory: return String(localized: "Respiratory")

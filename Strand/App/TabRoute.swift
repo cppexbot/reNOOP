@@ -32,6 +32,9 @@ enum TabRoute: Hashable {
     case dataSources
     case stress
     case sleep
+    /// The Sleep page opened on the night that ended on this day ("yyyy-MM-dd") — the Summary's Sleep card
+    /// and Rest ring on a past day.
+    case sleepNight(String)
     case health
     case hydration
     case coupled
@@ -67,7 +70,8 @@ extension View {
             case .workouts: WorkoutsView()
             case .dataSources: DataSourcesView()
             case .stress: StressView()
-            case .sleep: SleepView()
+            case .sleep: SleepHealthView()
+            case .sleepNight(let day): SleepHealthView(initialWakeDay: day)
             case .health: HealthView()
             case .hydration: HydrationView()
             case .coupled: CoupledView()

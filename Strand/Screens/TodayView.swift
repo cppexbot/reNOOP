@@ -1819,66 +1819,14 @@ struct TodayView: View {
         }
     }
 
-    private func readinessSignalLabel(_ key: String) -> String {
-        switch key {
-        case "hrv": return String(localized: "HRV")
-        case "rhr": return String(localized: "Resting HR")
-        case "respRate": return String(localized: "Respiratory rate")
-        case "acwr": return String(localized: "Training load")
-        case "monotony": return String(localized: "Training variety")
-        default: return key
-        }
-    }
+    // The words live in `ReadinessCopy`, shared with the Summary highlights so both describe a signal alike.
+    private func readinessSignalLabel(_ key: String) -> String { ReadinessCopy.label(key) }
 
     private func readinessEvidenceText(_ evidence: ReadinessEngine.Evidence?) -> String? {
-        guard let evidence else { return nil }
-        switch evidence {
-        case .metric(let value, let baseline, let unit, let decimals):
-            let valueText = readinessNumber(value, decimals: decimals)
-            let baselineText = readinessNumber(baseline, decimals: decimals)
-            return String(localized: "\(valueText) vs \(baselineText) \(unit)")
-        case .trainingLoad(let acute, let chronic):
-            let acuteText = readinessNumber(acute, decimals: 1)
-            let chronicText = readinessNumber(chronic, decimals: 1)
-            return String(localized: "7d \(acuteText) / 28d \(chronicText)")
-        case .monotony(let value):
-            return String(localized: "monotony \(readinessNumber(value, decimals: 1))")
-        }
+        ReadinessCopy.evidence(evidence)
     }
 
-    private func readinessDetailText(_ signal: ReadinessEngine.Signal) -> String {
-        if signal.key == "acwr", let evidence = signal.evidenceData,
-           case .trainingLoad(let acute, let chronic) = evidence {
-            let ratio = readinessNumber(chronic > 0 ? acute / chronic : 0, decimals: 2)
-            switch signal.flag {
-            case .good: return String(localized: "in the sweet spot (acute:chronic \(ratio))")
-            case .bad: return String(localized: "spiking (acute:chronic \(ratio)) - higher injury risk")
-            case .watch: return acute < chronic
-                ? String(localized: "ramping down (acute:chronic \(ratio)) - room to build")
-                : String(localized: "building fast (acute:chronic \(ratio)) - watch fatigue")
-            case .neutral: return String(localized: "in the sweet spot (acute:chronic \(ratio))")
-            }
-        }
-        switch (signal.key, signal.flag) {
-        case ("hrv", .good): return String(localized: "above your baseline - well recovered")
-        case ("hrv", .neutral), ("rhr", .neutral): return String(localized: "in your normal range")
-        case ("hrv", .watch): return String(localized: "a touch below baseline")
-        case ("hrv", .bad): return String(localized: "suppressed - a sign of autonomic fatigue")
-        case ("rhr", .good): return String(localized: "at or below baseline")
-        case ("rhr", .watch): return String(localized: "running a little high")
-        case ("rhr", .bad): return String(localized: "elevated - overtraining or illness can do this")
-        case ("respRate", .bad): return String(localized: "up vs baseline - sometimes an early sign of getting sick")
-        case ("respRate", .watch): return String(localized: "slightly raised vs baseline")
-        case ("monotony", _): return String(localized: "low - similar strain every day raises strain/illness risk")
-        default: return String(localized: "in your normal range")
-        }
-    }
-
-    private func readinessNumber(_ value: Double, decimals: Int) -> String {
-        decimals == 0
-            ? String(Int(value.rounded()))
-            : String(format: "%.\(decimals)f", locale: AppLanguage.activeLocale, value)
-    }
+    private func readinessDetailText(_ signal: ReadinessEngine.Signal) -> String { ReadinessCopy.detail(signal) }
 
     private func levelWord(_ l: ReadinessEngine.Level) -> String {
         switch l {
