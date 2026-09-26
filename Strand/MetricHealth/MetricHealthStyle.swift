@@ -145,13 +145,18 @@ enum MetricHealthStyle {
             return out
         }
         if metric.key == "strain" {
-            return [Token(text: UnitFormatter.effortDisplay(value, scale: units.effortScale), isUnit: false),
+            return [Token(text: number(UnitFormatter.effortValue(value, scale: units.effortScale), decimals: 1,
+                                       locale: locale), isUnit: false),
                     Token(text: metric.displayUnit(effortScale: units.effortScale), isUnit: true)]
         }
         if metric.unit == "°C" {
-            // Skin temperature can be an absolute or a signed deviation; its formatter owns both.
-            return [Token(text: metric.format(value, system: units.system, temperature: units.temperature),
-                          isUnit: false)]
+            // Skin temperature can be an absolute or a signed deviation; its formatter owns both (the sign,
+            // the °F conversion), and only the decimal separator follows the reader's locale.
+            let kind = SkinTempDisplay.kind(of: value)
+            let fahrenheit = units.temperature == .fahrenheit
+            let n = SkinTempDisplay.numberString(value, kind: kind, fahrenheit: fahrenheit, decimals: metric.decimals)
+            return [Token(text: n.replacingOccurrences(of: ".", with: locale.decimalSeparator ?? "."), isUnit: false),
+                    Token(text: SkinTempDisplay.unitSymbol(kind: kind, fahrenheit: fahrenheit), isUnit: true)]
         }
         if isSteps(metric) {
             return [Token(text: number(value, decimals: 0, locale: locale), isUnit: false),

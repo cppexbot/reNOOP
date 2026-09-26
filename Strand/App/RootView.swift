@@ -90,7 +90,7 @@ enum NavItem: String, CaseIterable, Identifiable, Hashable {
         case .live: return String(localized: "Live")
         case .breathe: return String(localized: "Breathe")
         case .intervals: return String(localized: "Intervals")
-        case .explore: return String(localized: "Explore")
+        case .explore: return String(localized: "All Metrics")
         case .compare: return String(localized: "Compare")
         case .insights: return String(localized: "Insights")
         case .sleep: return String(localized: "Sleep")
@@ -126,7 +126,7 @@ enum NavItem: String, CaseIterable, Identifiable, Hashable {
         case .live: return "waveform.path.ecg"
         case .breathe: return "lungs.fill"
         case .intervals: return "timer"
-        case .explore: return "square.grid.2x2.fill"
+        case .explore: return "list.bullet"
         case .compare: return "chart.line.uptrend.xyaxis"
         case .insights: return "lightbulb.fill"
         case .sleep: return "moon.stars.fill"
@@ -436,7 +436,7 @@ struct RootView: View {
         case .live: liveDetail
         case .breathe: BreathingView()
         case .intervals: IntervalTimerView()
-        case .explore: MetricExplorerView()
+        case .explore: NavigationStack { AllMetricsView().tabRouteDestinations() }
         case .compare: CompareView()
         case .insights: InsightsView()
         case .sleep: NavigationStack { SleepHealthView().tabRouteDestinations() }
@@ -464,9 +464,7 @@ struct RootView: View {
 
     // The Summary's cards and rings push TabRoute VALUES (#198). On macOS the detail column has no
     // enclosing NavigationStack of its own, so those pushes would have no Back chrome and switching sidebar
-    // items hung (#753 Bug 2). Give the Summary pane its own NavigationStack the same way
-    // MetricExplorerView wraps itself because "Explore is a standalone detail pane, so it owns its
-    // NavigationStack". It must register the TabRoute destinations once per stack — a double registration
+    // items hung (#753 Bug 2). Give the Summary pane its own NavigationStack, as All Metrics has. It must register the TabRoute destinations once per stack — a double registration
     // double-pushes (#38).
     @ViewBuilder private var todayDetail: some View {
         NavigationStack {

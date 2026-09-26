@@ -1,6 +1,13 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "All Metrics": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Все показатели"}} } },
+    "Body Measurements": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Измерения тела"}} } },
+    "Heart": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Сердце"}} } },
+    "Mental Wellbeing": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Психическое здоровье"}} } },
+    "Metrics Without Data": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Показатели без данных"}} } },
+    "Full Day by the Second": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Весь день по секундам"}} } },
+    "No Results": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Нет результатов"}} } },
     "Minimize": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Свернуть"}} } },
     "Redo Set": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Переделать подход"}} } },
     "Start Set": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Начать подход"}} } },

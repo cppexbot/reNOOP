@@ -445,6 +445,16 @@ struct MetricDetailView: View {
                 .buttonStyle(.plain)
                 optionDivider
             }
+            if metric.key == "avg_hr" {
+                // The day's heart rate at full resolution (#575), one level below the daily averages.
+                NavigationLink {
+                    FullDayChartView()
+                } label: {
+                    optionRow(String(localized: "Full Day by the Second"), accent: false, chevron: true)
+                }
+                .buttonStyle(.plain)
+                optionDivider
+            }
             if let card = pinnable {
                 let pinned = KeyMetricPrefs.decodeEnabled(keyMetricsRaw).contains(card)
                 Button {
@@ -505,94 +515,15 @@ struct MetricDetailView: View {
 
     // MARK: - Load
 
-    /// This metric's own series and per-day provenance. Steps read the store-backed resolver (the full
-    /// history for a year, since the in-memory explore cache is bounded); every other metric keeps the
-    /// explorer's established value path.
+    /// This metric's own series and per-day provenance, read through the loader the All Metrics card
+    /// shares, so the card and this page show the same latest reading.
     private func load() async {
-        let requestedYear = range == .year
-        let resolution: MetricSeriesResolution
-        let loadedSeries: [(day: String, value: Double)]
-        if isSteps {
-            if metric.source == MetricCatalog.combinedStepsSource {
-                resolution = await repo.resolvedSteps(from: "0000-01-01", to: "9999-12-31")
-            } else {
-                resolution = await repo.resolvedSeries(key: metric.key, source: metric.source,
-                                                       fullHistory: requestedYear)
-            }
-            loadedSeries = resolution.values
-        } else {
-            loadedSeries = await repo.exploreSeries(key: metric.key, source: metric.source)
-            resolution = await repo.resolvedSeries(key: metric.key, source: metric.source)
-        }
-        guard !Task.isCancelled else { return }
-        series = loadedSeries
-        if metric.key == "vo2max_est" {
-            var attributed: [String: String] = [:]
-            for point in resolution.points {
-                let tag = await repo.scoreProvenanceTag(
-                    resolvedSource: point.source, day: point.day, metricKey: metric.key)
-                attributed[point.day] = vo2MaxAttributionSource(tag.flatMap { Vo2MaxEstimator(rawValue: $0) })
-            }
-            sourceByDay = attributed
-        } else {
-            sourceByDay = Dictionary(resolution.points.map { ($0.day, $0.source) },
-                                     uniquingKeysWith: { first, _ in first })
-        }
-        // #103: fill the calibrated SpO₂ series' missing days from the strap candidate, as every other SpO₂
-        // surface does when its Experimental toggle is on. Calibrated days always win. WHOOP/Oura only.
-        if metric.key == "spo2", metric.source == "my-whoop", PuffinExperiment.spo2CandidateDisplayEnabled {
-            let candidateSeries = await repo.exploreSeries(key: "spo2_candidate", source: metric.source)
-            if !candidateSeries.isEmpty {
-                var byDay = Dictionary(series.map { ($0.day, $0.value) }, uniquingKeysWith: { first, _ in first })
-                for point in candidateSeries where byDay[point.day] == nil {
-                    byDay[point.day] = point.value
-                    sourceByDay[point.day] = spo2CandidateAttributionSource
-                }
-                series = byDay.sorted { $0.key < $1.key }.map { (day: $0.key, value: $0.value) }
-            }
-        }
-        loadSkinTemperature()
+        guard let result = await MetricSeriesLoader.load(metric, repo: repo, skinTemp: skinTempPreferred,
+                                                         fullStepsHistory: range == .year) else { return }
+        series = result.series
+        sourceByDay = result.sourceByDay
+        skinTempNote = result.skinTempNote
         loaded = true
-    }
-
-    /// #1846/#1848/#1850: the skin-temp page leads with the kind Settings asks for across the whole
-    /// history (temperature by default), falls back to the other kind rather than going empty, and says
-    /// so when it does. An absolute may sit in either column (#622), so both count.
-    private func loadSkinTemperature() {
-        skinTempNote = nil
-        guard metric.key == "skin_temp" else { return }
-        let days = repo.days
-        let anyAbsolute = days.contains { row in
-            row.skinTempC != nil || row.skinTempDevC.map(VitalBands.isAbsoluteSkinTemp) == true
-        }
-        let anyDeviation = days.contains { row in
-            row.skinTempDevC.map { !VitalBands.isAbsoluteSkinTemp($0) } == true
-        }
-        guard anyAbsolute || anyDeviation else { return }
-        let leadsAbsolute: Bool
-        switch skinTempPreferred {
-        case .absolute: leadsAbsolute = anyAbsolute
-        case .deviation: leadsAbsolute = !anyDeviation && anyAbsolute
-        }
-        if leadsAbsolute {
-            series = days.compactMap { row in
-                let v = row.skinTempC ?? row.skinTempDevC.flatMap { VitalBands.isAbsoluteSkinTemp($0) ? $0 : nil }
-                return v.map { (day: row.day, value: $0) }
-            }.sorted { $0.day < $1.day }
-        } else {
-            series = days.compactMap { row in
-                row.skinTempDevC.flatMap { !VitalBands.isAbsoluteSkinTemp($0) ? $0 : nil }.map { (day: row.day, value: $0) }
-            }.sorted { $0.day < $1.day }
-        }
-        sourceByDay = Dictionary(series.map { ($0.day, metric.source) }, uniquingKeysWith: { first, _ in first })
-        let rowsWithEither = days.count { $0.skinTempC != nil || $0.skinTempDevC != nil }
-        if shouldExplainSkinTempFallback(prefer: skinTempPreferred, leadsAbsolute: leadsAbsolute,
-                                         anyAbsoluteInWindow: anyAbsolute) {
-            skinTempNote = String(localized: "No measured temperature for these nights — showing the difference from your baseline instead. A re-score refills temperatures for nights that have one.")
-        } else if shouldExplainShortenedSkinTempSeries(leadsAbsolute: leadsAbsolute, shownReadings: series.count,
-                                                        rowsWithEitherNumber: rowsWithEither) {
-            skinTempNote = String(localized: "Only nights with a measured temperature are shown — the others only have a baseline difference.")
-        }
     }
 }
 

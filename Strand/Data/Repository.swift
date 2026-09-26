@@ -2389,7 +2389,7 @@ final class Repository: ObservableObject {
     /// Every catalog metric's Explore series at once, memoized — the cross-catalog scan behind the
     /// Explorer's correlation card.
     ///
-    /// `MetricExplorerView` ran this scan itself, per screen open, as 59 serial `exploreSeries` calls. On
+    /// The old Explore list ran this scan itself, per screen open, as 59 serial `exploreSeries` calls. On
     /// the `my-whoop` partition (34 of the 60 descriptors) each of those walks `days` for the daily column
     /// and then issues a store range query per entry in `computedReadIds` and `importedReadIds`, so one
     /// open cost on the order of a couple of hundred store reads. The result was cached only in that

@@ -37,7 +37,7 @@ struct FullDayChartView: View {
     }
 
     @State private var metric: Repository.TimelineMetric = .hr
-    // Imperial/Metric temperature preference (#101) — mirrors MetricExplorerView so skin temp here
+    // Imperial/Metric temperature preference (#101) — mirrors MetricDetailView so skin temp here
     // respects the same °C/°F override instead of always showing Celsius.
     @AppStorage(UnitPrefs.systemKey) private var unitSystemRaw = UnitSystem.metric.rawValue
     @AppStorage(UnitPrefs.temperatureKey) private var temperatureRaw = ""

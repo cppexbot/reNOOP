@@ -225,7 +225,7 @@ struct TrendsView: View {
         // The liquid metric cards now tap through to their MetricDetailView (matching Today's card
         // taps + Explore's rows). On iOS each tab already supplies a NavigationStack, so those pushes
         // land in the ambient stack. On macOS the .trends detail pane has NO enclosing NavigationStack
-        // (RootView), so — exactly like MetricExplorerView (#753) — wrap the scaffold in one here so the
+        // (RootView), so — exactly like All Metrics on macOS (#753) — wrap the scaffold in one here so the
         // pushes get Back chrome instead of hanging. The SAME shared scaffold renders on both.
         #if os(macOS)
         // Register the value routes at THIS stack's root; on iOS the tab shell's stack registers

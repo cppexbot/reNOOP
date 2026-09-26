@@ -202,7 +202,7 @@ private struct FusedMetricRowView: View {
     let showProvenance: Bool
     let onCompare: () -> Void
 
-    // Each screen resolves °C/°F for itself (TodayView, FullDayChartView, MetricExplorerView do the
+    // Each screen resolves °C/°F for itself (TodayView, FullDayChartView, MetricDetailView do the
     // same); the fused row used to print a hardcoded "°C" and was the last reader here ignoring it.
     @AppStorage(UnitPrefs.systemKey) private var unitSystemRaw = UnitSystem.metric.rawValue
     @AppStorage(UnitPrefs.temperatureKey) private var temperatureRaw = ""
@@ -378,7 +378,7 @@ private struct ContributorRow: View {
     let metricKey: String
     let isWinner: Bool
 
-    // Each screen resolves °C/°F for itself (TodayView, FullDayChartView, MetricExplorerView do the
+    // Each screen resolves °C/°F for itself (TodayView, FullDayChartView, MetricDetailView do the
     // same); the fused row used to print a hardcoded "°C" and was the last reader here ignoring it.
     @AppStorage(UnitPrefs.systemKey) private var unitSystemRaw = UnitSystem.metric.rawValue
     @AppStorage(UnitPrefs.temperatureKey) private var temperatureRaw = ""

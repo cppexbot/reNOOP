@@ -368,7 +368,7 @@ struct SummaryView: View {
                 }
             }
             // Health's "Show All Health Data": the whole metric catalog, one tap away.
-            NavigationLink(value: TabRoute.metricExplorer) {
+            NavigationLink(value: TabRoute.allMetrics) {
                 SummaryCard {
                     HStack {
                         Text("Show all metrics")

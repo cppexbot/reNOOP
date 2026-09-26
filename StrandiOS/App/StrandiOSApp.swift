@@ -559,7 +559,7 @@ enum DemoScreens {
         case "liftsession": return AnyView(LiftSessionView { })
         case "health":   return AnyView(HealthView())
         case "insights": return AnyView(InsightsView())
-        case "explore":  return AnyView(MetricExplorerView())
+        case "explore":  return AnyView(NavigationStack { AllMetricsView().tabRouteDestinations() })
         // One metric's page: `--demo-screen metric --demo-metric hrv` (a catalog key; defaults to HRV).
         case "metric":
             let key = args.firstIndex(of: "--demo-metric").flatMap { $0 + 1 < args.count ? args[$0 + 1] : nil } ?? "hrv"

@@ -13,7 +13,7 @@ import WhoopStore
 // Shared with macOS because the tab roots (SummaryView / TrendsView) are the SAME views the sidebar
 // shell hosts — every `NavigationStack` that hosts one must register
 // `tabRouteDestinations()`, and must register it exactly ONCE: the same value type resolving
-// against two registrations in one stack double-pushes (see MetricExplorerView, #38).
+// against two registrations in one stack double-pushes (#38).
 
 /// One first-hop destination reachable from a tab root. `Hashable` so it can ride a `NavigationPath`.
 enum TabRoute: Hashable {
@@ -26,7 +26,8 @@ enum TabRoute: Hashable {
     /// declared first, so a card's tap-through would silently depend on declaration order. This pins
     /// the exact source, so the catalog's ordering can never decide where a card taps through.
     case metricSourced(key: String, source: String)
-    case metricExplorer
+    /// Every metric, as Health's "Show All Health Data".
+    case allMetrics
     /// The Workouts tab's full history and its toolbar menu entries.
     case workoutHistory
     case workout(WorkoutRow)
@@ -62,7 +63,7 @@ extension View {
                 } else {
                     HealthView()
                 }
-            case .metricExplorer: MetricExplorerView()
+            case .allMetrics: AllMetricsView()
             case .workoutHistory: WorkoutHistoryView()
             case .workout(let row): WorkoutDetailView(row: row)
             case .liftLog: LiftLogView()

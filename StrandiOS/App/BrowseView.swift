@@ -32,7 +32,7 @@ struct BrowseView: View {
             Entry(id: .intelligence, title: String(localized: "Intelligence"), icon: "brain.head.profile", tint: StrandPalette.metricPurple),
             Entry(id: .insights, title: String(localized: "Insights"), icon: "lightbulb.fill", tint: StrandPalette.metricAmber),
             Entry(id: .trends, title: String(localized: "Trends"), icon: "chart.line.uptrend.xyaxis", tint: StrandPalette.metricCyan),
-            Entry(id: .explore, title: String(localized: "Explore"), icon: "square.grid.2x2.fill", tint: StrandPalette.metricCyan),
+            Entry(id: .allMetrics, title: String(localized: "All Metrics"), icon: "list.bullet", tint: StrandPalette.metricCyan),
             Entry(id: .compare, title: String(localized: "Compare"), icon: "rectangle.split.2x1.fill", tint: StrandPalette.metricCyan),
         ]
         if coachEnabled {
@@ -132,7 +132,7 @@ struct BrowseView: View {
 /// per-screen chrome the old inline links applied lives at the single `navigationDestination(for:)`
 /// registration in `RootTabView.browseTab`.
 enum MoreDestination: Hashable {
-    case insightsHub, intelligence, coach, insights, explore, compare
+    case insightsHub, intelligence, coach, insights, allMetrics, compare
     case trends
     case live, health, labBook, stress, breathe, rhythm
     case fusedRecord, appleHealth, miBand, dataSources, backupSync, shortcutsExport, noopLimitations
@@ -144,7 +144,7 @@ enum MoreDestination: Hashable {
         case .intelligence:    IntelligenceView()
         case .coach:           CoachView()
         case .insights:        InsightsView()
-        case .explore:         MetricExplorerView()
+        case .allMetrics:      AllMetricsView()
         case .compare:         CompareView()
         case .trends:          TrendsView()
         case .live:            LiveView()

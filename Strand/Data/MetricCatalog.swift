@@ -2,7 +2,7 @@ import Foundation
 import StrandAnalytics
 
 /// One interrogable metric: how to fetch it (key+source), how to label/format it, and whether
-/// higher is better (drives delta tinting). The Metric Explorer + Compare are built from this list.
+/// higher is better (drives delta tinting). All Metrics + Compare are built from this list.
 struct MetricDescriptor: Identifiable, Hashable {
     let key: String
     let title: String
@@ -93,7 +93,7 @@ struct MetricDescriptor: Identifiable, Hashable {
         }
     }
 
-    /// The unit LABEL as displayed (e.g. the trailing chip in the Metric Explorer list), mapped to the
+    /// The unit LABEL as displayed (e.g. the trailing chip in a metric list), mapped to the
     /// active system. Only the convertible units change; everything else returns its stored label.
     func displayUnit(system: UnitSystem, temperature: TemperatureUnit,
                      effortScale: EffortScale = .hundred) -> String {
