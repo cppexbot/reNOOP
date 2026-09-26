@@ -200,7 +200,7 @@ struct LiveView: View {
         }
     }
 
-    // MARK: - Frosted card helper (matches LiquidTodayView.card: rounded 22 + resting hairline)
+    // MARK: - Frosted card helper (rounded 22 + resting hairline)
 
     private func card<V: View>(@ViewBuilder _ content: () -> V) -> some View {
         content()

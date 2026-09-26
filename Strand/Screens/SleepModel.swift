@@ -6,12 +6,9 @@ import WhoopStore
 
 // MARK: - Shared sleep model
 //
-// The value types and the pure derivation pipeline behind the Sleep tab. Extracted out of
-// `SleepView` so the SAME model can be built by another host (e.g. the Today tab's hosted sleep
-// card) without a `SleepView` instance. Nothing here reads view state: `SleepModel.build(_:)` is a
-// pure function of its `SleepModelInputs`. The Sleep-tab renderers still live on `SleepView` and read
-// the fields below; only the DATA-BUILDING moved here. Behaviour is byte-identical to the previous
-// `SleepView.buildModel()` — see that call site's history for the per-line rationale.
+// The value types and the pure derivation pipeline behind the Sleep page. Nothing here reads view
+// state: `SleepModel.build(_:)` is a pure function of its `SleepModelInputs`, and the Sleep page
+// (`SleepHealthView`) and the Summary's sleep card read the fields below.
 
 struct Stages {
     var awake: Double
@@ -47,14 +44,14 @@ struct Night {
     var habitualMidsleepSec: Int? = nil
 
     /// The real stored block a sleep-time edit writes against — the day's MAIN block, resolved by the
-    /// SAME shared selector (`SleepView.mainNightSession` → `SleepStageTotals.mainNightIndex`) the hero,
+    /// SAME shared selector (`SleepNightDecoding.mainNightSession` → `SleepStageTotals.mainNightIndex`) the hero,
     /// the naps card, and `AnalyticsEngine.analyzeDay` use, so all of them and the edit affordance agree
     /// (no re-derived overnight gate). Passes the same learned habitual the hero used, so the edit target
     /// matches the hero block even for a shift/late sleeper. Its `startTs` is a genuine detected key, so
     /// `applySleepEdit` matches. nil when there's no underlying block (a synthetic stub) — the edit
     /// affordance is then hidden. (#318, #518, #547)
     var editTarget: CachedSleepSession? {
-        SleepView.mainNightSession(sourceBlocks, habitualMidsleepSec: habitualMidsleepSec)
+        SleepNightDecoding.mainNightSession(sourceBlocks, habitualMidsleepSec: habitualMidsleepSec)
     }
 
     /// The `startTs` of every block in the day's bridged MAIN-night GROUP (the winning block plus the
@@ -62,11 +59,8 @@ struct Night {
     /// group are naps. Without this the tab treated every block except the single winner as a nap and a
     /// biphasic night rendered as phantom naps. (#555)
     var mainGroupStarts: Set<Int> {
-        Set(SleepView.mainNightGroup(sourceBlocks, habitualMidsleepSec: habitualMidsleepSec).map { $0.startTs })
+        Set(SleepNightDecoding.mainNightGroup(sourceBlocks, habitualMidsleepSec: habitualMidsleepSec).map { $0.startTs })
     }
-
-    /// Total time in bed in minutes (from reconstructed stages).
-    var timeInBed: Double { stages.total }
 
     /// The wall-clock start of the night (for the Hypnogram's clock labels).
     var onsetDate: Date { Date(timeIntervalSince1970: TimeInterval(session.effectiveStartTs)) }
@@ -94,8 +88,6 @@ struct Night {
         return out
     }
 
-    var onsetText: String { Night.timeFmt.string(from: Date(timeIntervalSince1970: TimeInterval(session.effectiveStartTs))) }
-    var wakeText: String { Night.timeFmt.string(from: Date(timeIntervalSince1970: TimeInterval(session.endTs))) }
     var dateLabel: String { Night.dateFmt.string(from: Date(timeIntervalSince1970: TimeInterval(session.effectiveStartTs))) }
 
     /// Date label that becomes a span when the night crosses midnight (onset on a different
@@ -144,11 +136,11 @@ struct Night {
     }()
 }
 
-/// Memoized result of every expensive SleepView derivation. Built once per data change in
+/// Memoized result of every expensive Sleep-page derivation. Built once per data change in
 /// `SleepModel.build(_:)` and read by the subviews, so full passes over the day rows / sleep sessions
 /// and the Night.intervals reconstruction no longer run on every render.
 struct SleepModel {
-    /// (latest, latestDay, typical mean, full history) per metric — mirrors SleepView's per-tile series.
+    /// (latest, latestDay, typical mean, full history) per metric — one series per Sleep metric tile.
     /// `latestDay` is the yyyy-MM-dd the `latest` value was carried from (nil when there is no latest
     /// value, or when the latest value IS today's). #1946: a carried prior-day value is stamped with its
     /// day so it is not passed off as tonight's read.
@@ -163,8 +155,8 @@ struct SleepModel {
         return String(localized: "Carried · \(Self.shortDayLabel(latestDay))")
     }
 
-    /// "12 Jul" for a "yyyy-MM-dd" key — the SAME format `TodayView.carriedCaption` uses for the
-    /// recovery carry stamp, so a carried Rest on Today and a carried metric on Sleep read identically.
+    /// "12 Jul" for a "yyyy-MM-dd" key — the SAME format `DayScoreReadings.carriedCaption` uses for the
+    /// recovery carry stamp, so a carried Charge and a carried Sleep metric read identically.
     static func shortDayLabel(_ key: String) -> String {
         guard let date = dayKeyParser.date(from: key) else { return key }
         return Self.shortDayFormatter.string(from: date)
@@ -228,30 +220,29 @@ struct SleepModelInputs {
     /// One-per-night sessions (`Repository.sleeps`) — the `navSessions` fallback and the
     /// consistency bedtime-spread series read this directly.
     let sleeps: [CachedSleepSession]
-    /// Every un-deduplicated sleep block (`SleepView.allSessions`); empty until the fuller list loads,
+    /// Every un-deduplicated sleep block (`Repository.allSleepSessions`); empty until the fuller list loads,
     /// in which case the builder falls back to `sleeps` exactly as `navSessions` did.
     let allSessions: [CachedSleepSession]
     /// Per-day imported WHOOP figures (`Repository.importedSleep`) — export-verbatim tile values.
     let importedSleep: [String: ImportedSleepFigures]
     /// The learned habitual midsleep (local seconds) the engine threaded into the daily totals.
     let habitualMidsleepSec: Int?
-    /// Per-epoch motion keyed by detected block start (`SleepView.motionByStart`).
+    /// Per-epoch motion keyed by detected block start.
     let motionByStart: [Int: [Double]]
 }
 
 // MARK: - Pure derivation pipeline
 //
-// Every static below is the pure form of a computed that previously lived on `SleepView` and read
-// `self`/`repo`. They now take their inputs explicitly, so `build(_:)` and the Sleep-tab renderer/nav
-// wrappers on `SleepView` share ONE source of truth for the math (no duplication). The stage-decode
-// seams (`SleepView.decodeStages` / `decodeSegments` / `decodedAsleepMinutes`) and the shared
-// main-night selectors (`SleepView.mainNightGroup`, `napSleepMinutes`, `stubDaySession`) stay on
-// `SleepView` because they are reused by other screens/tests; these statics call them.
+// Every static below takes its inputs explicitly, so `build(_:)` and the Sleep page's nav share ONE
+// source of truth for the math. The stage-decode seams (`SleepNightDecoding.decodeStages` /
+// `decodeSegments` / `decodedAsleepMinutes`) and the shared main-night selectors
+// (`SleepNightDecoding.mainNightGroup`, `napSleepMinutes`, `stubDaySession`) live in
+// SleepNightDecoding.swift because other screens and tests reuse them; these statics call them.
 extension SleepModel {
 
     /// The browsable DAY list: every block grouped by the calendar day it ENDS on (matching the
     /// dashboard's per-night merge), newest day first, blocks within a day oldest→newest. Each day
-    /// is ONE ◀/▶ stop. Mirrors the former `SleepView.navDays`. (#170)
+    /// is ONE ◀/▶ stop. (#170)
     static func navDays(navSessions: [CachedSleepSession]) -> [[CachedSleepSession]] {
         let cal = Calendar.current
         func endDay(_ s: CachedSleepSession) -> Date {
@@ -265,11 +256,11 @@ extension SleepModel {
 
     /// The night's DISPLAYED onset (bedtime): the first fragment that is NOT a spurious leading
     /// pre-onset awake stub, falling back to the earliest onset when the whole group is stub-like.
-    /// Mirrors the former `SleepView.nightOnsetTs`. (#736, #259)
+    /// (#736, #259)
     static func nightOnsetTs(_ group: [CachedSleepSession]) -> Int {
         guard let first = group.first else { return 0 }
         let refAsleepMin = group.map {
-            SleepView.decodedAsleepMinutes($0.stagesJSON, effectiveStartTs: $0.effectiveStartTs)
+            SleepNightDecoding.decodedAsleepMinutes($0.stagesJSON, effectiveStartTs: $0.effectiveStartTs)
         }.max() ?? 0
         for frag in group {
             if !isPreOnsetAwakeStub(frag, refAsleepMin: refAsleepMin) { return frag.effectiveStartTs }
@@ -278,21 +269,21 @@ extension SleepModel {
     }
 
     /// Fragment-level spurious-stub test, decoding the fragment's span + asleep minutes and delegating
-    /// to the shared pure rule on `SleepView`. Mirrors the former `SleepView.isPreOnsetAwakeStub(_:)`. (#736)
+    /// to the shared pure rule `SleepNightDecoding.isPreOnsetAwakeStub(spanMin:asleepMin:refAsleepMin:)`. (#736)
     static func isPreOnsetAwakeStub(_ frag: CachedSleepSession, refAsleepMin: Double = 0) -> Bool {
         let spanMin = Double(frag.endTs - frag.effectiveStartTs) / 60.0
-        let asleepMin = SleepView.decodedAsleepMinutes(frag.stagesJSON,
+        let asleepMin = SleepNightDecoding.decodedAsleepMinutes(frag.stagesJSON,
                                                        effectiveStartTs: frag.effectiveStartTs)
-        return SleepView.isPreOnsetAwakeStub(spanMin: spanMin, asleepMin: asleepMin, refAsleepMin: refAsleepMin)
+        return SleepNightDecoding.isPreOnsetAwakeStub(spanMin: spanMin, asleepMin: asleepMin, refAsleepMin: refAsleepMin)
     }
 
     /// Build the hero `Night` for a day around its MAIN-night GROUP, bridged the way
-    /// `AnalyticsEngine.analyzeDay` bridges it. Mirrors the former `SleepView.mergeDay`. Returns nil
+    /// `AnalyticsEngine.analyzeDay` bridges it. Returns nil
     /// if the group decodes to no usable stages. (#170, #318, #518, #555, #561, #736, #364, #407)
     static func mergeDay(_ sessions: [CachedSleepSession],
                          habitualMidsleepSec: Int?,
                          motionByStart: [Int: [Double]]) -> Night? {
-        let fullGroup = SleepView.mainNightGroup(sessions, habitualMidsleepSec: habitualMidsleepSec)
+        let fullGroup = SleepNightDecoding.mainNightGroup(sessions, habitualMidsleepSec: habitualMidsleepSec)
         guard let last = fullGroup.last else { return nil }
         let onset = nightOnsetTs(fullGroup), wake = last.endTs
         let group = fullGroup.drop { $0.effectiveStartTs < onset }
@@ -300,14 +291,14 @@ extension SleepModel {
         var segs: [SleepInterval] = []
         var motion: [Double] = []
         for frag in group {
-            if let seg = SleepView.decodeSegments(frag.stagesJSON, sessionStart: frag.effectiveStartTs), seg.stages.total > 0 {
+            if let seg = SleepNightDecoding.decodeSegments(frag.stagesJSON, sessionStart: frag.effectiveStartTs), seg.stages.total > 0 {
                 stages.awake += seg.stages.awake; stages.light += seg.stages.light
                 stages.deep  += seg.stages.deep;  stages.rem   += seg.stages.rem
                 let shift = TimeInterval(frag.effectiveStartTs - onset)
                 for iv in seg.intervals {
                     segs.append(SleepInterval(stage: iv.stage, start: iv.start + shift, end: iv.end + shift))
                 }
-            } else if let st = SleepView.decodeStages(frag.stagesJSON), st.total > 0 {
+            } else if let st = SleepNightDecoding.decodeStages(frag.stagesJSON), st.total > 0 {
                 stages.awake += st.awake; stages.light += st.light
                 stages.deep  += st.deep;  stages.rem   += st.rem
             }
@@ -330,8 +321,7 @@ extension SleepModel {
                      motionEpochs: motion, habitualMidsleepSec: habitualMidsleepSec)
     }
 
-    /// The merged Night for the DAY `offset` stops back from the most recent (0 = last night).
-    /// Mirrors the former `SleepView.decodedNight(at:)`. (#160, #170)
+    /// The merged Night for the DAY `offset` stops back from the most recent (0 = last night). (#160, #170)
     static func decodedNight(at offset: Int, navDays: [[CachedSleepSession]],
                              habitualMidsleepSec: Int?, motionByStart: [Int: [Double]]) -> Night? {
         guard offset >= 0, offset < navDays.count else { return nil }
@@ -339,13 +329,13 @@ extension SleepModel {
     }
 
     /// Per-local-wake-day nap credit, derived from the same day grouping and main-night selector the
-    /// hero/naps card use. Mirrors the former `SleepView.napSleepMinutesByDay`.
+    /// hero/naps card use.
     static func napSleepMinutesByDay(navDays: [[CachedSleepSession]], habitualMidsleepSec: Int?) -> [String: Double] {
         var result: [String: Double] = [:]
         for blocks in navDays {
             guard let endTs = blocks.first?.endTs else { continue }
             let day = Repository.localDayKey(Date(timeIntervalSince1970: TimeInterval(endTs)))
-            result[day] = SleepView.napSleepMinutes(blocks, habitualMidsleepSec: habitualMidsleepSec)
+            result[day] = SleepNightDecoding.napSleepMinutes(blocks, habitualMidsleepSec: habitualMidsleepSec)
         }
         return result
     }
@@ -513,10 +503,18 @@ extension SleepModel {
 
     // MARK: Trend points
 
-    /// Trailing total-sleep trend, plotted in HOURS. Single source of truth shared with the Today
-    /// host (`AsleepDurationCard`), so the Sleep-tab trend and the hosted copy are byte-identical.
+    /// Trailing 30 days of total sleep in HOURS, falling back to all nights with data when the trailing
+    /// window is too sparse.
     static func durationTrendPoints(days: [DailyMetric]) -> [TrendPoint] {
-        AsleepDurationData.build(days: days).points
+        func mk(_ slice: ArraySlice<DailyMetric>) -> [TrendPoint] {
+            slice.compactMap { d -> TrendPoint? in
+                guard let mins = d.totalSleepMin, mins > 0,
+                      let date = dayKeyParser.date(from: d.day) else { return nil }
+                return TrendPoint(date: date, value: mins / 60.0)
+            }
+        }
+        let recent = mk(days.suffix(30))
+        return recent.count >= 2 ? recent : mk(days[...])
     }
 
     // MARK: Sleep-debt ledger
@@ -537,8 +535,7 @@ extension SleepModel {
     // MARK: - Build
 
     /// Build every expensive derivation exactly once, as a pure function of `inputs`. Returns nil when
-    /// there is no usable latest night (the caller renders the empty state). This is the former
-    /// `SleepView.buildModel()` body, re-expressed over explicit inputs. (#940)
+    /// there is no usable latest night (the caller renders the empty state). (#940)
     static func build(_ inputs: SleepModelInputs) -> SleepModel? {
         // Replicate `navSessions`: fall back to the one-per-night list until the fuller list loads.
         let navSessions = inputs.allSessions.isEmpty ? inputs.sleeps : inputs.allSessions
@@ -556,7 +553,7 @@ extension SleepModel {
             isStub = false
         } else {
             let blocks0 = dayGroups.indices.contains(0) ? dayGroups[0] : []
-            if let stubSession = SleepView.stubDaySession(blocks0, habitualMidsleepSec: habitual) {
+            if let stubSession = SleepNightDecoding.stubDaySession(blocks0, habitualMidsleepSec: habitual) {
                 night = Night(session: stubSession, stages: Stages(awake: 0, light: 0, deep: 0, rem: 0),
                               sourceBlocks: blocks0, habitualMidsleepSec: habitual)
                 isStub = true

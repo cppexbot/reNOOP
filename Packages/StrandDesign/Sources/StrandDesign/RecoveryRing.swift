@@ -225,20 +225,4 @@ public struct RecoveryArc: Shape {
     .background(StrandPalette.surfaceBase)
     .preferredColorScheme(.dark)
 }
-
-private struct RecoveryRingLive: View {
-    @State private var score: Double = 64
-    var body: some View {
-        VStack(spacing: 24) {
-            RecoveryRing(score: score, supporting: "drag to feel the draw-in", diameter: 260)
-            Slider(value: $score, in: 0...100)
-                .frame(width: 280)
-        }
-        .padding(40)
-        .background(StrandPalette.surfaceBase)
-        .preferredColorScheme(.dark)
-    }
-}
-
-#Preview("RecoveryRing — interactive") { RecoveryRingLive() }
 #endif

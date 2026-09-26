@@ -302,7 +302,7 @@ struct XiaomiBandView: View {
         var asleepMin: Double { light + deep + rem } }
 
     /// Reconstruct `[SleepInterval]` (seconds from onset) + stage totals from the verbatim
-    /// `[{start,end,stage}]` hypnogram JSON the importer stores. Mirrors `SleepView.decodeSegments`.
+    /// `[{start,end,stage}]` hypnogram JSON the importer stores. Mirrors `SleepNightDecoding.decodeSegments`.
     private func decodeStages(_ json: String?, sessionStart: Int) -> (stages: MiStages, intervals: [SleepInterval])? {
         guard let json, let data = json.data(using: .utf8),
               let arr = (try? JSONSerialization.jsonObject(with: data)) as? [[String: Any]], !arr.isEmpty

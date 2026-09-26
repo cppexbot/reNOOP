@@ -298,8 +298,8 @@ struct SummaryView: View {
         Binding(
             get: { SummaryDay.logicalDay(offset: dayOffset) },
             set: { picked in
-                dayOffset = LiquidTodayView.pickedDayOffset(pickedDate: picked,
-                                                            anchorLogicalDay: SummaryDay.logicalDay(offset: 0))
+                dayOffset = SummaryDay.pickedDayOffset(pickedDate: picked,
+                                                       anchorLogicalDay: SummaryDay.logicalDay(offset: 0))
                 showDayPicker = false
             }
         )

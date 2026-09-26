@@ -1,15 +1,14 @@
 import XCTest
 @testable import Strand
 
-/// Regression guard for the "New data added" inbox spam (#521). The Today screen announces new history
-/// by posting a `.reading` `UpdateItem` to the shared `UpdateStore`; background recompute ticks used to
-/// re-post it on a loop. The store's own dedup + cap is the backstop that guarantees a repeated identical
+/// Regression guard for the "New data added" inbox spam (#521). Informational `.reading` `UpdateItem`s
+/// posted to the shared `UpdateStore` by background recompute ticks used to be re-posted on a loop. The store's own dedup + cap is the backstop that guarantees a repeated identical
 /// informational post collapses to a SINGLE row rather than piling up. Mirrors the intent of the Android
 /// `UpdateStore.post` logic (kept in lock-step by hand).
 @MainActor
 final class UpdateInboxDedupTests: XCTestCase {
 
-    /// A `.reading` "New data added" post, matching `TodayView.announceNewDaysIfNeeded`'s shape.
+    /// A `.reading` "New data added" post.
     private func reading(_ msg: String = "1 new day of history landed. Open Trends to see it.",
                          at date: Date = Date()) -> UpdateItem {
         UpdateItem(kind: .reading, title: "New data added", message: msg,

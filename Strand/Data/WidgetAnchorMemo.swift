@@ -12,7 +12,7 @@ import WhoopStore
 /// The anchor only changes when `days` changes (tracked by `Repository.refreshSeq`, bumped on every
 /// `days` assignment) or when the local/logical day rolls. Keying the memo on `(seq, logicalKey, localKey)`
 /// makes it exactly behavior-preserving: a streaming tick reuses the last row, and the anchor is recomputed
-/// precisely once per data refresh or day-roll. Same `refreshSeq`-keyed idiom as `todayHistoryWideLoadedSeq`.
+/// precisely once per data refresh or day-roll. Same `refreshSeq`-keyed idiom as `insightsLoadedSeq`.
 ///
 /// Pure given the `compute` it is handed, so it is unit-tested without a live `Repository` — the twin of
 /// Android's `NotifyDayStateCache` (#1051). Held as a `Repository` stored property and only ever touched on

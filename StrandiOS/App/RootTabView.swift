@@ -59,12 +59,11 @@ struct RootTabView: View {
     @State private var tabPaths: [NavigationPath] = Array(repeating: NavigationPath(), count: 5)
     /// One scroll-to-top token per tab. Bumped when the user re-taps the active tab while it's ALREADY
     /// at its root — the other half of the iOS convention #197/#198 left unserved (an at-root re-tap was
-    /// a no-op). Threaded into each tab's root via `\.scrollToTopSignal`; ScreenScaffold / LiquidTodayView
+    /// a no-op). Threaded into each tab's root via `\.scrollToTopSignal`; ScreenScaffold / SummaryView
     /// scroll to their top anchor when their tab's token changes.
     @State private var scrollTop: [Int] = Array(repeating: 0, count: 5)
 
-    /// The Today tab root: the Apple-Health-style Summary. (The old liquid/classic switch,
-    /// `noop.liquidTodayEnabled`, no longer picks the root.)
+    /// The Today tab root: the Apple-Health-style Summary.
     private var todayTabRoot: some View { SummaryView() }
 
     /// Native tab selection binding. SwiftUI sends taps on the already-selected item through the
@@ -144,14 +143,10 @@ struct RootTabView: View {
                 routedPillar = dest
                 router.requestedDestination = nil
             case .coach:
-                // K3: Coach is now a top-level tab (tag 3) — switch to it directly instead of
-                // presenting it as a pillar sheet.
-                //
-                // Guarded on the master switch, because this route is reachable with Coach OFF. A brief
+                // Guarded on the master switch, because this route is reachable with Coach OFF: a brief
                 // notification already sitting in Notification Centre still calls `openCoach()` when it is
-                // tapped (StrandApp wires `onCoachBriefTapped` to it), and with no tab claiming tag 3 the
-                // wearer would land on a BLANK tab. Dropping the request leaves them where they were, which
-                // is the honest answer for a feature that is switched off.
+                // tapped (StrandApp wires `onCoachBriefTapped` to it). Dropping the request leaves the
+                // wearer where they were, which is the honest answer for a feature that is switched off.
                 guard coachEnabled else {
                     router.requestedDestination = nil
                     break

@@ -146,8 +146,10 @@ final class QuietMotionCoverageTests: XCTestCase {
             }
         }
 
-        // The census must actually find the known loops; a zero-hit run means the markers drifted.
-        XCTAssertGreaterThanOrEqual(censused, 6, "expected to census the known frame loops, found \(censused)")
+        // The census must actually find the known loops; a zero-hit run means the markers drifted. The
+        // floor is the number of loop-owning files that exist today; lower it only when one of them is
+        // deleted, never to quiet a drift.
+        XCTAssertGreaterThanOrEqual(censused, 4, "expected to census the known frame loops, found \(censused)")
         XCTAssertTrue(offenders.isEmpty, """
             \(offenders.count) never-settling animation(s) do not consult NoopMotionState. Gate them \
             with `motion.poseStill(reduceMotion)`, or add the file to `exemptions` WITH a reason:

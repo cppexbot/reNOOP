@@ -5,7 +5,7 @@ import StrandAnalytics
 /// Pins the Swift Week-in-Review chip contract (#463): a ROUGH week-over-week comparison (either side
 /// 1-2 days) neutralizes the chip tone and drops the VoiceOver verdict frame, so iOS/macOS matches the
 /// Android WeeklyDigestCard gate instead of dressing a 43% "drop" off 2 days in a confident verdict.
-/// `chipTone`/`rowAccessibility` in WeeklyDigestView delegate to WeeklyDigestChipStyle, so pinning it
+/// `chipTone`/`rowAccessibility` in WeeklyDigestContent delegate to WeeklyDigestChipStyle, so pinning it
 /// here pins the code path the View actually runs. Mirrors WeeklyDigestCardFormattingTest's rough cases.
 final class WeeklyDigestChipStyleTests: XCTestCase {
 

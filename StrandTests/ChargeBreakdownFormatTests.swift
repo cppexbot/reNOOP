@@ -91,26 +91,6 @@ final class ChargeBreakdownFormatTests: XCTestCase {
         XCTAssertEqual(ChargeBreakdownFormat.tierState(.solid), .solid)
     }
 
-    // MARK: - A4: calibrating countdown copy
-
-    func testCalibrationCountdownPluralizes() {
-        XCTAssertEqual(ChargeBreakdownFormat.calibrationCountdown(nightsRemaining: 2), "2 nights to go")
-        XCTAssertEqual(ChargeBreakdownFormat.calibrationCountdown(nightsRemaining: 1), "1 night to go")
-        XCTAssertEqual(ChargeBreakdownFormat.calibrationCountdown(nightsRemaining: 0), "0 nights to go")
-    }
-
-    func testCalibrationUnlockCopyNamesTheScore() {
-        XCTAssertEqual(ChargeBreakdownFormat.calibrationUnlockCopy(scoreName: "Charge"),
-                       "more overnight wear to unlock your Charge baseline")
-    }
-
-    func testCalibrationProgressReadsBankedOfSeed() {
-        XCTAssertEqual(ChargeBreakdownFormat.calibrationProgress(banked: 1, seed: 4),
-                       "Calibrating, 1 of 4 nights")
-        XCTAssertEqual(ChargeBreakdownFormat.calibrationProgress(banked: 0, seed: 4),
-                       "Calibrating, 0 of 4 nights")
-    }
-
     // MARK: - A5: relative skin-temp label
 
     func testSkinTempDeviationLabelSignsAndRoundsToOneDecimal() {
@@ -129,23 +109,5 @@ final class ChargeBreakdownFormatTests: XCTestCase {
         XCTAssertEqual(ChargeBreakdownFormat.skinTempTierWord(.cooler), "Cooler than your baseline")
         XCTAssertEqual(ChargeBreakdownFormat.skinTempTierWord(.typical), "Typical for you")
         XCTAssertEqual(ChargeBreakdownFormat.skinTempTierWord(.warmer), "Warmer than your baseline")
-    }
-
-    // MARK: - Deep-sleep HRV window gap (#233)
-
-    func testChargeDeepWindowGapTrueOnlyForDeepWindowNilHrvAndNoDeepSleep() {
-        // The gap: Deep window selected, no HRV computed, and under ~5 minutes of deep sleep that night.
-        XCTAssertTrue(ChargeBreakdownFormat.chargeDeepWindowGap(hrvWindow: .deep, avgHrv: nil, deepMin: 0))
-        XCTAssertTrue(ChargeBreakdownFormat.chargeDeepWindowGap(hrvWindow: .deep, avgHrv: nil, deepMin: nil))
-        XCTAssertTrue(ChargeBreakdownFormat.chargeDeepWindowGap(hrvWindow: .deep, avgHrv: nil, deepMin: 4.9))
-
-        // Whole-night window: never the deep-window gap, regardless of HRV/deep-sleep values.
-        XCTAssertFalse(ChargeBreakdownFormat.chargeDeepWindowGap(hrvWindow: .whole, avgHrv: nil, deepMin: 0))
-
-        // HRV present: Charge isn't actually empty, so this isn't the gap.
-        XCTAssertFalse(ChargeBreakdownFormat.chargeDeepWindowGap(hrvWindow: .deep, avgHrv: 55.0, deepMin: 0))
-
-        // Enough deep sleep banked: the nil (if any) has some other cause, not "no deep sleep".
-        XCTAssertFalse(ChargeBreakdownFormat.chargeDeepWindowGap(hrvWindow: .deep, avgHrv: nil, deepMin: 12.0))
     }
 }

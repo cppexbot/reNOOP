@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - BevelGauge (NEW) — the layered ring gauge primitive
 //
-// The shared instrument behind RecoveryRing and StrainGauge: a 240° open gauge with
+// The shared instrument behind RecoveryRing: a 240° open gauge with
 //   • a soft frosted inner disc (subtle radial fill, hairline rim)
 //   • a faint full-span track ring carved from `surfaceInset` (the Titanium "well")
 //   • a gradient-stroked progress arc (AngularGradient over the domain ramp:
@@ -11,8 +11,8 @@ import SwiftUI
 //   • a centred SF Pro **Rounded** bold number with an "of N" caption + state word
 //
 // It owns no domain logic — callers pass the fraction, the stroke gradient, the tip
-// colour, and the centre read-out strings. RecoveryRing / StrainGauge keep their own
-// public init signatures and delegate their visuals here, so every screen re-skins
+// colour, and the centre read-out strings. RecoveryRing keeps its own
+// public init signature and delegate their visuals here, so every screen re-skins
 // without any call-site change.
 
 public struct BevelGauge: View {

@@ -35,9 +35,6 @@ enum HydrationStore {
     /// sync so deleting/editing an entry re-derives and re-banks the total.
     static let entriesKeyPrefix = "noop.hydrationEntries."
 
-    /// AppStorage key for the user's custom container size (ml) (#798). Default `cupML` until set.
-    static let customSizeKey = "noop.hydrationCustomSizeML"
-
     /// metricSeries key for water IMPORTED from the platform health store — Apple Health on iOS,
     /// Health Connect on Android (#949). MUST match the Android `KEY_IMPORTED`.
     ///

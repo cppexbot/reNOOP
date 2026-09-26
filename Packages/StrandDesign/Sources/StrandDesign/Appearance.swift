@@ -25,49 +25,8 @@ public enum ChartStyle: String, CaseIterable, Identifiable, Sendable {
     public static func resolve(_ raw: String) -> ChartStyle { ChartStyle(rawValue: raw) ?? .titanium }
 }
 
-/// The Sleep tab's stage-CHART shape (distinct from `ChartStyle`, which is colours): the long-standing
-/// per-stage-rows timeline, or the WHOOP-style single stepped hypnogram drawn either FILLED to the
-/// baseline or as a slim RIBBON. Display-only — the underlying stages/totals are identical; this only
-/// changes the drawing, and Filled/Ribbon fall back to Classic on a night with no timestamped segments.
-/// The byte-identical twin is Android `SleepChartStyle` (Units.kt): same `classic`/`filled`/`ribbon`
-/// rawValues and the same `sleep.chart.style` key, so a device reads its own choice consistently.
-/// Device-local (NOT in the `.noopbak` whitelist), like the Android pref.
-public enum SleepChartStyle: String, CaseIterable, Identifiable, Sendable {
-    case classic       // per-stage-rows timeline (the default, unchanged)
-    case filled        // stepped hypnogram filled to the baseline, NOOP sleep colours
-    case garminFilled  // the same filled chart in Garmin's blue/magenta ramp
-    case ribbon        // slim band at each stage level, Oura's cream/blue ramp
-
-    public var id: String { rawValue }
-    public static let storageKey = "sleep.chart.style"
-
-    public var label: String {
-        switch self {
-        case .classic:      return String(localized: "Classic", bundle: .module)
-        case .filled:       return String(localized: "Fill", bundle: .module)
-        case .garminFilled: return String(localized: "Garmin Fill", bundle: .module)
-        case .ribbon:       return String(localized: "Ribbon", bundle: .module)
-        }
-    }
-
-    /// Whether the stepped chart fills each stage to the baseline (Fill / Garmin Fill) or draws a slim
-    /// ribbon band (Ribbon). Classic doesn't use the stepped chart.
-    public var isFilled: Bool { self == .filled || self == .garminFilled }
-
-    /// The stage-colour ramp this style draws with.
-    public var stagePalette: SleepStagePalette {
-        switch self {
-        case .classic, .filled: return .noop
-        case .garminFilled:     return .garmin
-        case .ribbon:           return .oura
-        }
-    }
-
-    public static func resolve(_ raw: String) -> SleepChartStyle { SleepChartStyle(rawValue: raw) ?? .classic }
-}
-
-/// Which stage-colour ramp a sleep chart draws with: NOOP's own tokens, Oura's ramp (Ribbon), or Garmin's
-/// (Garmin Fill). Twin of the Kotlin `SleepStagePalette`.
+/// Which stage-colour ramp a sleep chart draws with: NOOP's own tokens, Oura's ramp, or Garmin's. Twin of
+/// the Kotlin `SleepStagePalette`.
 public enum SleepStagePalette: String, Sendable { case noop, oura, garmin }
 
 /// Applies the chart style: sets the global `StrandPalette.chartStyle` (read by the data-ramp
@@ -159,72 +118,6 @@ public extension View {
     }
 }
 
-/// A named THEME preset — a one-tap bundle that coordinates the accent, the chart colour world, the
-/// day-cycle backdrop, and the card opacity. Purely an orchestration over settings that already exist:
-/// selecting a preset writes those four prefs, and the granular controls stay available underneath. There
-/// is NO stored "current theme" — it's DERIVED from the live prefs via [matching], so tweaking any one
-/// control simply resolves to `.custom`. Theme MODE (System/Light/Dark) is independent and never bundled.
-/// Twin of Kotlin `ThemePreset`.
-public enum ThemePreset: String, CaseIterable, Identifiable, Sendable {
-    case mint       // brand default: mint accent, Titanium charts, backdrop on, solid cards
-    case ocean      // WHOOP-blue accent, Titanium charts, backdrop on, solid
-    case classic    // WHOOP-blue accent, Classic throwback charts, backdrop on, solid
-    case midnight   // mint accent, Titanium charts, backdrop OFF (plain canvas), solid
-    case frosted    // mint accent, Titanium charts, backdrop on, translucent cards
-    case custom     // sentinel: the live combination matches no preset
-
-    public var id: String { rawValue }
-
-    public var label: String {
-        switch self {
-        case .mint:     return String(localized: "Mint", bundle: .module)
-        case .ocean:    return String(localized: "Ocean", bundle: .module)
-        case .classic:  return String(localized: "Classic", bundle: .module)
-        case .midnight: return String(localized: "Midnight", bundle: .module)
-        case .frosted:  return String(localized: "Frosted", bundle: .module)
-        case .custom:   return String(localized: "Custom", bundle: .module)
-        }
-    }
-
-    /// The four coordinated values a preset writes (nil for `.custom`, which sets nothing). Named `Recipe`
-    /// rather than `Bundle` deliberately — `Bundle` would shadow `Foundation.Bundle`, used just above in
-    /// `String(localized:bundle:)`.
-    public struct Recipe: Sendable {
-        public let accent: AccentColor
-        public let chart: ChartStyle
-        public let backdrop: Bool
-        public let cardOpacity: Int
-    }
-
-    public var recipe: Recipe? {
-        switch self {
-        case .mint:     return Recipe(accent: .mint,      chart: .titanium, backdrop: true,  cardOpacity: 100)
-        case .ocean:    return Recipe(accent: .whoopBlue, chart: .titanium, backdrop: true,  cardOpacity: 100)
-        case .classic:  return Recipe(accent: .whoopBlue, chart: .classic,  backdrop: true,  cardOpacity: 100)
-        case .midnight: return Recipe(accent: .mint,      chart: .titanium, backdrop: false, cardOpacity: 100)
-        case .frosted:  return Recipe(accent: .mint,      chart: .titanium, backdrop: true,  cardOpacity: 85)
-        case .custom:   return nil
-        }
-    }
-
-    /// The presets a user can pick (everything except the derived `.custom` sentinel).
-    public static var selectable: [ThemePreset] { allCases.filter { $0 != .custom } }
-
-    public static func resolve(_ raw: String) -> ThemePreset { ThemePreset(rawValue: raw) ?? .mint }
-
-    /// Which preset the live prefs correspond to, or `.custom` when none match.
-    public static func matching(accent: AccentColor, chart: ChartStyle,
-                                backdrop: Bool, cardOpacity: Int) -> ThemePreset {
-        for p in selectable {
-            if let r = p.recipe, r.accent == accent, r.chart == chart,
-               r.backdrop == backdrop, r.cardOpacity == cardOpacity {
-                return p
-            }
-        }
-        return .custom
-    }
-}
-
 /// The user's appearance preference for the whole app. Persisted via
 /// `@AppStorage(AppearanceMode.storageKey)`. `.system` follows the OS (the default);
 /// `.light` / `.dark` force a scheme regardless of the system setting.
@@ -283,14 +176,12 @@ public enum AppearanceMode: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
-/// The day-cycle scene backdrop behind the Today screen (sunrise / day / dusk / night). Default ON —
-/// the scene is the v7 atmosphere. Some people find it distracting and want a plain dark canvas (#698),
-/// so this gates whether Today passes a `SceneScreenBackground` into its scaffold. When OFF, Today drops
-/// the scene and falls back to the opaque `surfaceBase`; the cards already sit on an opaque canvas, so
-/// they stay perfectly readable. Read in `TodayView` via `@AppStorage(SceneBackgroundPrefs.enabledKey)`
-/// and toggled from Settings → Appearance. Mirror in Kotlin via `NoopPrefs.showDayCycleBackground`.
+/// The day-cycle sky backdrop behind the scaffolded screens. Default ON. Some people find it distracting
+/// and want a plain canvas (#698), so the app's `LiquidScaffoldSky` reads this via
+/// `@AppStorage(SceneBackgroundPrefs.enabledKey)` and renders nothing when it is OFF, leaving the opaque
+/// `surfaceBase`. Mirror in Kotlin via `NoopPrefs.showDayCycleBackground`.
 public enum SceneBackgroundPrefs {
-    /// The @AppStorage key shared by TodayView and the Settings toggle. Default value is `true`.
+    /// The @AppStorage key. Default value is `true`.
     public static let enabledKey = "noop.showDayCycleBackground"
 }
 
@@ -303,9 +194,9 @@ public enum CardAppearancePrefs {
     public static let defaultPercent = 100
 }
 
-/// "Sky behind cards" (opt-in, default OFF): extend the day-cycle sky behind the WHOLE Today scroll (not
-/// just the top band) so the Card-transparency setting reveals it under every card. Read in `LiquidTodayView`
-/// via `@AppStorage(SkyBehindCardsPrefs.enabledKey)` and toggled from Settings → Appearance. Mirror in
+/// "Sky behind cards": extend the day-cycle sky behind the WHOLE scaffold scroll (not just the top band)
+/// so the Card-transparency setting reveals it under every card. Read by the app's `LiquidScaffoldSky`
+/// via `@AppStorage(SkyBehindCardsPrefs.enabledKey)`. Mirror in
 /// Kotlin via `NoopPrefs.skyBehindCards`.
 public enum SkyBehindCardsPrefs {
     public static let enabledKey = "noop.skyBehindCards"
@@ -351,44 +242,4 @@ public enum BackgroundFillMode: String, CaseIterable, Identifiable, Sendable {
 
     /// Tolerant parse — an unknown/legacy rawValue falls back to `.fill` (the default).
     public static func resolve(_ raw: String) -> BackgroundFillMode { BackgroundFillMode(rawValue: raw) ?? .fill }
-}
-
-// MARK: - Light-idiom helpers
-
-/// An additive glow (ring blooms, sparkline heads, hero halos) only reads on a DARK canvas —
-/// `.plusLighter` blending on white produces no visible glow and just muddies edges. On dark this
-/// applies the additive blend; on light it hides the layer. Self-contained (reads the scheme itself)
-/// so every glow becomes a one-token swap from `.blendMode(.plusLighter)` → `.additiveBloom()`.
-private struct AdditiveBloom: ViewModifier {
-    @Environment(\.colorScheme) private var scheme
-    func body(content: Content) -> some View {
-        // Dialed back (0.55) — the full-strength additive bloom read as too much glow against the
-        // crisper design language. Still present on dark for depth, just restrained.
-        if scheme == .dark { content.blendMode(.plusLighter).opacity(0.55) }
-        else { content.opacity(0) }
-    }
-}
-
-/// Card / floating-surface elevation. Dark separates surfaces by a lighter FILL (no resting shadow);
-/// light separates white-on-paper by a soft DROP SHADOW. Reads the scheme itself and deepens on hover.
-private struct NoopElevation: ViewModifier {
-    @Environment(\.colorScheme) private var scheme
-    var hovering: Bool
-    func body(content: Content) -> some View {
-        let lightShadow = Color(hex: "#1A2230")
-        return content.shadow(
-            color: scheme == .light ? lightShadow.opacity(hovering ? 0.16 : 0.09)
-                                    : Color.black.opacity(hovering ? 0.45 : 0.0),
-            radius: scheme == .light ? (hovering ? 14 : 10) : (hovering ? 18 : 0),
-            x: 0, y: scheme == .light ? (hovering ? 5 : 3) : (hovering ? 8 : 0)
-        )
-    }
-}
-
-public extension View {
-    /// Apply the additive glow only on dark; hide it on light. See `AdditiveBloom`.
-    func additiveBloom() -> some View { modifier(AdditiveBloom()) }
-
-    /// Apply the per-scheme card/surface elevation (shadow on light, lighter-fill idiom on dark).
-    func noopElevation(hovering: Bool = false) -> some View { modifier(NoopElevation(hovering: hovering)) }
 }

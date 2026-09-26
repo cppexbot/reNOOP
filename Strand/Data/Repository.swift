@@ -59,14 +59,6 @@ struct MetricSeriesResolution: Equatable, Sendable {
     }
 }
 
-/// The sensor/import provider whose inputs produced a resolved Today score. `sourceId` is durable and
-/// `brand` comes from the paired-device registry when available, so UI code can name every supported
-/// provider without guessing from opaque device ids.
-struct ScoreInputProvider: Equatable, Sendable {
-    let sourceId: String
-    let brand: String?
-}
-
 /// Source provenance for daily rows before product surfaces merge them. The UI uses this to say
 /// where a vital came from without changing the stored data.
 enum DailyMetricSource: Equatable {
@@ -583,7 +575,7 @@ final class Repository: ObservableObject {
     /// day exists but isn't scored yet, and the old `days.last(where: recovery != nil)` still pointed at
     /// yesterday's scored row, so the widget/wrist/Live Activity showed the older day while Today had moved
     /// on. The `$0.day < carriedKey` bound (`carriedKey` = today's own key) mirrors
-    /// `TodayView.lastScoredRecoveryDay` + its #547 future-day guard, so a stale or stray future-dated
+    /// `DayScoreReadings.lastScoredRecoveryDay` + its #547 future-day guard, so a stale or stray future-dated
     /// scored row can never re-surface AS today.
     nonisolated static func widgetAnchor(days: [DailyMetric], logicalKey: String, localKey: String) -> DailyMetric? {
         let todayRow = resolveToday(days: days, logicalKey: logicalKey, localKey: localKey)
@@ -603,7 +595,7 @@ final class Repository: ObservableObject {
     }
 
     /// #1051-shaped memo for the anchor resolve on the high-frequency live surfaces. Not @Published — pure
-    /// bookkeeping, never drives the UI (like `todayHistoryWideLoadedSeq`).
+    /// bookkeeping, never drives the UI (like `insightsLoadedSeq`).
     private var widgetAnchorMemo = WidgetAnchorMemo()
 
     /// Memoized `widgetAnchor(days: self.days)` for the Live Activity's ~1-3 Hz `onReceive` closures, which
@@ -846,10 +838,10 @@ final class Repository: ObservableObject {
     /// FIX 3: a fresh-import / first-launch analyze tail fires `refresh()` many times in quick succession.
     /// Two costs made each one expensive: (1) the `mergeDaily`/`mergeSleep`/`sourceRows` O(n log n) sorts
     /// ran on the MAIN actor over thousands of rows, and (2) `refreshSeq` bumped UNCONDITIONALLY, so every
-    /// bump re-fired `TodayView.loadAll()` (~28 sequential reads + 28 @State writes) even when nothing
+    /// bump re-fired every home-screen reload keyed on it even when nothing
     /// changed. Now the sorts run in a detached task and the merged result is DIFFED against the current
     /// caches , when nothing changed we skip BOTH the re-publish and the `refreshSeq` bump, so the redundant
-    /// tail refreshes don't each detonate a full Today reload. The "one consistent publish per refresh"
+    /// tail refreshes don't each detonate a full home reload. The "one consistent publish per refresh"
     /// guarantee is kept: on a real change every prop + the seq are assigned in ONE main-actor batch.
     /// Monotonic ordering token (#review): refresh() now suspends on an off-actor merge between the store
     /// reads and the publish, so two overlapping refresh() calls (e.g. a 120-day backfill refresh and the
@@ -858,21 +850,9 @@ final class Repository: ObservableObject {
     /// @Published (pure ordering, never drives the UI); race-free since Repository is @MainActor.
     private var refreshGen = 0
 
-    /// #849: the `refreshSeq` value at which Today last ran its heavy history-wide reload (the ~40 reads +
-    /// per-day raw-HR pass). Lives HERE, on the long-lived Repository, not in TodayView's `@State`, so it
-    /// SURVIVES a Today re-mount (tab-away + return / an Apple-Health import that recreates the view). A bare
-    /// re-mount resets TodayView's `@State` but `refreshSeq` is unchanged, so the screen re-ran the full
-    /// reload for byte-identical data every time. Today now compares this against the live `refreshSeq` and
-    /// skips the reload when nothing has changed since it last loaded. `-1` = never loaded this launch, so the
-    /// first load (seq 0) always runs. Not @Published (pure load-bookkeeping, never drives the UI).
-    var todayHistoryWideLoadedSeq = -1
-    /// #849: the last history-wide snapshot Today built, so a re-mount can RESTORE it (in-memory, no queries)
-    /// instead of re-running the heavy reload. Paired with `todayHistoryWideLoadedSeq`. Not @Published.
-    var todayHistoryWideCache: TodayHistoryWideCache?
-
     /// #833 (Insights freeze): macOS destroys + cold-mounts the NavigationSplitView detail on every sidebar
     /// switch (RootView keys it with `.id`), so InsightsView's `@State` is torn down each time and its
-    /// `load()` re-read full history off the @MainActor on every visit. Mirroring Today's #849 marker, this
+    /// `load()` re-read full history off the @MainActor on every visit. Mirroring the #849 load marker, this
     /// is the `refreshSeq` value at which Insights last ran its heavy load. Lives HERE on the long-lived
     /// Repository so it SURVIVES the re-mount; `-1` = never loaded this launch, so the first load always runs.
     /// Not @Published (pure load-bookkeeping, never drives the UI).
@@ -899,25 +879,9 @@ final class Repository: ObservableObject {
     /// in-memory (no store queries) instead of re-running the heavy load. Not @Published.
     var appleHealthCache: AppleHealthLoadCache?
 
-    /// #849/#932 (Today day-scoped freeze): macOS cold-mounts the NavigationSplitView detail on every sidebar
-    /// switch, so `TodayView.loadDayScoped()` re-ran its full-day heavy read (the selected day's 5-minute
-    /// `hrBuckets` plus, on today, the raw per-sample `hrSamples` pass for the live Effort; 170k+ HR rows/day
-    /// on a big library) on every visit even when nothing changed. The exact twin of the trios above: this is
-    /// the `refreshSeq` value at which Today last ran its DAY-SCOPED load. Lives HERE on the long-lived
-    /// Repository so it SURVIVES the re-mount. `-1` = never loaded this launch, so the first load always runs.
-    /// Not @Published (pure load-bookkeeping, never drives the UI).
-    var todayDayScopedLoadedSeq = -1
-    /// #932: the day key the day-scoped set last loaded FOR (the VIEWED day, `TodayView.selectedDayKey`), so
-    /// day navigation can never serve another day's snapshot: swiping to a different day misses (its key
-    /// differs) and genuinely re-loads, and a day rollover re-loads even at an unchanged seq. Not @Published.
-    var todayDayScopedLoadedDayKey = ""
-    /// #932: the snapshot `loadDayScoped()` last built, so a same-(seq, day) re-mount RESTORES it in-memory
-    /// (no store queries, no hrBuckets/hrSamples reads) instead of re-running the heavy load. Not @Published.
-    var todayDayScopedCache: TodayDayScopedCache?
-
     #if DEBUG
     /// v7.7.2 regression guard: DEBUG-only tally of how many times each cached heavy load actually ran its
-    /// store reads (keyed "appleHealth" / "xiaomi" / "todayDayScoped"). A same-state re-mount that restores
+    /// store reads (keyed "appleHealth" / "xiaomi"). A same-state re-mount that restores
     /// from cache must NOT increment this, so a test can assert the cold-mount short-circuit holds.
     /// DEBUG-only, never shipped.
     var loadFireCounts: [String: Int] = [:]
@@ -983,7 +947,7 @@ final class Repository: ObservableObject {
         // DIFF before publishing (FIX 3): if this refresh produced byte-identical caches AND we've already
         // loaded once, skip the re-publish and the `refreshSeq` bump entirely , assigning an equal value to
         // an @Published prop still fires objectWillChange, so the skip must cover the assignments too. This
-        // is what stops the analyze-tail's burst of refresh() calls each re-firing TodayView.loadAll().
+        // is what stops the analyze-tail's burst of refresh() calls each re-firing every `refreshSeq`-keyed load.
         let unchanged = loaded
             && merged.days == days
             && merged.sleeps == sleeps
@@ -2242,33 +2206,8 @@ final class Repository: ObservableObject {
         return MetricSeriesResolution(requestedSource: preferredSource, candidates: candidates, points: points)
     }
 
-    /// Resolve a displayed score back to the provider that supplied its inputs. Direct imported points
-    /// already name their provider. A `-noop` point is looked up in the dedicated metric-level provenance
-    /// cache; missing legacy metadata returns nil rather than falsely claiming its parent device.
-    func scoreInputProvider(
-        resolvedSource: String,
-        day: String,
-        metricKey: String
-    ) async -> ScoreInputProvider? {
-        guard let store = await ensureStore() else { return nil }
-        let registry = DeviceRegistryStore(dbQueue: store.registryWriter)
-        let sourceId: String
-        if resolvedSource.hasSuffix("-noop") {
-            guard let cached = try? await store.scoreInputSource(
-                deviceId: resolvedSource,
-                day: day,
-                key: metricKey
-            ) else { return nil }
-            sourceId = cached
-        } else {
-            sourceId = resolvedSource
-        }
-        let brand = (try? registry.all())?.first(where: { $0.id == sourceId })?.brand
-        return ScoreInputProvider(sourceId: sourceId, brand: brand)
-    }
-
-    /// Raw specialized provenance tag for a computed metric point. Unlike `scoreInputProvider`, this does
-    /// not interpret the value as a device id; `vo2max_est` uses it for its `nes` / `uth` estimator id.
+    /// Raw specialized provenance tag for a computed metric point. This does not interpret the value as a
+    /// device id; `vo2max_est` uses it for its `nes` / `uth` estimator id.
     /// Missing metadata is an honest legacy-unknown result, never reconstructed from the current profile.
     func scoreProvenanceTag(resolvedSource: String, day: String, metricKey: String) async -> String? {
         guard resolvedSource.hasSuffix("-noop"), let store = await ensureStore() else { return nil }
@@ -2651,17 +2590,6 @@ final class Repository: ObservableObject {
         var out: [String: Double] = [:]
         for r in rows { if let v = r.numericValue { out[r.question] = v } }
         return out
-    }
-
-    /// Distinct local-day keys (yyyy-MM-dd) in the inclusive range [from, to] that carry at least one
-    /// NATIVE journal entry (the "noop-journal" device id only — matching the Android widget's
-    /// `repo.journal(JOURNAL_DEVICE_ID, from, to)`). Backs the #627 Today journal widget's completion
-    /// strip. Read-only.
-    func nativeJournalDays(from: String, to: String) async -> Set<String> {
-        guard let store = await ensureStore() else { return [] }
-        let rows = (try? await store.journalEntries(deviceId: Self.journalDeviceId,
-                                                    from: from, to: to)) ?? []
-        return Set(rows.map { $0.day })
     }
 
     /// Union; the NATIVE row wins per (day, question) , the in-app answer is the user's most recent

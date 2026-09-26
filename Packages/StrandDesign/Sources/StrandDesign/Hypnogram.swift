@@ -437,38 +437,6 @@ public struct Hypnogram: View {
 /// reader can decode the bands — which is what makes the Garmin ramp's two pinks (Awake vs REM) legible.
 /// (#sleep-chart-style)
 ///
-/// NOTHING RENDERS THIS (#1536). Its only call sites put it above `stageBreakdownRows`, whose rows carry
-/// their own labels — so it named stages already named, in a different order than the rows list them, and
-/// in the chart ramp's colours while those rows use fixed `StrandPalette` tokens, which made its dots
-/// disagree with the swatches directly beneath them on any non-NOOP ramp. Kept rather than deleted: it is
-/// the only code that knows how to build this key, and a genuinely unlabelled hypnogram is what it is for.
-/// Wire it to one of those, not to a labelled table.
-public struct SleepStageLegend: View {
-    public var palette: SleepStagePalette
-    public init(palette: SleepStagePalette) { self.palette = palette }
-
-    // Awake · REM · Light · Deep — the order Oura/Garmin list them.
-    private let order: [SleepStage] = [.awake, .rem, .light, .deep]
-
-    public var body: some View {
-        HStack(spacing: 14) {
-            ForEach(order, id: \.rawValue) { stage in
-                HStack(spacing: 5) {
-                    Circle()
-                        .fill(StrandPalette.sleepStageColor(stage, palette: palette))
-                        .frame(width: 8, height: 8)
-                    Text(stage.label)
-                        .font(StrandFont.caption)
-                        .foregroundStyle(StrandPalette.textSecondary)
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        // Decorative colour key — the breakdown rows below carry the same stages for VoiceOver.
-        .accessibilityHidden(true)
-    }
-}
-
 #if DEBUG
 private func sampleNight() -> [SleepInterval] {
     // ~7.5h night, seconds.

@@ -106,12 +106,21 @@ struct SummaryMetricReading: Equatable {
             // A profile figure was typed in, not measured: it has no day, so it says where it came from.
             return reading(mass(i.profileWeightKg), unit, key: "weight", caption: String(localized: "from profile"))
         case .skinTemp:
-            return reading(TodayView.skinTempCardValue(reading: i.skinTempReading, fahrenheit: i.fahrenheit),
+            return reading(skinTempCardValue(reading: i.skinTempReading, fahrenheit: i.fahrenheit),
                            "", key: "skin_temp", day: i.skinTempReading == nil ? nil : i.skinTempDay)
         }
     }
 
     // MARK: - Helpers
+
+    /// The Skin Temp card's value when the surface LEADS WITH THE ABSOLUTE (#1844) — the row supplies both
+    /// numbers and `SkinTempDisplay.leadReading` picks, so a night that measured a real temperature shows
+    /// one and only a night without falls back to the signed deviation. Nil (neither number anywhere in the
+    /// carry chain) reads as an em-dash.
+    static func skinTempCardValue(reading: SkinTempDisplay.Reading?, fahrenheit: Bool) -> String {
+        guard let reading else { return "—" }
+        return SkinTempDisplay.formatReading(reading, fahrenheit: fahrenheit)
+    }
 
     private static func reading(_ value: String, _ unit: String, key: String,
                                 caption: String? = nil, day: String? = nil) -> SummaryMetricReading {

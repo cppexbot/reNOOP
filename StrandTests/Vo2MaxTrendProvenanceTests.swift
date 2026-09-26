@@ -27,7 +27,7 @@ final class Vo2MaxTrendProvenanceTests: XCTestCase {
         XCTAssertEqual(vo2MaxAttributionSource(nil), "vo2max-estimator:unknown")
         XCTAssertEqual(vo2MaxEstimatorDisplayName(nil), String(localized: "Unknown"))
         XCTAssertEqual(
-            TodayView.provenanceDisplayLabel(rawSource: vo2MaxAttributionSource(nil), deviceId: "my-whoop"),
+            provenanceDisplayLabel(rawSource: vo2MaxAttributionSource(nil), deviceId: "my-whoop"),
             "\(String(localized: "On-device")) · \(String(localized: "Unknown"))"
         )
     }

@@ -96,31 +96,6 @@ enum HostedCard: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Where tapping this card sends you: back to the tab it is a copy of.
-    ///
-    /// Declared on the CARD rather than inside the view that draws it, so it can be tested. A mapping
-    /// that lives as a private method on a `View` is unreachable from any test, and a card quietly
-    /// routing to the wrong tab is not the kind of thing anyone notices in review.
-    ///
-    /// `nil` for `sleepMarks`: it is the tap-to-log card, its buttons ARE its purpose, and wrapping it
-    /// in a navigation target would put a second meaning behind the same press.
-    ///
-    /// Listed rather than defaulted, so a card added later cannot silently inherit "opens Sleep": the
-    /// compiler asks where the new one goes.
-    var route: TabRoute? {
-        switch self {
-        case .sleepMarks: return nil
-        case .asleepDuration, .stagesVsTypical, .nightDetail, .sleepDebt, .stages,
-             .hoursVsNeeded, .consistency: return .sleep
-        case .stressToday: return .stress
-        // The METRIC's own detail page rather than the Trends tab: closer to what was tapped, and the
-        // destination the Charge and Effort key tiles already use. Twin of the Kotlin `Metric` destination.
-        case .trendHRV: return .metricSourced(key: "hrv", source: "my-whoop")
-        case .trendRestingHR: return .metricSourced(key: "rhr", source: "my-whoop")
-        case .trendEffort: return .metricSourced(key: "strain", source: "my-whoop")
-        }
-    }
-
     /// SF Symbol for the editor row (reuses the shared customization-icon treatment).
     var customizationIcon: String {
         switch self {

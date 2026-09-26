@@ -1,7 +1,7 @@
 //  SleepHistory.swift
 //  NOOP · Sleep — nights as (bedtime, wake, time asleep), and the week / month / 6-month views of them.
 //
-//  Pure. Each night is the day's MAIN sleep group, picked by the same `SleepView.mainNightGroup` rule
+//  Pure. Each night is the day's MAIN sleep group, picked by the same `SleepNightDecoding.mainNightGroup` rule
 //  the Sleep tab and the analytics use, so the range charts and the day chart never disagree about
 //  which block was "the night".
 
@@ -64,11 +64,11 @@ enum SleepHistory {
     static func entries(navDays: [[CachedSleepSession]], habitualMidsleepSec: Int?,
                         calendar: Calendar = .current) -> [SleepNightEntry] {
         navDays.compactMap { day -> SleepNightEntry? in
-            let group = SleepView.mainNightGroup(day, habitualMidsleepSec: habitualMidsleepSec)
+            let group = SleepNightDecoding.mainNightGroup(day, habitualMidsleepSec: habitualMidsleepSec)
             guard let last = group.last else { return nil }
             let onsetTs = SleepModel.nightOnsetTs(group)
             let asleep = group.filter { $0.effectiveStartTs >= onsetTs }
-                .map { SleepView.decodedAsleepMinutes($0.stagesJSON, effectiveStartTs: $0.effectiveStartTs) }
+                .map { SleepNightDecoding.decodedAsleepMinutes($0.stagesJSON, effectiveStartTs: $0.effectiveStartTs) }
                 .reduce(0, +)
             guard asleep > 0 else { return nil }
             let wake = Date(timeIntervalSince1970: TimeInterval(last.endTs))

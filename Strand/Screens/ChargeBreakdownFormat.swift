@@ -103,64 +103,6 @@ enum ChargeBreakdownFormat {
         tierState(confidence).color
     }
 
-    // MARK: - Calibrating countdown copy (A4)
-
-    /// The hero countdown line shown in place of an empty/zero Charge while the baseline is still
-    /// building, e.g. "2 nights to go". `nightsRemaining` is the EXISTING calibrating value (seed
-    /// gate minus banked, clamped >= 1 by the caller); the singular/plural reads honestly. Pure +
-    /// unit-tested.
-    static func calibrationCountdown(nightsRemaining: Int) -> String {
-        // Whole-phrase variants per count so translators never see a stitched plural fragment.
-        let n = max(0, nightsRemaining)
-        return n == 1 ? String(localized: "1 night to go") : String(localized: "\(n) nights to go")
-    }
-
-    /// #731: names WHY the countdown restarted when the user tapped "Recalibrate baseline".
-    ///
-    /// The count alone is not enough. A reporter sat at "Calibrating, 3 of 4 nights" with 15 valid HRV
-    /// nights on file and tapped Recalibrate again — which discards every earlier night and resets the
-    /// count to 0. Two weeks of that and Charge could never return. Seeing the countdown without knowing
-    /// their own tap caused it makes re-tapping the natural move; naming the cause is what breaks the loop.
-    ///
-    /// A separate whole sentence rather than a fragment appended to the countdown, so translators never
-    /// see a stitched string. Returns nil when no recalibration is set, so the card is unchanged for every
-    /// user who never tapped it. Pure.
-    static func calibrationRestartCause(recalibratedOn day: String?) -> String? {
-        guard let day, !day.isEmpty else { return nil }
-        return String(localized: "Restarted when you recalibrated on \(day) — no need to tap it again.")
-    }
-
-    /// The recalibration epoch as a short display day ("19 Jul"), or nil when none is set. Pure — the
-    /// caller supplies the epoch (`Baselines.hrvBaselineEpoch()`), so this stays testable. Locale-aware
-    /// via `DateFormatter.setLocalizedDateFormatFromTemplate`, so the day/month order follows the user.
-    static func recalibrationDay(epoch: Double, locale: Locale = AppLanguage.activeLocale) -> String? {
-        guard epoch > 0 else { return nil }
-        let fmt = DateFormatter()
-        fmt.locale = locale
-        fmt.setLocalizedDateFormatFromTemplate("d MMM")
-        return fmt.string(from: Date(timeIntervalSince1970: epoch))
-    }
-
-    /// Convenience for the calibrating cards: the restart-cause line for the CURRENT recalibration epoch,
-    /// or nil when the user has never recalibrated. Keeps the single UserDefaults read in one place
-    /// instead of repeating it at each card. (#731)
-    static func currentCalibrationRestartCause() -> String? {
-        calibrationRestartCause(recalibratedOn: recalibrationDay(epoch: Baselines.hrvBaselineEpoch()))
-    }
-
-    /// The supporting line under the countdown, naming the score whose baseline is unlocking. Pure.
-    /// `scoreName` is the user-facing score word (e.g. "Charge"); kept a parameter so the same copy
-    /// serves any baseline-building score honestly without hard-coding one.
-    static func calibrationUnlockCopy(scoreName: String) -> String {
-        String(localized: "more overnight wear to unlock your \(scoreName) baseline")
-    }
-
-    /// "Calibrating, 1 of 4 nights" progress label for the countdown card header. `banked` is the
-    /// nights gathered so far, `seed` the gate (`Baselines.minNightsSeed`). Pure + unit-tested.
-    static func calibrationProgress(banked: Int, seed: Int) -> String {
-        String(localized: "Calibrating, \(max(0, banked)) of \(seed) nights")
-    }
-
     // MARK: - Relative skin-temp label (A5)
 
     /// The relative skin-temp read-out, e.g. "+0.3 C vs your normal" / "-0.4 C vs your normal".
@@ -178,46 +120,6 @@ enum ChargeBreakdownFormat {
         case .typical: return String(localized: "Typical for you")
         case .warmer:  return String(localized: "Warmer than your baseline")
         }
-    }
-
-    // MARK: - Deep-sleep HRV window gap (#233)
-
-    /// True when a night's empty Charge is explained by the Deep-sleep HRV window finding no deep-stage
-    /// sleep, rather than a generic missing-data gap. Charge needs a nightly HRV value (`avgHrv`); under
-    /// the Deep window that value pools RMSSD over 5-min deep-stage windows only and is nil when the
-    /// night banks under ~5 minutes of deep sleep (WHOOP 4.0 deep staging is often sparse/absent).
-    /// `deepMin` is the night's OWN already-computed deep-sleep minutes, so this is a read-only
-    /// presentation check over existing fields, not a new analytics path. Pure.
-    static func chargeDeepWindowGap(hrvWindow: HrvWindow, avgHrv: Double?, deepMin: Double?) -> Bool {
-        hrvWindow == .deep && avgHrv == nil && (deepMin ?? 0) < 5
-    }
-
-    /// The short title for the #233 deep-window gap note.
-    static let chargeDeepWindowGapTitle = String(localized: "No deep sleep detected")
-
-    /// The explanatory detail + next step: names the cause (Deep window, no deep sleep that night) and
-    /// the two ways out, rather than leaving an unexplained blank ring.
-    static let chargeDeepWindowGapDetail = String(localized: "The Deep sleep HRV window needs a night with deep-stage sleep to score Charge. Switch to Whole night in Settings, or wait for a night with more deep sleep.")
-
-    /// VoiceOver plain string (title + detail).
-    static var chargeDeepWindowGapAccessibility: String {
-        "\(chargeDeepWindowGapTitle). \(chargeDeepWindowGapDetail)"
-    }
-
-    // MARK: - Legacy WHOOP 5 R-R units gap (#1505)
-
-    /// The short title for a night the WHOOP 5 unit policy has to leave unscored.
-    static let chargeLegacyRRGapTitle = String(localized: "Earlier beats cannot be scored")
-
-    /// The explanatory detail. It names the cause and stops there, deliberately: the beats are already
-    /// on the phone and the strap has long since trimmed that night from its own flash, so there is no
-    /// honest "do this and it comes back" step to offer. What it CAN promise is that the night is not
-    /// lost from history and that the problem does not continue, and it says both.
-    static let chargeLegacyRRGapDetail = String(localized: "This night was recorded before NOOP labelled which WHOOP 5 transport each heartbeat came from, so its intervals mix two different units with nothing stored to tell them apart. The night stays in your history, and nights recorded from now on score normally.")
-
-    /// VoiceOver plain string (title + detail).
-    static var chargeLegacyRRGapAccessibility: String {
-        "\(chargeLegacyRRGapTitle). \(chargeLegacyRRGapDetail)"
     }
 }
 

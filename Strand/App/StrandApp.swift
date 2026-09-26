@@ -10,17 +10,6 @@ struct StrandApp: App {
         PuffinExperiment.migrateContinuousHrvOvernightDefault()
         // One fixed look (System / Light / Dark only): pin the retired theme knobs before any view reads them.
         AppearanceLock.apply()
-        #if DEBUG
-        // DEBUG-only promo-screenshot harness: when launched with `--demo-hour <Int>`, pin the Today
-        // screen to that hour's day-cycle scene + a plausible per-hour stat frame. Runs synchronously
-        // here, before the first Today render. No-op (active stays nil) when the arg is absent, so
-        // Release is unaffected (whole harness is `#if DEBUG`). See DemoDayHarness.swift.
-        DemoDayHarness.applyLaunchArgsIfNeeded()
-        // DEBUG-only sync harness: `--demo-sync` drives the Today header's charge→sync control with a
-        // synthetic battery + a looping sync signal, so the morph is watchable with no strap paired.
-        // No-op (active stays false) when the arg is absent. See DemoSyncHarness.swift.
-        DemoSyncHarness.applyLaunchArgsIfNeeded()
-        #endif
         // Foreground presentation: without a delegate, macOS suppresses a notification's banner while the
         // app is frontmost, so a reminder tested with NOOP open would show nothing. Mirrors iOS.
         UNUserNotificationCenter.current().delegate = NotificationPresenter.shared

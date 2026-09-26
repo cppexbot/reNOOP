@@ -144,13 +144,13 @@ final class WatchSessionBridge: NSObject, ObservableObject {
         // bug), so we leave it nil and let restCalibrating flag it honestly. #977: the tail is ALSO gated on
         // freshness now — a live 5.0 whose sleep never scores used to push a weeks-old Rest to the watch
         // forever; a stale tail falls through to nil so the watch shows its honest calibrating state. Mirrors
-        // TodayView.freshRestScore.
+        // DayScoreReadings.freshRestScore.
         var restScore: Double?
         if let day {
             let restSeries = await model.repo.exploreSeries(key: "sleep_performance", source: model.deviceId)
             let restByDay = Dictionary(restSeries.map { ($0.day, $0.value) }, uniquingKeysWith: { _, last in last })
             let anchorIsToday = day.day == Repository.localDayKey(now)
-            restScore = TodayView.freshRestScore(
+            restScore = DayScoreReadings.freshRestScore(
                 todayValue: restByDay[day.day], lastDay: restSeries.last?.day,
                 lastValue: restSeries.last?.value, isTodaySelected: anchorIsToday, todayKey: day.day)
         }

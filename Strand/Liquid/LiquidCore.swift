@@ -316,26 +316,7 @@ final class LiquidSim {
     }
 }
 
-// MARK: - Shared wave sampler
-
-/// The surface height at horizontal position `x` (points, centred), including the
-/// two travelling sines, the wall-curl (saturated at the chord), and the meniscus.
-@inline(__always)
-func liquidWave(_ x: Double, amp: Double, R: Double, hw: Double,
-                curl: Double, ph1: Double, ph2: Double, ampMul: Double) -> Double {
-    let k1 = (Double.pi * 2) / (R * 1.5)
-    let k2 = (Double.pi * 2) / (R * 0.95)
-    let xs = x > hw ? hw : (x < -hw ? -hw : x)
-    var y = amp * ampMul * sin(x * k1 + ph1) + amp * ampMul * 0.6 * sin(x * k2 - ph2)
-    y += curl * xs * xs * xs / (hw * hw)
-    y += -0.01 * R * pow(abs(xs) / hw, 4)   // menis (wets the wall, just)
-    return y
-}
-
-@inline(__always) func liquidChordHW(_ R: Double, _ sy: Double) -> Double {
-    max(R * 0.3, (R * R - sy * sy > 0 ? (R * R - sy * sy).squareRoot() : R * 0.3))
-}
-@inline(__always) func liquidCurl(_ av: Double) -> Double { max(-0.18, min(0.18, -av * 0.12)) }
+// MARK: - Shared clock
 
 /// A monotonic seconds clock for a TimelineView date.
 @inline(__always) func liquidSeconds(_ date: Date) -> Double { date.timeIntervalSinceReferenceDate }

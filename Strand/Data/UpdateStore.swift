@@ -53,7 +53,7 @@ struct UpdateItem: Identifiable, Codable, Equatable {
 // The bell's backing store: a single-user, on-device inbox of `UpdateItem`s persisted as JSON in
 // UserDefaults — the same lightweight `@Published`-with-`didSet` persistence ProfileStore/BehaviorStore
 // use, just over an array instead of scalars (Codable round-trips the whole list under one key on every
-// mutation). A shared singleton like the other stores so any surface (Today cards, the import path) can
+// mutation). A shared singleton like the other stores so any surface (the import path, the update check) can
 // `UpdateStore.shared.post(...)` without threading an instance through.
 //
 // First-run seeding: posts the current What's New (AppChangelog.releases.first) once, tracking
@@ -66,16 +66,10 @@ final class UpdateStore: ObservableObject {
     /// observes.
     static let shared = UpdateStore()
 
-    /// Newest-first is computed at read time (`sortedItems`); the stored array preserves insertion order.
+    /// The stored array preserves insertion order.
     @Published private(set) var items: [UpdateItem] {
         didSet { persist() }
     }
-
-    /// A restore signal TodayView observes: set to a card id when "Restore to Today" is tapped, so the
-    /// Today screen (which owns the `@AppStorage` dismissed flags) can flip the matching flag back to
-    /// false. Cleared by the observer once handled. (The inbox also clears the flag directly via the
-    /// shared key, so this is belt-and-braces for an already-mounted Today.)
-    @Published var restoreRequest: String?
 
     private let d = UserDefaults.standard
     private enum K {
@@ -100,14 +94,6 @@ final class UpdateStore: ObservableObject {
             items = []
         }
     }
-
-    // MARK: Derived
-
-    /// Items newest-first (the inbox list order).
-    var sortedItems: [UpdateItem] { items.sorted { $0.date > $1.date } }
-
-    /// How many unread — drives the bell badge.
-    var unreadCount: Int { items.lazy.filter { !$0.read }.count }
 
     // MARK: Mutations
 
@@ -159,18 +145,6 @@ final class UpdateStore: ObservableObject {
         if !removeIDs.isEmpty { items.removeAll { removeIDs.contains($0.id) } }
     }
 
-    /// Mark one item read (no-op if already read / not found).
-    func markRead(_ id: UUID) {
-        guard let i = items.firstIndex(where: { $0.id == id }), !items[i].read else { return }
-        items[i].read = true
-    }
-
-    /// Mark every item read.
-    func markAllRead() {
-        guard items.contains(where: { !$0.read }) else { return }
-        for i in items.indices { items[i].read = true }
-    }
-
     /// Remove one item (e.g. after restoring a dismissed card).
     func remove(_ id: UUID) {
         items.removeAll { $0.id == id }
@@ -180,14 +154,6 @@ final class UpdateStore: ObservableObject {
     func clearAll() {
         guard !items.isEmpty else { return }
         items.removeAll()
-    }
-
-    /// Ask Today to restore a dismissed card (flips its `@AppStorage` flag). Also removes the inbox item.
-    func requestRestore(_ item: UpdateItem) {
-        if let payload = item.restorePayload {
-            restoreRequest = payload
-        }
-        remove(item.id)
     }
 
     // MARK: Seeding

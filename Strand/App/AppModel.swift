@@ -409,8 +409,8 @@ final class AppModel: ObservableObject {
         // #755 COALESCE: a strap whose firmware segments a deep offload into many small HISTORY_COMPLETE
         // slices stamps `lastSyncedAt` once PER slice (BLEManager.exitBackfilling), seconds apart, for the
         // whole multi-minute download. Without coalescing each slice fired refreshAfterCompletedBackfill()
-        // , a full repo.refresh (~50 store reads) + analyzeRecent , and every one re-fired TodayView's
-        // ~50-read loadAll, all contending with the backfill's bulk writes on the single-connection store.
+        // , a full repo.refresh (~50 store reads) + analyzeRecent , and every one re-fired the home
+        // screen's full reload, all contending with the backfill's bulk writes on the single-connection store.
         // On a heavy + actively-syncing history that stacked into a ~10s freeze. `.debounce` collapses the
         // slice storm: it suppresses the intermediate emissions and fires ONCE, 2s after the stream goes
         // quiet , i.e. after the LAST slice lands (the backfill is done). Crucially it ALWAYS delivers the
@@ -1841,8 +1841,8 @@ final class AppModel: ObservableObject {
         hhmm.dateFormat = "HH:mm"
         live.append(log: "Sleep mark @ \(hhmm.string(from: date))")
         // Persistence parity with Android's `AppViewModel.markSleep` (#461): also upsert the TYPED
-        // `sleep_mark` metric-series row that the Sleep screen reads back (SleepView.logMark writes the
-        // same row when the user taps a button). A physical double-tap can't choose bedtime vs wake, so
+        // `sleep_mark` metric-series row that the Sleep screen reads back (`SleepMark.log` writes the
+        // same row when the user logs a mark in the app). A physical double-tap can't choose bedtime vs wake, so
         // it defaults to `.bedtime` , the boundary the gesture most naturally marks. Idempotent by
         // (deviceId, day, key) through the repo's live store handle: no new Repository API, no schema
         // change. The UserDefaults list + buzz + freetext log line above are unchanged.
@@ -2070,7 +2070,7 @@ final class AppModel: ObservableObject {
         StrainTargetNotifier.onDayUpdate(
             day: row.day,
             dayStrain21: row.strain.map { UnitFormatter.effortValue($0, scale: .whoop) },
-            target21: CoupledView.optimalStrainRange(recovery: row.recovery)?.lowerBound,
+            target21: StrainTargetNotifier.StrainTargetPolicy.optimalStrainRange(recovery: row.recovery)?.lowerBound,
             enabled: behavior.strainTargetNudge)
     }
 

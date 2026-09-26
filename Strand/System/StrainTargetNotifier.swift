@@ -36,6 +36,29 @@ enum StrainTargetNotifier {
             return dayStrain >= target && lastNotifiedDay != today
         }
 
+        // MARK: OPTIMAL strain range (task #43), pure display-only recovery→strain mapping
+        //
+        // A Day-Strain target BAND from today's recovery: a green day earns a higher optimal band, a red day
+        // a lower one. This is never fed back into any score or engine; it only says where a "matched"
+        // strain would sit on the 0–21 axis. The bands are the APPROVED mapping and MUST stay byte-identical
+        // to the Android `optimalStrainRange`:
+        //
+        //   recovery ≥ 67 (green)       → 14–18 of 21
+        //   34 ≤ recovery ≤ 66 (yellow) → 10–14
+        //   recovery < 34 (red)         → 4–10
+        //
+        // nil recovery (calibrating / unscored day) → nil, so there is no target and nothing fires.
+
+        /// The pure recovery→optimal-strain band. Returns nil when recovery is unknown. Bands per the doc above.
+        static func optimalStrainRange(recovery: Double?) -> ClosedRange<Int>? {
+            guard let r = recovery else { return nil }
+            switch r {
+            case 67...:   return 14...18
+            case 34..<67: return 10...14
+            default:      return 4...10
+            }
+        }
+
         /// Title + body for the nudge. `target` is the optimal-band low on the 0-21 coupled axis.
         /// NOOP's OWN wording — the feature is reimplemented behaviour, not copied copy.
         static func copy(target: Int) -> (title: String, body: String) {

@@ -197,7 +197,7 @@ struct LiveWorkoutView: View {
         .frame(maxWidth: .infinity)
     }
 
-    /// Centered Effort stack — same `liveStrain` / Effort-scale conversion and `StrainGauge` intensity
+    /// Centered Effort stack — same `liveStrain` / Effort-scale conversion and `StrainLoadLabel` intensity
     /// label as before. Card chrome and side-by-side layout removed so the value sits as a free hero
     /// metric between heart rate and the zone rail. Display-only; captured value stays 0–100.
     private var effortGauge: some View {
@@ -223,12 +223,12 @@ struct LiveWorkoutView: View {
                         font: StrandFont.rounded(56, weight: .semibold),
                         color: StrandPalette.textPrimary)
             .accessibilityLabel(effortAccessibilityLabel)
-            .accessibilityValue(Text(StrainGauge.stateLabel(forFraction: fraction)))
+            .accessibilityValue(Text(StrainLoadLabel.forFraction(fraction)))
 
             Text("EFFORT BUILDING")
                 .font(StrandFont.overline).tracking(StrandFont.overlineTracking)
                 .foregroundStyle(StrandPalette.effortColor)
-            Text(StrainGauge.stateLabel(forFraction: fraction))
+            Text(StrainLoadLabel.forFraction(fraction))
                 .font(StrandFont.captionNumber)
                 .foregroundStyle(StrandPalette.textSecondary)
         }

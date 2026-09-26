@@ -1284,7 +1284,7 @@ final class AICoachEngine: ObservableObject {
     /// Efficiency as a percentage, NORMALISING the stored value first.
     ///
     /// `DailyMetric.efficiency` is not reliably a 0–1 fraction: it "arrives as % on some import paths",
-    /// which `SleepView` and `StagesCard` each guard against inline with this same `> 1.5` test. A bare
+    /// which the sleep screens guard against inline with this same `> 1.5` test. A bare
     /// `* 100` would therefore hand the coach "eff 9400%" for an imported night — and a model given a
     /// nonsense number reasons about it confidently rather than ignoring it.
     ///

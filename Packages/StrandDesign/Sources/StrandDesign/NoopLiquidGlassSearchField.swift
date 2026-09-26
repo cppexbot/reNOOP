@@ -108,21 +108,6 @@ public extension View {
         #endif
     }
 
-    /// Interactive circular `glassEffect` finish layer (e.g. Home profile photo over glass).
-    /// No-op outside iOS 26 so macOS never imports the glass path.
-    @ViewBuilder
-    func nativeLiquidGlassCircleFinish() -> some View {
-        #if os(iOS)
-        if #available(iOS 26.0, *) {
-            self.glassEffect(.regular.interactive(), in: Circle())
-        } else {
-            self
-        }
-        #else
-        self
-        #endif
-    }
-
     @ViewBuilder
     private func noopStandardSearchChrome() -> some View {
         self.background(

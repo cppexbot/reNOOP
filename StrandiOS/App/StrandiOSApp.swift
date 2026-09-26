@@ -57,18 +57,6 @@ struct StrandiOSApp: App {
         PuffinExperiment.migrateContinuousHrvOvernightDefault()
         // One fixed look (System / Light / Dark only): pin the retired theme knobs before any view reads them.
         AppearanceLock.apply()
-        #if DEBUG
-        // DEBUG-only promo-screenshot harness: when launched with `--demo-hour <Int>`, pin Today to that
-        // hour's day-cycle scene + a per-hour stat frame. No-op (active stays nil) when the arg is absent.
-        // MUST live here, not in StrandApp.swift — that is the macOS @main and is excluded from the iOS
-        // target, so the hook there never runs on iOS.
-        DemoDayHarness.applyLaunchArgsIfNeeded()
-        // DEBUG-only sync harness: `--demo-sync` drives the Today header's charge→sync control with a
-        // synthetic battery + a looping sync signal, so the morph is watchable with no strap paired.
-        // Same reason this lives here rather than StrandApp.swift: that file is the macOS @main and is
-        // excluded from the iOS target. See DemoSyncHarness.swift.
-        DemoSyncHarness.applyLaunchArgsIfNeeded()
-        #endif
         // Debug-only canary: trips if the App Group entitlement is missing on this target before any
         // silent no-op (PendingIntents, WidgetSnapshot.publish, Live Activity) can mask the issue as
         // "the widget doesn't show anything yet." No-op in Release.
@@ -558,16 +546,9 @@ enum DemoScreens {
         let args = CommandLine.arguments
         guard let i = args.firstIndex(of: "--demo-screen"), i + 1 < args.count else { return nil }
         switch args[i + 1].lowercased() {
-        case "today":    return AnyView(TodayView())
-        // The DEFAULT iOS Today (`noop.liquidTodayEnabled` ships true), so it needs its own entry — plain
-        // "today" renders the CLASSIC screen, which is exactly the screen whose behaviour Liquid was found
-        // to have diverged from. Without this, the default Today was the one screen the harness could not
-        // capture.
-        case "liquidtoday": return AnyView(LiquidTodayView())
         case "trends":   return AnyView(TrendsView())
-        // The Sleep tab root (Health-style page); "sleepdetail" is the retired full screen, kept for comparison.
+        // The Sleep tab root (Health-style page).
         case "sleep":    return AnyView(SleepHealthView())
-        case "sleepdetail": return AnyView(SleepView())
         case "summary":  return AnyView(SummaryView())
         case "live":     return AnyView(LiveView())
         case "stress":   return AnyView(StressView())

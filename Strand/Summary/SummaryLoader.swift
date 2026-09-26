@@ -1,16 +1,15 @@
 //  SummaryLoader.swift
 //  NOOP · Summary home — one async read of everything the screen shows for a selected day.
 //
-//  Every read and every precedence rule here is the one Liquid Today used (see LiquidTodayView.load), so
-//  the Summary shows the same Charge / Effort / Rest and the same metric values; only the presentation
-//  changed. The result is a plain value the view renders without touching the Repository again.
+//  Every read and every precedence rule here is the one the earlier Today home used, so the Summary shows
+//  the same Charge / Effort / Rest and the same metric values; only the presentation changed. The result is a plain value the view renders without touching the Repository again.
 
 import Foundation
 import StrandAnalytics
 import WhoopStore
 
 struct SummarySnapshot {
-    var charge: LiquidTodayView.ChargeDisplay = .noData
+    var charge: ChargeDisplay = .noData
     /// Effort on the stored 0–100 axis (live in-progress score for today when it beats the row).
     var effort: Double?
     /// Sleep performance, 0–100.
@@ -37,9 +36,43 @@ enum SummaryDay {
 
     /// How far back the selector may go.
     static func maxOffset(repo: Repository) -> Int {
-        LiquidTodayView.maxDayOffset(earliestDayKey: repo.freshness.earliestDay,
-                                     todayKey: Repository.logicalDayKey(Date()))
+        maxDayOffset(earliestDayKey: repo.freshness.earliestDay, todayKey: Repository.logicalDayKey(Date()))
     }
+
+    /// Whole days from today's logical day back to `earliestDayKey` (the oldest banked day across all
+    /// sources). nil/unparseable earliest, or a key on/after today, both yield 0 - today is then the only
+    /// navigable day. Both keys are "yyyy-MM-dd". Pure + unit-testable.
+    nonisolated static func maxDayOffset(earliestDayKey: String?, todayKey: String) -> Int {
+        guard let earliestKey = earliestDayKey,
+              let earliest = dayKeyParser.date(from: earliestKey),
+              let today = dayKeyParser.date(from: todayKey) else { return 0 }
+        let gap = Calendar.current.dateComponents([.day],
+                                                  from: Calendar.current.startOfDay(for: earliest),
+                                                  to: Calendar.current.startOfDay(for: today)).day ?? 0
+        return max(0, gap)
+    }
+
+    /// #16 - whole days-back offset for a date chosen in the day picker, measured from the LOGICAL day
+    /// (not raw Date()). Pure + unit-testable so the 00:00-04:00 rollover case is locked: in that window the
+    /// logical day is the PREVIOUS calendar day, so anchoring the offset here (rather than on raw Date())
+    /// keeps the picked day in step with the visible date and the a11y label. Clamped at 0 so a future-
+    /// relative pick collapses to today. Both dates are reduced to their start-of-day before counting.
+    nonisolated static func pickedDayOffset(pickedDate: Date, anchorLogicalDay: Date) -> Int {
+        let cal = Calendar.current
+        let days = cal.dateComponents([.day],
+                                      from: cal.startOfDay(for: pickedDate),
+                                      to: cal.startOfDay(for: anchorLogicalDay)).day ?? 0
+        return max(0, days)
+    }
+
+    /// Parses a stored `yyyy-MM-dd` day key in the device-local zone (matching how DailyMetric.day is
+    /// written), so a key never shifts a day under timezone conversion.
+    private nonisolated static let dayKeyParser: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
 }
 
 @MainActor
@@ -70,9 +103,9 @@ enum SummaryLoader {
             ? RecoveryScorer.calibrationNights(nightlyHrv: days.map(\.avgHrv), dayKeys: days.map(\.day),
                                                hasRecovery: day?.recovery != nil)
             : nil
-        let priorScored = TodayView.lastScoredRecoveryDay(days: days, selectedDayKey: tkey, isToday: isToday,
-                                                          todayScored: day?.recovery != nil,
-                                                          isCalibrating: calNights != nil)
+        let priorScored = DayScoreReadings.lastScoredRecoveryDay(days: days, selectedDayKey: tkey, isToday: isToday,
+                                                                 todayScored: day?.recovery != nil,
+                                                                 isCalibrating: calNights != nil)
         snap.charge = .resolve(todayRecovery: day?.recovery, priorScored: priorScored,
                                calibrationNights: calNights, todayKey: tkey)
 
@@ -91,9 +124,9 @@ enum SummaryLoader {
 
         let restSeries = await restA
         let restByDay = Dictionary(restSeries.map { ($0.day, $0.value) }, uniquingKeysWith: { _, last in last })
-        snap.rest = TodayView.freshRestScore(todayValue: restByDay[dayKey], lastDay: restSeries.last?.day,
-                                             lastValue: restSeries.last?.value, isTodaySelected: isToday,
-                                             todayKey: dayKey)
+        snap.rest = DayScoreReadings.freshRestScore(todayValue: restByDay[dayKey], lastDay: restSeries.last?.day,
+                                                    lastValue: restSeries.last?.value, isTodaySelected: isToday,
+                                                    todayKey: dayKey)
 
         let stepsSeries = await stepsA
         let stepsEstByDay = Dictionary(stepsSeries.map { ($0.day, $0.value) }, uniquingKeysWith: { _, last in last })

@@ -38,8 +38,8 @@ final class AICoachSleepContextTests: XCTestCase {
         XCTAssertTrue(line.contains("eff —"), line)
     }
 
-    /// Efficiency arrives as a PERCENTAGE on some import paths, which `SleepView` and `StagesCard`
-    /// each guard against inline. Without the same guard a bare `* 100` sends "eff 9400%".
+    /// Efficiency arrives as a PERCENTAGE on some import paths, which the sleep screens guard against
+    /// inline. Without the same guard a bare `* 100` sends "eff 9400%".
     func testEfficiencyStoredAsPercentageIsNotMultipliedAgain() {
         let e = engine()
         XCTAssertEqual(e.efficiencyPercentOrDash(0.94), "94%")

@@ -110,10 +110,8 @@ struct TrendsView: View {
     private func resolve(_ value: (DailyMetric) -> Double?) -> ResolvedMetric {
         // Find the smallest range ≥ selected whose window has ≥1 point, keeping
         // that window's points so we don't re-filter to read them back.
-        // The windowing lives in `HostedTrendData` so the Today host cards resolve EXACTLY as this tab
-        // does. Shared rather than copied: the widening fallback is what a wearer with two weeks of
-        // history depends on, and a second implementation would drift the moment either side was tuned.
-        let r = HostedTrendData.resolve(days: repo.days, selected: range, value: value)
+        // The windowing lives in `TrendWindowData` (TrendWindowData.swift).
+        let r = TrendWindowData.resolve(days: repo.days, selected: range, value: value)
         return ResolvedMetric(points: r.points, effective: r.effective,
                               widened: r.effective != range,
                               caption: caption(count: r.points.count, eff: r.effective))
@@ -134,7 +132,7 @@ struct TrendsView: View {
 
     /// A padded value range for a series so the line isn't flat against the axis.
     private func valueRange(_ pts: [TrendPoint], fallback: ClosedRange<Double>, pad: Double = 0.12) -> ClosedRange<Double> {
-        HostedTrendData.valueRange(pts, fallback: fallback, pad: pad)
+        TrendWindowData.valueRange(pts, fallback: fallback, pad: pad)
     }
 
     private func mean(_ pts: [TrendPoint]) -> Double? {

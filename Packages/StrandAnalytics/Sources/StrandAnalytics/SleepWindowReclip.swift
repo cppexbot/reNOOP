@@ -10,7 +10,7 @@ import Foundation
 /// stages BEFORE the corrected bed time, not leave them in place. Otherwise an imported / pre-sync night
 /// keeps sleep that happened before the user got into bed while the displayed window shrank.
 ///
-/// Two formats, mirroring the app's two writers (see SleepView.decodeSegments / decodeStages):
+/// Two formats, mirroring the app's two writers (see SleepNightDecoding.decodeSegments / decodeStages):
 ///   • segment array `[{"start":epoch,"end":epoch,"stage":"wake"|"light"|"deep"|"rem"}]` — computed
 ///     nights. Clip to `[newStart, newEnd]`: drop segments wholly outside it, clip a straddling
 ///     segment's start up to `newStart` and end down to `newEnd`, and if the window grew at the tail

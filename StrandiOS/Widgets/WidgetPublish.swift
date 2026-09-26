@@ -49,7 +49,7 @@ extension WidgetSnapshot {
         // the watch snapshot and the iOS Live Activity now also use, so all four surfaces describe the same
         // day (the #911 fix; see `Repository.widgetAnchor` for the rollover-drift rationale, the #304
         // pre-04:00 carve-out and the #547 future-day guard it folds in). The `$0.day < carriedKey` bound
-        // inside the helper (matching `TodayView.selectedDayKey`) means a stale scored row can never
+        // inside the helper means a stale scored row can never
         // re-surface AS today.
         let day = Repository.widgetAnchor(days: days, now: now)
         // Rest (sleep_performance) for that same anchor day. exploreSeries merges imported + on-device,

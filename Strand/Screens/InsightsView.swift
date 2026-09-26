@@ -35,8 +35,8 @@ private struct InsightsLoadKey: Equatable {
 
 /// #833 (Insights freeze): the snapshot InsightsView.load() builds, parked on the long-lived Repository so a
 /// re-mount (macOS keys the NavigationSplitView detail with `.id`, so every sidebar switch cold-mounts the
-/// screen) can RESTORE it in-memory instead of re-running the full history read on the @MainActor. The exact
-/// twin of Today's `TodayHistoryWideCache` for #849; holds load()'s six computed outputs. Consumed only when
+/// screen) can RESTORE it in-memory instead of re-running the full history read on the @MainActor (the #849
+/// remount-cache idiom); holds load()'s six computed outputs. Consumed only when
 /// the seq AND the dayKey still match (see `Repository.insightsLoadedSeq` / `insightsLoadedDayKey`).
 struct InsightsLoadCache {
     let behaviours: [String: Set<String>]
@@ -333,8 +333,8 @@ struct InsightsView: View {
     ///
     /// #833 (Insights freeze): on macOS the NavigationSplitView detail is keyed with `.id` (RootView), so
     /// every sidebar switch DESTROYS and cold-mounts this view, tearing down its `@State`. Without a cache
-    /// each visit re-ran the full history read on the @MainActor, which is the freeze. Mirroring Today's #849
-    /// remount cache, when `allowCache` is set and the live data state is unchanged
+    /// each visit re-ran the full history read on the @MainActor, which is the freeze. Following the #849
+    /// remount-cache idiom, when `allowCache` is set and the live data state is unchanged
     /// (`repo.insightsLoadedSeq == repo.refreshSeq` AND the same dayKey) we RESTORE the prior snapshot from
     /// the long-lived `repo` instead of re-querying. `allowCache` is true ONLY on the `.task(id:)`-driven
     /// path (a re-mount / data-refresh / day-rollover); the direct write-then-reload sites (journal toggle,

@@ -394,7 +394,7 @@ struct SummaryHighlightCard: View {
 
 /// The active device's link state as quiet text in the Summary's bar, the way a Health card shows
 /// its time: battery glyph + percent, "Syncing", or "Not connected". Tap → Devices. Resolves through the
-/// same `StrapBatteryDisplay` as the Liquid header control, so both homes tell one battery truth.
+/// `StrapBatteryDisplay`, the one place that decides what the link state may honestly claim.
 struct SummaryStrapStatus: View {
     /// A bar item: glyphs and the battery figure only, the words left to VoiceOver.
     var compact = false
@@ -403,7 +403,7 @@ struct SummaryStrapStatus: View {
     @EnvironmentObject private var router: NavRouter
     @State private var syncing = false
 
-    private var display: LiquidTodayView.StrapBatteryDisplay {
+    private var display: StrapBatteryDisplay {
         .resolve(activeIsWhoop: live.activeIsWhoop, connected: live.connected,
                  batteryPct: live.batteryPct, charging: live.charging,
                  ringPct: live.ouraBatteryPct, ringCharging: live.ouraWearState == .charging)

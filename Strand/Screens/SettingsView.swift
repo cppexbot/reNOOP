@@ -24,12 +24,6 @@ struct SettingsView: View {
     /// Profile-photo picker selection (PhotosUI). Cleared back to nil once the bytes are loaded.
     @State private var avatarPickerItem: PhotosPickerItem?
 
-    /// Custom background image (#custom-background). The store owns the decoded image + toggles; the
-    /// picker selection + the file-importer flag are local UI state.
-    @ObservedObject private var backgroundStore = BackgroundImageStore.shared
-    @State private var backgroundPickerItem: PhotosPickerItem?
-    @State private var showBackgroundFileImporter = false
-
     /// Backup & restore UI state.
     @State private var backupBusy = false
     @State private var backupAlertTitle = ""
@@ -39,10 +33,6 @@ struct SettingsView: View {
     /// than the shared single-OK one every other backup outcome uses.
     @State private var showOversizeRestoreConfirm = false
     @State private var oversizeRestoreMessage = ""
-
-    /// Opt-in WHOOP 5/MG "R22" deep-data unlock (off by default) — the one probe that writes a
-    /// persistent feature flag to the strap. See [PuffinExperiment.deepDataKey]. (#174)
-    @AppStorage(PuffinExperiment.deepDataKey) private var deepDataEnabled = false
 
     /// #174: set when the deep-data switch is turned OFF, so the app can OFFER to clear the flags on the
     /// strap instead of silently leaving them set. The switch alone has never written anything in either
@@ -129,21 +119,6 @@ struct SettingsView: View {
     // App-owned copy language. Apple binds a bundle localization at process launch, so this writes the
     // standard AppleLanguages override and takes effect after the user reopens NOOP.
     @AppStorage(AppLanguage.storageKey) private var appLanguageRaw = AppLanguage.system.rawValue
-    // Chart colour style: Titanium (brand) or Classic (throwback red→green). Re-colours gauges + charts.
-    @AppStorage(ChartStyle.storageKey) private var chartStyleRaw = ChartStyle.titanium.rawValue
-    // Sleep tab stage-CHART shape: Classic per-stage rows, or the WHOOP-style stepped hypnogram Filled/Ribbon.
-    @AppStorage(SleepChartStyle.storageKey) private var sleepChartStyleRaw = SleepChartStyle.classic.rawValue
-    // Chrome accent colour (mint / WHOOP blue / custom). Chrome only — never the data colour worlds.
-    @AppStorage(AccentColor.storageKey) private var accentRaw = AccentColor.mint.rawValue
-    @AppStorage(AccentColor.customHexKey) private var accentCustomHex = AccentColor.defaultCustomHex
-    // Day-cycle scene backdrop behind Today (#698). Default ON. Off swaps the scene for a plain dark
-    // canvas. TodayView reads the same key to gate its SceneScreenBackground.
-    @AppStorage(SceneBackgroundPrefs.enabledKey) private var showDayCycleBackground = true
-    // "Sky behind cards" (default ON): extend the day-cycle sky behind the whole Today scroll so
-    // Card transparency reveals it under every card. User-toggleable below. Mirrors Kotlin NoopPrefs.skyBehindCards.
-    @AppStorage(SkyBehindCardsPrefs.enabledKey) private var skyBehindCards = true
-    // Card-surface opacity percent (100 = solid). Reactive — moving the slider live-updates every card.
-    @AppStorage(CardAppearancePrefs.opacityKey) private var cardOpacityPercent = CardAppearancePrefs.defaultPercent
     // "Reduce motion in NOOP" (default OFF): pose every looping animation still and stop the decorative
     // tilt sensor, without needing system Low Power Mode or system Reduce Motion. Apple-only so far —
     // Android has no such toggle yet and its gate reads two signals, not three (#941).
@@ -156,10 +131,6 @@ struct SettingsView: View {
     /// sustained-elevated window and offers — via a single dismissible card — to save it as a workout.
     /// Nothing is ever created automatically. Mirrors the Android `NoopPrefs.KEY_AUTO_DETECT_WORKOUTS`.
     @AppStorage(PuffinExperiment.autoDetectWorkoutsKey) private var autoDetectWorkoutsEnabled = false
-
-    /// "Journal reminder" (#627, default ON). When ON, Today shows the persistent journal widget
-    /// (last-7-days strip + tap-through). Mirrors the Android `NoopPrefs.KEY_JOURNAL_REMINDER_ENABLED`.
-    @AppStorage(PuffinExperiment.journalReminderKey) private var journalReminderEnabled = true
 
     /// Opt-in "Keep screen on during a workout" (default OFF, #703). When ON, the live-workout view
     /// holds the screen awake while a manual recording is running so you can glance at your live HR
@@ -603,132 +574,6 @@ struct SettingsView: View {
         }
     }
 
-    /// One recent-background preset: a small cropped thumbnail (accent-ringed when active) over its
-    /// fill-mode label. Tapping re-applies that image + scaling.
-    @ViewBuilder
-    private func backgroundRecentThumb(thumb: Image?, mode: BackgroundFillMode, active: Bool,
-                                       action: @escaping () -> Void) -> some View {
-        let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
-        Button(action: action) {
-            VStack(spacing: 3) {
-                Group {
-                    if let thumb { thumb.resizable().scaledToFill() } else { StrandPalette.surfaceInset }
-                }
-                .frame(width: 64, height: 64)
-                .clipShape(shape)
-                .overlay(shape.strokeBorder(active ? StrandPalette.accent : StrandPalette.hairline,
-                                            lineWidth: active ? 2 : 1))
-                Text(mode.label)
-                    .font(StrandFont.caption)
-                    .foregroundStyle(active ? StrandPalette.accent : StrandPalette.textTertiary)
-            }
-        }
-        .buttonStyle(.plain)
-    }
-
-    /// Custom background image controls (#custom-background): pick from Photos or Browse the files,
-    /// choose the fill mode, and (once set) enable / remove. The store downscales + persists a
-    /// device-local file — nothing here is uploaded (NOOP is offline), and it is left out of `.noopbak`.
-    /// Wrapped in a layout-transparent `Group` so the picker `onChange` + the file importer can hang off
-    /// the whole cluster while it still flows inside the appearance VStack.
-    @ViewBuilder
-    private var backgroundImageControls: some View {
-        let hasImage = backgroundStore.hasImage
-        Group {
-            HStack(spacing: NoopMetrics.space2) {
-                PhotosPicker(selection: $backgroundPickerItem, matching: .images) {
-                    Text(hasImage ? "Replace from Photos" : "Choose from Photos")
-                }
-                .buttonStyle(NoopButtonStyle(.secondary, fullWidth: true))
-
-                Button {
-                    showBackgroundFileImporter = true
-                } label: {
-                    Text("Browse files")
-                }
-                .buttonStyle(NoopButtonStyle(.secondary, fullWidth: true))
-            }
-
-            if hasImage {
-                // Recent presets: tap a thumbnail to re-apply that image + the scaling it was last shown
-                // with. The first (accent-ringed) one is the active background.
-                if !backgroundStore.recents.isEmpty {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Recent")
-                            .font(StrandFont.footnote)
-                            .foregroundStyle(StrandPalette.textSecondary)
-                        HStack(spacing: 10) {
-                            ForEach(backgroundStore.recents.indices, id: \.self) { index in
-                                backgroundRecentThumb(
-                                    thumb: backgroundStore.thumbnails.indices.contains(index)
-                                        ? backgroundStore.thumbnails[index] : nil,
-                                    mode: backgroundStore.recents[index].fillMode,
-                                    active: index == 0,
-                                    action: { backgroundStore.applyRecent(index) })
-                            }
-                        }
-                    }
-                }
-
-                Toggle(isOn: $backgroundStore.enabled) {
-                    Text("Show custom background")
-                        .font(StrandFont.subhead)
-                        .foregroundStyle(StrandPalette.textPrimary)
-                }
-                .toggleStyle(.switch)
-                .tint(StrandPalette.accent)
-
-                FormRow(label: "Scaling") {
-                    Picker("Scaling", selection: Binding(
-                        get: { backgroundStore.fillMode },
-                        set: { backgroundStore.setFillMode($0) })) {
-                        ForEach(BackgroundFillMode.allCases) { mode in
-                            Text(mode.label).tag(mode)
-                        }
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.menu)
-                    .tint(StrandPalette.accent)
-                    .accessibilityLabel("Background scaling")
-                }
-
-                Button {
-                    backgroundStore.clearImage()
-                } label: {
-                    Text("Remove image")
-                }
-                .buttonStyle(NoopButtonStyle(.tertiary))
-                .accessibilityHint("Removes the custom background and restores the day-cycle sky")
-            }
-
-            Text("Optional. Use your own photo behind every tab, in place of the day-cycle sky. It stays on \(Platform.deviceNounPhrase) and is never uploaded. Pair it with Transparent cards above to let it show through.")
-                .font(StrandFont.caption)
-                .foregroundStyle(StrandPalette.textTertiary)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        // Load the picked photo's bytes, hand them to the store (which downscales + persists), then clear
-        // the selection so the same photo can be re-picked. Mirrors the avatar row.
-        .onChange(of: backgroundPickerItem) { newItem in
-            guard let newItem else { return }
-            Task {
-                let data = try? await newItem.loadTransferable(type: Data.self)
-                await MainActor.run {
-                    if let data { backgroundStore.setImage(from: data) }
-                    backgroundPickerItem = nil
-                }
-            }
-        }
-        // "Browse files" — the system file browser. The picked URL is security-scoped (outside the
-        // sandbox), so bracket the one-time read; we copy the bytes into our own file immediately.
-        .fileImporter(isPresented: $showBackgroundFileImporter, allowedContentTypes: [.image]) { result in
-            guard case .success(let url) = result else { return }
-            let didAccess = url.startAccessingSecurityScopedResource()
-            defer { if didAccess { url.stopAccessingSecurityScopedResource() } }
-            if let data = try? Data(contentsOf: url) { backgroundStore.setImage(from: data) }
-        }
-    }
-
     /// One-line state for the "Steps estimate" tap-through row: manual, the auto-fit confidence, or a
     /// not-yet-calibrated prompt — so the row reflects the current calibration without opening the sheet.
     private var stepsCalibrationSummary: String {
@@ -1060,35 +905,6 @@ struct SettingsView: View {
         }
     }
 
-    /// Bridges the SwiftUI `ColorPicker` (a `Color`) to the persisted custom-accent hex string.
-    private var customAccentBinding: Binding<Color> {
-        Binding(
-            get: { Color(hex: accentCustomHex) },
-            set: { accentCustomHex = $0.noopAccentHex ?? AccentColor.defaultCustomHex }
-        )
-    }
-
-    /// The Theme PRESET is derived from the four coordinated prefs (no stored value): reads which preset
-    /// the live combination matches (or `.custom`), and on pick writes accent + chart + backdrop + opacity.
-    private var themePresetBinding: Binding<ThemePreset> {
-        Binding(
-            get: {
-                ThemePreset.matching(
-                    accent: AccentColor.resolve(accentRaw),
-                    chart: ChartStyle.resolve(chartStyleRaw),
-                    backdrop: showDayCycleBackground,
-                    cardOpacity: cardOpacityPercent)
-            },
-            set: { preset in
-                guard let r = preset.recipe else { return }   // .custom → no-op
-                accentRaw = r.accent.rawValue
-                chartStyleRaw = r.chart.rawValue
-                showDayCycleBackground = r.backdrop
-                cardOpacityPercent = r.cardOpacity
-            }
-        )
-    }
-
     private var appearanceCard: some View {
         SettingsSection(
             icon: "circle.lefthalf.filled",
@@ -1182,21 +998,6 @@ struct SettingsView: View {
                     .pickerStyle(.menu)
                     .tint(StrandPalette.accent)
                     .accessibilityLabel("Theme")
-                }
-                rowDivider
-                FormRow(label: "Sleep chart") {
-                    // Classic = the per-stage timeline rows (default). Filled/Ribbon = the WHOOP-style
-                    // single stepped hypnogram, filled to the baseline or as a slim band. Display-only —
-                    // same stages either way; falls back to Classic on a night with no timestamped segments.
-                    Picker("Sleep chart", selection: $sleepChartStyleRaw) {
-                        ForEach(SleepChartStyle.allCases) { style in
-                            Text(style.label).tag(style.rawValue)
-                        }
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.menu)
-                    .tint(StrandPalette.accent)
-                    .accessibilityLabel("Sleep chart")
                 }
                 rowDivider
                 // Trend chart style (line vs bar). Display-only: flips the Trends tab's charts between the
@@ -1559,22 +1360,6 @@ struct SettingsView: View {
                 .accessibilityHint("Offers to save a workout when it spots sustained elevated heart rate")
 
                 Text("After a sync, NOOP looks over your recent heart rate for a sustained, raised stretch that looks like exercise and offers to save it. It only ever suggests. Nothing is saved until you tap Save, and you can dismiss any suggestion. Turning this off stops future suggestions but keeps your existing workout history. Deliberately conservative, so the odd workout may be missed. On \(Platform.deviceNounPhrase) only.")
-                    .font(StrandFont.caption)
-                    .foregroundStyle(StrandPalette.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                rowDivider
-
-                Toggle(isOn: $journalReminderEnabled) {
-                    Text("Journal reminder")
-                        .font(StrandFont.subhead)
-                        .foregroundStyle(StrandPalette.textPrimary)
-                }
-                .toggleStyle(.switch)
-                .tint(StrandPalette.accent)
-                .accessibilityHint("Show a Today card reminding you to log your journal")
-
-                Text("Show a Today card reminding you to log your journal")
                     .font(StrandFont.caption)
                     .foregroundStyle(StrandPalette.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -3247,21 +3032,3 @@ private struct FormRow<Control: View>: View {
         .preferredColorScheme(.dark)
 }
 #endif
-
-// MARK: - Custom accent colour bridge
-
-private extension Color {
-    /// sRGB hex (`#RRGGBB`) for persisting a `ColorPicker` selection into `AccentColor.customHexKey`.
-    /// Falls back to nil if the colour can't resolve to sRGB (the caller then keeps the default).
-    var noopAccentHex: String? {
-        #if os(iOS)
-        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
-        guard UIColor(self).getRed(&r, green: &g, blue: &b, alpha: &a) else { return nil }
-        #elseif os(macOS)
-        guard let ns = NSColor(self).usingColorSpace(.sRGB) else { return nil }
-        let r = ns.redComponent, g = ns.greenComponent, b = ns.blueComponent
-        #endif
-        return String(format: "#%02X%02X%02X",
-                      Int((r * 255).rounded()), Int((g * 255).rounded()), Int((b * 255).rounded()))
-    }
-}

@@ -9,8 +9,8 @@ import SwiftUI
 import StrandDesign
 
 extension View {
-    /// Interactive circular glass behind a header control; `.ultraThinMaterial` circle otherwise. The
-    /// glass inset matches the strap control's (`nativeLiquidGlassSyncButton`) so the header row is even.
+    /// Interactive circular glass behind a header control; `.ultraThinMaterial` circle otherwise. Every
+    /// header control takes the same glass inset (`NoopMetrics.syncIndicatorGlassPadding`) so the row is even.
     @ViewBuilder
     func summaryGlassCircle() -> some View {
         #if compiler(>=6.2)

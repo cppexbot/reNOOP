@@ -8,7 +8,7 @@ import StrandAnalytics
 /// for it (no asleep minutes), and `buildModel` then collapsed the WHOLE Sleep tab to the first-run
 /// empty state: every older night hidden and the edit pencil unreachable. The fix degrades that day
 /// to the honest stage-less stub the ◀/▶ browse already renders. These pin the pure fallback rule
-/// (`SleepView.stubDaySession`): as long as a day has ANY stored block, the tab has a renderable
+/// (`SleepNightDecoding.stubDaySession`): as long as a day has ANY stored block, the tab has a renderable
 /// header + a real edit target, so `buildModel` can never blank a non-empty history. Pure (no store,
 /// no view mounting). Android twin: SleepPhantomNightFallbackTest.kt.
 final class SleepPhantomNightFallbackTests: XCTestCase {
@@ -32,7 +32,7 @@ final class SleepPhantomNightFallbackTests: XCTestCase {
     func testPhantomDayYieldsStubSession() {
         let now = 1_800_000_000
         let p = phantom(now: now)
-        let stub = SleepView.stubDaySession([p])
+        let stub = SleepNightDecoding.stubDaySession([p])
         XCTAssertNotNil(stub, "#940 regression: a day with a stored block must render a stub, never blank")
         XCTAssertEqual(stub?.startTs, p.effectiveStartTs)
         XCTAssertEqual(stub?.endTs, p.endTs)
@@ -46,12 +46,12 @@ final class SleepPhantomNightFallbackTests: XCTestCase {
         // A zero-width block is degenerate for the timing selector but must still anchor a header.
         let degenerate = CachedSleepSession(startTs: 1_000, endTs: 1_000, efficiency: nil,
                                             restingHr: nil, avgHrv: nil, stagesJSON: nil)
-        XCTAssertNotNil(SleepView.stubDaySession([degenerate]))
+        XCTAssertNotNil(SleepNightDecoding.stubDaySession([degenerate]))
     }
 
     /// Only a genuinely EMPTY day list is allowed to produce nothing (the true first-run state).
     func testEmptyDayYieldsNil() {
-        XCTAssertNil(SleepView.stubDaySession([]))
+        XCTAssertNil(SleepNightDecoding.stubDaySession([]))
     }
 
     /// End-to-end pure pass of the #940 editor flow: the guard corrects the reporter's exact

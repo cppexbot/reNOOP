@@ -41,17 +41,12 @@ ANDROID_HOME_FILES = {
 }
 ANDROID_SHELL_FILE = "android/app/src/main/java/com/noop/ui/AppRoot.kt"
 
-# Both selectable Today implementations, their Today-only editor/metadata, the shared
-# day picker that they render, and the iPhone shell/icon actions that enter Home.
+# The Today customization editor/metadata, the cards and banners Home renders, and the iPhone
+# shell/icon actions that enter Home.
 APPLE_HOME_FILES = {
-    "Strand/Screens/TodayView.swift",
-    "Strand/Liquid/LiquidTodayView.swift",
     "Strand/Screens/TodayCustomizationSheet.swift",
     "Strand/Screens/TodayCustomizationMetadata.swift",
-    "Packages/StrandDesign/Sources/StrandDesign/DayNavBar.swift",
     "StrandiOS/System/HomeScreenQuickActions.swift",
-    "Strand/Screens/AutoWorkoutCard.swift",
-    "Strand/Screens/JournalReminderCard.swift",
     "Strand/Screens/SkinTempCardsView.swift",
     "Strand/Screens/HealthAlertBanner.swift",
 }
@@ -408,12 +403,6 @@ class HomeLocalizationTest(unittest.TestCase):
         scoped = [row for row in findings if row[0] in APPLE_HOME_FILES]
         self.assertEqual([], scoped, "Unlocalized Apple Home UI:\n" + _format_findings(scoped))
 
-    def test_apple_day_nav_dynamic_date_avoids_multiline_interpolation(self) -> None:
-        source = (ROOT / "Packages/StrandDesign/Sources/StrandDesign/DayNavBar.swift").read_text(encoding="utf-8")
-        self.assertIn("let formattedDay = selectedDay.formatted(", source)
-        self.assertIn("return LocalizedStringKey(formattedDay)", source)
-        self.assertNotIn('return "\\(selectedDay.formatted(', source)
-
     def test_apple_charge_driver_verdicts_are_complete_catalog_keys(self) -> None:
         source = (ROOT / "Packages/StrandAnalytics/Sources/StrandAnalytics/ChargeDrivers.swift").read_text(
             encoding="utf-8"
@@ -475,23 +464,12 @@ class HomeLocalizationTest(unittest.TestCase):
             )
 
     def test_apple_whoop_brand_and_tint_are_locale_independent(self) -> None:
-        source = (ROOT / "Strand/Screens/TodayView.swift").read_text(encoding="utf-8")
+        source = (ROOT / "Strand/Screens/MetricExplorerView.swift").read_text(encoding="utf-8")
         catalog = audit.load_catalog(ROOT / "Strand/Resources/Localizable.xcstrings")
         self.assertEqual("WHOOP", catalog["strings"]["Whoop"]["localizations"]["pt-PT"]["stringUnit"]["value"])
-        self.assertIn('private static let whoopBrandName = "WHOOP"', source)
+        self.assertIn('private let provenanceWhoopBrandName = "WHOOP"', source)
 
-        tint_start = source.index("private func provenanceTint")
-        tint_end = source.index("// MARK: Apple Watch provenance", tint_start)
-        self.assertNotIn("provenanceLabel(", source[tint_start:tint_end])
-
-    def test_apple_liquid_runtime_copy_and_pt_terms_are_localized(self) -> None:
-        source = (ROOT / "Strand/Liquid/LiquidTodayView.swift").read_text(encoding="utf-8")
-        self.assertIn(
-            'private var stressText: String { stress.map { String(Int($0.rounded())) } ?? String(localized: "Calibrating") }',
-            source,
-        )
-        self.assertIn('return "\\(base) · \\(String(localized: \"Charging\"))"', source)
-
+    def test_apple_pt_home_terms_are_localized(self) -> None:
         strings = audit.load_catalog(ROOT / "Strand/Resources/Localizable.xcstrings")["strings"]
         expected = {
             "Push": "Avançar",
@@ -505,8 +483,6 @@ class HomeLocalizationTest(unittest.TestCase):
         app_model = (ROOT / "Strand/App/AppModel.swift").read_text(encoding="utf-8")
         illness = (ROOT / "Packages/StrandAnalytics/Sources/StrandAnalytics/IllnessSignalEngine.swift").read_text(encoding="utf-8")
         readiness = (ROOT / "Packages/StrandAnalytics/Sources/StrandAnalytics/ReadinessEngine.swift").read_text(encoding="utf-8")
-        today = (ROOT / "Strand/Screens/TodayView.swift").read_text(encoding="utf-8")
-
         self.assertIn("public enum Message", illness)
         self.assertIn('suppressedBy.append("a hard or late workout")', illness)
         self.assertIn("suppressionReasons.append(.hardOrLateWorkout)", illness)
@@ -519,10 +495,6 @@ class HomeLocalizationTest(unittest.TestCase):
         self.assertIn('String(localized: "Respiration up")', app_model)
 
         self.assertIn("public enum Evidence", readiness)
-        self.assertIn("readinessEvidenceText", today)
-        self.assertIn("readinessDetailText", today)
-        self.assertIn('String(format: "%.\\(decimals)f", locale: AppLanguage.activeLocale, value)', today)
-        self.assertNotIn("if let evidence = s.evidence", today)
         self.assertNotIn("LocalizedStringKey(s.detail)", today)
 
         self.assertIn("badge: Self.whoopBrandName", today)
@@ -587,12 +559,7 @@ class HomeLocalizationTest(unittest.TestCase):
             self.assertEqual(expected, strings[key]["localizations"]["de"]["stringUnit"]["value"])
 
     def test_apple_home_count_catalogs_have_real_focus_plural_variations(self) -> None:
-        today = (ROOT / "Strand/Screens/TodayView.swift").read_text(encoding="utf-8")
         strings = audit.load_catalog(ROOT / "Strand/Resources/Localizable.xcstrings")["strings"]
-        self.assertNotIn('String(localized: "\\(repo.days.count) days · \\(repo.sleeps.count) sleeps")', today)
-        self.assertIn("localizedDayCount", today)
-        self.assertIn("localizedSleepCount", today)
-        self.assertIn("localizedWorkoutCount", today)
         for key in ("%lld days", "%lld sleeps", "%lld workouts"):
             for lang in ("en", *audit.LANGS, "it"):
                 localization = strings[key].get("localizations", {}).get(lang, {})

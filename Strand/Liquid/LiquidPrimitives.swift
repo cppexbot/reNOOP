@@ -406,7 +406,7 @@ struct LiquidThread: View {
     }
 }
 
-// MARK: - Shared liquid components (cross-platform: used by Today AND the other liquid screens on iOS + mac)
+// MARK: - Shared liquid components (cross-platform: used by the liquid screens on iOS + mac)
 
 extension View {
     /// A light selection/impact haptic, available only where `sensoryFeedback` is (iOS 17 / macOS 14);
@@ -414,24 +414,6 @@ extension View {
     @ViewBuilder func liquidTapHaptic(trigger: some Equatable) -> some View {
         if #available(iOS 17.0, macOS 14.0, *) {
             self.sensoryFeedback(.impact(weight: .light), trigger: trigger)
-        } else {
-            self
-        }
-    }
-
-    /// A selection tick (e.g. the WHOOP-style day change), guarded so it compiles on macOS 13.
-    @ViewBuilder func liquidSelectionHaptic(trigger: some Equatable) -> some View {
-        if #available(iOS 17.0, macOS 14.0, *) {
-            self.sensoryFeedback(.selection, trigger: trigger)
-        } else {
-            self
-        }
-    }
-
-    /// A firmer medium impact (e.g. the pull-to-refresh release), guarded for the macOS 13 target.
-    @ViewBuilder func liquidMediumHaptic(trigger: some Equatable) -> some View {
-        if #available(iOS 17.0, macOS 14.0, *) {
-            self.sensoryFeedback(.impact(weight: .medium), trigger: trigger)
         } else {
             self
         }
@@ -469,69 +451,5 @@ struct CountUpNumber: View, Animatable {
     var body: some View {
         Text(prefix + (decimals > 0 ? String(format: "%.\(decimals)f", value) : "\(Int(value.rounded()))"))
             .font(font).monospacedDigit()
-    }
-}
-
-// MARK: - LiquidScoreGauge — Home hero score instrument (shared)
-
-/// The liquid score gauge used on Today (`HeroScoreCell`): a `LiquidVessel` fill with a count-up centre
-/// read-out. Callers supply diameter/tint/scale; optional caption sits under the number (Sleep: "of 100").
-struct LiquidScoreGauge: View {
-    /// Matches `HeroScoreCell.vesselDiameter` — the Home hero trio size.
-    private static let homeHeroDiameter: CGFloat = 96
-
-    let score: Double?
-    let tint: Color
-    let diameter: CGFloat
-    let animated: Bool
-    /// The scale `score` is expressed on (100 for Charge/Rest, 21 for WHOOP Effort, etc.).
-    var maxValue: Double = 100
-    var decimals: Int = 0
-    /// Optional caption under the number (nil = Home hero: number only).
-    var captionText: String? = nil
-    var numberColor: Color = StrandPalette.textPrimary
-    var captionColor: Color = StrandPalette.textTertiary
-    /// Forwarded to `LiquidVessel` so a gauge inside a link still splashes AND still navigates (#1995).
-    var tapPassesThrough: Bool = false
-
-    @State private var shown: Double = 0
-
-    private var frac: Double? { score.map { max(0, min(1, $0 / maxValue)) } }
-    private var centerFont: Font { StrandFont.rounded(diameter * 26 / Self.homeHeroDiameter) }
-    private var captionFont: Font { StrandFont.rounded(diameter * 0.085, weight: .medium) }
-
-    var body: some View {
-        ZStack {
-            LiquidVessel(value: frac, tint: tint, animated: animated,
-                         tapPassesThrough: tapPassesThrough)
-                .frame(width: diameter, height: diameter)
-            VStack(spacing: captionText == nil ? 0 : 1) {
-                Group {
-                    if score != nil {
-                        CountUpNumber(value: shown, font: centerFont, decimals: decimals)
-                    } else {
-                        Text("–").font(centerFont)
-                    }
-                }
-                if let captionText {
-                    Text(captionText)
-                        .font(captionFont)
-                        .foregroundStyle(captionColor)
-                }
-            }
-            .foregroundStyle(numberColor)
-            .shadow(color: .black.opacity(0.5), radius: 6, y: 1)
-            .lineLimit(1)
-            .minimumScaleFactor(0.6)
-            .allowsHitTesting(false)
-        }
-        .frame(width: diameter, height: diameter)
-        .onAppear { rollTo(score) }
-        .onChangeCompat(of: score) { rollTo($0) }
-    }
-
-    private func rollTo(_ v: Double?) {
-        guard let v else { shown = 0; return }
-        withAnimation(.easeOut(duration: 0.9)) { shown = v }
     }
 }

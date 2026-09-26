@@ -20,15 +20,6 @@ private let strandDayParser: DateFormatter = {
 
 private func parseDay(_ day: String) -> Date? { strandDayParser.date(from: day) }
 
-/// Localized long date for the hero "as of" line, with a fixed calendar-day time zone.
-private func longDate(_ d: Date) -> String {
-    let f = DateFormatter()
-    f.locale = AppLanguage.activeLocale
-    f.timeZone = TimeZone(identifier: "UTC")
-    f.dateFormat = "d MMM yyyy"
-    return f.string(from: d)
-}
-
 /// The category accent (colour communicates category only — never decoration).
 private func metricAccent(_ m: MetricDescriptor) -> Color {
     switch m.key {
@@ -77,175 +68,6 @@ enum ExploreRange: Int, CaseIterable, Identifiable, Hashable {
     }
     /// Trailing days the window spans (nil = everything).
     var days: Int? { self == .all ? nil : rawValue }
-
-    /// This range plus every LARGER range, ascending — the auto-expand search order
-    /// when the selected window holds zero points. ALW always terminates the chain.
-    var widening: [ExploreRange] {
-        let order: [ExploreRange] = [.week, .month, .quarter, .half, .year, .all]
-        guard let i = order.firstIndex(of: self) else { return [.all] }
-        return Array(order[i...])
-    }
-}
-
-/// The steps-specific adapter between the shared calendar projection and this screen. Keeping the
-/// policy pure makes the renderer consume one authoritative bucket series for its chart, headline,
-/// statistics and accessibility text while the readings table can continue to show daily inputs.
-enum MetricDetailSteps {
-    enum Resolution: Equatable {
-        case daily
-        case weekly
-        case monthly
-    }
-
-    struct Presentation {
-        let buckets: [StepsDetailBucket]
-        let resolution: Resolution
-
-        var series: [(day: String, value: Double)] {
-            buckets.map { (day: $0.displayDay, value: Double($0.mean)) }
-        }
-
-        var accessibilitySummary: String {
-            guard let latest = buckets.last else { return String(localized: "Steps chart, no data") }
-            let noun = buckets.count == 1 ? String(localized: "bar") : String(localized: "bars")
-            let period = MetricDetailSteps.periodLabel(day: latest.displayDay, resolution: resolution)
-            switch resolution {
-            case .daily:
-                return String(localized: "Steps chart, \(buckets.count) daily \(noun), latest \(latest.mean) steps, \(period)")
-            case .weekly:
-                return String(localized: "Steps chart, \(buckets.count) weekly \(noun), latest \(latest.mean) average steps per observed day, \(period)")
-            case .monthly:
-                return String(localized: "Steps chart, \(buckets.count) monthly \(noun), latest \(latest.mean) average steps per observed day, \(period)")
-            }
-        }
-    }
-
-    static func isMetric(_ metricKey: String) -> Bool {
-        metricKey == "steps" || metricKey == "steps_est"
-    }
-
-    static func range(_ range: ExploreRange) -> StepsDetailRange {
-        switch range {
-        case .week: return .week
-        case .twoWeeks: return .twoWeeks
-        case .threeWeeks: return .threeWeeks
-        case .month: return .month
-        case .quarter: return .threeMonths
-        case .half: return .sixMonths
-        case .year: return .year
-        case .all: return .all
-        }
-    }
-
-    static func resolution(for range: ExploreRange) -> Resolution {
-        switch range {
-        case .week, .twoWeeks, .threeWeeks, .month: return .daily
-        case .quarter: return .weekly
-        case .half, .year, .all: return .monthly
-        }
-    }
-
-    static func widening(from range: ExploreRange) -> [ExploreRange] {
-        let order = ExploreRange.allCases
-        guard let index = order.firstIndex(of: range) else { return [.all] }
-        return Array(order[index...])
-    }
-
-    static func presentation(readings: [(day: String, value: Double)], range: ExploreRange,
-                             anchorDay: String? = nil) -> Presentation {
-        let buckets = StepsDetailDensity.project(
-            readings: readings.map { StepsDetailReading(day: $0.day, value: $0.value) },
-            range: self.range(range), anchorDay: anchorDay)
-        return Presentation(buckets: buckets, resolution: resolution(for: range))
-    }
-
-    static func latestValidDay(readings: [(day: String, value: Double)]) -> String? {
-        StepsDetailDensity.project(
-            readings: readings.map { StepsDetailReading(day: $0.day, value: $0.value) },
-            range: .week).last?.displayDay
-    }
-
-    /// The finite comparison window ends one day before the current window and has the same number
-    /// of local calendar days. The shared projector then applies the same daily/weekly/monthly fold.
-    static func previousPresentation(readings: [(day: String, value: Double)], range: ExploreRange,
-                                     currentAnchorDay: String) -> Presentation {
-        let parts = currentAnchorDay.split(separator: "-")
-        guard let dayCount = range.days, parts.count == 3,
-              let year = Int(parts[0]), let month = Int(parts[1]), let day = Int(parts[2]) else {
-            return Presentation(buckets: [], resolution: resolution(for: range))
-        }
-        let previousAnchor = LocalCalendarDate(year: year, month: month, day: day)
-            .adding(days: -dayCount).key
-        return presentation(readings: readings, range: range,
-                            anchorDay: previousAnchor)
-    }
-
-    static func showsBars(metricKey: String, preferredStyleRaw: String) -> Bool {
-        isMetric(metricKey) || TrendChartStyle(rawValue: preferredStyleRaw) == .bar
-    }
-
-    static func requiresFullHistory(metricKey: String, range: ExploreRange) -> Bool {
-        isMetric(metricKey) && range == .all
-    }
-
-    static func loadIdentity(metricID: String, refreshSequence: Int,
-                             skinTemperatureStyle: String, range: ExploreRange) -> String {
-        let metricKey = metricID.split(separator: ":").last.map(String.init) ?? metricID
-        let rangeIdentity = isMetric(metricKey)
-            ? "|\(range.rawValue)" : ""
-        return "\(metricID)|\(refreshSequence)|\(skinTemperatureStyle)\(rangeIdentity)"
-    }
-
-    static func periodLabel(day: String, resolution: Resolution) -> String {
-        guard let date = parseDay(day) else { return day }
-        switch resolution {
-        case .daily:
-            return String(localized: "as of \(longDate(date))")
-        case .weekly:
-            return String(localized: "week of \(longDate(date))")
-        case .monthly:
-            let formatter = DateFormatter()
-            formatter.locale = AppLanguage.activeLocale
-            formatter.timeZone = TimeZone(identifier: "UTC")
-            formatter.dateFormat = "MMMM yyyy"
-            return formatter.string(from: date)
-        }
-    }
-
-    static func countCaption(count: Int, resolution: Resolution, rangeName: String) -> String {
-        let noun = count == 1 ? String(localized: "bar") : String(localized: "bars")
-        switch resolution {
-        case .daily:
-            return String(localized: "\(count) daily \(noun) · \(rangeName)")
-        case .weekly:
-            return String(localized: "\(count) weekly \(noun) · average per observed day · \(rangeName)")
-        case .monthly:
-            return String(localized: "\(count) monthly \(noun) · average per observed day · \(rangeName)")
-        }
-    }
-
-    static func valueLabel(_ value: Double, resolution: Resolution) -> String {
-        let formatted = value.formatted(.number.locale(AppLanguage.activeLocale).precision(.fractionLength(0)))
-        switch resolution {
-        case .daily:
-            return String(localized: "\(formatted) steps")
-        case .weekly, .monthly:
-            return String(localized: "\(formatted) average steps per observed day")
-        }
-    }
-}
-
-/// Pure #943 chip-coercion rule, extracted so it can be pinned by a test (the Swift twin of Android's
-/// `coercedVitalRange` in HealthScreen.kt). Resolves a stored selection NON-DESTRUCTIVELY: an unlocked
-/// selection is kept verbatim; a LOCKED one renders as the largest unlocked range with a real finite
-/// window (`days != nil`, so never ALL) whose rawValue is <= the selection, else `.week`. Coercing a
-/// locked default to ALL would jump a calibrating user to the everything view, so it is excluded.
-enum ExploreRangeGating {
-    static func coerced(selection: ExploreRange, isUnlocked: (ExploreRange) -> Bool) -> ExploreRange {
-        if isUnlocked(selection) { return selection }
-        return [ExploreRange.year, .half, .quarter, .month, .threeWeeks, .twoWeeks, .week]
-            .first { $0.days != nil && $0.rawValue <= selection.rawValue && isUnlocked($0) } ?? .week
-    }
 }
 
 // MARK: - Readings table projection (task #8)
@@ -253,8 +75,8 @@ enum ExploreRangeGating {
 /// One windowed reading behind a vital's detail chart: its day ("YYYY-MM-DD"), the value, and the RAW
 /// source id it came from (a strap id, the "-noop" computed sibling, "apple-health", or "health-connect").
 /// The readings TABLE and the "N readings" caption both derive from this ONE windowed list, so they can
-/// never disagree; the raw source maps to a human label via `TodayView.provenanceDisplayLabel` — the SAME
-/// resolver Today uses, so no source vocabulary is invented. Swift twin of Android's `VitalReading`.
+/// never disagree; the raw source maps to a human label via `provenanceDisplayLabel` — the SAME
+/// resolver every provenance surface uses, so no source vocabulary is invented. Swift twin of Android's `VitalReading`.
 struct VitalReading: Equatable {
     let day: String
     let value: Double
@@ -265,13 +87,13 @@ let vo2MaxAttributionPrefix = "vo2max-estimator:"
 
 /// #103/queue-11a follow-up: a display-source token for a `spo2` reading that came from the
 /// `spo2_candidate` fallback (WHOOP `spo2_candidate_82` or Oura ceiling@100 `0x6F`, device-conditional)
-/// rather than a calibrated `spo2Pct` import. Every OTHER surface that shows this fallback (Today's Key
-/// Metrics tile, `VitalSignsSummary`, `LiquidTodayView`) already labels it "strap estimate (unverified)"
+/// rather than a calibrated `spo2Pct` import. Every OTHER surface that shows this fallback (the Key
+/// Metrics tile, `VitalSignsSummary`) already labels it "strap estimate (unverified)"
 /// — this Explorer/"Your Cards" drill-down had no candidate fallback at all until now (found 2026-08-24:
 /// an Oura-only or WHOOP-4.0-only install with the toggle ON saw nothing here past the last calibrated
 /// import, even though the Key Metrics tile right next to it showed a real number). Same
 /// prefix-token idiom as `vo2MaxAttributionSource` just below, so the existing readings-table plumbing
-/// needs no new machinery — only `TodayView.provenanceDisplayLabel` gains one more case.
+/// needs no new machinery — only `provenanceDisplayLabel` gains one more case.
 let spo2CandidateAttributionSource = "spo2-candidate-estimate"
 
 /// A display-source token that keeps the existing readings-table plumbing while naming the estimator.
@@ -312,6 +134,47 @@ func vo2MaxEstimatorDisplayName(_ estimator: Vo2MaxEstimator?) -> String {
     }
 }
 
+/// Product mark, never natural-language copy. Keeping it out of localization also makes source
+/// classification stable when the app language changes.
+private let provenanceWhoopBrandName = "WHOOP"
+
+/// PURE mapper (unit-testable), a raw resolver source id onto the spec's provenance labels, given
+/// the strap's real `deviceId`. ANY NOOP-computed strap sibling (a "-noop"-suffixed id, not just the
+/// active strap's) reads "On-device" — matching by suffix so a computed row from a non-active strap
+/// can't fall through to `FusionSource.noopComputed`'s raw "NOOP" displayName; the imported strap source
+/// (`deviceId`, normally "my-whoop") reads "Whoop"; the Apple-Health source reads "Apple Health".
+/// Any other real source (Mi Band, Health Connect, nutrition) keeps its `FusionSource.displayName`
+///, still the genuine merge winner, never a blanket claim. Mirror EXACTLY in Kotlin.
+func provenanceDisplayLabel(rawSource: String, deviceId: String) -> String {
+    if rawSource.hasPrefix(vo2MaxAttributionPrefix) {
+        let raw = String(rawSource.dropFirst(vo2MaxAttributionPrefix.count))
+        let method = vo2MaxEstimatorDisplayName(Vo2MaxEstimator(rawValue: raw))
+        return "\(String(localized: "On-device")) · \(method)"
+    }
+    // #103/queue-11a follow-up: the Explorer's spo2 candidate-fallback rows (see
+    // `spo2CandidateAttributionSource`) must read "strap estimate (unverified)", the SAME copy every
+    // other candidate-fallback surface uses — never a device name, which would misrepresent an
+    // unvalidated estimate as a calibrated reading in this table's Source column.
+    if rawSource == spo2CandidateAttributionSource {
+        return String(localized: "strap estimate (unverified)")
+    }
+    if rawSource.hasSuffix("-noop") { return String(localized: "On-device") }
+    if rawSource == deviceId || rawSource == Repository.whoopSource { return provenanceWhoopBrandName }
+    if rawSource == Repository.appleHealthSource { return "Apple Health" }
+    // Localize the non-brand source names here rather than exposing the analytics layer's
+    // intentionally locale-free wire/display vocabulary.
+    switch FusionSource(rawValue: rawSource) {
+    case .healthConnect: return "Health Connect"
+    case .xiaomiBand:    return "Mi Band"
+    case .nutritionCsv:  return String(localized: "Nutrition")
+    case .localCache:    return String(localized: "Cached")
+    case .whoopImport:   return provenanceWhoopBrandName
+    case .noopComputed:  return String(localized: "On-device")
+    case .appleHealth:   return "Apple Health"
+    case nil:            return rawSource
+    }
+}
+
 /// One row of a vital detail's readings table: the reading's day (localized), its formatted value with
 /// unit, and a human source label. Plain strings so the view is a thin renderer and the projection stays
 /// unit-testable. Swift twin of Android's `VitalReadingRow`.
@@ -325,7 +188,7 @@ struct VitalReadingRow: Equatable {
 /// the "N readings" caption shows, guaranteeing the two never drift. Each row pairs the reading's DAY
 /// (these vital series carry one aggregated reading per night, so a row's "time" is its localized calendar
 /// date; the date always shows since a charted window spans 2+ days) with the model's own `format`ted
-/// value + `unit` and the source label from `TodayView.provenanceDisplayLabel` (a strap id → "Whoop", its
+/// value + `unit` and the source label from `provenanceDisplayLabel` (a strap id → "Whoop", its
 /// "-noop" sibling → "On-device", "apple-health" → "Apple Health", "health-connect" → "Health Connect").
 /// `strapDeviceId` is the active strap id the resolver needs. Byte-identical projection to Android's
 /// `vitalReadingRows`.
@@ -336,7 +199,7 @@ func vitalReadingRows(readings: [VitalReading], unit: String, strapDeviceId: Str
         return VitalReadingRow(
             time: vitalReadingDateLabel(reading.day, now: now),
             value: unit.isEmpty ? value : "\(value) \(unit)",
-            source: TodayView.provenanceDisplayLabel(rawSource: reading.source, deviceId: strapDeviceId)
+            source: provenanceDisplayLabel(rawSource: reading.source, deviceId: strapDeviceId)
         )
     }
 }

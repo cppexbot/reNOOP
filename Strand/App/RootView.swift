@@ -462,23 +462,17 @@ struct RootView: View {
         }
     }
 
-    // Today's "Your Cards" rows push Stress/Health/Hydration detail pages via NavigationLink. On macOS
-    // the detail column has no enclosing NavigationStack of its own, so those pushes had no Back chrome
-    // and switching sidebar items hung (#753 Bug 2). Give the Today pane its own NavigationStack the
-    // same way MetricExplorerView wraps itself because "Explore is a standalone detail pane, so it owns
-    // its NavigationStack". iOS already wraps each tab in a NavigationStack via RootTabView, so this is
-    // macOS-only and leaves iOS untouched (TodayView's `.toolbar` stays on its own view body either way).
+    // The Summary's cards and rings push TabRoute VALUES (#198). On macOS the detail column has no
+    // enclosing NavigationStack of its own, so those pushes would have no Back chrome and switching sidebar
+    // items hung (#753 Bug 2). Give the Summary pane its own NavigationStack the same way
+    // MetricExplorerView wraps itself because "Explore is a standalone detail pane, so it owns its
+    // NavigationStack". It must register the TabRoute destinations once per stack — a double registration
+    // double-pushes (#38).
     @ViewBuilder private var todayDetail: some View {
-        #if os(macOS)
         NavigationStack {
-            // Today's root-level links push TabRoute VALUES (#198), so this stack must register
-            // their destinations (once per stack — a double registration double-pushes, #38).
             SummaryView()
                 .tabRouteDestinations()
         }
-        #else
-        TodayView()
-        #endif
     }
 
     // Settings now pushes into Test Centre via a NavigationLink. On macOS the detail column has no

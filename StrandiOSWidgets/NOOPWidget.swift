@@ -65,7 +65,7 @@ struct NOOPWidgetView: View {
         snap.recovery != nil ? StrandPalette.chargeColor : StrandPalette.textTertiary
     }
 
-    /// Fixed domain accent — same as `TodayView.effortRing` (`StrandPalette.effortColor`), not the
+    /// Fixed domain accent — `StrandPalette.effortColor`, as the app's Effort ring uses, not the
     /// value-sampled `effortTint` ramp the old footer bolt used.
     private var effortColor: Color {
         snap.effort != nil ? StrandPalette.effortColor : StrandPalette.textTertiary

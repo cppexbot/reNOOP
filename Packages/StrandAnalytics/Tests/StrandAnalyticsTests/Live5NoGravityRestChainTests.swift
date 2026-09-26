@@ -121,7 +121,7 @@ final class Live5NoGravityRestChainTests: XCTestCase {
 
     // MARK: - Stage 3: the display-side freeze this produces
 
-    /// Reproduces the Today resolver's tail fallback (iOS LiquidTodayView.swift line 777 /
+    /// Reproduces the Today resolver's tail fallback (the Apple `DayScoreReadings.freshRestScore` gate /
     /// Android TodayScreen.kt line 689): when today has no `sleep_performance` row, both
     /// platforms fall back to the latest value in the series. If new nights never write a row,
     /// that latest value is pinned to the last night that WAS scored — 93 — forever.

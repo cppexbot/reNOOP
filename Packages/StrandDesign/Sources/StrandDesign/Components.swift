@@ -12,11 +12,6 @@ public enum NoopMetrics {
     public static let sectionGap: CGFloat = NoopVisualStyle.sectionGap
     public static let screenPadding: CGFloat = NoopVisualStyle.pagePadding
     public static let tileHeight: CGFloat = 96   // Design Reset: tighter metric tile
-    // Key Metrics grid: one fixed height every tile snaps to, so a sparkline-and-caption tile and a
-    // plain value tile read the same. maxHeight: .infinity can't equalise them inside a LazyVGrid (the
-    // grid only offers a cell its content height, so there's nothing for the shorter tile to grow into),
-    // so we pin a single height that clears the tallest layout (value + inline sparkline + caption).
-    public static let keyMetricTileHeight: CGFloat = 122
     public static let chartHeight: CGFloat = 220
     /// Minimum macOS detail-sheet footprint for a scrollable editor/history surface.
     public static let detailSheetMinWidth: CGFloat = 520
@@ -27,27 +22,10 @@ public enum NoopMetrics {
     public static let tabBarClearance: CGFloat = 76  // iOS: extra bottom scroll room so the last card clears the floating tab bar
     /// Canonical diameter for compact circular controls in dense header chrome.
     public static let compactControlSize: CGFloat = 36
-    /// Expanded width of the compact charge-to-sync status capsule.
-    public static let syncIndicatorExpandedWidth: CGFloat = 108
-    /// Optical space between the sync ring and its transient label.
-    public static let syncIndicatorLabelSpacing: CGFloat = 5
-    /// Smallest readable scale for long localized labels inside the sync capsule.
-    public static let syncIndicatorMinimumLabelScale: CGFloat = 0.72
-    /// Even inset around the sync control before applying exact-bounds Liquid Glass, matching the inset
-    /// the system's `.small` glass chrome gives the sibling header circles. Equal on both axes so the
-    /// compact state stays circular.
+    /// Even inset around a header control before applying exact-bounds Liquid Glass, matching the inset
+    /// the system's `.small` glass chrome gives sibling header circles. Equal on both axes so the
+    /// control stays circular.
     public static let syncIndicatorGlassPadding: CGFloat = 5
-    /// Inset for the indicator's ring in BOTH states — the battery arc and the sync spinner share one
-    /// radius, so the morph changes colour and sweep without the circle also resizing. Two different
-    /// radii read as two different controls swapping places rather than one control changing state.
-    public static let syncIndicatorArcInset: CGFloat = 2.5
-    /// Width of the soft fade where long header text passes beneath trailing controls.
-    public static let headerTextFadeWidth: CGFloat = 48
-    /// Starting guess for the trailing footprint a header control row occupies, used ONLY until the host
-    /// has measured its own cluster (see `headerTrailingControlFadeMask(reserving:)`). Four compact
-    /// controls plus their gaps and the sync control's glass inset — deliberately not a fixed budget,
-    /// because a cluster that gains a control must not silently start mis-fading the title beside it.
-    public static let headerControlReserveWidth: CGFloat = 168
 
     // MARK: Standardised spacing scale (the ONE source of truth for margins)
     //
@@ -84,9 +62,6 @@ public enum NoopMetrics {
     public static let profileAvatarDiameter: CGFloat = 44
     public static let formValueColumnWidth: CGFloat = 48
     public static let formWideValueColumnWidth: CGFloat = 64
-    /// Compact metadata and explanatory-footer heights.
-    public static let compactMetadataMinHeight: CGFloat = 24
-    public static let compactHintMinHeight: CGFloat = 18
     /// Canonical thickness for compact horizontal indicator tracks.
     public static let indicatorTrackHeight: CGFloat = 8
     /// Fully-rounded corner radius — pills, chips, capsule buttons.
@@ -252,7 +227,7 @@ public struct StatTile<Accessory: View>: View {
         }
         // A FLOOR, not a fixed height: a sparkline tile's content exceeds the 96pt base and must be
         // allowed to grow rather than clip. maxHeight: .infinity lets a caller that DOES hand this tile a
-        // bounded height (e.g. the Key Metrics grid pins every cell to NoopMetrics.keyMetricTileHeight)
+        // bounded height (e.g. a grid that pins every cell to one fixed height)
         // stretch it to fill; in an unbounded parent it resolves to the content's own height, unchanged.
         // Note: inside a LazyVGrid the cell only offers content height, so equal heights come from the
         // caller pinning a fixed height, not from maxHeight: .infinity alone.
@@ -362,41 +337,6 @@ public struct ChartFooter: View {
                     Text(it.1).font(StrandFont.captionNumber).foregroundStyle(StrandPalette.textSecondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-    }
-}
-
-// MARK: - Insight card
-
-public struct InsightCard: View {
-    let category: LocalizedStringKey, status: LocalizedStringKey, detail: LocalizedStringKey
-    var statusColor: Color = StrandPalette.accent
-    var tint: Color? = nil
-    /// Extra trailing inset reserved on the overline + status rows so a caller's
-    /// `.overlay(alignment: .topTrailing)` (greeting + state pill) doesn't run over the
-    /// card's own title text on a narrow screen (#69). Defaults to 0 — no effect unless set.
-    var titleTrailingInset: CGFloat = 0
-    public init(category: LocalizedStringKey, status: LocalizedStringKey, detail: LocalizedStringKey, statusColor: Color = StrandPalette.accent, tint: Color? = nil, titleTrailingInset: CGFloat = 0) {
-        self.category = category; self.status = status; self.detail = detail; self.statusColor = statusColor; self.tint = tint; self.titleTrailingInset = titleTrailingInset
-    }
-    public var body: some View {
-        // Defaults the card wash to the status colour so the coaching card sits in the
-        // same colour world as the score it summarises (e.g. gold for Charge). The
-        // insight card reads a touch stronger than a tile: an explicit hue wash
-        // (.14 → .04) + a matching .22 hue border on top of the frosted surface.
-        let hue = tint ?? statusColor
-        // Apple-flat: a plain flat card. Identity comes from the COLOURED status headline alone — no extra
-        // hue-gradient wash, no border (so it reads identical to every other card on the page).
-        return NoopCard(padding: 18, tint: hue) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(category).strandOverline()
-                    .padding(.trailing, titleTrailingInset)
-                Text(status).font(StrandFont.rounded(28, weight: .bold)).foregroundStyle(statusColor)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.trailing, titleTrailingInset)
-                Text(detail).font(StrandFont.subhead).foregroundStyle(StrandPalette.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }

@@ -24,7 +24,7 @@ final class SleepNapDebtTests: XCTestCase {
             start: napStart, durationMin: 50,
             stages: #"{"awake":2,"light":30,"deep":10,"rem":8}"#) // 48 asleep
 
-        XCTAssertEqual(SleepView.napSleepMinutes([night, nap]), 48, accuracy: 1e-9)
+        XCTAssertEqual(SleepNightDecoding.napSleepMinutes([night, nap]), 48, accuracy: 1e-9)
     }
 
     func testBridgedMainNightFragmentsAreNotDoubleCreditedAsNaps() {
@@ -41,6 +41,6 @@ final class SleepNapDebtTests: XCTestCase {
             start: napStart, durationMin: 50,
             stages: #"{"awake":2,"light":30,"deep":10,"rem":8}"#)
 
-        XCTAssertEqual(SleepView.napSleepMinutes([first, second, nap]), 48, accuracy: 1e-9)
+        XCTAssertEqual(SleepNightDecoding.napSleepMinutes([first, second, nap]), 48, accuracy: 1e-9)
     }
 }

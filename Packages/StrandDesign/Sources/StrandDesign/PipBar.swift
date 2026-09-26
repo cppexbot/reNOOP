@@ -16,10 +16,7 @@ import SwiftUI
 // HARD constraints honoured: NO GLOW (flat fills only), TOKENS only (surfaceInset track, tint fill),
 // crisp high-contrast, PUBLIC stable API, self-contained in this file.
 //
-// Two surfaces:
-//   • `PipBar`     — just the segmented bar, for inline use under a value.
-//   • `PipBarRow`  — the card-ready WHOOP metric row: UPPERCASE label + big white value/unit on top,
-//                    the PipBar beneath.
+// `PipBar` is just the segmented bar, for inline use under a value.
 
 // MARK: - PipBar
 
@@ -158,77 +155,6 @@ public struct PipBar: View {
     }
 }
 
-// MARK: - PipBarRow (card-ready WHOOP metric row)
-
-/// A card-ready row: UPPERCASE label + big white value/unit on top, the `PipBar` beneath. Matches the
-/// WHOOP metric-row type — bold white number with a smaller-weight unit suffix over a tracked overline
-/// label. Drop into a `StrandCard` for an instant metric tile.
-public struct PipBarRow: View {
-
-    /// UPPERCASE-style label (rendered with overline tracking + textCase upper).
-    public var label: LocalizedStringKey
-    /// The value for the bar, in `range`.
-    public var value: Double
-    /// The value's domain.
-    public var range: ClosedRange<Double>
-    /// Lit-segment fill colour.
-    public var tint: Color
-    /// The big value string shown on top (already formatted, e.g. "87" or "9.0").
-    public var valueText: String
-    /// Optional smaller-weight unit suffix (e.g. "%", "bpm"). nil hides it.
-    public var unit: String?
-    /// Segment count, forwarded to the bar.
-    public var segments: Int
-
-    public init(
-        label: LocalizedStringKey,
-        value: Double,
-        range: ClosedRange<Double> = 0...100,
-        tint: Color,
-        valueText: String,
-        unit: String? = nil,
-        segments: Int = 24
-    ) {
-        self.label = label
-        self.value = value
-        self.range = range
-        self.tint = tint
-        self.valueText = valueText
-        self.unit = unit
-        self.segments = segments
-    }
-
-    public var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // UPPERCASE label.
-            Text(label)
-                .font(StrandFont.overline)
-                .tracking(StrandFont.overlineTracking)
-                .textCase(.uppercase)
-                .foregroundStyle(StrandPalette.textSecondary)
-
-            // Big white value + smaller-weight unit suffix.
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text(valueText)
-                    .font(StrandFont.number(30, weight: .bold))
-                    .foregroundStyle(StrandPalette.textPrimary)
-                if let unit {
-                    Text(unit)
-                        .font(StrandFont.headline)
-                        .foregroundStyle(StrandPalette.textTertiary)
-                }
-            }
-
-            // The segmented count-up bar.
-            PipBar(value: value, range: range, segments: segments, tint: tint)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(label))
-        .accessibilityValue(Text(unit.map { "\(valueText) \($0)" } ?? valueText))
-    }
-}
-
 #if DEBUG
 #Preview("PipBar") {
     ScrollView {
@@ -247,19 +173,6 @@ public struct PipBarRow: View {
                 labelled("12 seg", PipBar(value: 70, segments: 12, tint: StrandPalette.effortColor))
                 labelled("36 seg", PipBar(value: 70, segments: 36, tint: StrandPalette.effortColor))
                 labelled("tall",   PipBar(value: 45, tint: StrandPalette.statusWarning, height: 14))
-            }
-
-            // Card-ready rows.
-            Text("In a card").strandOverline().padding(.top, 8)
-            StrandCard(tint: StrandPalette.chargeColor) {
-                VStack(alignment: .leading, spacing: 18) {
-                    PipBarRow(label: "Charge", value: 74, tint: StrandPalette.chargeColor,
-                              valueText: "74", unit: "%")
-                    PipBarRow(label: "Effort", value: 9.0, range: 0...21, tint: StrandPalette.effortColor,
-                              valueText: "9.0")
-                    PipBarRow(label: "Rest", value: 87, tint: StrandPalette.restColor,
-                              valueText: "87", unit: "%")
-                }
             }
 
             Text("Reduce Motion renders static at the final frame.")

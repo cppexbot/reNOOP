@@ -5,7 +5,7 @@ import XCTest
 /// logical-day rollover, before tonight's sleep is scored, today's row has no HRV / resting-HR /
 /// respiratory yet, so the recovery-vitals read-outs must fall back to the last night that recorded them
 /// instead of rendering "–". Unlike the whole-row Charge carry (`Repository.widgetAnchor` /
-/// `TodayView.lastScoredRecoveryDay`), this selector does NOT gate on the prior night's recovery — a night
+/// `DayScoreReadings.lastScoredRecoveryDay`), this selector does NOT gate on the prior night's recovery — a night
 /// with real HRV/RHR but a null recovery is a valid vitals source. It only supplies the FALLBACK; the call
 /// sites read each vital today-first, so today's own value always wins and the selector never overrides it.
 final class DailyMetricLastVitalsDayTests: XCTestCase {

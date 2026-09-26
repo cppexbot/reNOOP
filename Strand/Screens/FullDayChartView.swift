@@ -412,8 +412,7 @@ struct FullDayChartView: View {
         workoutSpans = OverviewHRChart.workouts(workoutCandidates, overlapping: dayBounds)
     }
 
-    /// "H:MM" for a duration in seconds (e.g. a 6h06m night → "6:06") — mirrors TodayView.hoursMinutes
-    /// so the band label reads identically on both whole-day charts.
+    /// "H:MM" for a duration in seconds (e.g. a 6h06m night → "6:06") for the sleep-band label.
     private static func hoursMinutes(_ seconds: Int) -> String {
         let h = max(0, seconds) / 3600, m = (max(0, seconds) % 3600) / 60
         return "\(h):\(String(format: "%02d", m))"

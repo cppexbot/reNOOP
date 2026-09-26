@@ -69,10 +69,10 @@ struct ScreenScaffold<Content: View, Trailing: View>: View {
         // is width-capped), so the spurious horizontal rubber-band that caused the sideways drift is gone.
         .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
         #endif
-        // The flat canvas, plus an optional full-bleed TOP backdrop (Today's day-cycle scene) drawn behind
-        // the scroll content — edge-to-edge under the status bar. The scene is CONFINED to the header+hero
-        // band (see SceneScreenBackground.height) so it fades out ABOVE the dashboard cards, which then sit
-        // on the opaque canvas and stay fully legible (2026-06-23: cards were "losing the data").
+        // The flat canvas, plus an optional full-bleed TOP backdrop (the day-cycle sky) drawn behind the
+        // scroll content — edge-to-edge under the status bar. The backdrop is confined to the header band
+        // so it fades out ABOVE the cards, which then sit on the opaque canvas and stay fully legible
+        // (2026-06-23: cards were "losing the data").
         .background(alignment: .top) {
             ZStack(alignment: .top) {
                 StrandPalette.surfaceBase
@@ -249,7 +249,7 @@ struct DataPendingNote: View {
 
 /// An incrementing token the iOS tab shell bumps when the user re-taps the ALREADY-at-root active tab,
 /// to scroll that tab's root screen to the top (the other half of the iOS tab convention #197/#198 left
-/// unserved — an at-root re-tap is otherwise a no-op). `ScreenScaffold` and `LiquidTodayView` observe it
+/// unserved — an at-root re-tap is otherwise a no-op). `ScreenScaffold` and `SummaryView` observe it
 /// and scroll to their top anchor when it changes. Default 0 is never bumped outside the tab shell, so
 /// macOS (sidebar, no tab re-tap) and every non-tab screen are completely unaffected.
 /// Zero-height scroll-to-top target id. File scope, not a `static` on `ScreenScaffold` — the latter is

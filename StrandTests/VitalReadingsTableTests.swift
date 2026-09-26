@@ -5,7 +5,7 @@ import XCTest
 /// `VitalReadingsTableTest`. Pins the pure projection `vitalReadingRows` the MetricDetailView table
 /// renders: rows and the "N readings" caption derive from the SAME windowed list (so their counts can't
 /// disagree), rows are NEWEST-FIRST, each raw source id resolves through the shared
-/// `TodayView.provenanceDisplayLabel` (strap → "WHOOP", Health Connect → "Health Connect", Apple Health →
+/// `provenanceDisplayLabel` (strap → "WHOOP", Health Connect → "Health Connect", Apple Health →
 /// "Apple Health", the "-noop" sibling → "On-device"), and each value reuses the model's own formatter +
 /// unit. Blood Oxygen (SpO2) is the acceptance case.
 final class VitalReadingsTableTests: XCTestCase {
