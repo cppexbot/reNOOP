@@ -52,14 +52,21 @@ struct WorkoutHistoryView: View {
 
     var body: some View {
         List {
+            if sports.count > 1 {
+                filterChips
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+            }
             ForEach(months, id: \.title) { month in
                 Section {
                     ForEach(month.rows) { row in
-                        NavigationLink {
-                            WorkoutDetailView(row: row)
-                        } label: {
+                        NavigationLink(value: TabRoute.workout(row)) {
                             WorkoutHistoryRow(row: row)
                         }
+                        .listRowBackground(RoundedRectangle(cornerRadius: 22, style: .continuous)
+                            .fill(StrandPalette.summaryCard))
+                        .listRowSeparator(.hidden)
                         .swipeActions {
                             Button(role: .destructive) { delete(row) } label: {
                                 Label("Delete", systemImage: "trash")
@@ -69,29 +76,19 @@ struct WorkoutHistoryView: View {
                     }
                 } header: {
                     Text(month.title)
-                        .font(StrandFont.pro(20, weight: .bold))
+                        .font(StrandFont.pro(22, weight: .bold))
                         .foregroundStyle(StrandPalette.textPrimary)
                         .textCase(nil)
                 }
             }
         }
+        .listStyle(.plain)
         #if os(iOS)
-        .listStyle(.insetGrouped)
+        .listRowSpacing(12)
         #endif
         .scrollContentBackground(.hidden)
         .background(StrandPalette.summaryCanvas.ignoresSafeArea())
-        .navigationTitle(sportFilter.map(WorkoutSource.localizedSport) ?? String(localized: "All Workouts"))
-        .toolbarTitleMenu {
-            Button { sportFilter = nil } label: {
-                if sportFilter == nil { Label("All Workouts", systemImage: "checkmark") } else { Text("All Workouts") }
-            }
-            ForEach(sports, id: \.self) { sport in
-                Button { sportFilter = sport } label: {
-                    let title = WorkoutSource.localizedSport(sport)
-                    if sportFilter == sport { Label(title, systemImage: "checkmark") } else { Text(title) }
-                }
-            }
-        }
+        .navigationTitle(Text("All Workouts"))
         .overlay {
             if loaded && visible.isEmpty, #available(macOS 14.0, *) {
                 ContentUnavailableView("No Workouts", systemImage: "figure.run",
@@ -111,6 +108,32 @@ struct WorkoutHistoryView: View {
                 }
             }
         }
+    }
+
+    /// Fitness's filter capsules: "All" first, then each activity the history holds, most frequent first.
+    private var filterChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                chip(String(localized: "All"), selected: sportFilter == nil) { sportFilter = nil }
+                ForEach(sports, id: \.self) { sport in
+                    chip(WorkoutSource.localizedSport(sport), selected: sportFilter == sport) { sportFilter = sport }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 4)
+        }
+    }
+
+    private func chip(_ title: String, selected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(StrandFont.pro(15, weight: .semibold))
+                .foregroundStyle(selected ? StrandPalette.fitnessOnAccent : StrandPalette.textPrimary)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(Capsule().fill(selected ? StrandPalette.activityExerciseText : StrandPalette.summaryCard))
+        }
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder private func rowMenu(_ row: WorkoutRow) -> some View {
@@ -152,27 +175,39 @@ struct WorkoutHistoryRow: View {
     @AppStorage(UnitPrefs.distanceSystemKey) private var distanceSystemRaw = ""
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(alignment: .center, spacing: 12) {
             WorkoutTypeIcon(workoutType: row.sport, size: 22, weight: .semibold,
                             color: StrandPalette.activityExerciseText)
                 .frame(width: 44, height: 44)
                 .background(Circle().fill(StrandPalette.fitnessCard))
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 0) {
                 Text(WorkoutSource.localizedSport(row.sport))
-                    .font(StrandFont.pro(15, weight: .semibold))
+                    .font(StrandFont.pro(17))
                     .foregroundStyle(StrandPalette.textPrimary)
                     .lineLimit(1)
                 Text(headline)
-                    .font(StrandFont.pro(22, weight: .semibold))
+                    .font(StrandFont.pro(28, weight: .semibold))
                     .foregroundStyle(StrandPalette.activityExerciseText)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             }
             Spacer(minLength: 8)
-            Text(Date(timeIntervalSince1970: TimeInterval(row.startTs)), format: .dateTime.day().month(.abbreviated))
-                .font(StrandFont.pro(15))
+            Text(dateLabel)
+                .font(StrandFont.pro(13))
                 .foregroundStyle(StrandPalette.textSecondary)
+                .frame(maxHeight: .infinity, alignment: .bottom)
         }
+        .padding(.vertical, 4)
         .accessibilityElement(children: .combine)
+    }
+
+    /// "Today" / "Yesterday" for the last two days, else the short date, as Fitness labels sessions.
+    private var dateLabel: String {
+        let d = Date(timeIntervalSince1970: TimeInterval(row.startTs))
+        let cal = Calendar.current
+        if cal.isDateInToday(d) { return String(localized: "Today") }
+        if cal.isDateInYesterday(d) { return String(localized: "Yesterday") }
+        return d.formatted(.dateTime.day().month(.abbreviated))
     }
 
     /// Distance for a route sport, else active energy, else duration — the one figure Fitness leads with.
@@ -180,10 +215,7 @@ struct WorkoutHistoryRow: View {
         if let m = row.distanceM, m > 0 {
             let system = UnitPrefs.resolveDistance(system: UnitSystem(rawValue: unitSystemRaw) ?? .metric,
                                                    override: distanceSystemRaw)
-            let unit: UnitLength = system == .imperial ? .miles : .kilometers
-            return Measurement(value: m, unit: UnitLength.meters).converted(to: unit)
-                .formatted(.measurement(width: .abbreviated, usage: .asProvided,
-                                        numberFormatStyle: .number.precision(.fractionLength(2))))
+            return WorkoutDetailView.distance(m, system: system)
         }
         if let kcal = row.energyKcal, kcal > 0 {
             return Measurement(value: kcal, unit: UnitEnergy.kilocalories)

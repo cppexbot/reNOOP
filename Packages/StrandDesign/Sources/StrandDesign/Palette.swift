@@ -321,6 +321,19 @@ public enum StrandPalette {
     public static let fitnessCard          = Color(light: "#E3F5D6", dark: "#1B2610")
     /// Glyph on an Exercise-green button (Fitness's black play triangle; white on the light variant).
     public static let fitnessOnAccent      = Color(light: "#FFFFFF", dark: "#000000")
+    /// Fitness's workout-page hues: durations in yellow, Effort in blue.
+    public static let fitnessTime          = Color(light: "#C29200", dark: "#FFD60A")
+    public static let fitnessEffort        = Color(light: "#007AFF", dark: "#0A84FF")
+    /// Fitness's five heart-rate zone hues (blue, teal, lime, orange, pink), Zone 1 first.
+    public static func fitnessZone(_ zone: Int) -> Color {
+        switch zone {
+        case 1:  return Color(light: "#1E7FE0", dark: "#3A9BFF")
+        case 2:  return Color(light: "#0FA596", dark: "#37D6C4")
+        case 3:  return Color(light: "#5E9E00", dark: "#B7F23A")
+        case 4:  return Color(light: "#E07F00", dark: "#FF9F0A")
+        default: return Color(light: "#E0284F", dark: "#FF3B6B")
+        }
+    }
     /// The Calendar app's "today" red: today's date in the Summary day strip.
     public static let calendarToday = Color(light: "#FF3B30", dark: "#FF453A")
     /// Grouped-list canvas behind the Summary cards.

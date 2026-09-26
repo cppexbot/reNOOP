@@ -1,4 +1,5 @@
 import SwiftUI
+import WhoopStore
 
 // MARK: - TabRoute
 //
@@ -28,6 +29,7 @@ enum TabRoute: Hashable {
     case metricExplorer
     /// The Workouts tab's full history and its toolbar menu entries.
     case workoutHistory
+    case workout(WorkoutRow)
     case liftLog
     case intervalTimer
     /// The Sleep page opened on the night that ended on this day ("yyyy-MM-dd") — the Summary's Sleep card
@@ -62,6 +64,7 @@ extension View {
                 }
             case .metricExplorer: MetricExplorerView()
             case .workoutHistory: WorkoutHistoryView()
+            case .workout(let row): WorkoutDetailView(row: row)
             case .liftLog: LiftLogView()
             case .intervalTimer: IntervalTimerView()
             case .sleepNight(let day): SleepHealthView(initialWakeDay: day)

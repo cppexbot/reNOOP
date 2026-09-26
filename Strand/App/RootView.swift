@@ -441,7 +441,7 @@ struct RootView: View {
         case .insights: InsightsView()
         case .sleep: NavigationStack { SleepHealthView().tabRouteDestinations() }
         case .trends: TrendsView()
-        case .workouts: WorkoutsView()
+        case .workouts: NavigationStack { WorkoutsHomeView().tabRouteDestinations() }
         case .health: HealthView()
         case .stress: StressView()
         case .labBook: LabBookView()

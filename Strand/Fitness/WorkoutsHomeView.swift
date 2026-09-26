@@ -12,7 +12,10 @@ struct WorkoutsHomeView: View {
 
     @State private var rows: [WorkoutRow] = []
     @State private var addingManual = false
-    @State private var detail: WorkoutRow?
+
+    /// Trailing days read for the start-card order and Recent, so first paint never sorts a
+    /// multi-thousand-workout import (#797). The full history is read by All Workouts.
+    static let recentWindowDays = 400
 
     /// How many sessions the Recent card lists before "Show All".
     private static let recentCount = 3
@@ -63,7 +66,7 @@ struct WorkoutsHomeView: View {
         }
         .refreshable { await repo.refresh() }
         .task(id: repo.refreshSeq) {
-            rows = await repo.workoutRows(days: 400)
+            rows = await repo.workoutRows(days: Self.recentWindowDays)
                 .sorted { $0.startTs > $1.startTs }
         }
         .sheet(isPresented: $addingManual) {
@@ -74,10 +77,6 @@ struct WorkoutsHomeView: View {
                     await repo.refresh()
                 }
             }
-        }
-        .sheet(item: $detail) { row in
-            NavigationStack { WorkoutDetailView(row: row) }
-                .environmentObject(repo)
         }
     }
 
@@ -96,29 +95,26 @@ struct WorkoutsHomeView: View {
             }
             .padding(.horizontal, 4)
 
-            VStack(spacing: 0) {
-                let recent = Array(rows.prefix(Self.recentCount))
-                ForEach(Array(recent.enumerated()), id: \.offset) { index, row in
-                    Button { detail = row } label: {
+            VStack(spacing: 12) {
+                ForEach(Array(rows.prefix(Self.recentCount))) { row in
+                    NavigationLink(value: TabRoute.workout(row)) {
                         WorkoutHistoryRow(row: row)
                             .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
+                            .padding(.vertical, 10)
+                            .background(StrandPalette.summaryCard,
+                                        in: RoundedRectangle(cornerRadius: 22, style: .continuous))
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    if index < recent.count - 1 {
-                        Divider().padding(.leading, 72)
-                    }
                 }
             }
-            .background(StrandPalette.summaryCard,
-                        in: RoundedRectangle(cornerRadius: 26, style: .continuous))
         }
     }
 }
 
-extension WorkoutRow: @retroactive Identifiable {
+extension WorkoutRow: @retroactive Identifiable, @retroactive Hashable {
     public var id: String { "\(startTs)|\(sport)|\(source)" }
+    public func hash(into hasher: inout Hasher) { hasher.combine(id) }
 }
 
 // MARK: - Quick-start order
