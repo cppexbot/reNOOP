@@ -26,6 +26,10 @@ enum TabRoute: Hashable {
     /// the exact source, so the catalog's ordering can never decide where a card taps through.
     case metricSourced(key: String, source: String)
     case metricExplorer
+    /// The Workouts tab's full history and its toolbar menu entries.
+    case workoutHistory
+    case liftLog
+    case intervalTimer
     /// The Sleep page opened on the night that ended on this day ("yyyy-MM-dd") — the Summary's Sleep card
     /// and Rest ring on a past day.
     case sleepNight(String)
@@ -57,6 +61,9 @@ extension View {
                     HealthView()
                 }
             case .metricExplorer: MetricExplorerView()
+            case .workoutHistory: WorkoutHistoryView()
+            case .liftLog: LiftLogView()
+            case .intervalTimer: IntervalTimerView()
             case .sleepNight(let day): SleepHealthView(initialWakeDay: day)
             }
         }

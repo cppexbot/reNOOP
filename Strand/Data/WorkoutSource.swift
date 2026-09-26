@@ -52,6 +52,13 @@ enum WorkoutSource: Equatable {
         return splitCamelCase(sport)
     }
 
+    /// `displaySport` in the app language. The stored sport stays the English token (see `WorkoutCatalog`);
+    /// this only looks that token up in the string catalogue, so an unknown sport reads as stored.
+    static func localizedSport(_ sport: String) -> String {
+        let display = displaySport(sport)
+        return Bundle.main.localizedString(forKey: display, value: display, table: nil)
+    }
+
     /// The camelCase splitter shared by the display and KEY paths. Deliberately NOT localized: the
     /// key path below must be locale-stable.
     private static func splitCamelCase(_ sport: String) -> String {

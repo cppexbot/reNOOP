@@ -31,6 +31,7 @@ struct BrowseView: View {
             Entry(id: .insightsHub, title: String(localized: "What Moves You"), icon: "wand.and.sparkles", tint: StrandPalette.metricPurple),
             Entry(id: .intelligence, title: String(localized: "Intelligence"), icon: "brain.head.profile", tint: StrandPalette.metricPurple),
             Entry(id: .insights, title: String(localized: "Insights"), icon: "lightbulb.fill", tint: StrandPalette.metricAmber),
+            Entry(id: .trends, title: String(localized: "Trends"), icon: "chart.line.uptrend.xyaxis", tint: StrandPalette.metricCyan),
             Entry(id: .explore, title: String(localized: "Explore"), icon: "square.grid.2x2.fill", tint: StrandPalette.metricCyan),
             Entry(id: .compare, title: String(localized: "Compare"), icon: "rectangle.split.2x1.fill", tint: StrandPalette.metricCyan),
         ]
@@ -42,13 +43,10 @@ struct BrowseView: View {
             Category(id: String(localized: "Insights"), entries: insights),
             Category(id: String(localized: "Body"), entries: [
                 Entry(id: .live, title: String(localized: "Live"), icon: "waveform.path.ecg", tint: StrandPalette.metricRose),
-                Entry(id: .workouts, title: String(localized: "Workouts"), icon: "figure.run", tint: StrandPalette.summaryEffortRing),
-                Entry(id: .liftLog, title: String(localized: "Lift Log"), icon: "dumbbell.fill", tint: StrandPalette.summaryEffortRing),
                 Entry(id: .health, title: String(localized: "Health"), icon: "heart.text.square.fill", tint: StrandPalette.metricRose),
                 Entry(id: .labBook, title: String(localized: "Lab Book"), icon: "books.vertical.fill", tint: StrandPalette.metricAmber),
                 Entry(id: .stress, title: String(localized: "Stress"), icon: "bolt.heart.fill", tint: StrandPalette.metricAmber),
                 Entry(id: .breathe, title: String(localized: "Breathe"), icon: "wind", tint: StrandPalette.metricCyan),
-                Entry(id: .intervals, title: String(localized: "Intervals"), icon: "timer", tint: StrandPalette.summaryEffortRing),
                 Entry(id: .rhythm, title: String(localized: "Rhythm"), icon: "waveform.path", tint: StrandPalette.metricRose),
             ]),
             Category(id: String(localized: "Data"), entries: [
@@ -135,7 +133,8 @@ struct BrowseView: View {
 /// registration in `RootTabView.browseTab`.
 enum MoreDestination: Hashable {
     case insightsHub, intelligence, coach, insights, explore, compare
-    case live, workouts, liftLog, health, labBook, stress, breathe, intervals, rhythm
+    case trends
+    case live, health, labBook, stress, breathe, rhythm
     case fusedRecord, appleHealth, miBand, dataSources, backupSync, shortcutsExport, noopLimitations
     case alarms, automations, testCentre, siriShortcuts, powerSaving, settings
 
@@ -147,14 +146,12 @@ enum MoreDestination: Hashable {
         case .insights:        InsightsView()
         case .explore:         MetricExplorerView()
         case .compare:         CompareView()
+        case .trends:          TrendsView()
         case .live:            LiveView()
-        case .workouts:        WorkoutsView()
-        case .liftLog:         LiftLogView()
         case .health:          HealthView()
         case .labBook:         LabBookView()
         case .stress:          StressView()
         case .breathe:         BreathingView()
-        case .intervals:       IntervalTimerView()
         case .rhythm:          RhythmHost()
         case .fusedRecord:     FusedRecordHost()
         case .appleHealth:     AppleHealthView()

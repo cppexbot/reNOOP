@@ -316,6 +316,11 @@ public enum StrandPalette {
     public static let activityStandText    = Color(light: "#00A9CC", dark: "#00E5F0")
     /// Health's Activity category tint (the flame in the card's title row).
     public static let activityTitle        = Color(light: "#FA3C1E", dark: "#FF5A36")
+    /// Fitness's Workout-tab card: the Exercise green washed into the page — deep olive on black in dark
+    /// mode, a pale green on the light canvas.
+    public static let fitnessCard          = Color(light: "#E3F5D6", dark: "#1B2610")
+    /// Glyph on an Exercise-green button (Fitness's black play triangle; white on the light variant).
+    public static let fitnessOnAccent      = Color(light: "#FFFFFF", dark: "#000000")
     /// The Calendar app's "today" red: today's date in the Summary day strip.
     public static let calendarToday = Color(light: "#FF3B30", dark: "#FF453A")
     /// Grouped-list canvas behind the Summary cards.

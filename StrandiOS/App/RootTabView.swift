@@ -155,8 +155,8 @@ struct RootTabView: View {
                 routedPillar = .coach
                 router.requestedDestination = nil
             case .trends:
-                // Trends is a primary tab on iPhone (not a pillar sheet) — switch to it.
-                withAnimation(.timingCurve(0.22, 1, 0.36, 1, duration: 0.24)) { selectedTab = 1 }
+                // Trends left the tab bar for Workouts; a routed open presents it in the pillar sheet.
+                routedPillar = .trends
                 router.requestedDestination = nil
             case .activeWorkout:
                 // The Today active-workout indicator opens Live through the quick-action Live sheet; once
@@ -249,9 +249,6 @@ struct RootTabView: View {
                 case .fusedRecord: FusedRecordHost()
                 case .rhythm: RhythmHost(onClose: { routedPillar = nil })
                 case .devices: DevicesView()
-                // .trends is never presented as a pillar sheet on iPhone (it's a primary tab — the
-                // requestedDestination handler switches `selectedTab` instead), but the switch must stay
-                // exhaustive. Fall back to Trends inside the sheet host if it ever arrives here.
                 case .trends: TrendsView()
                 // .activeWorkout routes through the quick-action Live sheet (handled above); this keeps the
                 // switch exhaustive and falls back to Live if it ever reaches the pillar host.
@@ -313,7 +310,7 @@ struct RootTabView: View {
         case .live:
             quickScreen(LiveView())
         case .workout:
-            quickScreen(WorkoutsView())
+            quickScreen(WorkoutsHomeView())
         case .journal:
             quickScreen(InsightsView())
         case .breathe:
@@ -329,6 +326,7 @@ struct RootTabView: View {
     private func quickScreen<V: View>(_ view: V) -> some View {
         NavigationStack {
             view
+                .tabRouteDestinations()
                 .background(StrandPalette.surfaceBase.ignoresSafeArea())
                 .navigationBarTitleDisplayMode(.inline)
                 // #1027: these screens draw a full-bleed liquid sky (ScreenScaffold topBackground) that runs
@@ -388,6 +386,8 @@ struct RootTabView: View {
     private func browseTab(path: Binding<NavigationPath>, scrollSignal: Int) -> some View {
         NavigationStack(path: path) {
             BrowseView()
+                // Trends pushes metric pages as TabRoute values, so this stack resolves them too.
+                .tabRouteDestinations()
                 .navigationDestination(for: MoreDestination.self) { route in
                     route.destination
                         .background(StrandPalette.surfaceBase.ignoresSafeArea())
@@ -401,7 +401,10 @@ struct RootTabView: View {
     private var summaryRoot: some View {
         tabRoot(todayTabRoot, path: $tabPaths[0], scrollSignal: scrollTop[0], showsNavigationBar: true)
     }
-    private var trendsRoot: some View { tabRoot(TrendsView(), path: $tabPaths[1], scrollSignal: scrollTop[1]) }
+    /// Tag 1 was Trends; Workouts took its place in the bar (Trends now lives in Browse).
+    private var workoutsRoot: some View {
+        tabRoot(WorkoutsHomeView(), path: $tabPaths[1], scrollSignal: scrollTop[1], showsNavigationBar: true)
+    }
     private var sleepRoot: some View {
         tabRoot(SleepHealthView(), path: $tabPaths[2], scrollSignal: scrollTop[2], showsNavigationBar: true)
     }
@@ -415,14 +418,14 @@ struct RootTabView: View {
             TabView(selection: nativeTabSelection) {
                 Tab("Summary", systemImage: "heart.text.square", value: 0) { summaryRoot }
                 Tab("Sleep", systemImage: "bed.double", value: 2) { sleepRoot }
-                Tab("Trends", systemImage: "chart.line.uptrend.xyaxis", value: 1) { trendsRoot }
+                Tab("Workouts", systemImage: "figure.run", value: 1) { workoutsRoot }
                 Tab("Browse", systemImage: "magnifyingglass", value: 4, role: .search) { browseRoot }
             }
         } else {
             TabView(selection: nativeTabSelection) {
                 summaryRoot.tabItem { Label("Summary", systemImage: "heart.text.square") }.tag(0)
                 sleepRoot.tabItem { Label("Sleep", systemImage: "bed.double") }.tag(2)
-                trendsRoot.tabItem { Label("Trends", systemImage: "chart.line.uptrend.xyaxis") }.tag(1)
+                workoutsRoot.tabItem { Label("Workouts", systemImage: "figure.run") }.tag(1)
                 browseRoot.tabItem { Label("Browse", systemImage: "magnifyingglass") }.tag(4)
             }
         }
