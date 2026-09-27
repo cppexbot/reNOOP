@@ -11,56 +11,31 @@ import StrandDesign
 /// this app automatically.
 struct SiriShortcutsSettingsView: View {
     var body: some View {
-        ScreenScaffold(title: "Siri & Shortcuts",
-                       subtitle: "Run NOOP actions hands-free.") {
-            tips
-            shortcutsCard
-        }
-    }
-
-    private var tips: some View {
-        StrandCard(padding: 20) {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 10) {
-                    Image(systemName: "mic.fill")
-                        .foregroundStyle(StrandPalette.accent)
-                        .accessibilityHidden(true)
-                    Text("Ready-made actions")
-                        .font(StrandFont.headline)
-                        .foregroundStyle(StrandPalette.textPrimary)
+        Form {
+            Section {
+                // Apple's tip views carry their own rounded chrome, so they fill the row slot on a clear row.
+                VStack(spacing: NoopMetrics.space2) {
+                    SiriTipView(intent: SyncStrapIntent(), isVisible: .constant(true))
+                    SiriTipView(intent: BuzzStrapIntent(), isVisible: .constant(true))
+                    SiriTipView(intent: MarkMomentIntent(), isVisible: .constant(true))
                 }
-                Text("Sync your strap, buzz it or mark a moment from Siri, Spotlight, the Shortcuts app, or a Back-Tap / automation. No setup needed.")
-                    .font(StrandFont.caption)
-                    .foregroundStyle(StrandPalette.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-                SiriTipView(intent: SyncStrapIntent(), isVisible: .constant(true))
-                    .siriTipViewStyle(.dark)
-                SiriTipView(intent: BuzzStrapIntent(), isVisible: .constant(true))
-                    .siriTipViewStyle(.dark)
-                SiriTipView(intent: MarkMomentIntent(), isVisible: .constant(true))
-                    .siriTipViewStyle(.dark)
+                .siriTipViewStyle(.dark)
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets())
+            } header: {
+                Text("Ready-made actions")
             }
-        }
-    }
 
-    private var shortcutsCard: some View {
-        StrandCard(padding: 20) {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 10) {
-                    Image(systemName: "square.stack.3d.up.fill")
-                        .foregroundStyle(StrandPalette.accent)
-                        .accessibilityHidden(true)
-                    Text("Build your own")
-                        .font(StrandFont.headline)
-                        .foregroundStyle(StrandPalette.textPrimary)
-                }
-                Text("Wire NOOP's actions into a Back-Tap, a focus automation, or a longer Shortcut. For example, double-tap the back of your iPhone to buzz the strap.")
-                    .font(StrandFont.caption)
-                    .foregroundStyle(StrandPalette.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
+            Section {
                 ShortcutsLink()
+                    .frame(maxWidth: .infinity)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets())
+            } header: {
+                Text("Build your own")
             }
         }
+        .settingsPage("Siri & Shortcuts")
     }
 }
 #endif

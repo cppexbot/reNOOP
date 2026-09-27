@@ -67,8 +67,6 @@ struct DeveloperSettingsPage: View {
                     Button("Reveal in Finder") { NSWorkspace.shared.activateFileViewerSelecting([url]) }
                 }
                 #endif
-            } footer: {
-                Text("The last 24 hours of decoded sensor streams in one CSV. Nothing is written to your strap or uploaded.")
             }
 
             Section {
@@ -92,8 +90,6 @@ struct DeveloperSettingsPage: View {
                 }
             } header: {
                 Text("HRV")
-            } footer: {
-                Text("Continuous capture keeps the beat-to-beat stream running and uses more battery. Deep sleep reads lower and matches WHOOP.")
             }
 
             Section {

@@ -18,122 +18,80 @@ struct StorageView: View {
     @State private var lastCleanedSummary: String?
 
     var body: some View {
-        ScreenScaffold(title: "Storage",
-                       subtitle: "Where NOOP's on-device space is going, and a one-tap clean-up.") {
-            VStack(alignment: .leading, spacing: NoopMetrics.sectionSpacing) {
-                if loading && report == nil {
-                    StatePill("Measuring…", tone: .accent, pulsing: true)
-                        .staggeredAppear(index: 0)
-                } else if let report {
-                    breakdownCard(report).staggeredAppear(index: 0)
-                    cleanUpCard(report).staggeredAppear(index: 1)
-                } else {
-                    DataPendingNote(title: "Storage unavailable",
-                                    message: "Couldn't read the local store right now. Try again in a moment.",
-                                    symbol: "internaldrive")
-                        .staggeredAppear(index: 0)
+        Form {
+            if loading && report == nil {
+                Section {
+                    HStack {
+                        Text("Measuring…")
+                        Spacer()
+                        ProgressView().controlSize(.small)
+                    }
                 }
-                explainerCard.staggeredAppear(index: 2)
+            } else if let report {
+                Section {
+                    sizeRow("Health database", bytes: report.db)
+                    sizeRow("Leftover import copies", bytes: report.inbox, reclaimable: report.inbox > 0)
+                    sizeRow("Import temp files", bytes: report.importTemp, reclaimable: report.importTemp > 0)
+                } header: {
+                    Text("On-device footprint")
+                }
+                cleanUpSection(report)
+            } else {
+                Section {
+                    Text("Storage unavailable")
+                } footer: {
+                    Text("Couldn't read the local store right now. Try again in a moment.")
+                }
             }
         }
+        .settingsPage("Storage")
         .task { await load() }
     }
 
-    // MARK: - Cards
+    // MARK: - Sections
 
-    private func breakdownCard(_ r: AppModel.StorageReport) -> some View {
-        StrandCard {
-            VStack(alignment: .leading, spacing: NoopMetrics.cardInnerSpacing) {
-                Text("On-device footprint")
-                    .font(StrandFont.headline)
-                    .foregroundStyle(StrandPalette.textPrimary)
-
-                row(icon: "cylinder.split.1x2",
-                    label: "Health database",
-                    bytes: r.db,
-                    tint: StrandPalette.accent)
-                Divider().overlay(StrandPalette.hairline)
-                row(icon: "tray.full",
-                    label: "Leftover import copies",
-                    bytes: r.inbox,
-                    tint: r.inbox > 0 ? StrandPalette.statusWarning : StrandPalette.textTertiary,
-                    note: r.inbox > 0 ? "Reclaimable" : nil)
-                Divider().overlay(StrandPalette.hairline)
-                row(icon: "clock.arrow.circlepath",
-                    label: "Import temp files",
-                    bytes: r.importTemp,
-                    tint: r.importTemp > 0 ? StrandPalette.statusWarning : StrandPalette.textTertiary,
-                    note: r.importTemp > 0 ? "Reclaimable" : nil)
-            }
-        }
-    }
-
-    private func cleanUpCard(_ r: AppModel.StorageReport) -> some View {
+    private func cleanUpSection(_ r: AppModel.StorageReport) -> some View {
         let reclaimable = r.inbox + r.importTemp
-        return StrandCard {
-            VStack(alignment: .leading, spacing: NoopMetrics.cardInnerSpacing) {
-                Text("Clean up")
-                    .font(StrandFont.headline)
-                    .foregroundStyle(StrandPalette.textPrimary)
-                Text(reclaimable > 0
-                     ? "There's about \(Self.format(reclaimable)) of leftover import scratch space to reclaim. This never removes your imported data."
-                     : "Nothing to reclaim right now. NOOP already cleans up import scratch space automatically.")
-                    .font(StrandFont.subhead)
-                    .foregroundStyle(StrandPalette.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                if let lastCleanedSummary {
-                    Text(lastCleanedSummary)
-                        .font(StrandFont.footnote)
-                        .foregroundStyle(StrandPalette.statusPositive)
-                }
-
-                Button {
-                    Task { await cleanUp() }
-                } label: {
-                    HStack(spacing: NoopMetrics.space2) {
-                        if cleaning { ProgressView().controlSize(.small) }
-                        Text(cleaning ? "Cleaning up…" : "Clean up now")
+        return Section {
+            Button {
+                Task { await cleanUp() }
+            } label: {
+                HStack {
+                    Text(cleaning ? "Cleaning up…" : "Clean up now")
+                    if cleaning {
+                        Spacer()
+                        ProgressView().controlSize(.small)
                     }
                 }
-                .buttonStyle(NoopButtonStyle(.primary, fullWidth: true))
-                .disabled(cleaning || reclaimable == 0)
-                .accessibilityLabel("Clean up leftover import files")
+            }
+            .disabled(cleaning || reclaimable == 0)
+            .accessibilityLabel("Clean up leftover import files")
+
+            if let lastCleanedSummary {
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(StrandPalette.settingsGreen)
+                        .frame(width: 8, height: 8)
+                        .accessibilityHidden(true)
+                    Text(lastCleanedSummary)
+                }
             }
         }
-    }
-
-    private var explainerCard: some View {
-        DataPendingNote(
-            title: "Why does this grow?",
-            message: "When you import an Apple Health or WHOOP export, iOS hands NOOP a private copy of the file. NOOP reads it, saves your data into the health database, then deletes the copy. Older builds didn't delete every copy. This screen reclaims any that were left behind.",
-            symbol: "questionmark.circle")
     }
 
     // MARK: - Row
 
-    private func row(icon: String, label: LocalizedStringKey, bytes: Int64?,
-                     tint: Color, note: LocalizedStringKey? = nil) -> some View {
-        HStack(spacing: NoopMetrics.space3) {
-            Image(systemName: icon)
-                .font(StrandFont.headline)
-                .foregroundStyle(tint)
-                .frame(width: 24)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(label)
-                    .font(StrandFont.body)
-                    .foregroundStyle(StrandPalette.textPrimary)
-                if let note {
-                    Text(note)
-                        .font(StrandFont.caption)
-                        .foregroundStyle(StrandPalette.textTertiary)
-                }
+    /// One footprint line: the size on the right, with a "Reclaimable" subtitle on scratch space that
+    /// Clean up can free.
+    private func sizeRow(_ label: LocalizedStringKey, bytes: Int64?, reclaimable: Bool = false) -> some View {
+        LabeledContent {
+            Text(verbatim: bytes.map(Self.format) ?? "—")
+                .monospacedDigit()
+        } label: {
+            Text(label)
+            if reclaimable {
+                Text("Reclaimable")
             }
-            Spacer(minLength: 8)
-            Text(bytes.map(Self.format) ?? "—")
-                .font(StrandFont.bodyNumber)
-                .foregroundStyle(StrandPalette.textSecondary)
         }
     }
 

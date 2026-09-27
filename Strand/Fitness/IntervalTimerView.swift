@@ -281,9 +281,14 @@ final class IntervalTimerRunner: ObservableObject {
     private var timer: Timer?
 
     init() {
-        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+        // Scheduled on `.common` rather than the default run loop mode: a plain `scheduledTimer` stalls
+        // while the run loop is tracking a touch (holding a button, dragging), so the countdown would
+        // freeze mid-press and then jump to catch up the moment the finger lifts.
+        let timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.tick() }
         }
+        RunLoop.main.add(timer, forMode: .common)
+        self.timer = timer
     }
 
     deinit { timer?.invalidate() }

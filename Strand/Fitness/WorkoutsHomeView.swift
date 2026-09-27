@@ -188,10 +188,17 @@ private struct WorkoutStartCard: View {
         .buttonStyle(.plain)
         .accessibilityLabel(Text(sport.map(WorkoutSource.localizedSport) ?? String(localized: "Other Workout")))
         .accessibilityHint(Text("Double tap to start"))
+        #if os(iOS)
+        .fullScreenCover(isPresented: $showLive) {
+            LiveWorkoutView(onClose: { showLive = false })
+                .environmentObject(model.live)
+        }
+        #else
         .sheet(isPresented: $showLive) {
             LiveWorkoutView(onClose: { showLive = false })
                 .environmentObject(model.live)
         }
+        #endif
         .workoutSelectionCover(isPresented: $showPicker) {
             StartWorkoutSheet { name in
                 model.startWorkout(sport: name)
@@ -243,10 +250,17 @@ private struct ActiveWorkoutCard: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel(Text("View the active workout"))
+            #if os(iOS)
+            .fullScreenCover(isPresented: $showLive) {
+                LiveWorkoutView(onClose: { showLive = false })
+                    .environmentObject(model.live)
+            }
+            #else
             .sheet(isPresented: $showLive) {
                 LiveWorkoutView(onClose: { showLive = false })
                     .environmentObject(model.live)
             }
+            #endif
         }
     }
 

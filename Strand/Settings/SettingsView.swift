@@ -1,10 +1,11 @@
 //  SettingsView.swift
-//  NOOP · Settings, as the iOS 26 Settings app draws it.
+//  NOOP · Settings, as Apple's own apps draw theirs on iOS 26 (Health's profile, Fitness's sheets, the
+//  Watch app): the photo and name on top, bold section titles, rows led by iOS 26-style icon tiles,
+//  values in grey before the chevron.
 //
-//  A native grouped list: a profile row on top (Settings' Apple Account row), then rows with coloured
-//  square icons that push their own pages. Every page pushes a `SettingsPage` VALUE, so the host stack's
-//  path can pop it (#198); each host registers the destinations ONCE with `.settingsDestinations()` (a
-//  second registration in the same stack double-pushes, #38).
+//  Every page pushes a `SettingsPage` VALUE, so the host stack's path can pop it (#198); each host
+//  registers the destinations ONCE with `.settingsDestinations()` (a second registration in the same stack
+//  double-pushes, #38).
 
 import SwiftUI
 import StrandDesign
@@ -12,6 +13,7 @@ import StrandDesign
 struct SettingsView: View {
     @EnvironmentObject private var profile: ProfileStore
     @EnvironmentObject private var model: AppModel
+    @EnvironmentObject private var live: LiveState
 
     /// The Coach master switch, under the same `noop.` key Android writes. Read by `RootTabView`, Today
     /// and `CoachBriefScheduler`.
@@ -22,21 +24,29 @@ struct SettingsView: View {
     var body: some View {
         Form {
             Section {
-                NavigationLink(value: SettingsPage.profile) { profileRow }
+                header
+                    .frame(maxWidth: .infinity)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 4, trailing: 0))
             }
 
-            // Settings' own order: the connection and power rows first, then General / Display, then the
-            // app's features, then backup, and About / Developer at the foot.
             Section {
-                SettingsLink(.devices, "Devices", icon: "dot.radiowaves.left.and.right", color: StrandPalette.settingsBlue)
+                SettingsLink(.profile, "Health Details", icon: "person.text.rectangle.fill", color: StrandPalette.settingsRed)
+            }
+
+            Section {
+                SettingsLink(.devices, "Devices", icon: "dot.radiowaves.left.and.right", color: StrandPalette.settingsBlue,
+                             value: String(localized: live.connected ? "Connected" : "Not connected"))
                 #if os(iOS)
                 SettingsLink(.sync, "Sync", icon: "arrow.triangle.2.circlepath", color: StrandPalette.settingsGreen)
                 #endif
-                SettingsLink(.powerSaving, "Power saving", icon: "battery.100percent", color: StrandPalette.settingsGreen)
+                SettingsLink(.powerSaving, "Power saving", icon: "battery.75percent", color: StrandPalette.settingsGreen)
+            } header: {
+                Text("Strap")
             }
 
             Section {
-                SettingsLink(.general, "General", icon: "gearshape", color: StrandPalette.settingsGray)
+                SettingsLink(.general, "General", icon: "gearshape.fill", color: StrandPalette.settingsGray)
                 SettingsLink(.display, "Display", icon: "sun.max.fill", color: StrandPalette.settingsBlue)
                 #if os(macOS)
                 SettingsLink(.notifications, "Notifications", icon: "bell.badge.fill", color: StrandPalette.settingsRed)
@@ -45,33 +55,42 @@ struct SettingsView: View {
                 SettingsLink(.siri, "Siri & Shortcuts", icon: "mic.fill", color: StrandPalette.settingsPurple)
                 #endif
                 SettingsLink(.automations, "Automations", icon: "clock.fill", color: StrandPalette.settingsOrange)
+            } header: {
+                Text("App")
             }
 
             Section {
-                SettingsLink(.appleHealth, "Apple Health", icon: "heart.fill", color: StrandPalette.settingsPink, style: .appTile)
-                SettingsLink(.dataSources, "Data Sources", icon: "square.stack.3d.up.fill", color: StrandPalette.settingsIndigo)
-                #if os(iOS)
-                SettingsLink(.shortcutsExport, "Shortcuts Export", icon: "square.and.arrow.up", color: StrandPalette.settingsBlue)
-                #endif
                 SettingsLink(.workouts, "Workouts", icon: "figure.run", color: StrandPalette.settingsGreen)
                 SettingsLink(.scores, "Scores", icon: "gauge.with.needle.fill", color: StrandPalette.settingsRed)
                 SettingsToggle("AI Coach", icon: "sparkles", color: StrandPalette.settingsPurple, isOn: $coachEnabled)
                 SettingsToggle("Hydration tracking", icon: "drop.fill", color: StrandPalette.settingsCyan, isOn: $hydrationEnabled)
+            } header: {
+                Text("Features")
             }
 
             Section {
-                SettingsLink(.backup, "Backup", icon: "clock.arrow.circlepath", color: StrandPalette.settingsGreen)
+                SettingsLink(.appleHealth, "Apple Health", icon: "heart.fill", color: StrandPalette.settingsPink)
+                SettingsLink(.dataSources, "Data Sources", icon: "square.stack.3d.up.fill", color: StrandPalette.settingsIndigo)
+                #if os(iOS)
+                SettingsLink(.shortcutsExport, "Shortcuts Export", icon: "square.and.arrow.up", color: StrandPalette.settingsBlue)
+                #endif
+                SettingsLink(.backup, "Backup", icon: "clock.arrow.circlepath", color: StrandPalette.settingsTeal)
+            } header: {
+                Text("Data")
             }
 
             Section {
-                SettingsLink(.about, "About NOOP", icon: "info.circle", color: StrandPalette.settingsGray)
+                SettingsLink(.about, "About NOOP", icon: "info", color: StrandPalette.settingsGray)
                 SettingsLink(.developer, "Developer", icon: "hammer.fill", color: StrandPalette.settingsGray)
             }
         }
         .settingsForm()
+        // Bold section titles, as Health and the Watch app head their root lists. Root only: under a
+        // `.navigationLink` Picker this environment value crashes SwiftUI (iOS 26.5) on push.
+        .headerProminence(.increased)
         .navigationTitle("Settings")
         #if os(iOS)
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
         #endif
         .onChangeCompat(of: coachEnabled) { on in
             // Switching the AI off has to TAKE DOWN what the brief already published, not just stop the
@@ -80,21 +99,19 @@ struct SettingsView: View {
         }
     }
 
-    /// Settings' Apple Account row: the photo (or monogram), the name, and what the row opens.
-    private var profileRow: some View {
-        HStack(spacing: 14) {
-            SummaryAvatar(imageData: profile.avatarImageData, initials: profile.initials, size: 60)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(profile.displayName.isEmpty ? String(localized: "Profile") : profile.displayName)
-                    .font(StrandFont.pro(20, weight: .semibold))
-                    .foregroundStyle(StrandPalette.textPrimary)
-                    .lineLimit(1)
-                Text("Health Details")
-                    .font(StrandFont.pro(13))
-                    .foregroundStyle(StrandPalette.textSecondary)
-            }
+    /// Health's profile header: the photo (or monogram) centred, the name under it.
+    private var header: some View {
+        VStack(spacing: 10) {
+            SummaryAvatar(imageData: profile.avatarImageData, initials: profile.initials, size: 96)
+            Text(profile.displayName.isEmpty ? String(localized: "Profile") : profile.displayName)
+                .font(StrandFont.pro(28, weight: .bold))
+                .foregroundStyle(StrandPalette.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
         }
-        .padding(.vertical, 4)
+        // A whole-point height keeps every card below on the pixel grid; a fractional one leaves a seam
+        // between two rows' backgrounds.
+        .frame(height: 142)
     }
 }
 
@@ -123,19 +140,18 @@ enum SettingsPage: Hashable {
         case .about:           AboutSettingsPage()
         case .iphone:          IPhoneNotesPage()
         case .developer:       DeveloperSettingsPage()
-        // Screens that keep their own look: pushed with the plain inline bar Browse gave them.
-        case .devices:         DevicesView().settingsLegacyChrome()
-        case .dataSources:     DataSourcesView().settingsLegacyChrome()
-        case .appleHealth:     AppleHealthView().settingsLegacyChrome()
-        case .powerSaving:     PowerSavingView().settingsLegacyChrome()
-        case .automations:     AutomationsView().settingsLegacyChrome()
-        case .storage:         StorageView().settingsLegacyChrome()
-        case .appleWatch:      AppleWatchAboutHost().settingsLegacyChrome()
-        case .limitations:     NoopLimitationsView().settingsLegacyChrome()
-        case .testCentre:      TestCentreView().settingsLegacyChrome()
+        case .devices:         DevicesView()
+        case .dataSources:     DataSourcesView()
+        case .appleHealth:     AppleHealthView()
+        case .powerSaving:     PowerSavingView()
+        case .automations:     AutomationsView()
+        case .storage:         StorageView()
+        case .appleWatch:      AppleWatchAboutHost()
+        case .limitations:     NoopLimitationsView()
+        case .testCentre:      TestCentreView()
         #if os(iOS)
-        case .shortcutsExport: ShortcutExportSettingsView().settingsLegacyChrome()
-        case .siri:            SiriShortcutsSettingsView().settingsLegacyChrome()
+        case .shortcutsExport: ShortcutExportSettingsView()
+        case .siri:            SiriShortcutsSettingsView()
         case .notifications:   EmptyView()
         #else
         case .notifications:   NotificationSettingsView().settingsLegacyChrome()
@@ -155,7 +171,6 @@ extension View {
     func settingsForm() -> some View {
         self
             .formStyle(.grouped)
-
             .scrollContentBackground(.hidden)
             .background(StrandPalette.summaryCanvas.ignoresSafeArea())
     }
@@ -203,48 +218,55 @@ private struct AppleWatchAboutHost: View {
 
 // MARK: - Rows
 
-/// The Settings row icon: a white glyph on a coloured continuous-corner square with Settings' soft
-/// top-to-bottom gradient. `.appTile` is an app's own icon (white tile, coloured glyph), as Settings lists
-/// Health.
+/// The row icon in the iOS 26 icon look: light appearance is a coloured tile under a white glyph, dark
+/// appearance is a dark tile under the coloured glyph, as iOS switches its own icons with the theme. Both
+/// carry the thin glass rim of the new icons.
 struct SettingsIcon: View {
-    enum Style { case system, appTile }
-
     let systemName: String
     let color: Color
-    var style: Style = .system
+
+    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        RoundedRectangle(cornerRadius: 7.5, style: .continuous)
-            .fill(style == .appTile ? AnyShapeStyle(StrandPalette.settingsAppearanceLightCard)
-                                    : AnyShapeStyle(color.gradient))
+        let dark = scheme == .dark
+        let tile = RoundedRectangle(cornerRadius: 8, style: .continuous)
+        tile
+            .fill(dark ? AnyShapeStyle(LinearGradient(colors: [StrandPalette.settingsIconDarkTop,
+                                                               StrandPalette.settingsIconDarkBottom],
+                                                      startPoint: .top, endPoint: .bottom))
+                       : AnyShapeStyle(color.gradient))
             .frame(width: 30, height: 30)
             .overlay {
-                Image(systemName: systemName)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(style == .appTile ? color : StrandPalette.onDarkPrimary)
+                tile.strokeBorder(
+                    LinearGradient(colors: [dark ? StrandPalette.settingsIconDarkRim : StrandPalette.settingsIconRim, .clear],
+                                   startPoint: .top, endPoint: .bottom),
+                    lineWidth: 0.75)
             }
             .overlay {
-                if style == .appTile {
-                    RoundedRectangle(cornerRadius: 7.5, style: .continuous)
-                        .strokeBorder(StrandPalette.hairline, lineWidth: 0.5)
-                }
+                // Every glyph fitted into one box, so wide symbols (a card, a battery) stay inside the tile.
+                Image(systemName: systemName)
+                    .resizable()
+                    .scaledToFit()
+                    .fontWeight(.semibold)
+                    .frame(width: 18, height: 18)
+                    .symbolRenderingMode(.monochrome)
+                    .foregroundStyle(dark ? color : StrandPalette.onDarkPrimary)
             }
             .accessibilityHidden(true)
     }
 }
 
-/// Icon + title, the label every Settings row shares.
+/// Glyph + title, the label every Settings row shares.
 struct SettingsRowLabel: View {
     let title: LocalizedStringKey
     let icon: String
     let color: Color
-    var style: SettingsIcon.Style = .system
 
     var body: some View {
         Label {
             Text(title).foregroundStyle(StrandPalette.textPrimary)
         } icon: {
-            SettingsIcon(systemName: icon, color: color, style: style)
+            SettingsIcon(systemName: icon, color: color)
         }
     }
 }
@@ -255,35 +277,30 @@ struct SettingsLink: View {
     let title: LocalizedStringKey
     let icon: String
     let color: Color
-    var style: SettingsIcon.Style
     var value: String?
 
-    init(_ page: SettingsPage, _ title: LocalizedStringKey, icon: String, color: Color,
-         style: SettingsIcon.Style = .system, value: String? = nil) {
+    init(_ page: SettingsPage, _ title: LocalizedStringKey, icon: String, color: Color, value: String? = nil) {
         self.page = page
         self.title = title
         self.icon = icon
         self.color = color
-        self.style = style
         self.value = value
     }
 
     var body: some View {
         NavigationLink(value: page) {
-            if let value {
-                LabeledContent {
-                    Text(value)
-                } label: {
-                    SettingsRowLabel(title: title, icon: icon, color: color, style: style)
+            HStack {
+                SettingsRowLabel(title: title, icon: icon, color: color)
+                if let value {
+                    Spacer()
+                    Text(value).foregroundStyle(StrandPalette.textSecondary)
                 }
-            } else {
-                SettingsRowLabel(title: title, icon: icon, color: color, style: style)
             }
         }
     }
 }
 
-/// A row with an icon and a switch (Settings' Airplane Mode row).
+/// A row with a glyph and a switch.
 struct SettingsToggle: View {
     let title: LocalizedStringKey
     let icon: String

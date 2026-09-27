@@ -161,22 +161,38 @@ struct TestCentreView: View {
         capture: .toggle, includesScreenshot: false, requires5MG: false)
 
     var body: some View {
-        ScreenScaffold(title: "Test Centre",
-                       subtitle: "Turn on a test for the thing that's wrong, wear the strap, then tap Report. All on \(Platform.deviceNounPhrase).") {
-            VStack(alignment: .leading, spacing: NoopMetrics.sectionSpacing) {
-                domainModesCard.staggeredAppear(index: 0)
-                diagnosticToolsCard.staggeredAppear(index: 1)
-                if is5MG { rawDataCollectorCard.staggeredAppear(index: 2) }
-                if is5MG { fiveMGProtocolDiagnosticsCard.staggeredAppear(index: 3) }
-                if ouraPaired { ouraCard.staggeredAppear(index: 2) }
-                exportCard.staggeredAppear(index: 2)
-                experimentalAlgorithmsCard.staggeredAppear(index: 3)
+        Form {
+            testModesSection
+            bugReportSection
+            diagnosticsSections
+            if is5MG {
+                rawDataCollectorSection
+                fiveMGProtocolDiagnosticsSections
             }
+            if ouraPaired {
+                ouraToggleSections
+                ouraUserInfoWriteSection
+                ouraEnableFeatureSection
+            }
+            exportSections
+            experimentalAlgorithmsSections
         }
+        .settingsPage("Test Centre")
         .id(refreshToken)
         .onAppear {
             refreshToken &+= 1
             ScheduledDebugExport.activateIfEnabled()
+            if userInfoValueText.isEmpty { prefillUserInfoValue() }
+            // If the Display mode was already on when the screen appears, (re)start its frame monitor and
+            // wire the sink, so a monitor that was torn down (the screen left and came back) resumes.
+            if TestCentre.active(.display) { DisplayMonitorWiring.start(live: live, model: model) }
+        }
+        .onDisappear {
+            // Leaving the screen tears the frame monitor down so no display link survives a navigation
+            // away. The mode flag stays on (the user's test is still active); the monitor resumes on
+            // .onAppear above. This keeps the perpetual-display-link contract: a link exists only while the
+            // Test Centre is on screen with the mode on.
+            DisplayPerformanceMonitor.shared.stop()
         }
         .sheet(item: $report.pending) { _ in
             ReportReviewSheet(report: report)
@@ -195,300 +211,6 @@ struct TestCentreView: View {
         } message: {
             Text("This deletes every scheduled strap-log and raw-capture file NOOP has saved. This can't be undone.")
         }
-        .alert(infoTitle, isPresented: $showInfo) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text(infoMessage)
-        }
-    }
-
-    // MARK: - Section 1: Domain test modes (rendered from the registry projection)
-
-    @ViewBuilder private var domainModesCard: some View {
-        NoopCard {
-            VStack(alignment: .leading, spacing: NoopMetrics.space3) {
-                Text("TEST MODES")
-                    .font(StrandFont.overline).tracking(StrandFont.overlineTracking)
-                    .foregroundStyle(StrandPalette.textSecondary)
-                Text("Each test logs extra detail for one part of the app while you wear the strap, then bundles it for a bug report.")
-                    .font(StrandFont.caption).foregroundStyle(StrandPalette.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-                let modes = TestCentreLayout.visibleModes(is5MG: is5MG)
-                ForEach(Array(modes.enumerated()), id: \.element.id) { idx, mode in
-                    if idx > 0 { Divider().overlay(StrandPalette.hairline) }
-                    TestModeRow(mode: mode, report: report)
-                }
-            }
-        }
-    }
-
-    // MARK: - Section 2: Diagnostic tools (strap log + recalibrate + env dump)
-
-    @ViewBuilder private var rawDataCollectorCard: some View {
-        NoopCard {
-            VStack(alignment: .leading, spacing: NoopMetrics.space3) {
-                Text("5/MG RAW DATA COLLECTOR")
-                    .font(StrandFont.overline).tracking(StrandFont.overlineTracking)
-                    .foregroundStyle(StrandPalette.textSecondary)
-                Text("Record, review, export, and delete bounded 100 Hz motion sessions. Normal sync is unchanged.")
-                    .font(StrandFont.caption).foregroundStyle(StrandPalette.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-                NavigationLink {
-                    RawDataCollectorView()
-                } label: {
-                    Label("Open raw-data collector", systemImage: "waveform.path.ecg")
-                }
-                .buttonStyle(NoopButtonStyle(.primary, fullWidth: true))
-                Text(live.connected ? "WHOOP 5/MG connected." : "Connect your WHOOP 5/MG to start a raw-data session.")
-                    .font(StrandFont.caption)
-                    .foregroundStyle(live.connected ? StrandPalette.textSecondary : StrandPalette.statusWarning)
-            }
-        }
-    }
-
-    @ViewBuilder private var fiveMGProtocolDiagnosticsCard: some View {
-        NoopCard {
-            VStack(alignment: .leading, spacing: NoopMetrics.space3) {
-                Text("5/MG PROTOCOL DIAGNOSTICS")
-                    .font(StrandFont.overline).tracking(StrandFont.overlineTracking)
-                    .foregroundStyle(StrandPalette.textSecondary)
-                Text("Developer tools for unmapped protocol features. None of these are required for normal WHOOP 5/MG recording, history sync, or the bounded Raw Data Collector.")
-                    .font(StrandFont.caption).foregroundStyle(StrandPalette.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Toggle("Protocol probes", isOn: $puffinExperiments)
-                    .toggleStyle(.switch).tint(StrandPalette.accent)
-                Text("Sends experimental protocol queries and records the replies in the strap log.")
-                    .font(StrandFont.caption).foregroundStyle(StrandPalette.textTertiary)
-
-                Divider().overlay(StrandPalette.hairline)
-                Toggle("Broadcast heart rate from the strap", isOn: $broadcastHrEnabled)
-                    .toggleStyle(.switch).tint(StrandPalette.accent)
-                    .onChangeCompat(of: broadcastHrEnabled) { model.ble.setBroadcastHr($0) }
-                Text("Writes the reversible 5/MG advertising flag for Garmin, Zwift, and compatible gym equipment.")
-                    .font(StrandFont.caption).foregroundStyle(StrandPalette.textTertiary)
-
-                Divider().overlay(StrandPalette.hairline)
-                Toggle("Legacy R22 feature-flag experiment", isOn: $deepDataEnabled)
-                    .toggleStyle(.switch).tint(StrandPalette.accent)
-                Text("The strap accepts these writes, but NOOP has not observed them enabling a separate live stream. This is not the Raw Data Collector.")
-                    .font(StrandFont.caption).foregroundStyle(StrandPalette.textTertiary)
-                if deepDataEnabled {
-                    NoopButton("Send legacy R22 enable sequence", systemImage: "bolt.badge.automatic", kind: .secondary) {
-                        model.ble.enableWhoop5DeepData()
-                    }
-                    .disabled(!live.encryptedBond || !live.worn)
-                }
-                NoopButton("Clear legacy R22 flags on strap", systemImage: "bolt.slash", kind: .secondary) {
-                    model.ble.disableWhoop5DeepData()
-                }
-                .disabled(!live.encryptedBond || live.r22DisableReport == BLEManager.deviceConfigProbeWaiting)
-                if let result = live.r22DisableReport {
-                    Text(result).font(StrandFont.caption).foregroundStyle(StrandPalette.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                Divider().overlay(StrandPalette.hairline)
-                Toggle("WHOOP MG ECG raw-data gate", isOn: $ecgRawDataEnabled)
-                    .toggleStyle(.switch).tint(StrandPalette.accent)
-                Text("MG-only protocol instrumentation, not a medical ECG feature.")
-                    .font(StrandFont.caption).foregroundStyle(StrandPalette.textTertiary)
-                if ecgRawDataEnabled {
-                    HStack(spacing: NoopMetrics.space3) {
-                        NoopButton("Gate on", systemImage: "waveform.path.ecg", kind: .secondary) {
-                            model.ble.setEcgRawDataGate(true)
-                        }
-                        NoopButton("Gate off", systemImage: "arrow.uturn.backward", kind: .secondary) {
-                            model.ble.setEcgRawDataGate(false)
-                        }
-                    }
-                    .disabled(!live.encryptedBond || live.whoop5Variant != Whoop5Variant.mg.label)
-                    if let result = live.ecgRawDataGate {
-                        Text(result.summary).font(StrandFont.caption).foregroundStyle(StrandPalette.textSecondary)
-                    }
-                }
-
-                Divider().overlay(StrandPalette.hairline)
-                Toggle("Passive history/protocol trace", isOn: $puffinCapture)
-                    .toggleStyle(.switch).tint(StrandPalette.accent)
-                Text("Records frames that already arrive. It does not start sensors and can create large files. Use the export section below to save the trace with its strap log.")
-                    .font(StrandFont.caption).foregroundStyle(StrandPalette.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-    }
-
-    @ViewBuilder private var diagnosticToolsCard: some View {
-        NoopCard {
-            VStack(alignment: .leading, spacing: NoopMetrics.space3) {
-                Text("DIAGNOSTIC TOOLS")
-                    .font(StrandFont.overline).tracking(StrandFont.overlineTracking)
-                    .foregroundStyle(StrandPalette.textSecondary)
-
-                // Strap log, the same exportableLogText the Settings + Live strap-log cards share.
-                HStack(spacing: 12) {
-                    Text("STRAP LOG").font(StrandFont.overline).tracking(StrandFont.overlineTracking)
-                        .foregroundStyle(StrandPalette.textSecondary)
-                    Spacer()
-                    Button("Copy") { PlatformPasteboard.copy(live.exportableLogText()) }
-                        .buttonStyle(.plain).font(StrandFont.mono).foregroundStyle(StrandPalette.accent)
-                    Button("Save…") {
-                        Task {
-                            let extra = await DebugDataDiagnostics.dynamicLines(repo: model.repo)
-                            FileExport.exportText(live.exportableLogText(extraHeaderLines: extra),
-                                                  suggestedName: FileExport.timestampedName("noop-strap-log", ext: "txt"))
-                        }
-                    }
-                    .buttonStyle(.plain).font(StrandFont.mono).foregroundStyle(StrandPalette.accent)
-                }
-                Text("Grab this when you report a bug. It tells me what the app saw.")
-                    .font(StrandFont.caption).foregroundStyle(StrandPalette.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Divider().overlay(StrandPalette.hairline)
-
-                // Recalibrate Charge baseline: the same Baselines.recalibrateRecoveryBaselines call the
-                // Settings Recovery card uses.
-                NoopButton("Recalibrate Charge baseline", systemImage: "arrow.triangle.2.circlepath", kind: .secondary) {
-                    showRecalibrateConfirm = true
-                }
-                Text("Re-anchors every baseline that feeds Charge to your recent nights. No stored day is deleted.")
-                    .font(StrandFont.caption).foregroundStyle(StrandPalette.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Divider().overlay(StrandPalette.hairline)
-
-                // #1853: skin-temp absolute backfill (on-demand, diagnostic-first). Fills `skinTempC`
-                // for nights outside the 21-night rescore window that never got an absolute. Fill-only:
-                // it can only fill a NULL, never overwrite a measured value or touch the deviation.
-                NoopButton("Backfill skin-temp absolutes", systemImage: "thermometer.medium",
-                           kind: .secondary) {
-                    runSkinTempBackfill()
-                }
-                .disabled(skinTempBackfillRunning)
-                Text("Re-derives the absolute °C for nights the 21-night rescore window never reaches, using the same funnel as the scoring pass. Fill-only: it never overwrites a measured value. Watch the strap log for the result.")
-                    .font(StrandFont.caption).foregroundStyle(StrandPalette.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-                if let status = skinTempBackfillStatus {
-                    Text(status)
-                        .font(StrandFont.caption).foregroundStyle(StrandPalette.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                Divider().overlay(StrandPalette.hairline)
-
-                // Environment dump: the IOSDiagnostics-backed block exportableLogText already carries,
-                // surfaced as a copyable readout (spec section 3.4).
-                NoopButton("Copy environment dump", systemImage: "info.circle", kind: .secondary) {
-                    PlatformPasteboard.copy(live.exportableLogText())
-                }
-
-                // #polar-debug: only when a Polar strap is paired. The caption is the model auto-detected
-                // from the paired record; the toggle also writes it to the strap log on each connect.
-                if let identity = polarIdentity {
-                    Divider().overlay(StrandPalette.hairline)
-                    Toggle(isOn: $polarDebugLogging) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Polar debug logging").font(StrandFont.body)
-                            Text("\(identity). Logs this to the strap log on each connect, so a Polar bug report shows the model NOOP resolved your strap to.")
-                                .font(StrandFont.caption).foregroundStyle(StrandPalette.textTertiary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                    .tint(StrandPalette.accent)
-                }
-            }
-        }
-    }
-
-    // MARK: - Section 2b: Oura (consolidated; only when an Oura ring is paired)
-
-    @ViewBuilder private var ouraCard: some View {
-        NoopCard {
-            VStack(alignment: .leading, spacing: NoopMetrics.space3) {
-                Text("OURA")
-                    .font(StrandFont.overline).tracking(StrandFont.overlineTracking)
-                    .foregroundStyle(StrandPalette.textSecondary)
-
-                // #1284 residual 3: experimental Oura onset keying.
-                Toggle(isOn: $ouraOnsetKeying) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Oura onset keying (experimental)").font(StrandFont.body)
-                        Text("Keys each Oura sleep night on its stable 0x49 onset and suppresses duplicate re-serves at the source, instead of the shipped end-anchored persist (#1284). Off by default — a hardware-validation toggle. Watch the strap log for \u{201C}onset-key(#1284)\u{201D} lines.")
-                            .font(StrandFont.caption).foregroundStyle(StrandPalette.textTertiary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-                .tint(StrandPalette.accent)
-
-                // Packed-notification A/B (OURA_PROTOCOL.md s2.3). Takes effect at the NEXT connect only;
-                // nothing is written until then and nothing persists on the ring.
-                Toggle(isOn: $ouraNotifyMaskFull) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Oura notification mask ff (experimental)").font(StrandFont.body)
-                        Text("Sends the official app\u{2019}s SetNotification mask (1c 01 ff) instead of NOOP\u{2019}s 3f at the next connect. The ring packs ~10 packets per notification for the official app and one for NOOP (9\u{00D7} slower drains); this is the first candidate switch. Off by default; the next connect after turning it off is back on 3f. Watch the strap log for \u{201C}-> notify_all(ff)\u{201D} and compare notification sizes in the raw capture.")
-                            .font(StrandFont.caption).foregroundStyle(StrandPalette.textTertiary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-                .tint(StrandPalette.accent)
-
-                Divider().overlay(StrandPalette.hairline)
-                ouraUserInfoWriteBlock
-
-                Divider().overlay(StrandPalette.hairline)
-                ouraEnableFeatureBlock
-            }
-        }
-    }
-
-    /// The 0x20 user-info WRITE experiment. EXPERIMENTAL, manual, one field at a time.
-    ///
-    /// This is the only control in NOOP that writes user data to a ring. It exists to answer one
-    /// question: does a 0x20 write change what tag 0x5c reports? Nothing calls it automatically, and
-    /// deliberately NOT on connect: the value encoding is unverified, an automatic write would destroy
-    /// the clean before-state the readout depends on, and the connect/bond window is the app's most
-    /// fragile path (#1635). Read the strap log for the WRITE line, the 0x20 ACK, and the next 0x5c.
-    @ViewBuilder
-    private var ouraUserInfoWriteBlock: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Oura user-info write (experimental)").font(StrandFont.body)
-            Text("Writes one 0x20 user-info field to the ring and logs what comes back. The ring reports 0x5c as firmware defaults (40 y, 75 kg, sex unset, 176 cm) even though your Oura app profile is correct, and the Oura app never writes it. Whether 0x20 lands in 0x5c is UNKNOWN, and so is the value encoding: try 175 for cm, then 1750 for mm. Age has no setter, only date-of-birth, whose 9-byte layout is unknown, so it is raw hex only. Tested only on Gen 3 so far — Gen 5 validation is open.")
-                .font(StrandFont.caption).foregroundStyle(StrandPalette.textTertiary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Picker("Field", selection: $userInfoField) {
-                Text("Height").tag(OuraUserInfoField.height)
-                Text("Sex").tag(OuraUserInfoField.gender)
-                Text("Weight").tag(OuraUserInfoField.weight)
-                Text("DOB (raw)").tag(OuraUserInfoField.dateOfBirth)
-            }
-            .pickerStyle(.segmented)
-            .onChange(of: userInfoField) { _ in prefillUserInfoValue() }
-
-            if userInfoField == .dateOfBirth {
-                TextField("18 hex chars (9 bytes)", text: $userInfoRawHex)
-                    .font(StrandFont.body).textFieldStyle(.roundedBorder)
-            } else {
-                TextField("value", text: $userInfoValueText)
-                    .font(StrandFont.body).textFieldStyle(.roundedBorder)
-            }
-
-            Text("Frame: \(userInfoFramePreview)")
-                .font(StrandFont.caption).foregroundStyle(StrandPalette.textSecondary)
-
-            HStack(spacing: 12) {
-                Button("Write to ring") { showUserInfoConfirm = true }
-                    .disabled(userInfoValueBytes == nil)
-                Button("Write zeros") {
-                    _ = model.sourceCoordinator?.ouraSource?.writeUserInfo(
-                        field: userInfoField,
-                        value: [UInt8](repeating: 0, count: userInfoField.valueByteCount))
-                }
-            }
-            .font(StrandFont.body).tint(StrandPalette.accent)
-        }
-        .onAppear { if userInfoValueText.isEmpty { prefillUserInfoValue() } }
         .alert("Write to the ring?", isPresented: $showUserInfoConfirm) {
             Button("Cancel", role: .cancel) { }
             Button("Write", role: .destructive) {
@@ -501,6 +223,238 @@ struct TestCentreView: View {
             }
         } message: {
             Text("Sends \(userInfoFramePreview) to the ring. This changes ring-side config. Restore with the firmware default (height 176, weight 75, sex 2) or write zeros.")
+        }
+        .alert("Write to the ring?", isPresented: Binding(
+            get: { pendingFeatureWrite != nil },
+            set: { if !$0 { pendingFeatureWrite = nil } }
+        ), presenting: pendingFeatureWrite) { pending in
+            Button("Cancel", role: .cancel) { }
+            Button("Write", role: .destructive) {
+                if model.sourceCoordinator?.ouraSource?.writeFeatureMode(feature: pending.feature, mode: pending.mode) != true {
+                    infoTitle = "Not written"
+                    infoMessage = "No connected Oura ring. Connect the ring, then try again."
+                    showInfo = true
+                }
+            }
+        } message: { pending in
+            Text("Sends \(pending.framePreview) to the ring. Unvalidated on NOOP's own hardware (OURA_PROTOCOL.md \u{00A7}7.5). Watch the strap log for the follow-up feature-status read.")
+        }
+        .alert(infoTitle, isPresented: $showInfo) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(infoMessage)
+        }
+    }
+
+    // MARK: - Section 1: Domain test modes (rendered from the registry projection)
+
+    private var testModesSection: some View {
+        Section {
+            ForEach(TestCentreLayout.visibleModes(is5MG: is5MG)) { mode in
+                TestModeRows(mode: mode, report: report)
+            }
+        } header: {
+            Text("Test modes")
+        }
+    }
+
+    /// The generic "whole app" report: the master profile so the deep-link self-applies the test:all
+    /// label. master is not in the registry (it is not a wear-and-capture mode), so it is built inline.
+    private var bugReportSection: some View {
+        Section {
+            Button("Report a bug with my log") {
+                report.start(mode: TestCentreView.masterReportMode, live: live, repo: model.repo)
+            }
+            if let status = report.lastStatus {
+                Text(status).foregroundStyle(StrandPalette.textSecondary)
+            }
+            // M3 (#812): the mobile copy fallback. If the user cannot attach the .zip in the GitHub
+            // composer, this pastes the redacted report into the clipboard to drop straight into the issue.
+            // Only appears after a confirmed share on the path that offers it.
+            if let reportText = report.copyableReport {
+                Button("Copy report.txt") { PlatformPasteboard.copy(reportText) }
+                    .accessibilityLabel("Copy the redacted report to the clipboard")
+            }
+        } header: {
+            Text("Bug report")
+        }
+    }
+
+    // MARK: - Section 2: Diagnostic tools (strap log + recalibrate + env dump)
+
+    @ViewBuilder private var diagnosticsSections: some View {
+        // Strap log, the same exportableLogText the Settings + Live strap-log controls share. The
+        // environment dump is the IOSDiagnostics-backed block exportableLogText already carries.
+        Section {
+            Button("Copy strap log") { PlatformPasteboard.copy(live.exportableLogText()) }
+            Button("Save strap log…") {
+                Task {
+                    let extra = await DebugDataDiagnostics.dynamicLines(repo: model.repo)
+                    FileExport.exportText(live.exportableLogText(extraHeaderLines: extra),
+                                          suggestedName: FileExport.timestampedName("noop-strap-log", ext: "txt"))
+                }
+            }
+            Button("Copy environment dump") { PlatformPasteboard.copy(live.exportableLogText()) }
+        } header: {
+            Text("Diagnostics")
+        }
+
+        // Recalibrate Charge baseline: the same Baselines.recalibrateRecoveryBaselines call the
+        // Settings Recovery card uses.
+        Section {
+            Button("Recalibrate Charge baseline") { showRecalibrateConfirm = true }
+        }
+
+        // #1853: skin-temp absolute backfill (on-demand, diagnostic-first). Fills `skinTempC` for nights
+        // outside the 21-night rescore window that never got an absolute. Fill-only: it can only fill a
+        // NULL, never overwrite a measured value or touch the deviation.
+        Section {
+            Button("Backfill skin-temp absolutes") { runSkinTempBackfill() }
+                .disabled(skinTempBackfillRunning)
+            if let status = skinTempBackfillStatus {
+                Text(status).foregroundStyle(StrandPalette.textSecondary)
+            }
+        }
+
+        // #polar-debug: only when a Polar strap is paired. The footer names the model auto-detected from
+        // the paired record; the toggle also writes it to the strap log on each connect.
+        if let identity = polarIdentity {
+            Section {
+                Toggle("Polar debug logging", isOn: $polarDebugLogging)
+            } footer: {
+                Text(identity)
+            }
+        }
+    }
+
+    // MARK: - Section 2a: WHOOP 5/MG (only when the selected strap is a 5/MG)
+
+    private var rawDataCollectorSection: some View {
+        Section {
+            NavigationLink {
+                RawDataCollectorView()
+            } label: {
+                Text("Open raw-data collector")
+            }
+            HStack(spacing: NoopMetrics.space2) {
+                StatusDot(color: live.connected ? StrandPalette.settingsGreen : StrandPalette.settingsOrange)
+                Text(live.connected ? "WHOOP 5/MG connected." : "Connect your WHOOP 5/MG to start a raw-data session.")
+                    .foregroundStyle(StrandPalette.textSecondary)
+            }
+        } header: {
+            Text(verbatim: "WHOOP 5/MG")
+        }
+    }
+
+    /// Developer tools for unmapped 5/MG protocol features. None of them is required for normal
+    /// recording, history sync, or the bounded Raw Data Collector.
+    @ViewBuilder private var fiveMGProtocolDiagnosticsSections: some View {
+        Section {
+            Toggle("Protocol probes", isOn: $puffinExperiments)
+        } header: {
+            Text("5/MG protocol diagnostics")
+        }
+
+        Section {
+            Toggle("Broadcast heart rate from the strap", isOn: $broadcastHrEnabled)
+                .onChangeCompat(of: broadcastHrEnabled) { model.ble.setBroadcastHr($0) }
+        } footer: {
+            Text("Writes the reversible 5/MG advertising flag for Garmin, Zwift, and compatible gym equipment.")
+        }
+
+        Section {
+            Toggle("Legacy R22 feature-flag experiment", isOn: $deepDataEnabled)
+            if deepDataEnabled {
+                Button("Send legacy R22 enable sequence") { model.ble.enableWhoop5DeepData() }
+                    .disabled(!live.encryptedBond || !live.worn)
+            }
+            Button("Clear legacy R22 flags on strap") { model.ble.disableWhoop5DeepData() }
+                .disabled(!live.encryptedBond || live.r22DisableReport == BLEManager.deviceConfigProbeWaiting)
+            if let result = live.r22DisableReport {
+                Text(result).foregroundStyle(StrandPalette.textSecondary)
+            }
+        } footer: {
+            Text("The strap accepts these writes, but NOOP has not observed them enabling a separate live stream.")
+        }
+
+        Section {
+            Toggle("WHOOP MG ECG raw-data gate", isOn: $ecgRawDataEnabled)
+            if ecgRawDataEnabled {
+                Group {
+                    Button("Gate on") { model.ble.setEcgRawDataGate(true) }
+                    Button("Gate off") { model.ble.setEcgRawDataGate(false) }
+                }
+                .disabled(!live.encryptedBond || live.whoop5Variant != Whoop5Variant.mg.label)
+                if let result = live.ecgRawDataGate {
+                    Text(result.summary).foregroundStyle(StrandPalette.textSecondary)
+                }
+            }
+        } footer: {
+            Text("MG-only protocol instrumentation, not a medical ECG feature.")
+        }
+
+        Section {
+            Toggle("Passive history/protocol trace", isOn: $puffinCapture)
+        }
+    }
+
+    // MARK: - Section 2b: Oura (consolidated; only when an Oura ring is paired)
+
+    @ViewBuilder private var ouraToggleSections: some View {
+        // #1284 residual 3: experimental Oura onset keying.
+        Section {
+            Toggle("Oura onset keying (experimental)", isOn: $ouraOnsetKeying)
+        } header: {
+            Text("Oura")
+        }
+
+        // Packed-notification A/B (OURA_PROTOCOL.md s2.3). Takes effect at the NEXT connect only;
+        // nothing is written until then and nothing persists on the ring.
+        Section {
+            Toggle("Oura notification mask ff (experimental)", isOn: $ouraNotifyMaskFull)
+        } footer: {
+            Text("At the next connect, sends the official app\u{2019}s notification mask (1c 01 ff) instead of NOOP\u{2019}s 3f.")
+        }
+    }
+
+    /// The 0x20 user-info WRITE experiment. EXPERIMENTAL, manual, one field at a time.
+    ///
+    /// This is the only control in NOOP that writes user data to a ring. It exists to answer one
+    /// question: does a 0x20 write change what tag 0x5c reports? Nothing calls it automatically, and
+    /// deliberately NOT on connect: the value encoding is unverified, an automatic write would destroy
+    /// the clean before-state the readout depends on, and the connect/bond window is the app's most
+    /// fragile path (#1635). Read the strap log for the WRITE line, the 0x20 ACK, and the next 0x5c.
+    private var ouraUserInfoWriteSection: some View {
+        Section {
+            Picker("Field", selection: $userInfoField) {
+                Text("Height").tag(OuraUserInfoField.height)
+                Text("Sex").tag(OuraUserInfoField.gender)
+                Text("Weight").tag(OuraUserInfoField.weight)
+                Text("DOB (raw)").tag(OuraUserInfoField.dateOfBirth)
+            }
+            .settingsPicker()
+            .onChange(of: userInfoField) { _ in prefillUserInfoValue() }
+
+            if userInfoField == .dateOfBirth {
+                TextField("18 hex chars (9 bytes)", text: $userInfoRawHex)
+            } else {
+                TextField("value", text: $userInfoValueText)
+            }
+
+            Text("Frame: \(userInfoFramePreview)")
+                .foregroundStyle(StrandPalette.textSecondary)
+
+            Button("Write to ring") { showUserInfoConfirm = true }
+                .disabled(userInfoValueBytes == nil)
+            Button("Write zeros") {
+                _ = model.sourceCoordinator?.ouraSource?.writeUserInfo(
+                    field: userInfoField,
+                    value: [UInt8](repeating: 0, count: userInfoField.valueByteCount))
+            }
+        } header: {
+            Text("Oura user-info write (experimental)")
+        } footer: {
+            Text("Tested on Gen 3 only.")
         }
     }
 
@@ -518,48 +472,35 @@ struct TestCentreView: View {
     ///
     /// One Enable/Disable button PER feature — see the state-var comment above for why this replaced
     /// a shared feature+mode picker pair.
-    @ViewBuilder
-    private var ouraEnableFeatureBlock: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Oura feature enable (experimental)").font(StrandFont.body)
-            Text("Enables or disables SpO2, real-steps, exercise HR, or the CVA PPG sampler directly via SetFeatureMode, then re-reads the feature's status. Unvalidated on NOOP's own hardware (OURA_PROTOCOL.md \u{00A7}7.5) — a third-party report is what these buttons exist to test. Daytime HR and resting HR are deliberately not offered here: daytime HR has its own dedicated live-HR path, and resting HR has no app-level toggle at all.")
-                .font(StrandFont.caption).foregroundStyle(StrandPalette.textTertiary)
-                .fixedSize(horizontal: false, vertical: true)
-
+    private var ouraEnableFeatureSection: some View {
+        Section {
             ouraFeatureEnableRow(label: "SpO2", feature: OuraCommands.featureSpO2)
             ouraFeatureEnableRow(label: "Real steps", feature: OuraCommands.featureRealSteps)
             ouraFeatureEnableRow(label: "Exercise HR", feature: OuraCommands.featureExerciseHR)
             ouraFeatureEnableRow(label: "CVA PPG sampler", feature: OuraCommands.featureCvaPpg)
-        }
-        .alert("Write to the ring?", isPresented: Binding(
-            get: { pendingFeatureWrite != nil },
-            set: { if !$0 { pendingFeatureWrite = nil } }
-        ), presenting: pendingFeatureWrite) { pending in
-            Button("Cancel", role: .cancel) { }
-            Button("Write", role: .destructive) {
-                if model.sourceCoordinator?.ouraSource?.writeFeatureMode(feature: pending.feature, mode: pending.mode) != true {
-                    infoTitle = "Not written"
-                    infoMessage = "No connected Oura ring. Connect the ring, then try again."
-                    showInfo = true
-                }
-            }
-        } message: { pending in
-            Text("Sends \(pending.framePreview) to the ring. Unvalidated on NOOP's own hardware (OURA_PROTOCOL.md \u{00A7}7.5). Watch the strap log for the follow-up feature-status read.")
+        } header: {
+            Text("Oura feature enable (experimental)")
+        } footer: {
+            Text("Unvalidated on NOOP's own hardware (OURA_PROTOCOL.md \u{00A7}7.5).")
         }
     }
 
-    @ViewBuilder
     private func ouraFeatureEnableRow(label: LocalizedStringKey, feature: UInt8) -> some View {
-        HStack(spacing: 12) {
-            Text(label).font(StrandFont.body)
+        HStack(spacing: NoopMetrics.space3) {
+            VStack(alignment: .leading, spacing: NoopMetrics.spaceHalf) {
+                Text(label)
+                HStack(spacing: NoopMetrics.space1) {
+                    StatusDot(color: ouraFeatureStatusIsOn(feature) ? StrandPalette.settingsGreen : StrandPalette.settingsGray)
+                    Text(ouraFeatureStatusLabel(feature))
+                        .font(StrandFont.caption).foregroundStyle(StrandPalette.textSecondary)
+                }
+            }
             Spacer()
-            Text(ouraFeatureStatusLabel(feature))
-                .font(StrandFont.caption)
-                .foregroundStyle(ouraFeatureStatusIsOn(feature) ? StrandPalette.statusPositive : StrandPalette.textTertiary)
+            // Borderless so each button takes its own tap instead of the whole row firing both.
             Button("Enable") { pendingFeatureWrite = PendingFeatureWrite(feature: feature, mode: 0x01) }
             Button("Disable") { pendingFeatureWrite = PendingFeatureWrite(feature: feature, mode: 0x00) }
         }
-        .tint(StrandPalette.accent)
+        .buttonStyle(.borderless)
     }
 
     /// The ring's own last-known status for this feature, mirrored live off `OuraLiveSource` (never a
@@ -612,91 +553,34 @@ struct TestCentreView: View {
         model.ouraFeatureStatuses[Int(feature)]?.mode == 1
     }
 
-    // MARK: - Section 3: Export and auto-export (manual Report + scheduled export)
+    // MARK: - Section 3: Export and auto-export (scheduled export)
 
-    @ViewBuilder private var exportCard: some View {
-        NoopCard {
-            VStack(alignment: .leading, spacing: NoopMetrics.space3) {
-                Text("EXPORT")
-                    .font(StrandFont.overline).tracking(StrandFont.overlineTracking)
-                    .foregroundStyle(StrandPalette.textSecondary)
-
-                NoopButton("Report a bug with my log", systemImage: "paperplane", kind: .primary) {
-                    // A generic "whole app" report: the master profile so the deep-link self-applies the
-                    // test:all label. master is not in the registry (it is not a wear-and-capture mode), so
-                    // build the lightweight mode inline.
-                    report.start(mode: TestCentreView.masterReportMode, live: live, repo: model.repo)
-                }
-                Text("Builds a redacted .zip, shows you exactly what it contains, then opens a prefilled GitHub issue. You attach the file on the next screen.")
-                    .font(StrandFont.caption).foregroundStyle(StrandPalette.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                if let status = report.lastStatus {
-                    Text(status)
-                        .font(StrandFont.caption).foregroundStyle(StrandPalette.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                // M3 (#812): the mobile copy fallback, now visible. If the user cannot attach the .zip in
-                // the GitHub composer, this pastes the redacted report into the clipboard to drop straight
-                // into the issue. Only appears after a confirmed share on the path that offers it.
-                if let reportText = report.copyableReport {
-                    Button {
-                        PlatformPasteboard.copy(reportText)
-                    } label: {
-                        Label("Copy report.txt", systemImage: "doc.on.clipboard")
-                            .font(StrandFont.subhead)
-                    }
-                    .buttonStyle(.bordered)
-                    .accessibilityLabel("Copy the redacted report to the clipboard")
-                }
-
-                Divider().overlay(StrandPalette.hairline)
-
-                // Scheduled daily auto-export, the same ScheduledDebugExport reads/writes as the Settings
-                // Diagnostics card. iOS BGAppRefresh is best-effort, the honest caption is kept.
-                Toggle(isOn: $debugExportOn) {
-                    Text("Daily auto-export of the strap log")
-                        .font(StrandFont.subhead).foregroundStyle(StrandPalette.textPrimary)
-                }
-                .toggleStyle(.switch).tint(StrandPalette.accent)
+    @ViewBuilder private var exportSections: some View {
+        // Scheduled daily auto-export, the same ScheduledDebugExport reads/writes as the Settings
+        // Diagnostics card.
+        Section {
+            Toggle("Daily auto-export of the strap log", isOn: $debugExportOn)
                 .onChangeCompat(of: debugExportOn) { on in ScheduledDebugExport.setEnabled(on) }
-
-                if debugExportOn {
-                    HStack {
-                        Text("Time of day").font(StrandFont.subhead).foregroundStyle(StrandPalette.textPrimary)
-                        Spacer()
-                        DatePicker("", selection: debugExportTimeBinding, displayedComponents: .hourAndMinute)
-                            .labelsHidden()
-                            .accessibilityLabel("Daily auto-export time")
-                    }
-                    // Retention (#650): how many scheduled-export generations to keep. Wired to
-                    // ScheduledDebugExport.keepCount; the next write prunes the oldest beyond this count.
-                    HStack {
-                        Text("Keep last exports").font(StrandFont.subhead).foregroundStyle(StrandPalette.textPrimary)
-                        Spacer()
-                        Picker("Keep last exports", selection: $debugExportKeep) {
-                            ForEach(ScheduledDebugExport.keepOptions, id: \.self) { n in Text("\(n)").tag(n) }
-                        }
-                        .labelsHidden().pickerStyle(.menu).tint(StrandPalette.accent)
-                        .onChangeCompat(of: debugExportKeep) { n in ScheduledDebugExport.keepCount = n }
-                    }
-                    Text("Older scheduled exports beyond this many are pruned automatically, oldest first.")
-                        .font(StrandFont.caption).foregroundStyle(StrandPalette.textTertiary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    NoopButton("Run now", systemImage: "square.and.arrow.down.on.square", kind: .secondary) {
-                        runScheduledExportNow()
-                    }
-                    Text("On iPhone this is best-effort (iOS decides when background tasks run). Everything stays on \(Platform.deviceNounPhrase).")
-                        .font(StrandFont.caption).foregroundStyle(StrandPalette.textTertiary)
-                        .fixedSize(horizontal: false, vertical: true)
+            if debugExportOn {
+                DatePicker("Time of day", selection: debugExportTimeBinding, displayedComponents: .hourAndMinute)
+                    .accessibilityLabel("Daily auto-export time")
+                // Retention (#650): how many scheduled-export generations to keep. Wired to
+                // ScheduledDebugExport.keepCount; the next write prunes the oldest beyond this count.
+                Picker("Keep last exports", selection: $debugExportKeep) {
+                    ForEach(ScheduledDebugExport.keepOptions, id: \.self) { n in Text("\(n)").tag(n) }
                 }
-                // Manual clear (#650): always available, even with the toggle off, since files written
-                // while it was on can outlive that toggle flip.
-                NoopButton("Clear scheduled exports", systemImage: "trash", kind: .destructive) {
-                    showClearExportsConfirm = true
-                }
+                .settingsPicker()
+                .onChangeCompat(of: debugExportKeep) { n in ScheduledDebugExport.keepCount = n }
+                Button("Run now") { runScheduledExportNow() }
             }
+        } header: {
+            Text("Export")
+        }
+
+        // Manual clear (#650): always available, even with the toggle off, since files written while it
+        // was on can outlive that toggle flip.
+        Section {
+            Button("Clear scheduled exports", role: .destructive) { showClearExportsConfirm = true }
         }
     }
 
@@ -706,40 +590,18 @@ struct TestCentreView: View {
     /// (never detection, never a stored WHOOP value). Each toggle writes the SAME PuffinExperiment key its
     /// Android twin reads. Hosts the HR-from-PPG sub-lag interpolation variant. Twin of the Android
     /// ExperimentalAlgorithmsCard.
-    @ViewBuilder private var experimentalAlgorithmsCard: some View {
-        NoopCard {
-            VStack(alignment: .leading, spacing: NoopMetrics.space3) {
-                Text("EXPERIMENTAL ALGORITHMS")
-                    .font(StrandFont.overline).tracking(StrandFont.overlineTracking)
-                    .foregroundStyle(StrandPalette.textSecondary)
-                Text("Research-grade alternatives / precision tweaks. Opt-in, off by default, non-clinical.")
-                    .font(StrandFont.caption).foregroundStyle(StrandPalette.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
+    @ViewBuilder private var experimentalAlgorithmsSections: some View {
+        Section {
+            Toggle("HR-from-PPG sub-lag interpolation (v26 gap-fill)", isOn: $ppgHrSubLagInterpEnabled)
+        } header: {
+            Text("Experiments")
+        }
 
-                Toggle(isOn: $ppgHrSubLagInterpEnabled) {
-                    Text("HR-from-PPG sub-lag interpolation (v26 gap-fill)")
-                        .font(StrandFont.subhead).foregroundStyle(StrandPalette.textPrimary)
-                }
-                .toggleStyle(.switch).tint(StrandPalette.accent)
-                Text("When NOOP reconstructs heart rate from the WHOOP 5/MG v26 optical waveform (the seconds the strap stored no HR), refine the autocorrelation peak with a parabolic sub-lag fit so the estimate is not quantized to roughly 16 bpm steps near a high HR. It only fills seconds the strap never reported; it never overrides a stored HR. 5/MG only, off by default.")
-                    .font(StrandFont.caption).foregroundStyle(StrandPalette.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Divider().overlay(StrandPalette.hairline)
-
-                Toggle(isOn: $hrvReadinessEnabled) {
-                    Text("HRV readiness (Plews/Altini)")
-                        .font(StrandFont.subhead).foregroundStyle(StrandPalette.textPrimary)
-                }
-                .toggleStyle(.switch).tint(StrandPalette.accent)
-                Text("A read-only Plews/Altini smallest-worthwhile-change reading of your nightly HRV: it shows whether your 7-night HRV baseline sits above, inside, or below your personal normal band. It changes nothing else - the Charge ring is identical whether this is on or off. This is rough / early testing, not yet validated against varying real data (n=1).")
-                    .font(StrandFont.caption).foregroundStyle(StrandPalette.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                // The toggle's OWN effect, shown in place: when on, the live Plews/Altini reading. Nothing
-                // renders when off, so the flag off is zero behaviour change and feeds no downstream gate.
-                if hrvReadinessEnabled { hrvReadinessReadout }
-            }
+        Section {
+            Toggle("HRV readiness (Plews/Altini)", isOn: $hrvReadinessEnabled)
+            // The toggle's OWN effect, shown in place: when on, the live Plews/Altini reading. Nothing
+            // renders when off, so the flag off is zero behaviour change and feeds no downstream gate.
+            if hrvReadinessEnabled { hrvReadinessReadout }
         }
     }
 
@@ -750,24 +612,24 @@ struct TestCentreView: View {
     /// `HRVReadiness.minNights` valid nights it shows the honest calibrating count, never a fabricated tier.
     /// Twin of the Android `HrvReadinessReadoutTC`.
     @ViewBuilder private var hrvReadinessReadout: some View {
-        let result = HRVReadiness.evaluate(avgHrv: model.repo.days.map { $0.avgHrv })
-        VStack(alignment: .leading, spacing: 2) {
-            if let r = result {
-                let label = hrvTierLabel(r.tier)
-                Text("HRV readiness (experimental): \(label.word)")
-                    .font(StrandFont.subhead).foregroundStyle(label.color)
-                let base = Int(r.baseline7Ms.rounded())
-                let lo = Int(r.normalLowMs.rounded())
-                let hi = Int(r.normalHighMs.rounded())
-                let watch = r.overreachingWatch ? ", overreaching watch" : ""
-                Text("7-night baseline \(base) ms, normal \(lo) to \(hi) ms\(watch)")
-                    .font(StrandFont.caption).foregroundStyle(StrandPalette.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-            } else {
-                Text("HRV readiness (experimental)")
-                    .font(StrandFont.subhead).foregroundStyle(StrandPalette.textTertiary)
+        if let r = HRVReadiness.evaluate(avgHrv: model.repo.days.map { $0.avgHrv }) {
+            let label = hrvTierLabel(r.tier)
+            let base = Int(r.baseline7Ms.rounded())
+            let lo = Int(r.normalLowMs.rounded())
+            let hi = Int(r.normalHighMs.rounded())
+            let watch = r.overreachingWatch ? ", overreaching watch" : ""
+            LabeledContent {
+                Text(label.word).foregroundStyle(label.color)
+            } label: {
+                VStack(alignment: .leading, spacing: NoopMetrics.spaceHalf) {
+                    Text("HRV readiness (experimental)")
+                    Text("7-night baseline \(base) ms, normal \(lo) to \(hi) ms\(watch)")
+                        .font(StrandFont.caption).foregroundStyle(StrandPalette.textSecondary)
+                }
+            }
+        } else {
+            LabeledContent("HRV readiness (experimental)") {
                 Text("Calibrating (\(hrvValidNightCount)/\(HRVReadiness.minNights) nights)")
-                    .font(StrandFont.caption).foregroundStyle(StrandPalette.textTertiary)
             }
         }
     }
@@ -887,14 +749,20 @@ struct TestCentreView: View {
     }
 }
 
-/// One domain-test-mode row: icon + title + status + blurb, a toggle wired to TestCentre, and a Report
-/// action. Toggling calls TestCentre.activate/deactivate (the single prefs namespace).
-private struct TestModeRow: View {
+/// One domain test mode: a toggle wired to TestCentre (the single prefs namespace), and while it is on,
+/// the guided progress, the live readout rows and a Share action.
+private struct TestModeRows: View {
     let mode: TestMode
     @ObservedObject var report: TestCentreReport
     @EnvironmentObject var live: LiveState
     @EnvironmentObject var model: AppModel
-    @State private var on: Bool = false
+    @State private var on: Bool
+
+    init(mode: TestMode, report: TestCentreReport) {
+        self.mode = mode
+        _report = ObservedObject(wrappedValue: report)
+        _on = State(initialValue: TestCentre.active(mode.domain))
+    }
 
     private var elapsed: Double? {
         TestCentre.startedAt(mode.domain).map { Date().timeIntervalSince($0) }
@@ -912,92 +780,95 @@ private struct TestModeRow: View {
                                                tzOffsetSeconds: TimeZone.current.secondsFromGMT())
     }
 
+    private var isGuided: Bool {
+        if case .guided = mode.capture { return true }
+        return false
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 12) {
-                Image(systemName: mode.icon)
-                    .foregroundStyle(StrandPalette.accent).frame(width: 24)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(mode.title).font(StrandFont.body).foregroundStyle(StrandPalette.textPrimary)
+        Toggle(isOn: $on) {
+            Label {
+                Text(mode.title).foregroundStyle(StrandPalette.textPrimary)
+            } icon: {
+                SettingsIcon(systemName: mode.icon, color: Self.iconColor(mode.domain))
+            }
+        }
+        .accessibilityLabel("\(mode.title) test mode")
+        .onChangeCompat(of: on) { isOn in
+            if isOn { TestCentre.activate(mode.domain) } else { TestCentre.deactivate(mode.domain) }
+            // Display & Performance owns a live frame monitor. It must run ONLY while the mode is on: start
+            // it on toggle-on (after wiring its sink to the redacting .display log), tear it down on
+            // toggle-off so no display link survives. Zero-cost when off.
+            if mode.domain == .display {
+                if isOn { DisplayMonitorWiring.start(live: live, model: model) } else { DisplayPerformanceMonitor.shared.stop() }
+            }
+        }
+
+        if on {
+            // A toggle mode's status is just "On", which the switch already shows; a guided mode's
+            // "Capturing K of N" is the one fact worth its own row.
+            if isGuided {
+                HStack(spacing: NoopMetrics.space2) {
+                    StatusDot(color: StrandPalette.settingsGreen)
                     Text(TestCentreLayout.statusText(for: mode, active: on, elapsedSeconds: elapsed,
                                                      capturedUnits: capturedUnits))
-                        .font(StrandFont.caption).foregroundStyle(StrandPalette.textSecondary)
+                        .foregroundStyle(StrandPalette.textSecondary)
                 }
-                Spacer()
-                Toggle("", isOn: $on)
-                    .labelsHidden()
-                    .tint(StrandPalette.accent)
-                    .accessibilityLabel("\(mode.title) test mode")
-                    .onChangeCompat(of: on) { isOn in
-                        if isOn { TestCentre.activate(mode.domain) } else { TestCentre.deactivate(mode.domain) }
-                        // Display & Performance owns a live frame monitor. It must run ONLY while the mode
-                        // is on: start it on toggle-on (after wiring its sink to the redacting .display
-                        // log), tear it down on toggle-off so no display link survives. Zero-cost when off.
-                        if mode.domain == .display {
-                            if isOn { startDisplayMonitor() } else { DisplayPerformanceMonitor.shared.stop() }
-                        }
-                    }
             }
-            Text(mode.blurb)
-                .font(StrandFont.caption).foregroundStyle(StrandPalette.textTertiary)
-                .fixedSize(horizontal: false, vertical: true)
-            // Live readout (Group E/F): the per-mode panel binding the registry's liveReadout ids. Shown
-            // only while the mode is on, so an inactive row stays compact.
-            if on, mode.domain == .sleep {
-                SleepReadoutPanel(live: live)
+            // Live readout (Group E/F): the per-mode rows binding the registry's liveReadout ids, shown
+            // only while the mode is on so an inactive mode stays one row.
+            readout
+            // "Share", not "Report", to match the strap-log button and the sheet this opens, whose own copy
+            // already reads "Nothing leaves this phone until you tap Share". The word also describes what
+            // the tap does: it builds a redacted bundle and hands it to the share sheet. Nothing is sent
+            // anywhere.
+            Button {
+                report.start(mode: mode, live: live, repo: model.repo)
+            } label: {
+                Label("Share", systemImage: "square.and.arrow.up")
             }
-            if on, mode.domain == .battery {
-                BatteryReadoutPanel(live: live)
-            }
-            if on, mode.domain == .connection {
-                ConnectionReadoutPanel(live: live)
-            }
-            if on, mode.domain == .recovery {
-                RecoveryReadoutPanel(live: live)
-            }
-            if on, mode.domain == .hrv {
-                HrvReadoutPanel(live: live)
-            }
-            if on, mode.domain == .steps {
-                StepsReadoutPanel(live: live)
-            }
-            if on, mode.domain == .workouts {
-                WorkoutsReadoutPanel(live: live)
-            }
-            if on, mode.domain == .dataImport {
-                ImportReadoutPanel(live: live)
-            }
-            if on, mode.domain == .display {
-                DisplayReadoutPanel(live: live)
-            }
-            HStack {
-                Spacer()
-                // "Share", not "Report", to match the strap-log button and the sheet this opens, whose
-                // own copy already reads "Nothing leaves this phone until you tap Share". The word also
-                // describes what the tap does: it builds a redacted bundle and hands it to the share
-                // sheet. Nothing is sent anywhere.
-                Button("Share") { report.start(mode: mode, live: live, repo: model.repo) }
-                    .buttonStyle(.plain).font(StrandFont.mono).foregroundStyle(StrandPalette.accent)
-            }
-        }
-        .onAppear {
-            on = TestCentre.active(mode.domain)
-            // If the Display mode was already on when the screen appears, (re)start its frame monitor and
-            // wire the sink, so a monitor that was torn down (e.g. the screen left and came back) resumes.
-            if mode.domain == .display, on { startDisplayMonitor() }
-        }
-        .onDisappear {
-            // Leaving the screen tears the frame monitor down so no display link survives a navigation
-            // away. The mode flag stays on (the user's test is still active); the monitor resumes on
-            // .onAppear above. This keeps the perpetual-display-link contract: a link exists only while the
-            // Test Centre is on screen with the mode on.
-            if mode.domain == .display { DisplayPerformanceMonitor.shared.stop() }
         }
     }
 
-    /// Wire the Display monitor's sink to the redacting `.display` log and start it. The sink is set every
-    /// start so a fresh LiveState (e.g. after a screen re-entry) is always the live target.
-    private func startDisplayMonitor() {
+    @ViewBuilder private var readout: some View {
+        switch mode.domain {
+        case .sleep:      SleepReadoutPanel(live: live)
+        case .battery:    BatteryReadoutPanel(live: live)
+        case .connection: ConnectionReadoutPanel(live: live)
+        case .recovery:   RecoveryReadoutPanel(live: live)
+        case .hrv:        HrvReadoutPanel(live: live)
+        case .steps:      StepsReadoutPanel(live: live)
+        case .workouts:   WorkoutsReadoutPanel(live: live)
+        case .dataImport: ImportReadoutPanel(live: live)
+        case .display:    DisplayReadoutPanel(live: live)
+        default:          EmptyView()
+        }
+    }
+
+    /// The row tile colour per domain, from the Settings icon palette so the list matches the root.
+    private static func iconColor(_ domain: TestDomain) -> Color {
+        switch domain {
+        case .sleep:         return StrandPalette.settingsIndigo
+        case .connection:    return StrandPalette.settingsBlue
+        case .workouts:      return StrandPalette.settingsGreen
+        case .display:       return StrandPalette.settingsPurple
+        case .dataImport:    return StrandPalette.settingsTeal
+        case .steps:         return StrandPalette.settingsOrange
+        case .notifications: return StrandPalette.settingsRed
+        case .battery:       return StrandPalette.settingsGreen
+        case .recovery:      return StrandPalette.settingsCyan
+        case .hrv:           return StrandPalette.settingsPink
+        case .stress:        return StrandPalette.settingsOrange
+        case .longevity:     return StrandPalette.settingsPurple
+        case .sources, .universal, .master: return StrandPalette.settingsGray
+        }
+    }
+}
+
+/// Wires the Display monitor's sink to the redacting `.display` log and starts it. The sink is set every
+/// start so a fresh LiveState (e.g. after a screen re-entry) is always the live target.
+private enum DisplayMonitorWiring {
+    @MainActor static func start(live: LiveState, model: AppModel) {
         DisplayPerformanceMonitor.shared.emit = { [weak live] line in
             live?.append(log: line, domain: .display)
         }
@@ -1011,6 +882,14 @@ private struct TestModeRow: View {
     }
 }
 
+/// The Health-Checklist status dot beside a short status line.
+private struct StatusDot: View {
+    let color: Color
+    var body: some View {
+        Circle().fill(color).frame(width: 8, height: 8).accessibilityHidden(true)
+    }
+}
+
 /// The Sleep & Rest live-readout panel (Group E): HR density, gravity coverage, and the gate that
 /// fired tonight, bound from the pure `SleepReadout` source over LiveState's live buffers + tagged log
 /// tail. No hardcoded colours; uses the same tokens as the surrounding Test Centre rows.
@@ -1021,14 +900,11 @@ private struct SleepReadoutPanel: View {
         let hrDensity = SleepReadout.hrDensityPerMinute(hr: live.recentHrSamples)
         let gravCoverage = SleepReadout.gravityCoverageFraction(gravity: live.recentGravitySamples, hr: live.recentHrSamples)
         let lastGate = SleepReadout.lastGateFired(taggedTail: live.taggedTail(domain: .sleep))
-        VStack(alignment: .leading, spacing: 4) {
-            ReadoutRow(label: String(localized: "HR density (per min)"),
-                       value: live.recentHrSamples.isEmpty ? String(localized: "no live HR yet") : String(format: "%.1f", hrDensity))
-            ReadoutRow(label: String(localized: "Gravity coverage"),
-                       value: live.recentGravitySamples.isEmpty ? String(localized: "no live gravity yet") : String(format: "%.0f%%", gravCoverage * 100))
-            ReadoutRow(label: String(localized: "Last gate fired"), value: lastGate ?? String(localized: "no night yet"))
-        }
-        .padding(.top, 2)
+        ReadoutRow(label: String(localized: "HR density (per min)"),
+                   value: live.recentHrSamples.isEmpty ? String(localized: "no live HR yet") : String(format: "%.1f", hrDensity))
+        ReadoutRow(label: String(localized: "Gravity coverage"),
+                   value: live.recentGravitySamples.isEmpty ? String(localized: "no live gravity yet") : String(format: "%.0f%%", gravCoverage * 100))
+        ReadoutRow(label: String(localized: "Last gate fired"), value: lastGate ?? String(localized: "no night yet"))
     }
 }
 
@@ -1041,12 +917,9 @@ private struct BatteryReadoutPanel: View {
     @ObservedObject var live: LiveState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            ReadoutRow(label: String(localized: "Current charge"), value: live.batteryReadout("currentSoc"))
-            ReadoutRow(label: String(localized: "Estimated runtime left"), value: live.batteryReadout("estimateDaysLeft"))
-            ReadoutRow(label: String(localized: "Slope source"), value: live.batteryReadout("slopeSource"))
-        }
-        .padding(.top, 2)
+        ReadoutRow(label: String(localized: "Current charge"), value: live.batteryReadout("currentSoc"))
+        ReadoutRow(label: String(localized: "Estimated runtime left"), value: live.batteryReadout("estimateDaysLeft"))
+        ReadoutRow(label: String(localized: "Slope source"), value: live.batteryReadout("slopeSource"))
     }
 }
 
@@ -1081,29 +954,26 @@ private struct ConnectionReadoutPanel: View {
         let rtcWarning = ConnectionReadout.rtcWarning(deviceClockUnix: deviceClock,
                                                       strapNewestUnix: live.strapRange?.newestUnix,
                                                       batteryPct: live.batterySamples.last?.soc)
-        VStack(alignment: .leading, spacing: 4) {
-            ReadoutRow(label: String(localized: "Connection uptime"), value: uptime)
-            ReadoutRow(label: String(localized: "Reconnects this run"), value: String(reconnects))
-            ReadoutRow(label: String(localized: "Last offload result"), value: lastOffload ?? String(localized: "no offload yet"))
-            ReadoutRow(label: String(localized: "Rows drained (session)"),
-                       value: sessionRows.map(String.init) ?? String(localized: "no offload yet"))
-            ReadoutRow(label: String(localized: "Rows drained (all time)"), value: String(allTimeRows))
-            ReadoutRow(label: String(localized: "Clock latched"),
-                       value: ConnectionReadout.clockLatchedLabel(deviceClockUnix: deviceClock,
-                                                                  strapNewestUnix: live.strapRange?.newestUnix))
-            ReadoutRow(label: String(localized: "Last frame"),
-                       value: ConnectionReadout.lastFrameLabel(lastFrameUnix: live.lastFrameAtUnix, nowUnix: now))
-            if let rtcWarning {
-                // #987: the plain-words 1970/71 warning - amber, not a bare token, because this is the
-                // single most common "no history" root cause and the fix is in the sentence.
-                Text(rtcWarning)
-                    .font(StrandFont.caption)
-                    .foregroundStyle(StrandPalette.statusWarning)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityLabel(rtcWarning)
-            }
+        ReadoutRow(label: String(localized: "Connection uptime"), value: uptime)
+        ReadoutRow(label: String(localized: "Reconnects this run"), value: String(reconnects))
+        ReadoutRow(label: String(localized: "Last offload result"), value: lastOffload ?? String(localized: "no offload yet"))
+        ReadoutRow(label: String(localized: "Rows drained (session)"),
+                   value: sessionRows.map(String.init) ?? String(localized: "no offload yet"))
+        ReadoutRow(label: String(localized: "Rows drained (all time)"), value: String(allTimeRows))
+        ReadoutRow(label: String(localized: "Clock latched"),
+                   value: ConnectionReadout.clockLatchedLabel(deviceClockUnix: deviceClock,
+                                                              strapNewestUnix: live.strapRange?.newestUnix))
+        ReadoutRow(label: String(localized: "Last frame"),
+                   value: ConnectionReadout.lastFrameLabel(lastFrameUnix: live.lastFrameAtUnix, nowUnix: now))
+        if let rtcWarning {
+            // #987: the plain-words 1970/71 warning - amber, not a bare token, because this is the
+            // single most common "no history" root cause and the fix is in the sentence.
+            Text(rtcWarning)
+                .font(StrandFont.caption)
+                .foregroundStyle(StrandPalette.statusWarning)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityLabel(rtcWarning)
         }
-        .padding(.top, 2)
     }
 }
 
@@ -1117,10 +987,7 @@ private struct RecoveryReadoutPanel: View {
 
     var body: some View {
         let last = TestReadout.lastChargeBreakdown(taggedTail: live.taggedTail(domain: .recovery))
-        VStack(alignment: .leading, spacing: 4) {
-            ReadoutRow(label: String(localized: "Last Charge breakdown"), value: last ?? String(localized: "no night scored yet"))
-        }
-        .padding(.top, 2)
+        ReadoutRow(label: String(localized: "Last Charge breakdown"), value: last ?? String(localized: "no night scored yet"))
     }
 }
 
@@ -1133,10 +1000,7 @@ private struct HrvReadoutPanel: View {
 
     var body: some View {
         let last = TestReadout.lastHrvComputation(taggedTail: live.taggedTail(domain: .hrv))
-        VStack(alignment: .leading, spacing: 4) {
-            ReadoutRow(label: String(localized: "Last HRV reading"), value: last ?? String(localized: "no reading yet"))
-        }
-        .padding(.top, 2)
+        ReadoutRow(label: String(localized: "Last HRV reading"), value: last ?? String(localized: "no reading yet"))
     }
 }
 
@@ -1152,11 +1016,8 @@ private struct StepsReadoutPanel: View {
         let tail = live.taggedTail(domain: .steps)
         let steps = StepsReadout.stepsToday(taggedTail: tail)
         let calState = StepsReadout.calibrationState(taggedTail: tail)
-        VStack(alignment: .leading, spacing: 4) {
-            ReadoutRow(label: String(localized: "Steps today"), value: steps.map(String.init) ?? String(localized: "no estimate yet"))
-            ReadoutRow(label: String(localized: "Calibration"), value: calState ?? String(localized: "no calibration yet"))
-        }
-        .padding(.top, 2)
+        ReadoutRow(label: String(localized: "Steps today"), value: steps.map(String.init) ?? String(localized: "no estimate yet"))
+        ReadoutRow(label: String(localized: "Calibration"), value: calState ?? String(localized: "no calibration yet"))
     }
 }
 
@@ -1169,10 +1030,7 @@ private struct WorkoutsReadoutPanel: View {
 
     var body: some View {
         let summary = WorkoutsReadout.lastSessionSummary(taggedTail: live.taggedTail(domain: .workouts))
-        VStack(alignment: .leading, spacing: 4) {
-            ReadoutRow(label: String(localized: "Last session"), value: summary ?? String(localized: "no session yet"))
-        }
-        .padding(.top, 2)
+        ReadoutRow(label: String(localized: "Last session"), value: summary ?? String(localized: "no session yet"))
     }
 }
 
@@ -1186,10 +1044,7 @@ private struct ImportReadoutPanel: View {
 
     var body: some View {
         let summary = ImportReadout.lastImportSummary(taggedTail: live.taggedTail(domain: .dataImport))
-        VStack(alignment: .leading, spacing: 4) {
-            ReadoutRow(label: String(localized: "Last import"), value: summary ?? String(localized: "no import yet"))
-        }
-        .padding(.top, 2)
+        ReadoutRow(label: String(localized: "Last import"), value: summary ?? String(localized: "no import yet"))
     }
 }
 
@@ -1205,27 +1060,18 @@ private struct DisplayReadoutPanel: View {
         let tail = live.taggedTail(domain: .display)
         let metrics = DisplayReadout.deviceMetricsNow(taggedTail: tail)
         let frames = DisplayReadout.frameSummaryNow(taggedTail: tail)
-        VStack(alignment: .leading, spacing: 4) {
-            ReadoutRow(label: String(localized: "Device metrics"), value: metrics ?? String(localized: "reading…"))
-            ReadoutRow(label: String(localized: "Frame summary"), value: frames ?? String(localized: "no window yet"))
-        }
-        .padding(.top, 2)
+        ReadoutRow(label: String(localized: "Device metrics"), value: metrics ?? String(localized: "reading…"))
+        ReadoutRow(label: String(localized: "Frame summary"), value: frames ?? String(localized: "no window yet"))
     }
 }
 
-/// A compact key/value readout row for the Test Centre live panels (Group E/F/G). Mono value so the
-/// counts line up; secondary/tertiary tokens so it reads as a diagnostic, not a headline.
+/// A compact key/value readout row for the Test Centre live panels (Group E/F/G): the label on the left,
+/// the grey value on the right, as a Settings read-only row.
 private struct ReadoutRow: View {
     let label: String
     let value: String
     var body: some View {
-        HStack {
-            Text(label).font(StrandFont.caption).foregroundStyle(StrandPalette.textTertiary)
-            Spacer()
-            Text(value).font(StrandFont.mono).foregroundStyle(StrandPalette.textSecondary)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(label): \(value)")
+        LabeledContent(label, value: value)
     }
 }
 
@@ -1275,3 +1121,4 @@ private struct ReportReviewSheet: View {
         }
     }
 }
+

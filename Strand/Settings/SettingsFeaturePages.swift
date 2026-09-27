@@ -19,8 +19,6 @@ struct WorkoutsSettingsPage: View {
         Form {
             Section {
                 Toggle("Auto-detect workouts", isOn: $autoDetectWorkoutsEnabled)
-            } footer: {
-                Text("After a sync, NOOP offers to save a stretch of raised heart rate as a workout. Nothing is saved until you tap Save.")
             }
             Section {
                 Toggle("Keep screen on during a workout", isOn: $workoutKeepScreenOn)
@@ -82,8 +80,6 @@ struct ScoresSettingsPage: View {
                     }
             } header: {
                 Text("Effort")
-            } footer: {
-                Text("Scores Effort on an exponential intensity curve (Banister TRIMP) instead of heart-rate zones. Re-scores your history.")
             }
 
             Section {
@@ -118,16 +114,12 @@ struct ScoresSettingsPage: View {
                 .buttonStyle(.plain)
             } header: {
                 Text("Steps")
-            } footer: {
-                Text("Counter ticks per step. Leave at 1.0 unless your steps run high.")
             }
 
             Section {
                 Button("Recalibrate Charge baseline") { showRecalibrateConfirm = true }
             } header: {
                 Text("Charge")
-            } footer: {
-                Text("Restarts the roughly 4-night build-up for Charge and your HRV baseline from tonight. Your history stays.")
             }
         }
         .settingsPage("Scores")

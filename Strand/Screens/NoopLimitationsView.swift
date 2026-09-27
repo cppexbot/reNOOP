@@ -7,9 +7,9 @@ import StrandDesign
 // metric NOOP surfaces and whether it comes live off a WHOOP 4.0 vs a 5.0/MG. Marks mirror the
 // decoder/analytics truth (Interpreter / AnalyticsEngine / HistoricalStreams): full = read live; partial =
 // an on-device estimate or an experimental / firmware-gated read; none = not off the strap (SpO₂ % is
-// import-only on both; blood pressure has no path). A legend carries the meaning in place of per-row prose.
-// Rendered through the shared ScreenScaffold like every other destination — reached from the iOS More tab
-// (Data group) and the macOS sidebar (Data & App); navigation chrome (back / tab bar) handles dismissal.
+// import-only on both; blood pressure has no path). The marks carry the meaning; no per-row prose.
+// A Settings page (grouped Form) — reached from Settings and the macOS sidebar (Data & App); navigation
+// chrome (back / tab bar) handles dismissal.
 
 struct NoopLimitationsView: View {
 
@@ -28,9 +28,9 @@ struct NoopLimitationsView: View {
 
         var tint: Color {
             switch self {
-            case .full:    return StrandPalette.statusPositive
-            case .partial: return StrandPalette.statusWarning
-            case .none:    return StrandPalette.textTertiary
+            case .full:    return StrandPalette.settingsGreen
+            case .partial: return StrandPalette.settingsOrange
+            case .none:    return StrandPalette.settingsGray
             }
         }
 
@@ -44,7 +44,7 @@ struct NoopLimitationsView: View {
         }
     }
 
-    /// One row: a metric, and how it reads on a 4.0 vs a 5.0/MG. No note — the legend carries the meaning.
+    /// One row: a metric, and how it reads on a 4.0 vs a 5.0/MG.
     private struct LimitRow: Identifiable {
         let feature: LocalizedStringKey
         let spokenFeature: String
@@ -77,37 +77,23 @@ struct NoopLimitationsView: View {
     ]
 
     var body: some View {
-        ScreenScaffold(title: "NOOP Limitations", subtitle: "What each WHOOP can read") {
-            tableCard
-            legendCard
-        }
-    }
-
-    // MARK: - Cards
-
-    private var tableCard: some View {
-        NoopCard {
-            VStack(alignment: .leading, spacing: 14) {
-                Text("WHAT NOOP READS").font(StrandFont.overline)
-                    .tracking(StrandFont.overlineTracking)
-                    .foregroundStyle(StrandPalette.textTertiary)
+        Form {
+            Section {
                 // Column header.
                 HStack {
-                    Text("Feature").font(StrandFont.caption)
-                        .foregroundStyle(StrandPalette.textTertiary)
+                    Text("Feature")
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    Text("4.0").font(StrandFont.caption)
-                        .foregroundStyle(StrandPalette.textTertiary)
-                        .frame(width: 52)
-                    Text("5.0/MG").font(StrandFont.caption)
-                        .foregroundStyle(StrandPalette.textTertiary)
-                        .frame(width: 52)
+                    Text(verbatim: "4.0")
+                        .frame(width: Self.column)
+                    Text("5.0/MG")
+                        .frame(width: Self.column)
                 }
-                ForEach(Array(rows.enumerated()), id: \.element.id) { idx, row in
-                    if idx > 0 { Divider().overlay(StrandPalette.hairline) }
+                .font(.footnote)
+                .foregroundStyle(StrandPalette.textSecondary)
+                .accessibilityHidden(true)
+                ForEach(rows) { row in
                     HStack {
-                        Text(row.feature).font(StrandFont.body)
-                            .foregroundStyle(StrandPalette.textPrimary)
+                        Text(row.feature)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         supportCell(row.whoop4)
                         supportCell(row.whoop5)
@@ -115,40 +101,21 @@ struct NoopLimitationsView: View {
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(a11yLabel(row))
                 }
+            } header: {
+                Text("What each WHOOP can read")
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .settingsPage("NOOP Limitations")
     }
 
-    private var legendCard: some View {
-        NoopCard {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("LEGEND").font(StrandFont.overline)
-                    .tracking(StrandFont.overlineTracking)
-                    .foregroundStyle(StrandPalette.textTertiary)
-                legendRow(.full, "Read live off the strap")
-                legendRow(.partial, "On-device estimate, or experimental / firmware-gated")
-                legendRow(.none, "Not from the strap. SpO₂ can be filled by importing a WHOOP or Health export.")
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
-    private func legendRow(_ state: LimitState, _ label: LocalizedStringKey) -> some View {
-        HStack(spacing: 12) {
-            supportCell(state)
-            Text(label).font(StrandFont.footnote)
-                .foregroundStyle(StrandPalette.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
+    /// Width of each strap column, shared by the header and the marks so they line up.
+    private static let column: CGFloat = 56
 
     private func supportCell(_ state: LimitState) -> some View {
         Image(systemName: state.glyph)
-            .font(.system(size: 15, weight: .semibold))
+            .fontWeight(.semibold)
             .foregroundStyle(state.tint)
-            .frame(width: 52)
+            .frame(width: Self.column)
             .accessibilityHidden(true)
     }
 

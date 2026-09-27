@@ -16,9 +16,9 @@ import WhoopStore
 //   yellow  the rest that follows it
 //   grey    numbers nobody typed
 //
-// The session itself lives in `LiftSessionController`, ABOVE this view. Swiping this sheet away
-// minimises it to the bottom bar; the clock, the strap gesture and the buzzes all keep running,
-// because a workout outlives the screen you happen to be looking at.
+// The session itself lives in `LiftSessionController`, ABOVE this view. The top bar's minimize
+// button drops this screen to the bottom bar; the clock, the strap gesture and the buzzes all
+// keep running, because a workout outlives the screen you happen to be looking at.
 
 struct LiftSessionView: View {
     // Only what the sheet draws from. The live heart rate and the running clocks are their own small views
@@ -95,9 +95,7 @@ struct LiftSessionView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        #if os(iOS)
-        .presentationDragIndicator(.visible)
-        #else
+        #if !os(iOS)
         .frame(width: 560, height: 800)
         #endif
         .background(Color.black.ignoresSafeArea())

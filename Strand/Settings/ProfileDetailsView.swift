@@ -119,8 +119,6 @@ struct ProfileDetailsView: View {
                                    value: profile.hasCustomHRZones ? String(localized: "Manual")
                                                                    : String(localized: "Automatic"))
                 }
-            } footer: {
-                Text("These power your heart-rate zones, calorie estimates and recovery baselines.")
             }
         }
         .settingsPage("Health Details")

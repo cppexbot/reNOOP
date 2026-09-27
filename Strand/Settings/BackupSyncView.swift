@@ -78,9 +78,6 @@ struct BackupSyncView: View {
                         .disabled(busy)
                 }
                 #endif
-            } footer: {
-                // #644: the snapshots are a plain ZIP; a cloud-synced folder uploads the readable file.
-                Text("These backups are unencrypted too. If this folder syncs to Drive, Dropbox or iCloud, the readable file goes there as well — only point it at a service you trust.")
             }
 
             Section {
@@ -92,8 +89,6 @@ struct BackupSyncView: View {
                 Button("Export…") { runExport() }
                 Button("Import…") { runImport() }
                 Button("Export CSV…") { runCsvExport() }
-            } footer: {
-                Text("This is a plain, unencrypted archive — anyone who gets the file can open it with any zip tool. Store it somewhere you trust.")
             }
             .disabled(busy)
         }

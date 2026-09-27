@@ -389,6 +389,12 @@ public enum StrandPalette {
     public static let settingsIndigo = Color(light: "#5856D6", dark: "#5E5CE6")
     public static let settingsTeal   = Color(light: "#30B0C7", dark: "#40C8E0")
     public static let settingsCyan   = Color(light: "#32ADE6", dark: "#64D2FF")
+    /// Settings row icon in dark appearance, as iOS 26 draws a Dark icon: a near-black tile (lighter at
+    /// the top) under the row's coloured glyph, with a faint glass rim.
+    public static let settingsIconDarkTop    = Color(hex: "#48484A")
+    public static let settingsIconDarkBottom = Color(hex: "#2C2C2E")
+    public static let settingsIconRim        = Color.white.opacity(0.35)
+    public static let settingsIconDarkRim    = Color.white.opacity(0.14)
     /// Display → Appearance: the two miniature screens, fixed light and dark whatever the app shows.
     public static let settingsAppearanceLightPage = Color(hex: "#E9E9EE")
     public static let settingsAppearanceLightCard = Color(hex: "#FFFFFF")

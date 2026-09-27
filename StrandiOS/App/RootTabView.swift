@@ -197,7 +197,7 @@ struct RootTabView: View {
         }
         // The running gym session, reachable from ANY tab. It sits above the tab bar rather than
         // inside the Lift Log screen, because a workout outlives whichever screen you wandered to —
-        // and because swiping the sheet away must minimise the session, not end it.
+        // and because the screen's own minimize button must leave the session running, not end it.
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if liftSession.isActive {
                 LiftSessionBar()
@@ -212,7 +212,7 @@ struct RootTabView: View {
         // A session left running by a previous launch is back before this view exists
         // (`LiftSessionController.resumeSaved`, from `StrandiOSApp.init`), as the BAR — not as a sheet
         // thrown in the user's face; they open it when they want it.
-        .sheet(isPresented: $liftSession.isPresented) {
+        .fullScreenCover(isPresented: $liftSession.isPresented) {
             LiftSessionView { }
         }
     }

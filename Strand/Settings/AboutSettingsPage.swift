@@ -66,8 +66,6 @@ struct AboutSettingsPage: View {
                 Toggle("Check automatically", isOn: $autoCheckUpdates)
             } header: {
                 Text("Updates")
-            } footer: {
-                Text("Checks the project's home (GitHub) for the latest version when you tap. Nothing else is sent.")
             }
 
             #if os(iOS)
@@ -80,8 +78,6 @@ struct AboutSettingsPage: View {
 
             Section {
                 Link("Project home & source", destination: URL(string: "https://github.com/ryanbr/noop")!)
-            } footer: {
-                Text("NOOP is not a medical device. It is for informational and personal-insight purposes only and is not intended to diagnose, treat, cure or prevent any condition. Talk to a clinician for medical advice.")
             }
 
             Section {
@@ -89,8 +85,6 @@ struct AboutSettingsPage: View {
                 LabeledContent("b-nnett/goose", value: String(localized: "WHOOP 5.0 protocol"))
             } header: {
                 Text("Built on")
-            } footer: {
-                Text("Open-source BLE reverse-engineering work. Thank you.")
             }
         }
         .settingsPage("About NOOP")
@@ -182,8 +176,6 @@ private struct DiagnosticsSheet: View {
                                 .textSelection(.enabled)
                         }
                     }
-                } footer: {
-                    Text("Attach this to a bug report.")
                 }
             }
             .settingsPage("Diagnostics")
