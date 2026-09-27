@@ -562,6 +562,7 @@ enum DemoScreens {
         // The running gym session (start one from "liftlog" first; it persists across launches).
         case "liftsession": return AnyView(LiftSessionView { })
         case "journal":  return AnyView(NavigationStack { JournalView() })
+        case "insights": return AnyView(NavigationStack { InsightsHubView() })
         case "explore":  return AnyView(NavigationStack { AllMetricsView().tabRouteDestinations() })
         // One metric's page: `--demo-screen metric --demo-metric hrv` (a catalog key; defaults to HRV).
         case "metric":

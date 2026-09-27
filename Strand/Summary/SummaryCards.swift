@@ -57,6 +57,8 @@ struct SummaryCardTitleRow: View {
     let title: String
     let tint: Color
     var trailing: String? = nil
+    /// Off for a card that opens nothing.
+    var chevron = true
 
     var body: some View {
         HStack(spacing: 6) {
@@ -74,9 +76,11 @@ struct SummaryCardTitleRow: View {
                     .foregroundStyle(StrandPalette.textSecondary)
                     .lineLimit(1)
             }
-            Image(systemName: "chevron.right")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(StrandPalette.textTertiary)
+            if chevron {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(StrandPalette.textTertiary)
+            }
         }
     }
 }
@@ -269,7 +273,7 @@ struct SummaryHighlightCard: View {
                         .fixedSize(horizontal: false, vertical: true)
                     if let figures = figures {
                         Rectangle().fill(StrandPalette.hairline).frame(height: NoopMetrics.hairlineWidth)
-                        comparison(figures)
+                        figures
                     } else if highlight.key == "monotony", effortWeek.count >= 2 {
                         // The claim is "every day looks alike": seven near-equal bars show it at a glance,
                         // where the monotony index itself is a number nobody reads.
@@ -288,63 +292,20 @@ struct SummaryHighlightCard: View {
 
     /// The two figures a Health highlight sets under its sentence: the latest reading and the baseline it
     /// was read against (or the 7-day against the 28-day load). Monotony has no pair to show.
-    private struct Figures {
-        let leftTitle: String
-        let left: String
-        let rightTitle: String
-        let right: String
-        let unit: String
-        let leftValue: Double
-        let rightValue: Double
-    }
-
-    private var figures: Figures? {
+    private var figures: HighlightFigures? {
         switch highlight.evidenceData {
         case .metric(let value, let baseline, let unit, let decimals):
             // The engine's unit is a locale-free key ("ms", "bpm", "br/min"); the catalogue translates it.
-            return Figures(leftTitle: String(localized: "Latest"), left: ReadinessCopy.number(value, decimals: decimals),
-                           rightTitle: String(localized: "Your Normal"), right: ReadinessCopy.number(baseline, decimals: decimals),
-                           unit: String(localized: String.LocalizationValue(unit)), leftValue: value, rightValue: baseline)
+            return HighlightFigures(leftTitle: String(localized: "Latest"), left: ReadinessCopy.number(value, decimals: decimals),
+                                    rightTitle: String(localized: "Your Normal"), right: ReadinessCopy.number(baseline, decimals: decimals),
+                                    unit: String(localized: String.LocalizationValue(unit)),
+                                    leftValue: value, rightValue: baseline, tint: tint)
         case .trainingLoad(let acute, let chronic):
-            return Figures(leftTitle: String(localized: "Last 7 Days"), left: ReadinessCopy.number(acute, decimals: 1),
-                           rightTitle: String(localized: "Last 28 Days"), right: ReadinessCopy.number(chronic, decimals: 1),
-                           unit: "", leftValue: acute, rightValue: chronic)
+            return HighlightFigures(leftTitle: String(localized: "Last 7 Days"), left: ReadinessCopy.number(acute, decimals: 1),
+                                    rightTitle: String(localized: "Last 28 Days"), right: ReadinessCopy.number(chronic, decimals: 1),
+                                    unit: "", leftValue: acute, rightValue: chronic, tint: tint)
         case .monotony, .none:
             return nil
-        }
-    }
-
-    private func comparison(_ f: Figures) -> some View {
-        let top = max(f.leftValue, f.rightValue, 1e-6)
-        return VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .top) {
-                figure(f.leftTitle, f.left, f.unit, tint: tint)
-                Spacer()
-                figure(f.rightTitle, f.right, f.unit, tint: StrandPalette.textSecondary, trailing: true)
-            }
-            VStack(alignment: .leading, spacing: 5) {
-                bar(f.leftValue / top, tint: tint)
-                bar(f.rightValue / top, tint: StrandPalette.textTertiary.opacity(0.45))
-            }
-            .accessibilityHidden(true)
-        }
-    }
-
-    private func figure(_ title: String, _ value: String, _ unit: String, tint: Color, trailing: Bool = false) -> some View {
-        VStack(alignment: trailing ? .trailing : .leading, spacing: 2) {
-            Text(title)
-                .font(StrandFont.footnote.weight(.semibold))
-                .foregroundStyle(StrandPalette.textSecondary)
-            HStack(alignment: .firstTextBaseline, spacing: 2) {
-                Text(verbatim: value)
-                    .font(StrandFont.number(22, weight: .bold))
-                    .foregroundStyle(tint)
-                if !unit.isEmpty {
-                    Text(verbatim: unit)
-                        .font(StrandFont.subhead.weight(.semibold))
-                        .foregroundStyle(StrandPalette.textSecondary)
-                }
-            }
         }
     }
 
@@ -363,14 +324,6 @@ struct SummaryHighlightCard: View {
         .accessibilityHidden(true)
     }
 
-    private func bar(_ fraction: Double, tint: Color) -> some View {
-        GeometryReader { geo in
-            Capsule().fill(tint)
-                .frame(width: max(6, geo.size.width * CGFloat(min(1, fraction))))
-        }
-        .frame(height: 8)
-    }
-
     private var icon: String {
         switch highlight.key {
         case "hrv": return "waveform.path.ecg"
@@ -387,6 +340,61 @@ struct SummaryHighlightCard: View {
         case "respRate": return KeyMetric.respiratory.healthTint
         default: return StrandPalette.summaryEffortRing
         }
+    }
+}
+
+/// A Health highlight's figure pair: the tinted reading on the left, the grey one it is read against on the
+/// right, and a bar for each under them.
+struct HighlightFigures: View {
+    let leftTitle: String
+    let left: String
+    let rightTitle: String
+    let right: String
+    let unit: String
+    let leftValue: Double
+    let rightValue: Double
+    let tint: Color
+
+    var body: some View {
+        let top = max(leftValue, rightValue, 1e-6)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top) {
+                figure(leftTitle, left, tint: tint)
+                Spacer()
+                figure(rightTitle, right, tint: StrandPalette.textSecondary, trailing: true)
+            }
+            VStack(alignment: .leading, spacing: 5) {
+                bar(leftValue / top, tint: tint)
+                bar(rightValue / top, tint: StrandPalette.textTertiary.opacity(0.45))
+            }
+            .accessibilityHidden(true)
+        }
+    }
+
+    private func figure(_ title: String, _ value: String, tint: Color, trailing: Bool = false) -> some View {
+        VStack(alignment: trailing ? .trailing : .leading, spacing: 2) {
+            Text(title)
+                .font(StrandFont.footnote.weight(.semibold))
+                .foregroundStyle(StrandPalette.textSecondary)
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                Text(verbatim: value)
+                    .font(StrandFont.number(22, weight: .bold))
+                    .foregroundStyle(tint)
+                if !unit.isEmpty {
+                    Text(verbatim: unit)
+                        .font(StrandFont.subhead.weight(.semibold))
+                        .foregroundStyle(StrandPalette.textSecondary)
+                }
+            }
+        }
+    }
+
+    private func bar(_ fraction: Double, tint: Color) -> some View {
+        GeometryReader { geo in
+            Capsule().fill(tint)
+                .frame(width: max(6, geo.size.width * CGFloat(min(1, max(0, fraction)))))
+        }
+        .frame(height: 8)
     }
 }
 
