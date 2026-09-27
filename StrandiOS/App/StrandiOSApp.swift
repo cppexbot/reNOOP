@@ -440,6 +440,8 @@ private struct iOSRootView: View {
         // DEBUG-only: `--demo-screen <name>` renders one screen full-bleed (gates bypassed) so a
         // seeded simulator build can be screenshotted deterministically for verification + marketing.
         // No-op in Release (whole branch is #if DEBUG) and when the arg is absent.
+        // First-run setup brings its own navigation stack, as the real launch shows it.
+        if DemoScreens.isOnboarding, let demo = DemoScreens.requested { return demo }
         if let demo = DemoScreens.requested {
             // Inherit the app appearance (set via the Theme picker, or `-theme.appearance light|dark`
             // in the launch arguments) so demo/marketing shots can be taken in either scheme.
@@ -543,6 +545,12 @@ private struct iOSRootView: View {
 /// DEBUG-only screenshot harness. Maps `--demo-screen <name>` to a single screen so a seeded
 /// simulator build can be captured deterministically (verification + marketing). Stripped from Release.
 enum DemoScreens {
+    static var isOnboarding: Bool {
+        let args = CommandLine.arguments
+        guard let i = args.firstIndex(of: "--demo-screen"), i + 1 < args.count else { return false }
+        return args[i + 1].lowercased() == "onboarding"
+    }
+
     /// The screen named by `--demo-screen <name>`, or nil if the arg is absent/unknown.
     static var requested: AnyView? {
         let args = CommandLine.arguments
@@ -581,7 +589,7 @@ enum DemoScreens {
         // First-run setup, optionally on one step: `--onboarding-step 0…6`.
         case "onboarding":
             let n = args.firstIndex(of: "--onboarding-step").flatMap { $0 + 1 < args.count ? Int(args[$0 + 1]) : nil } ?? 0
-            return AnyView(OnboardingWizard(onFinished: {}, startAt: n).toolbar(.hidden, for: .navigationBar))
+            return AnyView(OnboardingWizard(onFinished: {}, startAt: n))
         // Lab Book; `--labbook-add` opens the Add Reading sheet over it.
         case "labbook":
             return AnyView(NavigationStack { LabBookView() }

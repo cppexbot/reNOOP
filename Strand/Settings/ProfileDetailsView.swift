@@ -107,8 +107,8 @@ struct ProfileDetailsView: View {
             }
 
             Section {
-                wheelRow(.height, "Height", value: heightText) { heightPicker }
-                wheelRow(.weight, "Weight", value: weightText) { weightPicker }
+                wheelRow(.height, "Height", value: heightText) { ProfileHeightPicker(imperial: imperial) }
+                wheelRow(.weight, "Weight", value: weightText) { ProfileWeightPicker(imperial: imperial) }
                 wheelRow(.waist, "Waist", value: waistText) { waistPicker }
             }
 
@@ -198,20 +198,9 @@ struct ProfileDetailsView: View {
         return "\(date) (\(profile.age))"
     }
 
-    private var heightText: String {
-        if imperial {
-            let parts = UnitFormatter.cmToFeetInches(profile.heightCm)
-            return "\(parts.feet)′ \(parts.inches)″"
-        }
-        return "\(Int(profile.heightCm.rounded())) \(String(localized: "cm"))"
-    }
+    private var heightText: String { ProfileHeightPicker.text(cm: profile.heightCm, imperial: imperial) }
 
-    private var weightText: String {
-        if imperial {
-            return "\(Int(UnitFormatter.kgToPounds(profile.weightKg).rounded())) \(String(localized: "lb"))"
-        }
-        return "\(profile.weightKg.formatted(.number.precision(.fractionLength(0...1)))) \(String(localized: "kg"))"
-    }
+    private var weightText: String { ProfileWeightPicker.text(kg: profile.weightKg, imperial: imperial) }
 
     private var waistText: String {
         guard profile.waistCm > 0 else { return String(localized: "Not set") }
@@ -228,52 +217,6 @@ struct ProfileDetailsView: View {
     }
 
     // MARK: Pickers (SI stored; imperial pickers write the cm/kg equivalent back)
-
-    @ViewBuilder private var heightPicker: some View {
-        if imperial {
-            Picker("Height", selection: Binding(
-                get: { Int(UnitFormatter.cmToInches(profile.heightCm).rounded()) },
-                set: { profile.heightCm = Double($0) * UnitFormatter.centimetersPerInch }
-            )) {
-                ForEach(47...91, id: \.self) { inches in
-                    Text(verbatim: "\(inches / 12)′ \(inches % 12)″").tag(inches)
-                }
-            }
-        } else {
-            Picker("Height", selection: Binding(
-                get: { Int(profile.heightCm.rounded()) },
-                set: { profile.heightCm = Double($0) }
-            )) {
-                ForEach(120...230, id: \.self) { cm in
-                    Text(verbatim: "\(cm) \(String(localized: "cm"))").tag(cm)
-                }
-            }
-        }
-    }
-
-    @ViewBuilder private var weightPicker: some View {
-        if imperial {
-            Picker("Weight", selection: Binding(
-                get: { Int(UnitFormatter.kgToPounds(profile.weightKg).rounded()) },
-                set: { profile.weightKg = Double($0) / UnitFormatter.poundsPerKilogram }
-            )) {
-                ForEach(66...551, id: \.self) { lb in
-                    Text(verbatim: "\(lb) \(String(localized: "lb"))").tag(lb)
-                }
-            }
-        } else {
-            // Half-kilogram steps, 30…250 kg, carried as tenths so the tag is an exact Int.
-            Picker("Weight", selection: Binding(
-                get: { Int((profile.weightKg * 2).rounded()) * 5 },
-                set: { profile.weightKg = Double($0) / 10 }
-            )) {
-                ForEach(Array(stride(from: 300, through: 2500, by: 5)), id: \.self) { tenths in
-                    Text(verbatim: "\((Double(tenths) / 10).formatted(.number.precision(.fractionLength(0...1)))) \(String(localized: "kg"))")
-                        .tag(tenths)
-                }
-            }
-        }
-    }
 
     /// 0 = not set (optional); VO₂max works without it, a waist makes it more accurate.
     @ViewBuilder private var waistPicker: some View {
@@ -370,5 +313,83 @@ struct HeartRateZonesPage: View {
         let lower = Int(zone.lower.rounded())
         if zone.number == 5 { return "\(lower)+ \(bpm)" }
         return "\(lower)–\(Int(zone.upper.rounded()) - 1) \(bpm)"
+    }
+}
+
+// MARK: - Height and weight wheels
+
+/// The height wheel Health Details and first-run setup share; stored SI, an imperial wheel writes the cm
+/// equivalent back.
+struct ProfileHeightPicker: View {
+    @EnvironmentObject private var profile: ProfileStore
+    let imperial: Bool
+
+    /// The height as its row shows it: "178 cm", "5′ 10″".
+    static func text(cm: Double, imperial: Bool) -> String {
+        if imperial {
+            let parts = UnitFormatter.cmToFeetInches(cm)
+            return "\(parts.feet)′ \(parts.inches)″"
+        }
+        return "\(Int(cm.rounded())) \(String(localized: "cm"))"
+    }
+
+    var body: some View {
+        if imperial {
+            Picker("Height", selection: Binding(
+                get: { Int(UnitFormatter.cmToInches(profile.heightCm).rounded()) },
+                set: { profile.heightCm = Double($0) * UnitFormatter.centimetersPerInch }
+            )) {
+                ForEach(47...91, id: \.self) { inches in
+                    Text(verbatim: "\(inches / 12)′ \(inches % 12)″").tag(inches)
+                }
+            }
+        } else {
+            Picker("Height", selection: Binding(
+                get: { Int(profile.heightCm.rounded()) },
+                set: { profile.heightCm = Double($0) }
+            )) {
+                ForEach(120...230, id: \.self) { cm in
+                    Text(verbatim: "\(cm) \(String(localized: "cm"))").tag(cm)
+                }
+            }
+        }
+    }
+}
+
+/// The weight wheel Health Details and first-run setup share; stored SI.
+struct ProfileWeightPicker: View {
+    @EnvironmentObject private var profile: ProfileStore
+    let imperial: Bool
+
+    /// The weight as its row shows it: "75 kg", "165 lb".
+    static func text(kg: Double, imperial: Bool) -> String {
+        if imperial {
+            return "\(Int(UnitFormatter.kgToPounds(kg).rounded())) \(String(localized: "lb"))"
+        }
+        return "\(kg.formatted(.number.precision(.fractionLength(0...1)))) \(String(localized: "kg"))"
+    }
+
+    var body: some View {
+        if imperial {
+            Picker("Weight", selection: Binding(
+                get: { Int(UnitFormatter.kgToPounds(profile.weightKg).rounded()) },
+                set: { profile.weightKg = Double($0) / UnitFormatter.poundsPerKilogram }
+            )) {
+                ForEach(66...551, id: \.self) { lb in
+                    Text(verbatim: "\(lb) \(String(localized: "lb"))").tag(lb)
+                }
+            }
+        } else {
+            // Half-kilogram steps, 30…250 kg, carried as tenths so the tag is an exact Int.
+            Picker("Weight", selection: Binding(
+                get: { Int((profile.weightKg * 2).rounded()) * 5 },
+                set: { profile.weightKg = Double($0) / 10 }
+            )) {
+                ForEach(Array(stride(from: 300, through: 2500, by: 5)), id: \.self) { tenths in
+                    Text(verbatim: "\((Double(tenths) / 10).formatted(.number.precision(.fractionLength(0...1)))) \(String(localized: "kg"))")
+                        .tag(tenths)
+                }
+            }
+        }
     }
 }
