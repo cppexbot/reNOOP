@@ -3,7 +3,6 @@ import StrandDesign
 
 enum NavItem: String, CaseIterable, Identifiable, Hashable {
     case today = "Today"
-    case intelligence = "Intelligence"
     case insightsHub = "What Moves You"
     case coach = "Coach"
     case live = "Live"
@@ -38,7 +37,6 @@ enum NavItem: String, CaseIterable, Identifiable, Hashable {
     var titleKey: LocalizedStringKey {
         switch self {
         case .today: return "Today"
-        case .intelligence: return "Intelligence"
         case .insightsHub: return "What Moves You"
         case .coach: return "Coach"
         case .live: return "Live"
@@ -80,7 +78,6 @@ enum NavItem: String, CaseIterable, Identifiable, Hashable {
     var localizedTitle: String {
         switch self {
         case .today: return String(localized: "Today")
-        case .intelligence: return String(localized: "Intelligence")
         case .insightsHub: return String(localized: "What Moves You")
         case .coach: return String(localized: "Coach")
         case .live: return String(localized: "Live")
@@ -114,7 +111,6 @@ enum NavItem: String, CaseIterable, Identifiable, Hashable {
     var icon: String {
         switch self {
         case .today: return "circle.hexagongrid.fill"
-        case .intelligence: return "brain.head.profile"
         case .insightsHub: return "wand.and.sparkles"
         case .coach: return "sparkles"
         case .live: return "waveform.path.ecg"
@@ -169,7 +165,7 @@ struct NavGroup: Identifiable {
         // S6: the overlapping insight surfaces (Intelligence / What Moves You / Insights / Insights Hub)
         // all collapse under this single Insights group rather than scattering across the flat list.
         NavGroup(title: "Insights", id: "insights", items: [
-            .intelligence, .insightsHub, .coach, .explore, .compare, .insights,
+            .insightsHub, .coach, .explore, .compare, .insights,
             .labBook, .rhythm, .trends,
         ]),
         NavGroup(title: "Data & App", id: "data_app", items: [
@@ -422,7 +418,6 @@ struct RootView: View {
     @ViewBuilder private var detail: some View {
         switch selection ?? .today {
         case .today: todayDetail
-        case .intelligence: IntelligenceView()
         case .insightsHub: InsightsHubView()
         case .coach: CoachView()
         case .live: liveDetail

@@ -68,7 +68,7 @@ final class MoreListParityTests: XCTestCase {
     /// collapse under one Insights group rather than scattering across the flat list. Pin that they share a
     /// single group so a future edit can't re-scatter them.
     func testInsightSurfacesShareOneGroup() {
-        let insightItems: [NavItem] = [.intelligence, .insightsHub, .insights]
+        let insightItems: [NavItem] = [.insightsHub, .insights]
         let groups = Set(insightItems.compactMap { NavGroup.group(containing: $0)?.id })
         XCTAssertEqual(groups.count, 1,
                        "The overlapping insight surfaces must collapse under a single sidebar group (S6).")

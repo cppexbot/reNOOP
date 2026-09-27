@@ -29,7 +29,6 @@ struct BrowseView: View {
     private var groups: [Category] {
         var insights = [
             Entry(id: .insightsHub, title: String(localized: "What Moves You"), icon: "wand.and.sparkles", tint: StrandPalette.metricPurple),
-            Entry(id: .intelligence, title: String(localized: "Intelligence"), icon: "brain.head.profile", tint: StrandPalette.metricPurple),
             Entry(id: .insights, title: String(localized: "Insights"), icon: "lightbulb.fill", tint: StrandPalette.metricAmber),
             Entry(id: .trends, title: String(localized: "Trends"), icon: "chart.line.uptrend.xyaxis", tint: StrandPalette.metricCyan),
             Entry(id: .allMetrics, title: String(localized: "All Metrics"), icon: "list.bullet", tint: StrandPalette.metricCyan),
@@ -122,7 +121,7 @@ struct BrowseView: View {
 /// per-screen chrome the old inline links applied lives at the single `navigationDestination(for:)`
 /// registration in `RootTabView.browseTab`.
 enum MoreDestination: Hashable {
-    case insightsHub, intelligence, coach, insights, allMetrics, compare
+    case insightsHub, coach, insights, allMetrics, compare
     case trends
     case live, health, labBook, stress, breathe, rhythm
     case fusedRecord, miBand
@@ -131,7 +130,6 @@ enum MoreDestination: Hashable {
     @ViewBuilder var destination: some View {
         switch self {
         case .insightsHub:     InsightsHubView()
-        case .intelligence:    IntelligenceView()
         case .coach:           CoachView()
         case .insights:        InsightsView()
         case .allMetrics:      AllMetricsView()
