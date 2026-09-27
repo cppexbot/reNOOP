@@ -563,7 +563,6 @@ enum DemoScreens {
         case "metric":
             let key = args.firstIndex(of: "--demo-metric").flatMap { $0 + 1 < args.count ? args[$0 + 1] : nil } ?? "hrv"
             return MetricCatalog.all.first { $0.key == key }.map { AnyView(MetricDetailView(metric: $0)) }
-        case "compare":  return AnyView(CompareView())
         // Settings, optionally opened on one page: `--demo-screen settings --settings-page display`.
         case "settings":
             let page = args.firstIndex(of: "--settings-page").flatMap { $0 + 1 < args.count ? args[$0 + 1] : nil }

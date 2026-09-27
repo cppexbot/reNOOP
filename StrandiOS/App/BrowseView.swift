@@ -32,7 +32,6 @@ struct BrowseView: View {
             Entry(id: .insights, title: String(localized: "Insights"), icon: "lightbulb.fill", tint: StrandPalette.metricAmber),
             Entry(id: .trends, title: String(localized: "Trends"), icon: "chart.line.uptrend.xyaxis", tint: StrandPalette.metricCyan),
             Entry(id: .allMetrics, title: String(localized: "All Metrics"), icon: "list.bullet", tint: StrandPalette.metricCyan),
-            Entry(id: .compare, title: String(localized: "Compare"), icon: "rectangle.split.2x1.fill", tint: StrandPalette.metricCyan),
         ]
         if coachEnabled {
             insights.insert(Entry(id: .coach, title: String(localized: "Coach"), icon: "sparkles",
@@ -45,10 +44,6 @@ struct BrowseView: View {
                 Entry(id: .labBook, title: String(localized: "Lab Book"), icon: "books.vertical.fill", tint: StrandPalette.metricAmber),
                 Entry(id: .stress, title: String(localized: "Stress"), icon: "bolt.heart.fill", tint: StrandPalette.metricAmber),
                 Entry(id: .breathe, title: String(localized: "Breathe"), icon: "wind", tint: StrandPalette.metricCyan),
-                Entry(id: .rhythm, title: String(localized: "Rhythm"), icon: "waveform.path", tint: StrandPalette.metricRose),
-            ]),
-            Category(id: String(localized: "Data"), entries: [
-                Entry(id: .fusedRecord, title: String(localized: "Your Data, Fused"), icon: "square.stack.3d.up.fill", tint: StrandPalette.accent),
             ]),
             Category(id: String(localized: "App"), entries: [
                 Entry(id: .alarms, title: String(localized: "Alarms"), icon: "alarm.fill", tint: StrandPalette.summaryEffortRing),
@@ -119,10 +114,9 @@ struct BrowseView: View {
 /// per-screen chrome the old inline links applied lives at the single `navigationDestination(for:)`
 /// registration in `RootTabView.browseTab`.
 enum MoreDestination: Hashable {
-    case insightsHub, coach, insights, allMetrics, compare
+    case insightsHub, coach, insights, allMetrics
     case trends
-    case live, labBook, stress, breathe, rhythm
-    case fusedRecord
+    case live, labBook, stress, breathe
     case alarms, settings
 
     @ViewBuilder var destination: some View {
@@ -131,14 +125,11 @@ enum MoreDestination: Hashable {
         case .coach:           CoachView()
         case .insights:        InsightsView()
         case .allMetrics:      AllMetricsView()
-        case .compare:         CompareView()
         case .trends:          TrendsView()
         case .live:            LiveView()
         case .labBook:         LabBookView()
         case .stress:          StressView()
         case .breathe:         BreathingView()
-        case .rhythm:          RhythmHost()
-        case .fusedRecord:     FusedRecordHost()
         case .alarms:          SmartAlarmView()
         case .settings:        SettingsView()
         }

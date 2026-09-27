@@ -84,7 +84,7 @@ final class DeviceRawSourceParityTests: XCTestCase {
         }
     }
 
-    func testCoachTimelineAndRhythmUseDeviceAwareRawFacades() throws {
+    func testCoachAndTimelineUseDeviceAwareRawFacades() throws {
         let coach = try production("Strand/AI/AICoach.swift")
         XCTAssertTrue(coach.contains("repo.rrIntervals(from:"),
                       "AI Coach stress context must use Repository's all-source R-R facade")
@@ -107,12 +107,5 @@ final class DeviceRawSourceParityTests: XCTestCase {
         XCTAssertTrue(repository.contains("ids: rawComputedReadIds(store: store)"),
                       "Computed sleep reads must include every registered WHOOP strap")
 
-        let pillars = try production("Strand/Screens/V5PillarHosts.swift")
-        XCTAssertTrue(pillars.contains("repo.rrIntervals(from:"),
-                      "Rhythm must use Repository's all-source R-R facade")
-        XCTAssertTrue(pillars.contains("repo.gravitySamplesUnion(from:"),
-                      "Rhythm must use Repository's all-source gravity facade")
-        XCTAssertFalse(pillars.contains("store.rrIntervals(deviceId: repo.deviceId"),
-                       "Rhythm must not pin R-R to the currently active device")
     }
 }

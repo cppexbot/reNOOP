@@ -139,7 +139,7 @@ struct RootTabView: View {
             case .devices:
                 showDevices = true
                 router.requestedDestination = nil
-            case .insightsHub, .labBook, .fusedRecord, .rhythm:
+            case .insightsHub, .labBook:
                 routedPillar = dest
                 router.requestedDestination = nil
             case .coach:
@@ -246,8 +246,6 @@ struct RootTabView: View {
                 switch dest {
                 case .insightsHub: InsightsHubView()
                 case .labBook: LabBookView()
-                case .fusedRecord: FusedRecordHost()
-                case .rhythm: RhythmHost(onClose: { routedPillar = nil })
                 case .devices: DevicesView()
                 case .trends: TrendsView()
                 // .activeWorkout routes through the quick-action Live sheet (handled above); this keeps the

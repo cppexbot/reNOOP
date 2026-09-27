@@ -9,18 +9,15 @@ enum NavItem: String, CaseIterable, Identifiable, Hashable {
     case breathe = "Breathe"
     case intervals = "Intervals"
     case explore = "Explore"
-    case compare = "Compare"
     case insights = "Insights"
     case sleep = "Sleep"
     case trends = "Trends"
     case workouts = "Workouts"
     case stress = "Stress"
     case labBook = "Lab Book"
-    case rhythm = "Rhythm"
     case appleHealth = "Apple Health"
     case dataSources = "Data Sources"
     case backupSync = "Backup & Sync"
-    case fusedRecord = "Your Data, Fused"
     case devices = "Devices"
     case notifications = "Notifications"
     case automation = "Automations"
@@ -41,18 +38,15 @@ enum NavItem: String, CaseIterable, Identifiable, Hashable {
         case .breathe: return "Breathe"
         case .intervals: return "Intervals"
         case .explore: return "Explore"
-        case .compare: return "Compare"
         case .insights: return "Insights"
         case .sleep: return "Sleep"
         case .trends: return "Trends"
         case .workouts: return "Workouts"
         case .stress: return "Stress"
         case .labBook: return "Lab Book"
-        case .rhythm: return "Rhythm"
         case .appleHealth: return "Apple Health"
         case .dataSources: return "Data Sources"
         case .backupSync: return "Backup & Sync"
-        case .fusedRecord: return "Your Data, Fused"
         case .devices: return "Devices"
         case .notifications: return "Notifications"
         case .automation: return "Automations"
@@ -80,18 +74,15 @@ enum NavItem: String, CaseIterable, Identifiable, Hashable {
         case .breathe: return String(localized: "Breathe")
         case .intervals: return String(localized: "Intervals")
         case .explore: return String(localized: "All Metrics")
-        case .compare: return String(localized: "Compare")
         case .insights: return String(localized: "Insights")
         case .sleep: return String(localized: "Sleep")
         case .trends: return String(localized: "Trends")
         case .workouts: return String(localized: "Workouts")
         case .stress: return String(localized: "Stress")
         case .labBook: return String(localized: "Lab Book")
-        case .rhythm: return String(localized: "Rhythm")
         case .appleHealth: return String(localized: "Apple Health")
         case .dataSources: return String(localized: "Data Sources")
         case .backupSync: return String(localized: "Backup & Sync")
-        case .fusedRecord: return String(localized: "Your Data, Fused")
         case .devices: return String(localized: "Devices")
         case .notifications: return String(localized: "Notifications")
         case .automation: return String(localized: "Automations")
@@ -111,18 +102,15 @@ enum NavItem: String, CaseIterable, Identifiable, Hashable {
         case .breathe: return "lungs.fill"
         case .intervals: return "timer"
         case .explore: return "list.bullet"
-        case .compare: return "chart.line.uptrend.xyaxis"
         case .insights: return "lightbulb.fill"
         case .sleep: return "moon.stars.fill"
         case .trends: return "chart.xyaxis.line"
         case .workouts: return "figure.run"
         case .stress: return "gauge.with.dots.needle.50percent"
         case .labBook: return "books.vertical.fill"
-        case .rhythm: return "waveform.path"
         case .appleHealth: return "heart.fill"
         case .dataSources: return "square.and.arrow.down.fill"
         case .backupSync: return "externaldrive.fill.badge.icloud"
-        case .fusedRecord: return "square.stack.3d.up.fill"
         case .devices: return "badge.plus.radiowaves.right"
         case .notifications: return "bell.badge.fill"
         case .automation: return "wand.and.stars"
@@ -157,11 +145,11 @@ struct NavGroup: Identifiable {
         // S6: the overlapping insight surfaces (Intelligence / What Moves You / Insights / Insights Hub)
         // all collapse under this single Insights group rather than scattering across the flat list.
         NavGroup(title: "Insights", id: "insights", items: [
-            .insightsHub, .coach, .explore, .compare, .insights,
-            .labBook, .rhythm, .trends,
+            .insightsHub, .coach, .explore, .insights,
+            .labBook, .trends,
         ]),
         NavGroup(title: "Data & App", id: "data_app", items: [
-            .devices, .dataSources, .appleHealth, .backupSync, .fusedRecord,
+            .devices, .dataSources, .appleHealth, .backupSync,
             .notifications, .automation, .smartAlarm, .settings, .testCentre,
         ]),
     ]
@@ -298,8 +286,6 @@ struct RootView: View {
             case .devices: selection = .devices
             case .insightsHub: selection = .insightsHub
             case .labBook: selection = .labBook
-            case .fusedRecord: selection = .fusedRecord
-            case .rhythm: selection = .rhythm
             case .trends: selection = .trends
             // The Today active-workout indicator routes to the Live surface; LiveView then consumes the
             // one-shot `presentActiveWorkout` flag on appear to open the in-exercise screen.
@@ -416,18 +402,15 @@ struct RootView: View {
         case .breathe: BreathingView()
         case .intervals: IntervalTimerView()
         case .explore: NavigationStack { AllMetricsView().tabRouteDestinations() }
-        case .compare: CompareView()
         case .insights: InsightsView()
         case .sleep: NavigationStack { SleepHealthView().tabRouteDestinations() }
         case .trends: TrendsView()
         case .workouts: NavigationStack { WorkoutsHomeView().tabRouteDestinations() }
         case .stress: StressView()
         case .labBook: LabBookView()
-        case .rhythm: RhythmHost()
         case .appleHealth: AppleHealthView()
         case .dataSources: DataSourcesView()
         case .backupSync: BackupSyncView()
-        case .fusedRecord: FusedRecordHost()
         case .devices: DevicesView()
         case .notifications: NotificationSettingsView()
         case .automation: NotificationsSettingsPage()

@@ -16,15 +16,12 @@ import Combine
 @MainActor
 final class NavRouter: ObservableObject {
     /// A top-level destination a screen can ask the shell to open. Deliberately minimal — the Devices
-    /// manager, the v5 pillar screens the new in-hub rows deep-link to (Insights hub, Lab Book, the
-    /// fused record, the experimental Rhythm visualization), Trends, and the active-workout return route
+    /// manager, the v5 pillar screens the in-hub rows deep-link to (Insights hub, Lab Book), Trends, and the active-workout return route
     /// the Today indicator card raises.
     enum Destination: String, Equatable, Identifiable {
         case devices
         case insightsHub
         case labBook
-        case fusedRecord
-        case rhythm
         case trends
         case activeWorkout
         case liveSession
@@ -71,10 +68,6 @@ final class NavRouter: ObservableObject {
     func openInsightsHub() { requestedDestination = .insightsHub }
     /// Open the Lab Book (private health-records logbook).
     func openLabBook() { requestedDestination = .labBook }
-    /// Open the "Your Data, Fused" multi-device record.
-    func openFusedRecord() { requestedDestination = .fusedRecord }
-    /// Open the experimental Rhythm visualization (self-gates on its own consent).
-    func openRhythm() { requestedDestination = .rhythm }
     /// Open the Trends screen (where a "new data" reading deep-links).
     func openTrends() { requestedDestination = .trends }
     /// Open the active workout: route to the Live surface AND raise the one-shot flag so `LiveView`

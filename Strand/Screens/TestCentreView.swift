@@ -20,7 +20,6 @@ import WhoopProtocol
 struct TestCentreView: View {
     @EnvironmentObject var model: AppModel
     @EnvironmentObject var live: LiveState
-    @EnvironmentObject var router: NavRouter
 
     /// The Developer page's rows, drawn after the diagnostics.
     var extra: AnyView = AnyView(EmptyView())
@@ -158,8 +157,6 @@ struct TestCentreView: View {
     @AppStorage(PuffinExperiment.motionAwareWakeKey) private var motionAwareWakeEnabled = false
     /// #103: surface the unverified strap SpO₂ estimate when no calibrated reading exists.
     @AppStorage(PuffinExperiment.spo2CandidateDisplayKey) private var spo2CandidateDisplayEnabled = false
-    /// v5 Rhythm experimental gate (the screen still shows its own consent clickwrap when opened).
-    @AppStorage(RhythmConsent.enabledKey) private var rhythmEnabled = false
 
     /// True when the connected strap is a 5/MG, so the 5/MG experimental block shows. Mirrors the
     /// SettingsView gate (#22): a confident 4.0 owner never sees controls that cannot touch their strap.
@@ -580,10 +577,6 @@ struct TestCentreView: View {
                     }
             }
             Toggle("HR-from-PPG sub-lag interpolation (v26 gap-fill)", isOn: $ppgHrSubLagInterpEnabled)
-            Toggle("Rhythm visualization (experimental)", isOn: $rhythmEnabled)
-            if rhythmEnabled {
-                Button("Open Rhythm") { router.openRhythm() }
-            }
             Toggle("HRV readiness (Plews/Altini)", isOn: $hrvReadinessEnabled)
             // The toggle's OWN effect, shown in place: when on, the live Plews/Altini reading. Nothing
             // renders when off, so the flag off is zero behaviour change and feeds no downstream gate.
