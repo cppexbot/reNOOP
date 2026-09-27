@@ -1,6 +1,8 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Categories": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Категории"}} } },
+    "Live Heart Rate": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Пульс в реальном времени"}} } },
     "Type": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Тип"}} } },
     "To Log": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Внесение"}} } },
     "Logged": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Занесено"}} } },

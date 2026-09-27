@@ -386,7 +386,7 @@ struct RootTabView: View {
             BrowseView()
                 // Trends pushes metric pages as TabRoute values, so this stack resolves them too.
                 .tabRouteDestinations()
-                // Settings (a Browse row) pushes its pages as SettingsPage values.
+                // Devices (a Browse row) pushes its settings pages as SettingsPage values.
                 .settingsDestinations()
                 .navigationDestination(for: MoreDestination.self) { route in
                     route.destination

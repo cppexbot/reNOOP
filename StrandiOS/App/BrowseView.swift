@@ -1,17 +1,17 @@
 //  BrowseView.swift
 //  NOOP · the Browse (search) tab — every screen outside the three main tabs, in one searchable list.
 //
-//  Modelled on the iOS 26 Health app: the search tab sits apart from the tab capsule as its own glass
-//  circle, and opens a large-title list of categories with a search field. The rows push
-//  `MoreDestination` values so a re-tap of the tab pops them off its bound path (#135/#198).
+//  Modelled on the iOS 26 Health app's search tab: a large title, a bold "Categories" header over one
+//  card of rows (a tinted glyph, the name, a chevron) in alphabetical order, and a second, headerless
+//  card below it, as Health keeps Clinical Documents apart. The rows push `MoreDestination` values so
+//  a re-tap of the tab pops them off its bound path (#135/#198). Settings and Live Session are not
+//  here: Settings opens from the Summary avatar (Health's profile sheet), a session from Summary's "+".
 
 import SwiftUI
 import StrandDesign
 
 struct BrowseView: View {
-    @EnvironmentObject private var router: NavRouter
     @AppStorage("noop.coachEnabled") private var coachEnabled = true
-    @AppStorage(LiveSessionPrefs.betaKey) private var liveSessionsBeta = true
     @State private var query = ""
 
     struct Entry: Identifiable {
@@ -21,77 +21,60 @@ struct BrowseView: View {
         let tint: Color
     }
 
-    struct Category: Identifiable {
-        let id: String
-        let entries: [Entry]
-    }
-
-    private var groups: [Category] {
-        var insights = [
-            Entry(id: .insightsHub, title: String(localized: "What Moves You"), icon: "wand.and.sparkles", tint: StrandPalette.metricPurple),
+    /// Health's categories card: the places to read and log data.
+    private var categories: [Entry] {
+        var rows = [
+            Entry(id: .allMetrics, title: String(localized: "All Metrics"), icon: "square.grid.2x2.fill", tint: StrandPalette.healthOxygen),
+            Entry(id: .trends, title: String(localized: "Trends"), icon: "chart.line.uptrend.xyaxis", tint: StrandPalette.healthRespiratory),
             Entry(id: .journal, title: String(localized: "Journal"), icon: "book.pages.fill", tint: StrandPalette.healthMind),
-            Entry(id: .trends, title: String(localized: "Trends"), icon: "chart.line.uptrend.xyaxis", tint: StrandPalette.metricCyan),
-            Entry(id: .allMetrics, title: String(localized: "All Metrics"), icon: "list.bullet", tint: StrandPalette.metricCyan),
+            Entry(id: .insightsHub, title: String(localized: "What Moves You"), icon: "wand.and.sparkles", tint: StrandPalette.healthTemperature),
+            Entry(id: .labBook, title: String(localized: "Lab Book"), icon: "list.clipboard.fill", tint: StrandPalette.healthSleepCore),
         ]
         if coachEnabled {
-            insights.insert(Entry(id: .coach, title: String(localized: "Coach"), icon: "sparkles",
-                                  tint: StrandPalette.metricPurple), at: 0)
+            rows.append(Entry(id: .coach, title: String(localized: "Coach"), icon: "sparkles", tint: StrandPalette.healthBody))
         }
-        return [
-            Category(id: String(localized: "Insights"), entries: insights),
-            Category(id: String(localized: "Body"), entries: [
-                Entry(id: .live, title: String(localized: "Live"), icon: "waveform.path.ecg", tint: StrandPalette.metricRose),
-                Entry(id: .labBook, title: String(localized: "Lab Book"), icon: "books.vertical.fill", tint: StrandPalette.metricAmber),
-                Entry(id: .breathe, title: String(localized: "Breathe"), icon: "wind", tint: StrandPalette.metricCyan),
-            ]),
-            Category(id: String(localized: "App"), entries: [
-                Entry(id: .alarms, title: String(localized: "Alarms"), icon: "alarm.fill", tint: StrandPalette.summaryEffortRing),
-                Entry(id: .settings, title: String(localized: "Settings"), icon: "gearshape.fill", tint: StrandPalette.textSecondary),
-            ]),
-        ]
+        return rows.sorted(by: Self.alphabetical)
     }
 
-    /// Groups narrowed to rows whose title contains the query (case- and diacritic-insensitive).
-    private var visibleGroups: [Category] {
-        let q = query.trimmingCharacters(in: .whitespaces)
-        guard !q.isEmpty else { return groups }
-        return groups.compactMap { group in
-            let hits = group.entries.filter {
-                $0.title.range(of: q, options: [.caseInsensitive, .diacriticInsensitive]) != nil
-            }
-            return hits.isEmpty ? nil : Category(id: group.id, entries: hits)
-        }
+    /// The second card: tools that act rather than show history.
+    private var tools: [Entry] {
+        [
+            Entry(id: .live, title: String(localized: "Live Heart Rate"), icon: "waveform.path.ecg", tint: StrandPalette.healthHeart),
+            Entry(id: .breathe, title: String(localized: "Breathe"), icon: "lungs.fill", tint: StrandPalette.healthRespiratory),
+            Entry(id: .alarms, title: String(localized: "Alarms"), icon: "alarm.fill", tint: StrandPalette.healthSleepDeep),
+            Entry(id: .devices, title: String(localized: "Devices"), icon: "sensor.tag.radiowaves.forward.fill", tint: StrandPalette.textSecondary),
+        ].sorted(by: Self.alphabetical)
     }
+
+    private static func alphabetical(_ a: Entry, _ b: Entry) -> Bool {
+        a.title.localizedStandardCompare(b.title) == .orderedAscending
+    }
+
+    /// Rows whose title contains the query (case- and diacritic-insensitive), as one flat list.
+    private var hits: [Entry] {
+        let q = query.trimmingCharacters(in: .whitespaces)
+        return (categories + tools)
+            .filter { $0.title.range(of: q, options: [.caseInsensitive, .diacriticInsensitive]) != nil }
+            .sorted(by: Self.alphabetical)
+    }
+
+    private var searching: Bool { !query.trimmingCharacters(in: .whitespaces).isEmpty }
 
     var body: some View {
         List {
-            // Live Session owns the whole display, so it is an action (the shell's full-screen cover)
-            // rather than a pushed row. Hidden while searching and when its beta switch is off.
-            if liveSessionsBeta && query.isEmpty {
+            if searching {
+                Section { rows(hits) }
+            } else {
                 Section {
-                    Button { router.requestedDestination = .liveSession } label: {
-                        Label {
-                            Text("Start session").foregroundStyle(StrandPalette.textPrimary)
-                        } icon: {
-                            Image(systemName: "shield.lefthalf.filled").foregroundStyle(StrandPalette.metricCyan)
-                        }
-                    }
+                    rows(categories)
+                } header: {
+                    Text("Categories")
+                        .font(StrandFont.pro(22, weight: .bold))
+                        .foregroundStyle(StrandPalette.textPrimary)
+                        .textCase(nil)
+                        .padding(.bottom, 4)
                 }
-            }
-            ForEach(visibleGroups) { group in
-                Section(group.id) {
-                    ForEach(group.entries) { entry in
-                        NavigationLink(value: entry.id) {
-                            Label {
-                                Text(entry.title)
-                                    .foregroundStyle(StrandPalette.textPrimary)
-                            } icon: {
-                                Image(systemName: entry.icon)
-                                    .foregroundStyle(entry.tint)
-                            }
-                        }
-                    }
-                }
+                Section { rows(tools) }
             }
         }
         .listStyle(.insetGrouped)
@@ -101,35 +84,52 @@ struct BrowseView: View {
         .navigationBarTitleDisplayMode(.large)
         .searchable(text: $query)
         .overlay {
-            if visibleGroups.isEmpty {
+            if searching && hits.isEmpty {
                 ContentUnavailableView.search(text: query)
             }
         }
     }
+
+    private func rows(_ entries: [Entry]) -> some View {
+        ForEach(entries) { entry in
+            NavigationLink(value: entry.id) {
+                Label {
+                    Text(entry.title)
+                        .font(StrandFont.pro(17, weight: .semibold))
+                        .foregroundStyle(StrandPalette.textPrimary)
+                } icon: {
+                    Image(systemName: entry.icon)
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundStyle(entry.tint)
+                }
+            }
+            // Health's rows are 51 pt tall; the default insets on top of the label ran taller.
+            .frame(height: 51)
+            .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20))
+        }
+    }
 }
 
-/// Every screen the More index links to, as a `Hashable` value the tab's `NavigationPath` can carry
+/// Every screen the Browse list links to, as a `Hashable` value the tab's `NavigationPath` can carry
 /// (#198): a closure-destination push would bypass the path and be un-poppable on tab re-tap. The
-/// per-screen chrome the old inline links applied lives at the single `navigationDestination(for:)`
-/// registration in `RootTabView.browseTab`.
+/// per-screen chrome lives at the single `navigationDestination(for:)` registration in
+/// `RootTabView.browseTab`.
 enum MoreDestination: Hashable {
-    case insightsHub, coach, journal, allMetrics
-    case trends
-    case live, labBook, breathe
-    case alarms, settings
+    case allMetrics, trends, journal, insightsHub, labBook, coach
+    case live, breathe, alarms, devices
 
     @ViewBuilder var destination: some View {
         switch self {
-        case .insightsHub:     InsightsHubView()
-        case .coach:           CoachView()
-        case .journal:         JournalView()
-        case .allMetrics:      AllMetricsView()
-        case .trends:          TrendsView()
-        case .live:            LiveView()
-        case .labBook:         LabBookView()
-        case .breathe:         BreathingView()
-        case .alarms:          SmartAlarmView()
-        case .settings:        SettingsView()
+        case .allMetrics:  AllMetricsView()
+        case .trends:      TrendsView()
+        case .journal:     JournalView()
+        case .insightsHub: InsightsHubView()
+        case .labBook:     LabBookView()
+        case .coach:       CoachView()
+        case .live:        LiveView()
+        case .breathe:     BreathingView()
+        case .alarms:      SmartAlarmView()
+        case .devices:     DevicesView()
         }
     }
 }
