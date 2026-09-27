@@ -49,7 +49,6 @@ struct BrowseView: View {
             ]),
             Category(id: String(localized: "Data"), entries: [
                 Entry(id: .fusedRecord, title: String(localized: "Your Data, Fused"), icon: "square.stack.3d.up.fill", tint: StrandPalette.accent),
-                Entry(id: .miBand, title: String(localized: "Mi Band"), icon: "figure.walk.motion", tint: StrandPalette.summaryChargeRing),
             ]),
             Category(id: String(localized: "App"), entries: [
                 Entry(id: .alarms, title: String(localized: "Alarms"), icon: "alarm.fill", tint: StrandPalette.summaryEffortRing),
@@ -123,7 +122,7 @@ enum MoreDestination: Hashable {
     case insightsHub, coach, insights, allMetrics, compare
     case trends
     case live, labBook, stress, breathe, rhythm
-    case fusedRecord, miBand
+    case fusedRecord
     case alarms, settings
 
     @ViewBuilder var destination: some View {
@@ -140,7 +139,6 @@ enum MoreDestination: Hashable {
         case .breathe:         BreathingView()
         case .rhythm:          RhythmHost()
         case .fusedRecord:     FusedRecordHost()
-        case .miBand:          XiaomiBandView()
         case .alarms:          SmartAlarmView()
         case .settings:        SettingsView()
         }
