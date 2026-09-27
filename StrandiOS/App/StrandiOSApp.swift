@@ -557,7 +557,6 @@ enum DemoScreens {
         case "liftlog":  return AnyView(NavigationStack { LiftLogView().tabRouteDestinations() })
         // The running gym session (start one from "liftlog" first; it persists across launches).
         case "liftsession": return AnyView(LiftSessionView { })
-        case "health":   return AnyView(HealthView())
         case "insights": return AnyView(InsightsView())
         case "explore":  return AnyView(NavigationStack { AllMetricsView().tabRouteDestinations() })
         // One metric's page: `--demo-screen metric --demo-metric hrv` (a catalog key; defaults to HRV).
@@ -573,8 +572,6 @@ enum DemoScreens {
         case "chargebreakdown": return AnyView(ChargeBreakdownDemoHost())
         case "devices":  return AnyView(DevicesView())
         case "devicescatalog": return AnyView(DeviceCardCatalog())
-        case "fitnessage": return AnyView(FitnessAgeDemoScreen())
-        case "vitality": return AnyView(VitalityDemoScreen())
         case "addwizard": return AnyView(AddWizardDemoHost())
         // Oura onboarding: the Add-device wizard deep-linked straight to the Oura factory-reset-and-adopt
         // prep step (the Beta banner + get/lose card + the red irreversible-consent gate), screenshot-able

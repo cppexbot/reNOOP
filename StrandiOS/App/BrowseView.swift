@@ -42,7 +42,6 @@ struct BrowseView: View {
             Category(id: String(localized: "Insights"), entries: insights),
             Category(id: String(localized: "Body"), entries: [
                 Entry(id: .live, title: String(localized: "Live"), icon: "waveform.path.ecg", tint: StrandPalette.metricRose),
-                Entry(id: .health, title: String(localized: "Health"), icon: "heart.text.square.fill", tint: StrandPalette.metricRose),
                 Entry(id: .labBook, title: String(localized: "Lab Book"), icon: "books.vertical.fill", tint: StrandPalette.metricAmber),
                 Entry(id: .stress, title: String(localized: "Stress"), icon: "bolt.heart.fill", tint: StrandPalette.metricAmber),
                 Entry(id: .breathe, title: String(localized: "Breathe"), icon: "wind", tint: StrandPalette.metricCyan),
@@ -123,7 +122,7 @@ struct BrowseView: View {
 enum MoreDestination: Hashable {
     case insightsHub, coach, insights, allMetrics, compare
     case trends
-    case live, health, labBook, stress, breathe, rhythm
+    case live, labBook, stress, breathe, rhythm
     case fusedRecord, miBand
     case alarms, settings
 
@@ -136,7 +135,6 @@ enum MoreDestination: Hashable {
         case .compare:         CompareView()
         case .trends:          TrendsView()
         case .live:            LiveView()
-        case .health:          HealthView()
         case .labBook:         LabBookView()
         case .stress:          StressView()
         case .breathe:         BreathingView()

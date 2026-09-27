@@ -46,22 +46,20 @@ extension View {
         navigationDestination(for: TabRoute.self) { route in
             switch route {
             case .metric(let key):
-                // Every caller passes a catalog key, so the fallback is theoretical; Health is the
-                // catch-all vitals surface. (Pre-#198 Trends fell back to the Explorer instead —
-                // unified here rather than carrying two never-taken branches.)
+                // Every caller passes a catalog key; an unknown (stale) key lands on All Metrics.
                 if let m = MetricCatalog.all.first(where: { $0.key == key }) {
                     MetricDetailView(metric: m)
                 } else {
-                    HealthView()
+                    AllMetricsView()
                 }
             case .metricSourced(let key, let source):
                 // Exact (key, source) resolution, order-independent. Fall back to the bare-key entry,
-                // then Health, so a stale route can never dead-end.
+                // then All Metrics, so a stale route can never dead-end.
                 if let m = MetricCatalog.metric(key: key, source: source)
                     ?? MetricCatalog.all.first(where: { $0.key == key }) {
                     MetricDetailView(metric: m)
                 } else {
-                    HealthView()
+                    AllMetricsView()
                 }
             case .allMetrics: AllMetricsView()
             case .workoutHistory: WorkoutHistoryView()
@@ -76,8 +74,8 @@ extension View {
 
 /// The metric keys the Summary's score rings route to, named rather than repeated as literals.
 ///
-/// Every ring opens its metric's detail page through `TabRoute.metric`, which falls back to the Health
-/// screen on a key it does not recognise — the reason this is worth pinning: a rename leaves the ring
+/// Every ring opens its metric's detail page through `TabRoute.metric`, which falls back to All
+/// Metrics on a key it does not recognise — the reason this is worth pinning: a rename leaves the ring
 /// tappable, animating, and landing on the wrong screen with nothing logged and nothing to notice
 /// (`HeroRingDetailRouteTests` pins these against `MetricCatalog`).
 ///
