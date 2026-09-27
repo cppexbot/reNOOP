@@ -1,6 +1,14 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Type": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Тип"}} } },
+    "To Log": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Внесение"}} } },
+    "Logged": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Занесено"}} } },
+    "Habits": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Привычки"}} } },
+    "Hide": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Скрыть"}} } },
+    "New Item": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Новый пункт"}} } },
+    "Yes/No": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Да/Нет"}} } },
+    "Number": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Число"}} } },
     "Reminders": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Напоминания"}} } },
     "On": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Вкл."}} } },
     "Keep screen on": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Не гасить экран"}} } },

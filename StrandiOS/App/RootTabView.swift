@@ -256,7 +256,7 @@ struct RootTabView: View {
                 case .liveSession: SummaryView()
                 // .journal opens through the quick-action Journal sheet (handled above); this keeps the
                 // switch exhaustive and falls back to the journal's Insights host if it ever reaches here.
-                case .journal: InsightsView()
+                case .journal: JournalView()
                 // .coach switches to the Coach tab (handled above — the morning-brief tap-through and the
                 // #1862 launcher both arrive that way, the launcher's question riding on
                 // `AICoachEngine.pendingPrompt`); this keeps the switch exhaustive and falls back to Coach if
@@ -310,7 +310,7 @@ struct RootTabView: View {
         case .workout:
             quickScreen(WorkoutsHomeView())
         case .journal:
-            quickScreen(InsightsView())
+            quickScreen(JournalView())
         case .breathe:
             quickScreen(BreathingView())
         case .liveSession:

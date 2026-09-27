@@ -50,6 +50,8 @@ struct InsightsHubView: View {
                 VStack(alignment: .leading, spacing: NoopMetrics.sectionSpacing) {
                     moversSection
                     doseSection
+                    MetricRelationshipsSection(relationships: model.relationships)
+                    MoodLinksSection()
                     methodNote
                 }
             }
@@ -542,6 +544,8 @@ final class InsightsHubViewModel: ObservableObject {
     @Published private(set) var loaded = false
     @Published private(set) var ranked: [RankedEffect] = []
     @Published private(set) var doseCards: [DoseCard] = []
+    /// The curated metric-pair correlations over the same outcome series.
+    @Published private(set) var relationships: [MetricRelationship] = []
 
     // MARK: Loaded inputs (kept so the outcome segmented control can re-rank cheaply)
 
@@ -620,6 +624,7 @@ final class InsightsHubViewModel: ObservableObject {
         self.controls = controlsByBehaviour
         self.outcomeByKey = byKey
         self.doseCards = cards
+        self.relationships = MetricRelationship.compute(byKey)
         self.loaded = true
         rankFor(currentOutcome)
     }

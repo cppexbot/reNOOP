@@ -176,13 +176,4 @@ final class JournalLogicTests: XCTestCase {
         XCTAssertEqual(item?.group, .nutrition)
         XCTAssertEqual(item?.kind.unitLabel, "L")
     }
-
-    func testNumericJournalKeyIsNamespaced() {
-        // The InsightsView folds a numeric journal series under a namespaced key that can never
-        // collide with a fixed metric outcome ("recovery" / "hrv" / …).
-        let key = InsightsView.numericJournalKey("Caffeine (mg)")
-        XCTAssertTrue(key.hasPrefix("journal.numeric:"))
-        XCTAssertNotEqual(key, "recovery")
-        XCTAssertNotEqual(key, "hrv")
-    }
 }

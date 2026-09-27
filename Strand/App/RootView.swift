@@ -9,7 +9,7 @@ enum NavItem: String, CaseIterable, Identifiable, Hashable {
     case breathe = "Breathe"
     case intervals = "Intervals"
     case explore = "Explore"
-    case insights = "Insights"
+    case journal = "Journal"
     case sleep = "Sleep"
     case trends = "Trends"
     case workouts = "Workouts"
@@ -37,7 +37,7 @@ enum NavItem: String, CaseIterable, Identifiable, Hashable {
         case .breathe: return "Breathe"
         case .intervals: return "Intervals"
         case .explore: return "Explore"
-        case .insights: return "Insights"
+        case .journal: return "Journal"
         case .sleep: return "Sleep"
         case .trends: return "Trends"
         case .workouts: return "Workouts"
@@ -72,7 +72,7 @@ enum NavItem: String, CaseIterable, Identifiable, Hashable {
         case .breathe: return String(localized: "Breathe")
         case .intervals: return String(localized: "Intervals")
         case .explore: return String(localized: "All Metrics")
-        case .insights: return String(localized: "Insights")
+        case .journal: return String(localized: "Journal")
         case .sleep: return String(localized: "Sleep")
         case .trends: return String(localized: "Trends")
         case .workouts: return String(localized: "Workouts")
@@ -99,7 +99,7 @@ enum NavItem: String, CaseIterable, Identifiable, Hashable {
         case .breathe: return "lungs.fill"
         case .intervals: return "timer"
         case .explore: return "list.bullet"
-        case .insights: return "lightbulb.fill"
+        case .journal: return "book.pages.fill"
         case .sleep: return "moon.stars.fill"
         case .trends: return "chart.xyaxis.line"
         case .workouts: return "figure.run"
@@ -141,7 +141,7 @@ struct NavGroup: Identifiable {
         // S6: the overlapping insight surfaces (Intelligence / What Moves You / Insights / Insights Hub)
         // all collapse under this single Insights group rather than scattering across the flat list.
         NavGroup(title: "Insights", id: "insights", items: [
-            .insightsHub, .coach, .explore, .insights,
+            .insightsHub, .coach, .explore, .journal,
             .labBook, .trends,
         ]),
         NavGroup(title: "Data & App", id: "data_app", items: [
@@ -289,8 +289,8 @@ struct RootView: View {
             // Live Sessions is presented from Today's own Start entry (a cover, not a sidebar item), so a
             // deep-link lands the user on Today where that entry lives.
             case .liveSession: selection = .today
-            // The #627 Today journal widget routes to the Insights sidebar row (which hosts the journal card).
-            case .journal: selection = .insights
+            // The #627 Today journal widget routes to the Journal sidebar row.
+            case .journal: selection = .journal
             // #1862: the Today Coach card's launcher hands off here, so the send/stream/consent surface
             // stays in exactly one place.
             case .coach: selection = .coach
@@ -398,7 +398,7 @@ struct RootView: View {
         case .breathe: BreathingView()
         case .intervals: IntervalTimerView()
         case .explore: NavigationStack { AllMetricsView().tabRouteDestinations() }
-        case .insights: InsightsView()
+        case .journal: NavigationStack { JournalView() }
         case .sleep: NavigationStack { SleepHealthView().tabRouteDestinations() }
         case .trends: TrendsView()
         case .workouts: NavigationStack { WorkoutsHomeView().tabRouteDestinations() }
