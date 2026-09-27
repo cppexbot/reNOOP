@@ -1,6 +1,9 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "RANGE": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "ДИАПАЗОН"}} } },
+    "Start Workout": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Начать тренировку"}} } },
+    "Heart rate range by hour": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Диапазон пульса по часам"}} } },
     "Find": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Найти"}} } },
     "Put it on and close the WHOOP app.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Наденьте ремешок и закройте приложение WHOOP."}} } },
     "Unpair it in the WHOOP app, then put it in pairing mode.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Отвяжите его в приложении WHOOP и включите режим пары."}} } },

@@ -174,70 +174,6 @@ enum LiquidRender {
             }
         }
     }
-
-    /// The live heart-rate curve as a glowing liquid thread with a travelling glint.
-    /// - Parameter segments: per-value line identity from `hrGapSegments`, or nil for a series known to be
-    ///   contiguous. Values whose ids differ are stroked as SEPARATE subpaths, so a stretch the strap never
-    ///   recorded reads as a break instead of a straight climb across it (#2082). Nil produces byte-for-byte
-    ///   the path this drew before, which is what keeps the live 1 Hz stream untouched.
-    static func thread(_ base: GraphicsContext, _ size: CGSize, values: [Double], now: Double, tint: Color,
-                       segments: [String]? = nil) {
-        guard values.count >= 2 else { return }
-        let w = size.width, h = size.height, pad: Double = 10
-        var mn = Double.greatestFiniteMagnitude, mx = -Double.greatestFiniteMagnitude
-        for v in values { mn = min(mn, v); mx = max(mx, v) }
-        let span = max(10, mx - mn)
-        let n = values.count
-        func px(_ i: Int) -> Double { pad + Double(i) * (w - 2 * pad) / Double(n - 1) }
-        func py(_ v: Double) -> Double { h - pad - (v - mn) / span * (h - 2 * pad) }
-        func appendRun(_ p: inout Path, _ lo: Int, _ hi: Int) {
-            // A lone bucket between two gaps is real data, and it has to draw as something. A bare `move`
-            // strokes nothing at all, and a ZERO-length line is at the mercy of whether the renderer keeps
-            // a degenerate subpath alive for its round cap. Give it a hair of width instead, so the cap has
-            // something to round and the reading is a dot rather than a coin flip. Losing it would be the
-            // same class of lie as the joined line this change removes: data on screen that is not there.
-            guard hi > lo else {
-                let x = px(lo), y = py(values[lo])
-                p.move(to: CGPoint(x: x - 0.6, y: y))
-                p.addLine(to: CGPoint(x: x + 0.6, y: y))
-                return
-            }
-            p.move(to: CGPoint(x: px(lo), y: py(values[lo])))
-            for i in (lo + 1)..<hi {
-                let xc = (px(i) + px(i + 1)) / 2, yc = (py(values[i]) + py(values[i + 1])) / 2
-                p.addQuadCurve(to: CGPoint(x: xc, y: yc), control: CGPoint(x: px(i), y: py(values[i])))
-            }
-            p.addLine(to: CGPoint(x: px(hi), y: py(values[hi])))
-        }
-        // Resolved ONCE, outside `curve()`. That closure is called twice per frame and this runs inside a
-        // 60fps TimelineView, so leaving the walk in there re-split the whole series 120 times a second for
-        // an answer that cannot change between strokes.
-        // One run when nothing says otherwise, and that run is the exact path this drew before.
-        var runs: [ClosedRange<Int>] = [0...(n - 1)]
-        if let segs = segments, segs.count == n { runs = hrGapRuns(segments: segs) }
-        func curve() -> Path {
-            var p = Path()
-            for r in runs { appendRun(&p, r.lowerBound, r.upperBound) }
-            return p
-        }
-        var ctx = base
-        // Built ONCE. The glint strokes the same geometry as the line under it, and this runs inside a
-        // 60fps TimelineView, so building it per stroke walked the whole series twice a frame for two
-        // identical paths.
-        let line = curve()
-        ctx.stroke(line, with: .color(tint.opacity(0.9)), style: StrokeStyle(lineWidth: 2.4, lineCap: .round, lineJoin: .round))
-        // Travelling glint. The dash pattern restarts at each subpath, so a day broken into several runs
-        // shows a tick per run rather than one glint travelling the whole line. Cosmetic, and the honest
-        // alternative (one glint walking across gaps) would re-assert the continuity this change removes.
-        let phase = -(now * 55).truncatingRemainder(dividingBy: 414)
-        ctx.stroke(line, with: .color(.white.opacity(0.55)),
-                   style: StrokeStyle(lineWidth: 1.1, lineCap: .round, dash: [14, 400], dashPhase: phase))
-        // endpoint pulse
-        let ex = px(n - 1), ey = py(values[n - 1])
-        let pr = 3 + sin(now * 6) * 1.1
-        ctx.fill(Path(ellipseIn: CGRect(x: ex - pr - 4, y: ey - pr - 4, width: (pr + 4) * 2, height: (pr + 4) * 2)), with: .color(tint.opacity(0.15)))
-        ctx.fill(Path(ellipseIn: CGRect(x: ex - pr, y: ey - pr, width: pr * 2, height: pr * 2)), with: .color(tint))
-    }
 }
 
 // MARK: - Views
@@ -369,43 +305,6 @@ struct LiquidTube: View {
     }
 }
 
-/// The live heart-rate thread. `bpm` is the recent series (any length ≥ 2).
-struct LiquidThread: View {
-    let bpm: [Double]
-    /// Per-value line identity from `hrGapSegments`, or nil for a series known to be contiguous (#2082).
-    /// The live 1 Hz stream passes nil and is drawn exactly as before; the banked 5-minute fallback passes
-    /// ids so the hours a strap recorded nothing read as breaks rather than a climb across them.
-    var segments: [String]? = nil
-    var tint: Color = Color(.sRGB, red: 1, green: 107/255, blue: 129/255, opacity: 1)
-    var height: CGFloat = 96
-    var animated: Bool = true
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @ObservedObject private var motion = NoopMotionState.shared
-
-    var body: some View {
-        if animated && !motion.poseStill(reduceMotion) { liveThread } else { staticThread }
-    }
-
-    private var liveThread: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { tl in   // 60fps to flow smoothly on ProMotion
-            let now = liquidSeconds(tl.date)
-            Canvas { context, size in
-                LiquidRender.thread(context, size, values: bpm, now: now, tint: tint, segments: segments)
-            }
-        }
-        .frame(height: height)
-    }
-
-    /// One-shot render (no travelling glint / pulse) — used until first data load settles.
-    private var staticThread: some View {
-        Canvas { context, size in
-            LiquidRender.thread(context, size, values: bpm, now: 0, tint: tint, segments: segments)
-        }
-        .frame(height: height)
-    }
-}
-
 // MARK: - Shared liquid components (cross-platform: used by the liquid screens on iOS + mac)
 
 extension View {
@@ -428,28 +327,5 @@ struct LiquidPressStyle: ButtonStyle {
             .scaleEffect(configuration.isPressed ? 0.975 : 1)
             .opacity(configuration.isPressed ? 0.86 : 1)
             .animation(.easeOut(duration: 0.16), value: configuration.isPressed)
-    }
-}
-
-/// A number that animates to its value: SwiftUI interpolates `animatableData`, so the shown integer rolls
-/// smoothly frame-by-frame whenever `value` changes inside a `withAnimation` block.
-struct CountUpNumber: View, Animatable {
-    var value: Double
-    var font: Font
-    /// Decimal places to render. 0 (default) keeps the whole-number scores (Charge/Rest/100-scale Effort)
-    /// byte-identical; the WHOOP 0–21 Effort scale passes 1 so the hero matches the app-wide one-decimal
-    /// `effortDisplay` convention instead of rounding 12.6 → "13" (#45).
-    var decimals: Int = 0
-    /// Rendered ahead of the number and never animated, for a value that is bounded rather than
-    /// measured: Fitness Age arrives clamped, so a reading at the edge of the scale shows "≤20" while
-    /// the count-up still runs (#2173). Empty by default, which leaves every existing caller identical.
-    var prefix: String = ""
-    var animatableData: Double {
-        get { value }
-        set { value = newValue }
-    }
-    var body: some View {
-        Text(prefix + (decimals > 0 ? String(format: "%.\(decimals)f", value) : "\(Int(value.rounded()))"))
-            .font(font).monospacedDigit()
     }
 }
