@@ -44,10 +44,6 @@ struct ScoresSettingsPage: View {
 
     /// #141: whole night or deep sleep only. Changes the number, so a switch re-scores.
     @AppStorage(UnitPrefs.hrvWindowKey) private var hrvWindowRaw = HrvWindow.whole.rawValue
-    /// v5 cycle-awareness opt-in (default OFF, the most sensitive health category, manual-first).
-    @AppStorage(AppModel.cycleAwarenessKey) private var cycleAwareness = false
-    /// The user's "not for me" opt-out (never age-based). Un-hiding re-offers it on Today + Health.
-    @AppStorage(AppModel.cycleAwarenessHiddenKey) private var cycleHidden = false
 
     @State private var showScoringGuide = false
     @State private var showRecalibrateConfirm = false
@@ -118,32 +114,6 @@ struct ScoresSettingsPage: View {
                 Button("Reset baseline") { showRecalibrateConfirm = true }
             } header: {
                 Text("Charge")
-            }
-
-            // #801: cycle awareness reads the menstrual temperature shift, so it is offered only to the
-            // profiles it applies to, gated as the Health opt-in card is.
-            if profile.cycleAwarenessApplies {
-                Section {
-                    Toggle("Show cycle", isOn: Binding(
-                        get: { !cycleHidden },
-                        set: { show in
-                            cycleHidden = !show
-                            if !show {
-                                cycleAwareness = false
-                                model.cycleAwarenessEnabled = false
-                                Task { await model.refreshV5Signals() }
-                            }
-                        }))
-                    if !cycleHidden {
-                        Toggle("Track cycle", isOn: $cycleAwareness)
-                            .onChangeCompat(of: cycleAwareness) { on in
-                                model.cycleAwarenessEnabled = on
-                                Task { await model.refreshV5Signals() }
-                            }
-                    }
-                } header: {
-                    Text("Cycle")
-                }
             }
 
             Section {

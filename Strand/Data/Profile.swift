@@ -269,27 +269,6 @@ final class ProfileStore: ObservableObject {
         return zip(values, values.dropFirst()).allSatisfy(<)
     }
 
-    /// Whether the cycle-awareness opt-in applies to this profile (#801). Cycle phase is read from the
-    /// MENSTRUAL skin-temperature shift, so the opt-in (the Health card + the Automations toggle) is only
-    /// offered to profiles it can apply to and is NOT shown for male profiles. `sex` is the free String
-    /// "male" | "female" | "nonbinary"; we gate by excluding "male" (case-insensitive) so any non-male
-    /// value, including unrecognised ones, still sees the opt-in rather than being silently excluded.
-    var cycleAwarenessApplies: Bool { Self.cycleAwarenessApplies(sex: sex) }
-
-    /// Pure form of ``cycleAwarenessApplies`` for the given `sex` token, so the gate can be unit-tested
-    /// without a live store / UserDefaults. `nonisolated` because it is a pure function over its argument
-    /// (no actor state), so the gate and its tests can call it from any context.
-    nonisolated static func cycleAwarenessApplies(sex: String) -> Bool {
-        sex.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() != "male"
-    }
-
-    /// Whether the cycle-awareness OFFER should be VISIBLE for a profile: eligible by sex AND not hidden
-    /// by the user's "not for me" opt-out. `hidden` is USER-controlled and never age-derived — a
-    /// respectful hide, not an assumption about menopause. Pure, so the combined gate is unit-testable.
-    nonisolated static func cycleAwarenessVisible(sex: String, hidden: Bool) -> Bool {
-        cycleAwarenessApplies(sex: sex) && !hidden
-    }
-
     /// Allowed range for the step-calibration divisor (#132). 5/MG straps overcount by
     /// up to ~24×, so the old 4.0 ceiling could never reach the truth.
     static let stepScaleRange: ClosedRange<Double> = 0.5...30.0

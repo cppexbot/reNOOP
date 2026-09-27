@@ -64,10 +64,6 @@ final class NavRouter: ObservableObject {
     func openDevices() { requestedDestination = .devices }
     /// #1862: open Coach, optionally with a question the launcher already collected.
     func openCoach() { requestedDestination = .coach }
-    /// Open the v5 Insights hub (the n-of-1 "what moves your Charge" surface).
-    func openInsightsHub() { requestedDestination = .insightsHub }
-    /// Open the Lab Book (private health-records logbook).
-    func openLabBook() { requestedDestination = .labBook }
     /// Open the Trends screen (where a "new data" reading deep-links).
     func openTrends() { requestedDestination = .trends }
     /// Open the active workout: route to the Live surface AND raise the one-shot flag so `LiveView`

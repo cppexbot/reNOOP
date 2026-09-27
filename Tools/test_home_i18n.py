@@ -47,7 +47,6 @@ APPLE_HOME_FILES = {
     "Strand/Screens/TodayCustomizationSheet.swift",
     "Strand/Screens/TodayCustomizationMetadata.swift",
     "StrandiOS/System/HomeScreenQuickActions.swift",
-    "Strand/Screens/SkinTempCardsView.swift",
     "Strand/Screens/HealthAlertBanner.swift",
 }
 APPLE_SHELL_FILE = "StrandiOS/App/RootTabView.swift"
@@ -454,15 +453,6 @@ class HomeLocalizationTest(unittest.TestCase):
                     missing.append(f"{APPLE_SHELL_FILE}: {lang}: {literal!r}")
         self.assertEqual([], missing, "Missing Apple Home catalog translations:\n" + "\n".join(missing))
 
-    def test_apple_skin_temp_dynamic_copy_uses_swift_interpolation(self) -> None:
-        source = (ROOT / "Strand/Screens/SkinTempCardsView.swift").read_text(encoding="utf-8")
-        for argument in ("hours", "signals", "reasons"):
-            self.assertIn(
-                rf"\({argument})",
-                source,
-                f"Skin-temperature localized copy must interpolate {argument} with Swift syntax",
-            )
-
     def test_apple_whoop_brand_and_tint_are_locale_independent(self) -> None:
         source = (ROOT / "Strand/Screens/MetricExplorerView.swift").read_text(encoding="utf-8")
         catalog = audit.load_catalog(ROOT / "Strand/Resources/Localizable.xcstrings")
@@ -486,7 +476,6 @@ class HomeLocalizationTest(unittest.TestCase):
         self.assertIn("public enum Message", illness)
         self.assertIn('suppressedBy.append("a hard or late workout")', illness)
         self.assertIn("suppressionReasons.append(.hardOrLateWorkout)", illness)
-        self.assertNotIn('result.copy.contains("numbers agree")', (ROOT / "Strand/Screens/SkinTempCardsView.swift").read_text(encoding="utf-8"))
         self.assertIn('String(localized: "RHR +\\(delta)")', app_model)
         self.assertIn('String(localized: "HRV −\\(percent)%")', app_model)
         # 240c48ae (#1671): the label now carries the reader's unit via UnitFormatter.skinTempSignalPhrase,

@@ -567,7 +567,6 @@ enum DemoScreens {
             let page = args.firstIndex(of: "--settings-page").flatMap { $0 + 1 < args.count ? args[$0 + 1] : nil }
             return AnyView(SettingsDemoHost(pageName: page))
         case "profile": return AnyView(ProfileSheet(onClose: {}))
-        case "chargebreakdown": return AnyView(ChargeBreakdownDemoHost())
         case "devices":  return AnyView(DevicesView())
         case "devicescatalog": return AnyView(DeviceCardCatalog())
         case "addwizard": return AnyView(AddWizardDemoHost())

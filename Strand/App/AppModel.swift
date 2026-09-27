@@ -169,7 +169,7 @@ final class AppModel: ObservableObject {
     //
     // The Insights / skin-temp Health-hub cards take pure engine RESULTS by value. The analytics pass
     // (IntelligenceEngine.analyzeRecent → refreshV5Signals) computes them once from the stores and
-    // publishes them here; AppModel exposes them so HealthView / InsightsHubView read a snapshot rather
+    // publishes them here; AppModel exposes them so the views read a snapshot rather
     // than re-deriving. All opt-in / honest-nil , a nil result means "not enough data / not enabled".
     @Published var illnessSignal: IllnessSignalEngine.Result?
     /// Parallel Mahalanobis illness-distance read (IllnessDistance), computed on the SAME illness-ward
@@ -177,10 +177,6 @@ final class AppModel: ObservableObject {
     /// sole fire gate; this only surfaces a "how strong" confidence readout in the Heads-Up card when
     /// the engine has already raised. nil = not computed this pass. (Augment-only, Option A.)
     @Published var illnessDistance: IllnessDistance.Result?
-    /// Cycle-phase awareness (only computed when the user has opted in; else nil). Awareness only.
-    @Published var cyclePhase: CyclePhaseEngine.Result?
-    /// The nightly fused-index curve (oldest→newest) feeding the cycle card's sparkline.
-    @Published var cycleCurve: [Double] = []
     /// Body-clock phase estimate (circadian). nil until a usable activity profile exists.
     @Published var circadianPhase: CircadianEngine.PhaseEstimate?
 
@@ -530,8 +526,8 @@ final class AppModel: ObservableObject {
                                                      }) {
                     await self.intelligence.analyzeRecent(force: false)
                 }
-                // v5: recompute the skin-temp suite snapshots (cycle phase + body clock) from the
-                // freshly-scored history so the Health hub cards read a ready result.
+                // v5: recompute the body-clock snapshot from the
+                // freshly-scored history so the Sleep page reads a ready result.
                 await self.refreshV5Signals()
                 // #836 battery: 30-min BACKSTOP cadence (twin of Android ANALYZE_INTERVAL_MS). The
                 // `force: false` gate above can't skip while the strap streams live HR — the fingerprint
@@ -2089,30 +2085,10 @@ final class AppModel: ObservableObject {
         evaluateIllness(repo.days)
     }
 
-    // MARK: - v5 skin-temp suite engines (cycle phase + body clock)
+    // MARK: - v5 body-clock engine
     //
     // Run in the analytics pass (IntelligenceEngine calls this after it persists the night's scores) so
-    // the Health hub's skin-temp cards read a ready snapshot. Both are pure StrandAnalytics engines fed
-    // from the merged daily history; cycle awareness is gated behind the opt-in flag (default OFF) and
-    // never computes , let alone surfaces , until the user turns it on.
-
-    /// UserDefaults key for the cycle-awareness opt-in (default OFF , the most sensitive health category,
-    /// manual-first). The Settings toggle + the card's opt-in CTA both write this single key.
-    static let cycleAwarenessKey = "noopCycleAwareness"
-    var cycleAwarenessEnabled: Bool {
-        get { UserDefaults.standard.bool(forKey: Self.cycleAwarenessKey) }
-        set { UserDefaults.standard.set(newValue, forKey: Self.cycleAwarenessKey) }
-    }
-
-    /// The user's "not for me" opt-out of cycle awareness — a respectful, USER-controlled hide, never
-    /// age-based (menopause age varies too widely to infer). When true, the cycle-awareness OFFER is
-    /// suppressed on Today and Health; the Automations toggle stays visible so it's reversible. Default
-    /// false. Distinct from `cycleAwarenessEnabled` (active tracking): this hides the invitation itself.
-    static let cycleAwarenessHiddenKey = "noopCycleAwarenessHidden"
-    var cycleAwarenessHidden: Bool {
-        get { UserDefaults.standard.bool(forKey: Self.cycleAwarenessHiddenKey) }
-        set { UserDefaults.standard.set(newValue, forKey: Self.cycleAwarenessHiddenKey) }
-    }
+    // the Sleep page's body-clock dial reads a ready snapshot.
 
     /// #polar-debug: whether a connecting Polar strap logs the model NOOP identifies it as (+ its PMD/HRV
     /// capability summary) to the strap log. Default off; the Test Centre only exposes the toggle when a
@@ -2147,49 +2123,10 @@ final class AppModel: ObservableObject {
         set { UserDefaults.standard.set(newValue, forKey: Self.ouraNotifyMaskFullKey) }
     }
 
-    /// Recompute the v5 skin-temp suite snapshots (cycle phase + body clock) from the current history.
-    /// Called from the analytics pass and when the cycle opt-in flips. Honest-nil throughout: cycle is
-    /// nil unless opted in; circadian is nil unless a usable activity profile exists.
+    /// Recompute the body-clock snapshot from the current history. Called from the analytics pass.
+    /// Honest-nil: circadian is nil unless a usable activity profile exists.
     func refreshV5Signals() async {
-        await computeCyclePhase()
         await computeCircadianPhase()
-    }
-
-    /// Cycle-phase awareness from the nightly skin-temperature shift (+ luteal RHR rise / HRV drop). Each
-    /// night is z-scored against the personal baseline, then `CyclePhaseEngine.classify` reads the run.
-    /// Gated behind the opt-in flag; clears the published result the moment it's turned off.
-    private func computeCyclePhase() async {
-        guard cycleAwarenessEnabled else { cyclePhase = nil; cycleCurve = []; return }
-        let days = repo.days
-        guard let tempCfg = Baselines.metricCfg["skin_temp"],
-              let rhrCfg = Baselines.metricCfg["resting_hr"],
-              let hrvCfg = Baselines.metricCfg["hrv"] else { return }
-
-        // The nightly absolute skin-temp mean isn't in repo.days (only the °C DEVIATION is), so z-score
-        // the deviation against its own folded spread , a zero-centred personal baseline. RHR + HRV
-        // z-score their raw columns. Oldest→newest.
-        let sorted = days.sorted { $0.day < $1.day }
-        let skinState = Baselines.foldHistory(sorted.map { $0.skinTempDevC }, cfg: tempCfg)
-        let rhrState = Baselines.foldHistory(sorted.map { $0.restingHr.map(Double.init) }, cfg: rhrCfg)
-        let hrvState = Baselines.foldHistory(sorted.map { $0.avgHrv }, cfg: hrvCfg)
-
-        var nights: [CyclePhaseEngine.Night] = []
-        var curve: [Double] = []
-        for d in sorted {
-            let tempZ = d.skinTempDevC.map { skinState.usable ? Baselines.deviation($0, state: skinState).z : $0 / 0.3 }
-            let rhrZ = (rhrState.usable ? d.restingHr.map { Baselines.deviation(Double($0), state: rhrState).z } : nil)
-            let hrvZ = (hrvState.usable ? d.avgHrv.map { Baselines.deviation($0, state: hrvState).z } : nil)
-            nights.append(CyclePhaseEngine.Night(day: d.day, tempZ: tempZ, rhrZ: rhrZ, hrvZ: hrvZ))
-            if let fused = CyclePhaseEngine.fusedIndex(tempZ: tempZ, rhrZ: rhrZ, hrvZ: hrvZ) { curve.append(fused) }
-        }
-        // Optional user-entered cycle-day-1 anchors live under the isolated `noop-cycle` source.
-        // The pure engine cross-validates them against the temperature shift rather than trusting a
-        // mistimed log blindly.
-        let loggedPeriodStarts = await repo.periodStarts()
-        cyclePhase = CyclePhaseEngine.classify(nights,
-                                               baselineUsable: skinState.usable,
-                                               loggedPeriodStarts: loggedPeriodStarts)
-        cycleCurve = curve
     }
 
     /// Body-clock phase estimate. Builds a coarse per-hour activity profile from the last ~14 days of

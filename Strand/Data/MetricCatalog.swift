@@ -210,8 +210,6 @@ enum MetricCatalog {
         d("stress", String(localized: "Stress"), "Health", "/100", "xiaomi-band", "gauge.with.dots.needle.50percent", 0, false),
     ]
 
-    static func inCategory(_ c: String) -> [MetricDescriptor] { all.filter { $0.category == c } }
-
     /// Explicit fused view for the rolling-average tile, not a replacement for source-specific entries.
     static let combinedStepsSource = "noop-combined-steps"
 
@@ -242,23 +240,6 @@ enum MetricCatalog {
         if hasImportedKcal { return metric(key: "active_kcal", source: "apple-health") }
         if hasOnDeviceKcal { return metric(key: "energy_kcal", source: "my-whoop") }
         return metric(key: "energy_kcal", source: "my-whoop")
-    }
-
-    /// Localized display name for a catalog category, mapped AT THE RENDER SITE only. The
-    /// catalog's `category` VALUES stay English identifiers on purpose (`inCategory` and the
-    /// colour-world / gradient switches compare them raw), so screens must never feed this
-    /// function's output back into matching logic. Unknown values pass through untranslated.
-    static func categoryDisplayName(_ category: String) -> String {
-        switch category {
-        case "Heart":     return String(localized: "Heart")
-        case "Charge":    return String(localized: "Charge")
-        case "Rest":      return String(localized: "Rest")
-        case "Effort":    return String(localized: "Effort")
-        case "Health":    return String(localized: "Health")
-        case "Nutrition": return String(localized: "Nutrition")
-        case "Mind":      return String(localized: "Mind")
-        default:          return category
-        }
     }
 
     private static func d(_ key: String, _ title: String, _ category: String, _ unit: String,

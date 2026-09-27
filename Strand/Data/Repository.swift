@@ -198,11 +198,6 @@ final class Repository: ObservableObject {
     @Published private(set) var hydrationSeq = 0
     func noteHydrationChanged() { hydrationSeq += 1 }
 
-    /// Bumped whenever a period-start row is logged or removed. Cycle surfaces use this lightweight
-    /// signal to reload their sensitive local history without forcing a full strap-data refresh.
-    @Published private(set) var cycleTrackingSeq = 0
-    func noteCycleTrackingChanged() { cycleTrackingSeq += 1 }
-
     /// Workouts & GPS test mode (Test Centre): the tagged sink for the `.workouts` diagnostic lines
     /// (auto-detect inputs/thresholds/why, cross-source dedup decisions). Default nil (inert) so tests +
     /// non-prod inits get the byte-identical untraced path; AppModel wires it to `live.append(log:domain:)`.
@@ -678,12 +673,6 @@ final class Repository: ObservableObject {
     var week: [DailyMetric] {
         let cutoff = Repository.localDayKey(Calendar.current.date(byAdding: .day, value: -6, to: Date()) ?? Date())
         return days.filter { $0.day >= cutoff }
-    }
-
-    /// Source-aware rows for vital-sign cards. During previews/tests that set `days` directly,
-    /// fall back to the merged local cache so the component still renders.
-    var vitalMetricRows: [SourcedDailyMetric] {
-        vitalRows.isEmpty ? days.map { SourcedDailyMetric(metric: $0, source: .localCache) } : vitalRows
     }
 
     /// Canonical source ids the resolver knows how to cross-reference. The strap's actual id is

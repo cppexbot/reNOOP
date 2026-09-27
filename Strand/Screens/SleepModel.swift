@@ -112,12 +112,6 @@ struct Night {
         return "\(Night.spanFmt.string(from: onsetDay)) → \(Night.dateFmt.string(from: wakeDay))"
     }
 
-    /// A unix-second timestamp as a device-locale clock string ("11:42 PM" / "23:42"). Shared so the nap
-    /// rows format their windows identically to the Asleep/Woke row. (#508)
-    static func clockString(_ ts: Int) -> String {
-        timeFmt.string(from: Date(timeIntervalSince1970: TimeInterval(ts)))
-    }
-
     // Clock for the Asleep/Woke row — the times people read at a glance. The "jmm" skeleton
     // follows the device's 12-/24-hour setting ("11:42 PM" or "23:42") instead of forcing one
     // on everyone, matching the HR-tooltip / workout times (#337).

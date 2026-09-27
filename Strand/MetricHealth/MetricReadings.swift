@@ -20,30 +20,6 @@ private let strandDayParser: DateFormatter = {
 
 private func parseDay(_ day: String) -> Date? { strandDayParser.date(from: day) }
 
-// MARK: - Range
-
-/// The W/2W/3W/M/3M/6M/1Y/ALL window, driving the single SegmentedPillControl.
-enum ExploreRange: Int, CaseIterable, Identifiable, Hashable {
-    case week = 7, twoWeeks = 14, threeWeeks = 21, month = 30, quarter = 90, half = 180, year = 365, all = 0
-    var id: Int { rawValue }
-    var label: String {
-        switch self {
-        case .twoWeeks: return String(localized: "2W"); case .threeWeeks: return String(localized: "3W")
-        case .week: return String(localized: "W"); case .month: return String(localized: "M"); case .quarter: return String(localized: "3M")
-        case .half: return String(localized: "6M"); case .year: return String(localized: "1Y"); case .all: return String(localized: "ALL")
-        }
-    }
-    var name: String {
-        switch self {
-        case .twoWeeks: return String(localized: "2 weeks"); case .threeWeeks: return String(localized: "3 weeks")
-        case .week: return String(localized: "week"); case .month: return String(localized: "month"); case .quarter: return String(localized: "quarter")
-        case .half: return String(localized: "6 months"); case .year: return String(localized: "year"); case .all: return String(localized: "all time")
-        }
-    }
-    /// Trailing days the window spans (nil = everything).
-    var days: Int? { self == .all ? nil : rawValue }
-}
-
 // MARK: - Readings table projection (task #8)
 
 /// One windowed reading behind a vital's detail chart: its day ("YYYY-MM-DD"), the value, and the RAW
