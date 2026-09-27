@@ -563,6 +563,10 @@ enum DemoScreens {
         case "liftsession": return AnyView(LiftSessionView { })
         case "journal":  return AnyView(NavigationStack { JournalView() })
         case "insights": return AnyView(NavigationStack { InsightsHubView() })
+        // First-run setup, optionally on one step: `--onboarding-step 0…6`.
+        case "onboarding":
+            let n = args.firstIndex(of: "--onboarding-step").flatMap { $0 + 1 < args.count ? Int(args[$0 + 1]) : nil } ?? 0
+            return AnyView(OnboardingWizard(onFinished: {}, startAt: n).toolbar(.hidden, for: .navigationBar))
         // Lab Book; `--labbook-add` opens the Add Reading sheet over it.
         case "labbook":
             return AnyView(NavigationStack { LabBookView() }
