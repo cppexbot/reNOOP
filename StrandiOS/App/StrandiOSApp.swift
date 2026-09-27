@@ -599,7 +599,7 @@ enum DemoScreens {
         case "devices":  return AnyView(NavigationStack { DevicesView().settingsDestinations() })
         case "devicescatalog": return AnyView(NavigationStack { DeviceCardCatalog() })
         case "addwizard": return AnyView(AddWizardDemoHost())
-        // Coach: `--coach-demo chat|settings|setup` (a seeded conversation, its settings sheet, or no provider).
+        // Coach: `--coach-demo chat|empty|typing|error|draft|settings|setup` (see `CoachDemoHost`).
         case "coach":
             let mode = args.firstIndex(of: "--coach-demo").flatMap { $0 + 1 < args.count ? args[$0 + 1] : nil } ?? "chat"
             return AnyView(CoachDemoHost(mode: mode))
@@ -632,8 +632,10 @@ private struct SettingsDemoHost: View {
     }
 }
 
-/// DEBUG-only: Coach with a seeded conversation on a local-server connection (no key, no network), its
-/// settings sheet over it, or the unconfigured state.
+/// DEBUG-only: Coach pushed onto a stack (so its back button shows), on a local-server connection (no
+/// key, no network). `--coach-demo chat|empty|typing|error|draft|settings|setup`: a seeded conversation;
+/// an empty one; the reply on its way; an undelivered question with a rejected key; text in the field;
+/// the settings sheet over the chat; or no provider.
 private struct CoachDemoHost: View {
     @EnvironmentObject var coach: AICoachEngine
     @EnvironmentObject var repo: Repository
@@ -642,26 +644,49 @@ private struct CoachDemoHost: View {
 
     var body: some View {
         NavigationStack {
-            if ready { CoachView() }
+            Color.clear
+                .navigationDestination(isPresented: .constant(ready)) { CoachView() }
         }
         .sheet(isPresented: .constant(ready && mode == "settings")) {
             CoachSettingsView().environmentObject(coach).environmentObject(repo)
         }
         .onAppear {
+            UserDefaults.standard.set(mode == "draft" ? "А если сегодня бегать?" : "", forKey: "coach.composerDraft")
             if mode == "setup" {
                 coach.customConnected = false
                 coach.provider = .openAI
-            } else {
-                coach.provider = .custom
-                coach.customBaseURL = "http://localhost:11434/v1"
-                coach.customConnected = true
-                coach.model = "llama3.1"
-                coach.messages = [
-                    ChatMessage(role: .user, text: "Как я восстановился после вчерашней тренировки?"),
-                    ChatMessage(role: .assistant, text: "Заряд сегодня **74 %** — выше вашей нормы. ВСР 68 мс, пульс покоя 52 уд/мин.\n\n- Можно тренироваться в полную силу\n- Лягте до 23:30, чтобы закрепить результат"),
-                    ChatMessage(role: .user, text: "А какую тренировку выбрать?"),
-                    ChatMessage(role: .assistant, text: "Интервалы на 40–45 минут в зоне 3–4 и 10 минут заминки."),
-                ]
+                ready = true
+                return
+            }
+            coach.provider = .custom
+            coach.customBaseURL = "http://localhost:11434/v1"
+            coach.customConnected = true
+            coach.model = "llama3.1"
+            var messages = [
+                ChatMessage(role: .user, text: "Как я восстановился после вчерашней тренировки?"),
+                ChatMessage(role: .assistant, text: "Заряд сегодня **74 %** — выше вашей нормы. ВСР 68 мс, пульс покоя 52 уд/мин.\n\n- Можно тренироваться в полную силу\n- Лягте до 23:30, чтобы закрепить результат"),
+                ChatMessage(role: .user, text: "А какую тренировку выбрать?"),
+                ChatMessage(role: .assistant, text: "Интервалы на 40–45 минут в зоне 3–4 и 10 минут заминки."),
+            ]
+            switch mode {
+            case "empty":
+                messages = []
+                coach.dataConsent = false
+            case "typing", "error":
+                messages.append(ChatMessage(role: .user, text: "Сколько мне сегодня спать?"))
+            default:
+                break
+            }
+            // Arrival times for the stamps: the conversation began at 09:41 today.
+            let start = Calendar.current.date(bySettingHour: 9, minute: 41, second: 0, of: Date()) ?? Date()
+            var times: [UUID: Date] = [:]
+            for (i, m) in messages.enumerated() { times[m.id] = start.addingTimeInterval(Double(i) * 50) }
+            CoachMessageTimes.save(times)
+            coach.messages = messages
+            if mode == "typing" { coach.sending = true }
+            if mode == "error" {
+                coach.errorText = AICoachError.badKey.errorDescription
+                coach.keyRejected = true
             }
             ready = true
         }

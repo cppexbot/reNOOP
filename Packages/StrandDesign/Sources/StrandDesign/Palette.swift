@@ -345,12 +345,28 @@ public enum StrandPalette {
     /// that sits on it.
     public static let plainPage           = Color(light: "#FFFFFF", dark: "#000000")
     public static let plainPageCard       = Color(light: "#F2F2F7", dark: "#1C1C1E")
-    /// Coach as a Messages conversation: the sender's blue bubble and its text, the grey reply bubble,
-    /// and the typing dots inside it.
-    public static let messageOutgoing     = Color(light: "#0B84FE", dark: "#0B84FE")
-    public static let messageOutgoingText = Color(light: "#FFFFFF", dark: "#FFFFFF")
-    public static let messageIncoming     = Color(light: "#E9E9EB", dark: "#262628")
-    public static let messageTypingDot    = Color(light: "#8E8E93", dark: "#8E8E93")
+    /// Coach as a Messages conversation (iOS 26). Values are the Messages app's own: the blue bubble is
+    /// a gradient pinned to the screen, light at the top and deep at the bottom, so a bubble's shade
+    /// follows where it sits; the grey reply bubble and its text and links; the typing dots (drawn at
+    /// 20–45 % opacity); the grey caption text for times and delivery; the field placeholder and mic; the send
+    /// button; the failure red; the contact circle behind the Coach glyph; and the Apple Intelligence
+    /// wash on suggestion text.
+    public static let messageOutgoingTop    = Color(light: "#5AC8FA", dark: "#409CFF")
+    public static let messageOutgoingBottom = Color(light: "#0088FF", dark: "#0091FF")
+    public static let messageOutgoingText   = Color(light: "#FFFFFF", dark: "#FFFFFF")
+    public static let messageIncoming       = Color(light: "#E9E9EB", dark: "#262629")
+    public static let messageIncomingText   = Color(light: "#000000", dark: "#FFFFFF")
+    public static let messageLink           = Color(light: "#007AFF", dark: "#0984FF")
+    public static let messageTypingDot      = Color(light: "#000000", dark: "#FFFFFF")
+    public static let messageMeta           = Color(light: "#3C3C4399", dark: "#EBEBF599")
+    public static let messagePlaceholder    = Color(light: "#3C3C434D", dark: "#EBEBF54D")
+    public static let messageFieldGlyph     = Color(light: "#858E9980", dark: "#EBEBF56B")
+    public static let messageSend           = Color(light: "#0088FF", dark: "#0091FF")
+    public static let messageFailure        = Color(light: "#FF383C", dark: "#FF383C")
+    public static let messageAvatarTop      = Color(light: "#A9C1E0", dark: "#565468")
+    public static let messageAvatarBottom   = Color(light: "#7481BA", dark: "#2E2147")
+    public static let messageSuggestionStart = Color(light: "#5AA6D4", dark: "#6FB8E6")
+    public static let messageSuggestionEnd   = Color(light: "#E8607E", dark: "#F0708C")
     /// Sleep schedule (Health's Full Schedule): the schedule's purple, and the bedtime/wake dial — the
     /// card it sits on, the track ring, the clock face, the bedtime→wake arc, its ticks and end glyphs.
     public static let sleepSchedule       = Color(light: "#5E5CE6", dark: "#7D7AFF")

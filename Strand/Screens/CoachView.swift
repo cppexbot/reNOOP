@@ -3,8 +3,11 @@ import MarkdownUI
 import StrandDesign
 
 /// Coach, the one feature in NOOP that talks to the network, drawn as a Messages conversation (iOS 26):
-/// grey reply bubbles, blue question bubbles, a glass field at the bottom with the mic inside it, and
-/// suggestion capsules above the field. The provider, model and key live in the settings sheet.
+/// the contact header with the Coach circle, grey reply bubbles and blue question bubbles with the
+/// system's tails, "Today 09:41" stamps, "Delivered" / "Not Delivered", the typing bubble, and the
+/// "+" circle beside a glass field with the mic inside it. Suggested questions sit behind the "+" and,
+/// while the field is empty and active, in an Apple Intelligence row under it. The provider, model and
+/// key live in the settings sheet.
 ///
 /// It is strictly opt-in and bring-your-own-key: the user pastes their own OpenAI, Anthropic or Gemini
 /// key (stored in the Keychain by `AICoachEngine`), or points it at their own server, and only a compact
@@ -29,6 +32,17 @@ struct CoachView: View {
     /// sheet behaves the same in all three places CoachView appears (macOS route, Browse push, pillar
     /// sheet), which a push would not.
     @State private var showSettings = false
+    /// The "Try Again" menu of a failed question, opened from its red "!".
+    @State private var showFailure = false
+
+    /// When each message arrived, for the time stamps; recorded only after the prior launch's
+    /// transcript is restored, so restored messages never read as new.
+    @State private var times: [UUID: Date] = CoachMessageTimes.load()
+    @State private var historyLoaded = false
+    /// The transcript's visible size: the blue gradient spans its height, bubbles cap at its width.
+    @State private var viewport: CGSize = .zero
+    /// The screen's bottom safe area, to seat the field 28 pt from the bottom edge as Messages does.
+    @State private var bottomInset: CGFloat = 0
 
     // K4: on-device voice input for the composer (iOS only).
     #if os(iOS)
@@ -38,13 +52,13 @@ struct CoachView: View {
     var body: some View {
         Group {
             if coach.isConfigured {
-                conversation
+                chrome(conversation)
             } else {
                 EmptyStateView(title: Text("Coach"), systemImage: "sparkles",
                                description: Text("Connect your own AI provider.")) {
                     Button("Set Up") { showSettings = true }
                         .buttonStyle(.borderedProminent)
-                        .tint(StrandPalette.messageOutgoing)
+                        .tint(StrandPalette.messageSend)
                 }
             }
         }
@@ -57,9 +71,13 @@ struct CoachView: View {
         .toolbar(.hidden, for: .tabBar)
         #endif
         .toolbar {
+            #if os(iOS)
+            // The header below carries the name, so the bar keeps only its buttons.
+            ToolbarItem(placement: .principal) { Color.clear.frame(width: 1, height: 1) }
+            #endif
             ToolbarItem(placement: .primaryAction) {
                 Button { showSettings = true } label: {
-                    Image(systemName: "slider.horizontal.3")
+                    Image(systemName: "gearshape")
                 }
                 .accessibilityLabel(Text("Coach settings"))
             }
@@ -77,6 +95,7 @@ struct CoachView: View {
         // genuinely empty.
         .task {
             await coach.loadPersistedMessagesIfNeeded()
+            historyLoaded = true
             // Gated on the transcript BEFORE consuming: `consumeStoredBrief()` clears the unconsumed flag,
             // so consuming on a day with a conversation open would throw the brief away (#2087).
             if coach.messages.isEmpty, let stored = CoachBriefScheduler.consumeStoredBrief() {
@@ -105,228 +124,455 @@ struct CoachView: View {
         .onChangeCompat(of: coach.dataConsent) { _ in
             Task { await coach.startBriefIfNeeded() }
         }
+        .onChangeCompat(of: coach.messages.map(\.id)) { ids in recordTimes(ids) }
+        .onGeometryChange(for: CGFloat.self, of: { $0.safeAreaInsets.bottom }) { bottomInset = $0 }
     }
+
+    // MARK: - Chrome
+
+    /// The header over the transcript and the field under it, as bars the content scrolls beneath
+    /// (with the soft scroll-edge blur on iOS 26). The header rises into the navigation bar so the Coach
+    /// circle's top lines up with the back button's, as in Messages.
+    @ViewBuilder
+    private func chrome<Content: View>(_ content: Content) -> some View {
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, macOS 26.0, *) {
+            content
+                .safeAreaBar(edge: .top, spacing: 0) { header }
+                .safeAreaBar(edge: .bottom, spacing: 0) { composer }
+        } else {
+            legacyChrome(content)
+        }
+        #else
+        legacyChrome(content)
+        #endif
+    }
+
+    private func legacyChrome<Content: View>(_ content: Content) -> some View {
+        content
+            .safeAreaInset(edge: .top, spacing: 0) { header.background(.bar) }
+            .safeAreaInset(edge: .bottom, spacing: 0) { composer }
+    }
+
+    private var header: some View {
+        CoachConversationHeader { showSettings = true }
+            .frame(maxWidth: .infinity)
+            #if os(iOS)
+            .padding(.top, -Self.headerLift)
+            #else
+            .padding(.top, 8)
+            #endif
+            .padding(.bottom, 4)
+    }
+
+    /// How far the header reaches up into the navigation bar.
+    private static let headerLift: CGFloat = 54
 
     // MARK: - Conversation
 
+    /// The messages the transcript draws: the streaming reply's empty placeholder is left to the typing
+    /// bubble until its first words arrive.
+    private var shown: [ChatMessage] {
+        coach.messages.filter { $0.role == .user || !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    }
+
+    /// The typing bubble shows while a reply is on its way and none of it is on screen yet.
+    private var showTyping: Bool { coach.sending && shown.last?.role != .assistant }
+
     private var conversation: some View {
-        ScrollViewReader { proxy in
+        let messages = shown
+        return ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 0) {
-                    privacyLine
-                        .padding(.top, 8)
-                        .padding(.bottom, 16)
-                    ForEach(Array(coach.messages.enumerated()), id: \.element.id) { index, message in
-                        bubble(message, tail: isLastOfGroup(index))
-                            .padding(.bottom, isLastOfGroup(index) ? 10 : 2)
+                    serviceLine
+                        .padding(.top, 18)
+                        .padding(.bottom, messages.isEmpty ? 0 : 15)
+                    ForEach(Array(messages.enumerated()), id: \.element.id) { index, message in
+                        row(message, index: index, in: messages)
                             .id(message.id)
                     }
-                    if coach.sending {
-                        typingBubble.id("typing")
+                    if showTyping {
+                        MessageTypingIndicator(still: motion.poseStill(reduceMotion))
+                            .padding(.bottom, MessageTypingIndicator.overhang)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.leading, 20)
+                            .padding(.top, messages.last?.role == .user ? 10 : 0)
+                            .accessibilityLabel(Text("Coach is thinking"))
                     }
-                    if let error = coach.errorText, !error.isEmpty {
-                        errorLine(error).id("error")
+                    if let error = coach.errorText, !error.isEmpty, messages.last?.role != .user {
+                        errorLine(error)
                     }
+                    Color.clear.frame(height: 16).id("end")
                 }
-                .padding(.horizontal, 12)
-                .padding(.bottom, 8)
                 #if os(macOS)
                 .frame(maxWidth: 720)
                 .frame(maxWidth: .infinity)
                 #endif
             }
+            .coordinateSpace(name: MessageBubbleFill.space)
+            .onGeometryChange(for: CGSize.self, of: { $0.size }) { viewport = $0 }
             .scrollDismissesKeyboard(.interactively)
-            .overlay {
-                if coach.messages.isEmpty && !coach.sending {
-                    EmptyStateView(title: Text("Coach"), systemImage: "sparkles",
-                                   description: Text("Ask about your charge, effort, sleep and workouts."))
-                        .allowsHitTesting(false)
-                }
-            }
-            .safeAreaInset(edge: .bottom, spacing: 0) { composer }
-            .onAppear { scrollToEnd(proxy, animated: false) }
+            .onAppear { proxy.scrollTo("end", anchor: .bottom) }
             .onChangeCompat(of: coach.messages.count) { _ in scrollToEnd(proxy) }
             .onChangeCompat(of: coach.sending) { _ in scrollToEnd(proxy) }
+            .onChangeCompat(of: coach.errorText) { _ in scrollToEnd(proxy) }
         }
     }
 
-    /// The one privacy line, at the head of the conversation where Messages names the service.
-    private var privacyLine: some View {
-        Label {
-            Text(coach.provider == .custom
-                 ? "Sent only to your server, only when you ask."
-                 : "A summary of your data goes to \(coach.provider.displayName) only when you ask.")
-        } icon: {
-            Image(systemName: "lock.fill")
+    /// Where the conversation goes, in place of Messages' "iMessage · Encrypted": the provider, and
+    /// that nothing leaves the device until a question is asked.
+    private var serviceLine: some View {
+        VStack(spacing: 0) {
+            if coach.provider == .custom {
+                Text("Your server").fontWeight(.medium)
+            } else {
+                Text(verbatim: coach.provider.displayName).fontWeight(.medium)
+            }
+            HStack(spacing: 3) {
+                Image(systemName: "lock.fill").font(StrandFont.pro(8, weight: .semibold))
+                Text("Only when you ask")
+            }
         }
-        .font(StrandFont.pro(12))
-        .foregroundStyle(StrandPalette.textSecondary)
+        .font(StrandFont.pro(11))
+        .foregroundStyle(StrandPalette.messageMeta)
         .multilineTextAlignment(.center)
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
+    }
+
+    /// One message with what Messages draws around it: the time stamp above, and the delivery status
+    /// (or the failure) below the last question.
+    @ViewBuilder
+    private func row(_ message: ChatMessage, index: Int, in messages: [ChatMessage]) -> some View {
+        let isLast = index == messages.count - 1
+        let next = isLast ? nil : messages[index + 1]
+        let tail = next?.role != message.role
+        let failed = isLast && message.role == .user && !coach.sending && coach.errorText?.isEmpty == false
+        let delivered = isLast && message.role == .user && !failed
+        VStack(spacing: 0) {
+            if let stamp = stamp(before: index, in: messages) {
+                stampView(stamp)
+                    .padding(.top, index == 0 ? 0 : 10)
+                    .padding(.bottom, 7)
+            }
+            if failed {
+                HStack(alignment: .center, spacing: 8) {
+                    Spacer(minLength: 0)
+                    bubble(message, tail: tail)
+                    failureButton
+                }
+                .padding(.trailing, 17)
+                Text("Not Delivered")
+                    .font(StrandFont.pro(11, weight: .medium))
+                    .foregroundStyle(StrandPalette.messageFailure)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .padding(.trailing, 29)
+                if coach.keyRejected {
+                    Button("Update Key") { showSettings = true }
+                        .buttonStyle(.plain)
+                        .font(StrandFont.pro(11, weight: .medium))
+                        .foregroundStyle(StrandPalette.messageSend)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                        .padding(.trailing, 29)
+                        .padding(.top, 2)
+                }
+            } else {
+                HStack(spacing: 0) {
+                    if message.role == .user { Spacer(minLength: 0) }
+                    bubble(message, tail: tail)
+                    if message.role == .assistant { Spacer(minLength: 0) }
+                }
+                .padding(.horizontal, 20)
+                if delivered {
+                    Text("Delivered")
+                        .font(StrandFont.pro(11, weight: .medium))
+                        .foregroundStyle(StrandPalette.messageMeta)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                        .padding(.trailing, 40)
+                        .padding(.top, -1)
+                }
+            }
+        }
+        // Messages' spacing: 4 pt inside a run from one side, 10 pt between runs, counted from the
+        // bubble's body (a tail reaches into the gap).
+        .padding(.bottom, next.map { ($0.role == message.role ? 4 : 10) - (tail ? MessageBubbleShape.tailHeight : 0) } ?? 0)
+    }
+
+    /// Messages stamps the head of a conversation and any message that follows the previous one by an
+    /// hour or more. Messages with no recorded time get no stamp.
+    private func stamp(before index: Int, in messages: [ChatMessage]) -> Date? {
+        guard let time = times[messages[index].id] else { return nil }
+        guard index > 0 else { return time }
+        guard let previous = times[messages[index - 1].id] else { return nil }
+        return time.timeIntervalSince(previous) >= 3600 ? time : nil
+    }
+
+    private func stampView(_ date: Date) -> some View {
+        HStack(spacing: 3) {
+            dayWord(date).fontWeight(.medium)
+            Text(date, format: .dateTime.hour().minute())
+        }
+        .font(StrandFont.pro(11))
+        .foregroundStyle(StrandPalette.messageMeta)
         .frame(maxWidth: .infinity)
     }
 
-    /// Messages draws the tail only on the last bubble of a run from one side.
-    private func isLastOfGroup(_ index: Int) -> Bool {
-        let messages = coach.messages
-        guard index + 1 < messages.count else { return !coach.sending || messages[index].role == .user }
-        return messages[index + 1].role != messages[index].role
+    private func dayWord(_ date: Date) -> Text {
+        let calendar = Calendar.current
+        if calendar.isDateInToday(date) { return Text("Today") }
+        if calendar.isDateInYesterday(date) { return Text("Yesterday") }
+        if let days = calendar.dateComponents([.day], from: date, to: Date()).day, days < 7 {
+            return Text(date, format: .dateTime.weekday(.wide))
+        }
+        return Text(date, format: .dateTime.weekday(.abbreviated).day().month(.abbreviated))
     }
+
+    /// Bubbles cap at 85 % of the transcript less its gutters, as Messages sizes them.
+    private var maxBubbleWidth: CGFloat { max(160, 0.85 * (viewport.width - 80)) }
 
     @ViewBuilder
     private func bubble(_ message: ChatMessage, tail: Bool) -> some View {
-        switch message.role {
-        case .user:
-            HStack {
-                Spacer(minLength: 56)
+        let outgoing = message.role == .user
+        Group {
+            if outgoing {
+                // Questions stay verbatim `Text`, so a typed `*` or `#` never turns into formatting.
                 Text(message.text)
                     .font(StrandFont.pro(17))
                     .foregroundStyle(StrandPalette.messageOutgoingText)
-                    .textSelection(.enabled)
-                    .modifier(MessageBubble(outgoing: true, tail: tail))
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel(Text("You said: \(message.text)"))
-        case .assistant:
-            // Replies arrive as Markdown (bold, lists, headings, tables); questions stay verbatim `Text`
-            // so a typed `*` or `#` never turns into formatting.
-            HStack {
+            } else {
+                // Replies arrive as Markdown (bold, lists, headings, tables).
                 Markdown(message.text)
                     .markdownTheme(.strand)
-                    .textSelection(.enabled)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .modifier(MessageBubble(outgoing: false, tail: tail))
-                    // K8: Copy / Share / Save.
-                    .contextMenu {
-                        Button {
-                            #if os(macOS)
-                            NSPasteboard.general.clearContents()
-                            NSPasteboard.general.setString(message.text, forType: .string)
-                            #else
-                            UIPasteboard.general.string = message.text
-                            #endif
-                        } label: {
-                            Label("Copy", systemImage: "doc.on.doc")
-                        }
-                        ShareLink(item: message.text) {
-                            Label("Share", systemImage: "square.and.arrow.up")
-                        }
-                        Button { saveAdvice(message.text) } label: {
-                            Label("Save to Journal", systemImage: "square.and.pencil")
-                        }
-                    }
-                Spacer(minLength: 56)
             }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel(Text("Coach said: \(message.text)"))
         }
-    }
-
-    /// Messages' typing bubble: three grey dots breathing in turn.
-    private var typingBubble: some View {
-        HStack {
-            TimelineView(.animation(minimumInterval: nil, paused: motion.poseStill(reduceMotion))) { context in
-                let t = context.date.timeIntervalSinceReferenceDate
-                HStack(spacing: 5) {
-                    ForEach(0..<3, id: \.self) { i in
-                        Circle()
-                            .fill(StrandPalette.messageTypingDot)
-                            .frame(width: 9, height: 9)
-                            .opacity(0.35 + 0.65 * max(0, sin((t * 4) - Double(i) * 0.9)))
-                    }
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .frame(minWidth: MessageBubbleShape.minSide, minHeight: MessageBubbleShape.minSide)
+        .padding(.bottom, tail ? MessageBubbleShape.tailHeight : 0)
+        .background {
+            MessageBubbleFill(outgoing: outgoing, viewportHeight: viewport.height)
+                .clipShape(MessageBubbleShape(outgoing: outgoing, tail: tail))
+        }
+        #if os(iOS)
+        // Long-press lifts the bubble itself, tail and all, as Messages does.
+        .contentShape(.contextMenuPreview, MessageBubbleShape(outgoing: outgoing, tail: tail))
+        #endif
+        // K8: Copy / Share / Save (a reply).
+        .contextMenu {
+            Button {
+                #if os(macOS)
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(message.text, forType: .string)
+                #else
+                UIPasteboard.general.string = message.text
+                #endif
+            } label: {
+                Label("Copy", systemImage: "doc.on.doc")
+            }
+            ShareLink(item: message.text) {
+                Label("Share", systemImage: "square.and.arrow.up")
+            }
+            if !outgoing {
+                Button { saveAdvice(message.text) } label: {
+                    Label("Save to Journal", systemImage: "book")
                 }
-                .frame(height: 22)
             }
-            .modifier(MessageBubble(outgoing: false, tail: true))
-            Spacer(minLength: 56)
         }
-        .padding(.bottom, 10)
-        .accessibilityLabel(Text("Coach is thinking"))
+        .frame(maxWidth: maxBubbleWidth, alignment: outgoing ? .trailing : .leading)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(outgoing ? Text("You said: \(message.text)") : Text("Coach said: \(message.text)"))
     }
 
-    /// A failed send, under the conversation. A rejected key carries the way to fix it, which opens the
-    /// key field in settings (the transcript is kept).
+    /// Messages' red "!" beside an undelivered message; it opens "Try Again" (and the key, when the
+    /// provider turned it away).
+    private var failureButton: some View {
+        Button { showFailure = true } label: {
+            Image(systemName: "exclamationmark.circle")
+                .font(StrandFont.pro(22))
+                .foregroundStyle(StrandPalette.messageFailure)
+                .frame(width: 24, height: 24)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text("Not Delivered"))
+        .confirmationDialog(Text(verbatim: coach.errorText ?? ""), isPresented: $showFailure, titleVisibility: .visible) {
+            Button("Try Again") { retry() }
+            if coach.keyRejected {
+                Button("Update Key") { showSettings = true }
+            }
+            Button("Cancel", role: .cancel) {}
+        }
+    }
+
+    /// A failure with no question of its own to mark (the brief, or a reply cut off mid-way): the reason
+    /// in the transcript's small grey type, with the key when the provider turned it away.
     private func errorLine(_ message: String) -> some View {
-        NoticeCard(title: Text("Couldn't get a reply"), message: Text(verbatim: message),
-                   systemImage: "exclamationmark.circle.fill", tone: .error,
-                   actionTitle: coach.keyRejected ? "Update Key" : nil,
-                   action: coach.keyRejected ? { showSettings = true } : nil)
-            .padding(.vertical, 6)
+        VStack(spacing: 2) {
+            Text(verbatim: message)
+                .foregroundStyle(StrandPalette.messageMeta)
+            if coach.keyRejected {
+                Button("Update Key") { showSettings = true }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(StrandPalette.messageSend)
+            }
+        }
+        .font(StrandFont.pro(11, weight: .medium))
+        .multilineTextAlignment(.center)
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 40)
+        .padding(.top, 10)
     }
 
     // MARK: - Composer
 
     private var hasDraft: Bool { !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
-    /// Suggestion capsules over the glass field. K7: follow-ups after a reply, contextual ones otherwise.
-    private var composer: some View {
-        VStack(spacing: 8) {
-            if !hasDraft && !coach.sending {
-                suggestionRow
-            }
-            HStack(alignment: .bottom, spacing: 8) {
-                TextField("Ask Coach", text: $draft, axis: .vertical)
-                    .textFieldStyle(.plain)
-                    .font(StrandFont.pro(17))
-                    .foregroundStyle(StrandPalette.textPrimary)
-                    .lineLimit(1...6)
-                    .focused($composerFocused)
-                    .onSubmit { send(draft) }
-                    .padding(.vertical, 10)
-                    .accessibilityLabel(Text("Question"))
-                trailingControl
-                    .padding(.bottom, 5)
-            }
-            .padding(.leading, 16)
-            .padding(.trailing, 5)
-            .messageGlass(RoundedRectangle(cornerRadius: 22, style: .continuous))
-            .padding(.horizontal, 12)
-        }
-        .padding(.bottom, 8)
-        .padding(.top, 4)
+    /// K7: follow-ups once the coach has answered, contextual questions otherwise.
+    private var suggestions: [String] {
+        coach.messages.last?.role == .assistant ? AICoachEngine.followUpSuggestions : coach.suggestions
     }
 
-    private var suggestionRow: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(showFollowUps ? AICoachEngine.followUpSuggestions : coach.suggestions, id: \.self) { prompt in
-                    Button { send(prompt) } label: {
-                        Text(prompt)
-                            .font(StrandFont.pro(15))
-                            .foregroundStyle(StrandPalette.textPrimary)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 9)
-                            .messageGlass(Capsule())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(Text("Suggested prompt: \(prompt)"))
+    /// Suggestions under the field while it is empty: when the keyboard is up, and on an empty chat.
+    private var showSuggestionRow: Bool {
+        !hasDraft && !coach.sending && (composerFocused || coach.messages.isEmpty)
+    }
+
+    /// Messages' entry row: the "+" circle, then the glass field with the mic, or the send arrow once
+    /// there is something to send.
+    private var composer: some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .bottom, spacing: 12) {
+                plusMenu
+                field
+            }
+            .padding(.horizontal, Self.composerInset)
+            if showSuggestionRow {
+                suggestionRow
+                    .padding(.top, 8)
+                    .transition(.opacity)
+            }
+        }
+        #if os(iOS)
+        .padding(.top, 8)
+        // 28 pt off the screen's bottom edge, concentric with its corners; just above the keyboard
+        // while typing.
+        .padding(.bottom, composerFocused ? 8 : 28 - bottomInset)
+        #else
+        .padding(.vertical, 12)
+        #endif
+        .animation(StrandMotion.fade, value: showSuggestionRow)
+    }
+
+    /// The field's side margins: 28 pt on iOS, concentric with the screen's corners.
+    #if os(iOS)
+    private static let composerInset: CGFloat = 28
+    #else
+    private static let composerInset: CGFloat = 16
+    #endif
+
+    private var plusMenu: some View {
+        Menu {
+            ForEach(suggestions, id: \.self) { prompt in
+                Button { send(Self.localized(prompt)) } label: {
+                    Label(Self.localized(prompt), systemImage: "sparkles")
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 2)
+        } label: {
+            Image(systemName: "plus")
+                .font(StrandFont.pro(19))
+                .foregroundStyle(StrandPalette.messageIncomingText)
+                .frame(width: 40, height: 40)
+                .messageGlass(Circle())
+        }
+        .buttonStyle(.plain)
+        .menuIndicator(.hidden)
+        .disabled(coach.sending)
+        .accessibilityLabel(Text("Suggestions"))
+    }
+
+    private var field: some View {
+        HStack(alignment: .bottom, spacing: 6) {
+            TextField("Ask Coach", text: $draft, prompt: placeholder, axis: .vertical)
+                .textFieldStyle(.plain)
+                .font(StrandFont.pro(17))
+                .foregroundStyle(StrandPalette.messageIncomingText)
+                .lineLimit(1...6)
+                .focused($composerFocused)
+                .onSubmit { send(draft) }
+                .padding(.vertical, 10)
+                .padding(.leading, 14)
+                .accessibilityLabel(Text("Question"))
+            trailingControl
+        }
+        .frame(minHeight: MessageBubbleShape.minSide)
+        .messageGlass(RoundedRectangle(cornerRadius: 20.14, style: .continuous))
+    }
+
+    private var placeholder: Text {
+        #if os(iOS)
+        Text("Ask Coach").foregroundStyle(StrandPalette.messagePlaceholder)
+        #else
+        Text("Ask Coach").foregroundColor(StrandPalette.messagePlaceholder)
+        #endif
+    }
+
+    /// Apple Intelligence's suggestion row: the questions in its wash, hairlines between them.
+    private var suggestionRow: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 0) {
+                ForEach(Array(suggestions.enumerated()), id: \.offset) { index, prompt in
+                    if index > 0 {
+                        Rectangle()
+                            .fill(StrandPalette.hairline)
+                            .frame(width: NoopMetrics.hairlineWidth, height: 22)
+                    }
+                    Button { send(Self.localized(prompt)) } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "sparkles").font(StrandFont.pro(13, weight: .medium))
+                            Text(verbatim: Self.localized(prompt)).font(StrandFont.pro(15))
+                        }
+                        .foregroundStyle(LinearGradient(colors: [StrandPalette.messageSuggestionStart,
+                                                                 StrandPalette.messageSuggestionEnd],
+                                                        startPoint: .leading, endPoint: .trailing))
+                        .padding(.horizontal, 14)
+                        .frame(height: 36)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text("Suggested prompt: \(Self.localized(prompt))"))
+                }
+            }
+            .padding(.horizontal, Self.composerInset)
         }
     }
 
-    /// K7: follow-ups replace the contextual suggestions once the coach has answered.
-    private var showFollowUps: Bool { coach.messages.last?.role == .assistant }
+    /// The suggestion strings come from the engine in English; they read, and are sent, in the app's
+    /// language.
+    private static func localized(_ prompt: String) -> String {
+        String(localized: String.LocalizationValue(prompt))
+    }
 
     /// The send arrow once there is something to send; the mic (iOS) while the field is empty.
     @ViewBuilder
     private var trailingControl: some View {
-        if hasDraft || coach.sending {
+        if hasDraft {
             Button { send(draft) } label: {
                 Image(systemName: "arrow.up")
-                    .font(.system(size: 15, weight: .bold))
+                    .font(StrandFont.pro(16, weight: .bold))
                     .foregroundStyle(StrandPalette.messageOutgoingText)
-                    .frame(width: 30, height: 30)
-                    .background(StrandPalette.messageOutgoing, in: Circle())
+                    .frame(width: 38, height: 28)
+                    .background(StrandPalette.messageSend, in: Capsule())
                     .opacity(coach.sending ? 0.4 : 1)
             }
             .buttonStyle(.plain)
-            .disabled(coach.sending || !hasDraft)
+            .disabled(coach.sending)
+            .padding(.trailing, 6)
+            .padding(.bottom, 6)
             .accessibilityLabel(Text("Send"))
         } else {
             #if os(iOS)
             micButton
+            #else
+            Color.clear.frame(width: 14, height: 1)
             #endif
         }
     }
@@ -337,9 +583,9 @@ struct CoachView: View {
     private var micButton: some View {
         Button { toggleVoice() } label: {
             Image(systemName: voiceInput.isRecording ? "stop.circle.fill" : "mic")
-                .font(.system(size: 18, weight: .regular))
-                .foregroundStyle(voiceInput.isRecording ? StrandPalette.settingsRed : StrandPalette.textSecondary)
-                .frame(width: 30, height: 30)
+                .font(StrandFont.pro(17))
+                .foregroundStyle(voiceInput.isRecording ? StrandPalette.messageFailure : StrandPalette.messageFieldGlyph)
+                .frame(width: 37, height: MessageBubbleShape.minSide)
         }
         .buttonStyle(.plain)
         .disabled(!micButtonEnabled)
@@ -389,6 +635,14 @@ struct CoachView: View {
         Task { await coach.send(trimmed) }
     }
 
+    /// "Try Again" on an undelivered question: it leaves the transcript and is asked afresh, landing at
+    /// the bottom as Messages resends it.
+    private func retry() {
+        guard !coach.sending, let failed = coach.messages.last, failed.role == .user else { return }
+        coach.messages.removeLast()
+        Task { await coach.send(failed.text) }
+    }
+
     /// K14: a light impact when the reply arrives (iOS); no simple equivalent on macOS.
     private func triggerReplyHaptic() {
         #if os(iOS)
@@ -404,92 +658,17 @@ struct CoachView: View {
         }
     }
 
-    private func scrollToEnd(_ proxy: ScrollViewProxy, animated: Bool = true) {
-        let target: AnyHashable? = coach.errorText?.isEmpty == false ? AnyHashable("error")
-            : coach.sending ? AnyHashable("typing")
-            : coach.messages.last.map { AnyHashable($0.id) }
-        guard let target else { return }
-        if animated {
-            withAnimation(StrandMotion.fade) { proxy.scrollTo(target, anchor: .bottom) }
-        } else {
-            proxy.scrollTo(target, anchor: .bottom)
-        }
-    }
-}
-
-// MARK: - Bubble
-
-/// A Messages bubble: blue on the right for the sender, grey on the left for replies, the tail on the
-/// last bubble of a run. The tail's width is reserved on every bubble so a run lines up.
-private struct MessageBubble: ViewModifier {
-    let outgoing: Bool
-    let tail: Bool
-
-    func body(content: Content) -> some View {
-        content
-            .padding(.vertical, 8)
-            .padding(.leading, outgoing ? 13 : 13 + MessageBubbleShape.tailWidth)
-            .padding(.trailing, outgoing ? 13 + MessageBubbleShape.tailWidth : 13)
-            .frame(minHeight: 36)
-            .background(outgoing ? StrandPalette.messageOutgoing : StrandPalette.messageIncoming,
-                        in: MessageBubbleShape(outgoing: outgoing, tail: tail))
-    }
-}
-
-/// The bubble outline: a rounded body and, when asked, the curled tail at the bottom corner on the
-/// sender's side. Drawn for the right side and mirrored for the left.
-struct MessageBubbleShape: Shape {
-    static let tailWidth: CGFloat = 6
-    let outgoing: Bool
-    let tail: Bool
-
-    func path(in rect: CGRect) -> Path {
-        let w = rect.width, h = rect.height
-        let bw = w - Self.tailWidth
-        let r = min(18, h / 2)
-        let k: CGFloat = 0.552 * r
-        var p = Path()
-        p.move(to: CGPoint(x: r, y: 0))
-        p.addLine(to: CGPoint(x: bw - r, y: 0))
-        p.addCurve(to: CGPoint(x: bw, y: r), control1: CGPoint(x: bw - r + k, y: 0), control2: CGPoint(x: bw, y: r - k))
-        if tail {
-            p.addLine(to: CGPoint(x: bw, y: h - 12))
-            p.addCurve(to: CGPoint(x: w, y: h), control1: CGPoint(x: bw, y: h - 4), control2: CGPoint(x: w - 2, y: h))
-            p.addCurve(to: CGPoint(x: bw - 8, y: h - 3), control1: CGPoint(x: w - 4, y: h + 0.5), control2: CGPoint(x: bw - 4, y: h - 1))
-            p.addCurve(to: CGPoint(x: bw - r, y: h), control1: CGPoint(x: bw - 11, y: h - 0.5), control2: CGPoint(x: bw - r + 4, y: h))
-        } else {
-            p.addLine(to: CGPoint(x: bw, y: h - r))
-            p.addCurve(to: CGPoint(x: bw - r, y: h), control1: CGPoint(x: bw, y: h - r + k), control2: CGPoint(x: bw - r + k, y: h))
-        }
-        p.addLine(to: CGPoint(x: r, y: h))
-        p.addCurve(to: CGPoint(x: 0, y: h - r), control1: CGPoint(x: r - k, y: h), control2: CGPoint(x: 0, y: h - r + k))
-        p.addLine(to: CGPoint(x: 0, y: r))
-        p.addCurve(to: CGPoint(x: r, y: 0), control1: CGPoint(x: 0, y: r - k), control2: CGPoint(x: r - k, y: 0))
-        p.closeSubpath()
-        guard !outgoing else { return p.offsetBy(dx: rect.minX, dy: rect.minY) }
-        let mirror = CGAffineTransform(scaleX: -1, y: 1).translatedBy(x: -w, y: 0)
-        return p.applying(mirror).offsetBy(dx: rect.minX, dy: rect.minY)
-    }
-}
-
-extension View {
-    /// Interactive Liquid Glass in `shape` (iOS 26 / macOS 26); a bar material with a hairline before.
-    @ViewBuilder
-    func messageGlass<S: InsettableShape>(_ shape: S) -> some View {
-        #if compiler(>=6.2)
-        if #available(iOS 26.0, macOS 26.0, *) {
-            self.glassEffect(.regular.interactive(), in: shape)
-        } else {
-            self.messageMaterial(shape)
-        }
-        #else
-        self.messageMaterial(shape)
-        #endif
+    /// Stamps the messages that arrive while the screen is up; forgets the ones that have left.
+    private func recordTimes(_ ids: [UUID]) {
+        guard historyLoaded else { return }
+        var next = times.filter { ids.contains($0.key) }
+        for id in ids where next[id] == nil { next[id] = Date() }
+        guard next != times else { return }
+        times = next
+        CoachMessageTimes.save(next)
     }
 
-    private func messageMaterial<S: InsettableShape>(_ shape: S) -> some View {
-        self
-            .background(.regularMaterial, in: shape)
-            .overlay(shape.strokeBorder(StrandPalette.hairline, lineWidth: NoopMetrics.hairlineWidth))
+    private func scrollToEnd(_ proxy: ScrollViewProxy) {
+        withAnimation(StrandMotion.fade) { proxy.scrollTo("end", anchor: .bottom) }
     }
 }

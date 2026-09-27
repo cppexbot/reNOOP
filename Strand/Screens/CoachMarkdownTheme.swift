@@ -13,7 +13,7 @@ extension Theme {
     static let strand = Theme()
         // Base body text — Messages' 17 pt.
         .text {
-            ForegroundColor(StrandPalette.textPrimary)
+            ForegroundColor(StrandPalette.messageIncomingText)
             FontSize(17)
         }
         .strong {
@@ -25,11 +25,11 @@ extension Theme {
         .code {
             FontFamilyVariant(.monospaced)
             FontSize(.em(0.88))
-            ForegroundColor(StrandPalette.textPrimary)
+            ForegroundColor(StrandPalette.messageIncomingText)
             BackgroundColor(StrandPalette.surfaceInset)
         }
         .link {
-            ForegroundColor(StrandPalette.messageOutgoing)
+            ForegroundColor(StrandPalette.messageLink)
         }
         // Headings: h1/h2 land at headline (17 / semibold), h3 just above body,
         // h4–h6 as overline-ish small caps labels.
@@ -39,7 +39,7 @@ extension Theme {
                 .markdownTextStyle {
                     FontWeight(.semibold)
                     FontSize(17)
-                    ForegroundColor(StrandPalette.textPrimary)
+                    ForegroundColor(StrandPalette.messageIncomingText)
                 }
         }
         .heading2 { configuration in
@@ -48,7 +48,7 @@ extension Theme {
                 .markdownTextStyle {
                     FontWeight(.semibold)
                     FontSize(17)
-                    ForegroundColor(StrandPalette.textPrimary)
+                    ForegroundColor(StrandPalette.messageIncomingText)
                 }
         }
         .heading3 { configuration in
@@ -57,7 +57,7 @@ extension Theme {
                 .markdownTextStyle {
                     FontWeight(.semibold)
                     FontSize(17)
-                    ForegroundColor(StrandPalette.textPrimary)
+                    ForegroundColor(StrandPalette.messageIncomingText)
                 }
         }
         .heading4 { configuration in
@@ -66,7 +66,7 @@ extension Theme {
                 .markdownTextStyle {
                     FontWeight(.semibold)
                     FontSize(17)
-                    ForegroundColor(StrandPalette.textPrimary)
+                    ForegroundColor(StrandPalette.messageIncomingText)
                 }
         }
         .heading5 { configuration in
@@ -87,14 +87,15 @@ extension Theme {
                     ForegroundColor(StrandPalette.textSecondary)
                 }
         }
+        // Messages sets a reply at the plain 17 pt line height; blocks sit 8 pt apart and list items
+        // follow each other with no extra gap.
         .paragraph { configuration in
             configuration.label
-                .relativeLineSpacing(.em(0.22))
                 .markdownMargin(top: 0, bottom: 8)
         }
         .listItem { configuration in
             configuration.label
-                .markdownMargin(top: .em(0.2))
+                .markdownMargin(top: 0)
         }
         .blockquote { configuration in
             configuration.label
