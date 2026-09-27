@@ -575,6 +575,10 @@ enum DemoScreens {
         case "devices":  return AnyView(NavigationStack { DevicesView().settingsDestinations() })
         case "devicescatalog": return AnyView(NavigationStack { DeviceCardCatalog() })
         case "addwizard": return AnyView(AddWizardDemoHost())
+        // Coach: `--coach-demo chat|settings|setup` (a seeded conversation, its settings sheet, or no provider).
+        case "coach":
+            let mode = args.firstIndex(of: "--coach-demo").flatMap { $0 + 1 < args.count ? args[$0 + 1] : nil } ?? "chat"
+            return AnyView(CoachDemoHost(mode: mode))
         default:         return nil
         }
     }
@@ -600,6 +604,42 @@ private struct SettingsDemoHost: View {
     var body: some View {
         NavigationStack(path: $path) {
             SettingsView().settingsDestinations()
+        }
+    }
+}
+
+/// DEBUG-only: Coach with a seeded conversation on a local-server connection (no key, no network), its
+/// settings sheet over it, or the unconfigured state.
+private struct CoachDemoHost: View {
+    @EnvironmentObject var coach: AICoachEngine
+    @EnvironmentObject var repo: Repository
+    let mode: String
+    @State private var ready = false
+
+    var body: some View {
+        NavigationStack {
+            if ready { CoachView() }
+        }
+        .sheet(isPresented: .constant(ready && mode == "settings")) {
+            CoachSettingsView().environmentObject(coach).environmentObject(repo)
+        }
+        .onAppear {
+            if mode == "setup" {
+                coach.customConnected = false
+                coach.provider = .openAI
+            } else {
+                coach.provider = .custom
+                coach.customBaseURL = "http://localhost:11434/v1"
+                coach.customConnected = true
+                coach.model = "llama3.1"
+                coach.messages = [
+                    ChatMessage(role: .user, text: "Как я восстановился после вчерашней тренировки?"),
+                    ChatMessage(role: .assistant, text: "Заряд сегодня **74 %** — выше вашей нормы. ВСР 68 мс, пульс покоя 52 уд/мин.\n\n- Можно тренироваться в полную силу\n- Лягте до 23:30, чтобы закрепить результат"),
+                    ChatMessage(role: .user, text: "А какую тренировку выбрать?"),
+                    ChatMessage(role: .assistant, text: "Интервалы на 40–45 минут в зоне 3–4 и 10 минут заминки."),
+                ]
+            }
+            ready = true
         }
     }
 }

@@ -7,14 +7,14 @@ import StrandDesign
 /// LLM chat replies (OpenAI / Anthropic / Gemini) arrive as GitHub-flavored
 /// Markdown — overwhelmingly bold, bullet/numbered lists, `###` headings, and the
 /// occasional table for a weekly plan. This theme renders that set in the Strand
-/// look, sized for a chat bubble: headings are capped near body size (a `#` must
-/// not shout inside a 560pt bubble), and tables get hairline borders.
+/// look, sized for a Messages bubble: headings stay at body size (a `#` must
+/// not shout inside a bubble), and tables get hairline borders.
 extension Theme {
     static let strand = Theme()
-        // Base body text — mirrors StrandFont.body (15 / regular).
+        // Base body text — Messages' 17 pt.
         .text {
             ForegroundColor(StrandPalette.textPrimary)
-            FontSize(15)
+            FontSize(17)
         }
         .strong {
             FontWeight(.semibold)
@@ -25,11 +25,11 @@ extension Theme {
         .code {
             FontFamilyVariant(.monospaced)
             FontSize(.em(0.88))
-            ForegroundColor(StrandPalette.accentHover)
+            ForegroundColor(StrandPalette.textPrimary)
             BackgroundColor(StrandPalette.surfaceInset)
         }
         .link {
-            ForegroundColor(StrandPalette.accent)
+            ForegroundColor(StrandPalette.messageOutgoing)
         }
         // Headings: h1/h2 land at headline (17 / semibold), h3 just above body,
         // h4–h6 as overline-ish small caps labels.
@@ -56,7 +56,7 @@ extension Theme {
                 .markdownMargin(top: 12, bottom: 4)
                 .markdownTextStyle {
                     FontWeight(.semibold)
-                    FontSize(16)
+                    FontSize(17)
                     ForegroundColor(StrandPalette.textPrimary)
                 }
         }
@@ -65,7 +65,7 @@ extension Theme {
                 .markdownMargin(top: 10, bottom: 4)
                 .markdownTextStyle {
                     FontWeight(.semibold)
-                    FontSize(15)
+                    FontSize(17)
                     ForegroundColor(StrandPalette.textPrimary)
                 }
         }
@@ -104,7 +104,7 @@ extension Theme {
                 }
                 .overlay(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 1.5)
-                        .fill(StrandPalette.accent.opacity(0.6))
+                        .fill(StrandPalette.textTertiary)
                         .frame(width: 3)
                 }
                 .markdownMargin(top: 4, bottom: 8)

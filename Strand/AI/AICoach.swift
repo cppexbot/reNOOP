@@ -346,28 +346,10 @@ final class AICoachEngine: ObservableObject {
         "Give me a specific action plan",
     ]
 
-    /// K12: Rough token estimate for the next send, based on the current draft + context size.
-    /// Uses the standard ~4 chars/token heuristic. This is an estimate only — actual token counts
-    /// vary by tokenizer. Returns nil when the engine isn't configured (no context to estimate).
-    func estimatedTokens(forDraft draft: String) -> Int? {
-        guard isConfigured else { return nil }
-        // Estimate the context size: system prompt + data context (rough — we don't build the
-        // full context here to avoid a DB read on every keystroke). Use the last known context
-        // size or a reasonable default.
-        let systemPromptTokens = systemPrompt.count / 4
-        // The data context is typically ~2000-4000 chars depending on the user's data.
-        // Use a conservative estimate of 3000 chars (750 tokens) when consent is on.
-        let contextTokens = dataConsent ? 750 : 50
-        // History tokens: sum of all message texts in the windowed history.
-        let historyTokens = windowedMessages().reduce(0) { $0 + $1.text.count / 4 }
-        let draftTokens = draft.count / 4
-        return systemPromptTokens + contextTokens + historyTokens + draftTokens
-    }
-
     /// Used in place of the metrics context when the user has NOT granted data access.
     private let noConsentNote = """
     NOTE: The user has not granted access to their biometric data. Coach generally and encourage \
-    them to enable "Let the coach use my data" for guidance tailored to their real numbers.
+    them to turn on "Use My Data" in Coach settings for guidance tailored to their real numbers.
     """
 
     init(repo: Repository, session: URLSession = .shared) {

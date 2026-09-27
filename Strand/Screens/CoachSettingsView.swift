@@ -1,311 +1,237 @@
 import SwiftUI
 import StrandDesign
 
-/// Coach settings, split out of `CoachView` so the coach screen is the conversation and nothing else
-/// (#2243). Holds the surfaces that used to stack above the transcript: the data-sharing consent, the
-/// two further opt-ins that depend on it, the editable coach instructions, and the morning brief.
+/// Coach settings (#2243), a sheet with ✕ as Health and Fitness draw theirs: the connection (provider,
+/// server, model, key), what the coach may read, its instructions, the morning brief, and the two ways
+/// to end a conversation.
 ///
-/// Connection management (the provider pill, Clear conversation, Disconnect) deliberately stays on
-/// `CoachView`. Disconnect is the only route back to the setup card, which is the only place a key can
-/// be typed, and #2206 is the record of what happened the last time that control was put somewhere a
-/// presentation did not render it. The Kotlin twin `CoachSettingsScreen` splits on the same line.
-///
-/// Presented as a sheet rather than pushed. CoachView appears in three places between the two
-/// platforms (a macOS route, an iPhone tab root whose navigation bar is hidden, and an iPhone pillar
-/// sheet), and a sheet is the one presentation that behaves the same in all three without depending on
-/// an enclosing NavigationStack.
+/// The provider can only be chosen while nothing is connected. A stored key records which provider it
+/// belongs to and is never sent anywhere else, so switching provider under a key would leave a key that
+/// cannot be used; Disconnect is the way to change it (#2206 is the record of what happens when that
+/// control is put somewhere a presentation does not render — a sheet renders in all three).
 struct CoachSettingsView: View {
     @EnvironmentObject var coach: AICoachEngine
     @Environment(\.dismiss) private var dismiss
 
-    /// Morning-brief settings, read from `CoachBriefScheduler` on init exactly as `CoachView` did
-    /// before the split. This screen can now be the first to render them.
+    /// Pending key text (never persisted here, handed to `setKey`). Also the repair for a rejected key:
+    /// `setKey` replaces the stored key and keeps the transcript.
+    @State private var keyDraft = ""
+    /// Whether the model picker is in free-text "Custom…" mode, and the id typed there.
+    @State private var customModel = false
+    @State private var customModelDraft = ""
+    @State private var showClearConfirm = false
+
+    /// Morning-brief settings, read from `CoachBriefScheduler` on init.
     @State private var briefEnabled: Bool = CoachBriefScheduler.isEnabled
     @State private var briefMinutes: Int = CoachBriefScheduler.timeMinutes
     @State private var briefGenerating = false
     @State private var briefStatus: String?
 
-    /// The coach-instructions editor, collapsed until asked for.
-    @State private var promptExpanded: Bool = false
-    @State private var promptDraft: String = ""
+    private let customModelTag = "__custom__"
 
     var body: some View {
-        // Literals, not String(localized:): `title`/`subtitle` are LocalizedStringKey, which converts
-        // from a string LITERAL only, so a String value does not type-check here. The catalog keys are
-        // these exact English strings.
-        //
-        // Done goes in the scaffold's `trailing` slot rather than a .toolbar. ScreenScaffold is a bare
-        // ScrollView with no NavigationStack, so a toolbar item presented in a sheet would render
-        // nowhere, and a macOS sheet has no swipe-to-dismiss: that combination would leave this screen
-        // with no way out. (#2206 is the same mistake in the other direction.)
-        ScreenScaffold(title: "Coach settings",
-                       subtitle: "What the coach may read, how it is told to answer, and when it writes to you.",
-                       topBackground: liquidScaffoldSky(),
-                       trailing: {
-                           Button("Done") { dismiss() }
-                               .buttonStyle(.plain)
-                               .font(StrandFont.subhead)
-                               .foregroundStyle(StrandPalette.accent)
-                               .accessibilityLabel("Close coach settings")
-                       }) {
-            modelBar
-            consentBar
-            // v5: a SECOND opt-in, only meaningful once data access is on, folds a summary of the
-            // new on-device signals (your strongest patterns + Lab Book) into the coach context.
-            if coach.dataConsent { onDeviceSignalsBar }
-            if coach.dataConsent && coach.provider == .gemini { multimodalChartBar }
-            systemPromptBar
-            morningBriefBar
+        NavigationStack {
+            Form {
+                connectionSection
+                if coach.isConfigured {
+                    dataSection
+                    Section {
+                        NavigationLink {
+                            CoachInstructionsPage()
+                        } label: {
+                            LabeledContent("Instructions") {
+                                Text(coach.hasCustomSystemPrompt ? "Custom" : "Default")
+                            }
+                        }
+                    }
+                    briefSection
+                    Section {
+                        Button("Clear Conversation", role: .destructive) { showClearConfirm = true }
+                            .disabled(coach.messages.isEmpty)
+                        Button("Disconnect", role: .destructive) {
+                            coach.disconnect()
+                            keyDraft = ""
+                        }
+                    }
+                }
+            }
+            .settingsForm()
+            .navigationTitle(Text("Coach"))
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    WorkoutSheetCloseButton { dismiss() }
+                }
+            }
+            .confirmationDialog("Clear conversation?", isPresented: $showClearConfirm, titleVisibility: .visible) {
+                Button("Clear", role: .destructive) { coach.clearConversation() }
+                Button("Cancel", role: .cancel) {}
+            }
         }
-        // Opening this screen is the moment a stale catalogue is worth refreshing: a key exists here by
-        // definition, and the picker above is about to be read. Rate-limited and silent on failure.
+        #if os(macOS)
+        .frame(minWidth: 460, minHeight: 560)
+        #endif
+        // A stale model catalogue is worth refreshing when the picker is about to be read. Rate-limited,
+        // silent on failure, and a no-op without a key.
         .task { await coach.refreshModelsIfStale() }
     }
 
-    /// Which model answers, and the control that refreshes the list of them.
-    ///
-    /// This lives HERE rather than on the setup card because of where a key exists. `setupCard` renders
-    /// only while `isConfigured` is false, which for a cloud provider means no key is stored, and the
-    /// Refresh control is `.disabled(!coach.hasKey)` — gated on having a key inside a screen that only
-    /// appears when there is none. So for OpenAI, Anthropic and Gemini that button was permanently
-    /// disabled and the live catalogue those three publish was unreachable. A key exists by definition
-    /// on this screen, so the picker and the refresh both work.
-    ///
-    /// The PROVIDER deliberately stays on the setup card. A stored key records which provider it
-    /// belongs to and is never sent anywhere else, so switching provider here would leave a key that
-    /// cannot be used and a screen that cannot fix it. Kotlin twin: `CoachModelCard`.
-    private var modelBar: some View {
-        NoopCard(padding: 14, tint: StrandPalette.chargeColor) {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text("\(coach.provider.displayName) · \(coach.model)")
-                        .font(StrandFont.subhead).foregroundStyle(StrandPalette.textPrimary)
-                    Spacer(minLength: 8)
-                    Button {
-                        Task { await coach.refreshModels() }
-                    } label: {
-                        Label("Refresh models", systemImage: "arrow.clockwise")
-                            .font(StrandFont.footnote)
-                            .labelStyle(.titleAndIcon)
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(StrandPalette.accent)
+    // MARK: - Connection
+
+    @ViewBuilder
+    private var connectionSection: some View {
+        Section {
+            if coach.isConfigured {
+                LabeledContent("Provider", value: coach.provider.displayName)
+            } else {
+                Picker("Provider", selection: $coach.provider) {
+                    ForEach(AIProvider.allCases) { Text($0.displayName).tag($0) }
+                }
+            }
+            if coach.provider == .custom {
+                LabeledContent("Server URL") {
+                    TextField("Server URL", text: $coach.customBaseURL, prompt: Text(verbatim: "http://localhost:11434/v1"))
+                        .labelsHidden()
+                        .multilineTextAlignment(.trailing)
+                        .disableAutocorrection(true)
+                        #if os(iOS)
+                        .textInputAutocapitalization(.never)
+                        .keyboardType(.URL)
+                        #endif
+                }
+                Picker("Key Header", selection: $coach.customAuthHeader) {
+                    ForEach(CustomAIAuthHeader.allCases) { Text($0.displayName).tag($0) }
+                }
+            }
+            Picker("Model", selection: modelPickerSelection) {
+                ForEach(coach.availableModels, id: \.self) { Text($0).tag($0) }
+                Text("Custom…").tag(customModelTag)
+            }
+            if customModel {
+                TextField("Model ID", text: $customModelDraft)
+                    .disableAutocorrection(true)
+                    #if os(iOS)
+                    .textInputAutocapitalization(.never)
+                    #endif
+                    .onSubmit(applyCustomModel)
+            }
+            SecureField(coach.provider == .custom ? "API Key (optional)" : "API Key", text: $keyDraft)
+                .onSubmit(commit)
+        } footer: {
+            // Setup failures only: once connected, the conversation shows a failed send under itself.
+            if !coach.isConfigured, let error = coach.errorText, !error.isEmpty {
+                Text(error).foregroundStyle(StrandPalette.settingsRed)
+            }
+        }
+        Section {
+            if coach.provider == .custom && !coach.isConfigured {
+                Button("Connect", action: commit)
+                    .disabled(coach.customBaseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            } else {
+                Button(coach.hasKey ? "Update Key" : "Save Key", action: commit)
+                    .disabled(keyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+            if coach.provider != .custom {
+                Button("Refresh Models") { Task { await coach.refreshModels() } }
                     .disabled(!coach.hasKey)
-                    .accessibilityLabel("Refresh models from provider")
-                }
-                Picker("Model", selection: $coach.model) {
-                    ForEach(coach.availableModels, id: \.self) { m in
-                        Text(m).tag(m)
-                    }
-                }
-                .labelsHidden()
-                .pickerStyle(.menu)
-                .accessibilityLabel("Model")
             }
         }
     }
 
-    /// Explicit, revocable permission for the coach to read & send the user's data. Off by default.
-    /// A frosted Charge-tinted card so it reads as part of the green Coach world, not a flat panel.
-    private var consentBar: some View {
-        NoopCard(padding: 14, tint: StrandPalette.chargeColor) {
-            HStack(spacing: 10) {
-                Image(systemName: coach.dataConsent ? "lock.open.fill" : "lock.fill")
-                    .foregroundStyle(coach.dataConsent ? StrandPalette.accent : StrandPalette.textTertiary)
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("Let the coach use my data")
-                        .font(StrandFont.subhead).foregroundStyle(StrandPalette.textPrimary)
-                    // The ON line NAMES what a session carries rather than saying "workouts" and
-                    // leaving the reader to guess how much that is: the sport, how long, how far and how
-                    // hard, per session. This toggle is the only place someone is asked to agree to it.
-                    // Android says the same sentence (#2033).
-                    Text(coach.dataConsent
-                         ? "On: your charge, rest, HRV and workouts are sent to the provider, each workout with its sport, duration, distance and heart rate."
-                         : "Off: the coach answers generally and sends none of your metrics.")
-                        .font(StrandFont.footnote).foregroundStyle(StrandPalette.textTertiary)
-                        .fixedSize(horizontal: false, vertical: true)
+    /// Bridges the model Picker to `coach.model`, with a "Custom…" sentinel that opens the free-text
+    /// field instead of selecting a real id.
+    private var modelPickerSelection: Binding<String> {
+        Binding(
+            get: { customModel ? customModelTag : coach.model },
+            set: { newValue in
+                if newValue == customModelTag {
+                    customModel = true
+                    if customModelDraft.isEmpty { customModelDraft = coach.model }
+                } else {
+                    customModel = false
+                    coach.model = newValue
                 }
-                Spacer(minLength: 8)
-                Toggle("", isOn: $coach.dataConsent)
-                    .labelsHidden().toggleStyle(.switch).tint(StrandPalette.accent)
-                    .accessibilityLabel("Let the coach use my data")
+            }
+        )
+    }
+
+    private func applyCustomModel() {
+        let trimmed = customModelDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        coach.setCustomModel(trimmed)
+        customModel = false
+    }
+
+    /// Save the key (cloud) or connect the server (custom, the key optional there). The first successful
+    /// connection closes the sheet onto the conversation.
+    private func commit() {
+        if customModel { applyCustomModel() }
+        let wasConfigured = coach.isConfigured
+        let trimmed = keyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty {
+            coach.setKey(trimmed)
+            keyDraft = ""
+        }
+        if coach.provider == .custom && !coach.customConnected { coach.connectCustom() }
+        if !wasConfigured && coach.isConfigured { dismiss() }
+    }
+
+    // MARK: - Data
+
+    /// Explicit, revocable permission for the coach to read and send the user's data (off by default),
+    /// and the two opt-ins that depend on it.
+    private var dataSection: some View {
+        Section {
+            Toggle("Use My Data", isOn: $coach.dataConsent)
+            if coach.dataConsent {
+                // v5: summaries of the strongest patterns + Lab Book, never raw readings.
+                Toggle("Patterns and Lab Book", isOn: $coach.includeOnDeviceSignals)
+                // K11: a chart image alongside the text, Gemini only.
+                if coach.provider == .gemini {
+                    Toggle("Chart Image", isOn: $coach.multimodalChartEnabled)
+                }
+            }
+        } footer: {
+            // The only place this is agreed to, so it names what a workout carries (#2033).
+            if coach.dataConsent {
+                Text("Charge, sleep, HRV and workouts with sport, duration, distance and heart rate.")
             }
         }
     }
 
-    /// The v5 second opt-in: include a SUMMARY of the new on-device signals (strongest n-of-1 patterns +
-    /// Lab Book markers). Summary-only, never raw readings, so the no-raw-egress posture holds.
-    private var onDeviceSignalsBar: some View {
-        NoopCard(padding: 14, tint: StrandPalette.chargeColor) {
-            HStack(spacing: 10) {
-                Image(systemName: coach.includeOnDeviceSignals ? "checklist.checked" : "checklist")
-                    .foregroundStyle(coach.includeOnDeviceSignals ? StrandPalette.accent : StrandPalette.textTertiary)
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("Also share my patterns & Lab Book")
-                        .font(StrandFont.subhead).foregroundStyle(StrandPalette.textPrimary)
-                    Text(coach.includeOnDeviceSignals
-                         ? "On: a short summary of your strongest patterns and logged health numbers is added. Summaries only, never raw readings."
-                         : "Off: only your core metrics are shared, not your patterns or Lab Book.")
-                        .font(StrandFont.footnote).foregroundStyle(StrandPalette.textTertiary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                Spacer(minLength: 8)
-                Toggle("", isOn: $coach.includeOnDeviceSignals)
-                    .labelsHidden().toggleStyle(.switch).tint(StrandPalette.accent)
-                    .accessibilityLabel("Also share my patterns and Lab Book with the coach")
-            }
-        }
-    }
+    // MARK: - Morning brief
 
-    /// K11: Third opt-in — send a chart image alongside the text when using Gemini's multimodal
-    /// API. Only shown when the provider is Gemini. OFF by default.
-    private var multimodalChartBar: some View {
-        NoopCard(padding: 14, tint: StrandPalette.chargeColor) {
-            HStack(spacing: 10) {
-                Image(systemName: coach.multimodalChartEnabled ? "photo.badge.checkmark" : "photo")
-                    .foregroundStyle(coach.multimodalChartEnabled ? StrandPalette.accent : StrandPalette.textTertiary)
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("Send chart image to Gemini")
-                        .font(StrandFont.subhead).foregroundStyle(StrandPalette.textPrimary)
-                    Text(coach.multimodalChartEnabled
-                         ? "On: a chart snapshot of your trends is sent with each question. Gemini can analyze the visual."
-                         : "Off: only text is sent. Enable to let Gemini see your charts.")
-                        .font(StrandFont.footnote).foregroundStyle(StrandPalette.textTertiary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                Spacer(minLength: 8)
-                Toggle("", isOn: $coach.multimodalChartEnabled)
-                    .labelsHidden().toggleStyle(.switch).tint(StrandPalette.accent)
-                    .accessibilityLabel("Send chart image to Gemini")
-            }
-        }
-    }
-
-    /// Editable system prompt, the instructions that frame the coach. Collapsed by default; expanding
-    /// reveals a TextEditor bound to the engine (edits persist to UserDefaults and take effect on the
-    /// next message) plus a Reset-to-default control.
-    private var systemPromptBar: some View {
-        NoopCard(padding: 14, tint: StrandPalette.chargeColor) {
-            VStack(alignment: .leading, spacing: promptExpanded ? 10 : 0) {
-                Button {
-                    withAnimation(StrandMotion.fade) {
-                        promptExpanded.toggle()
-                        if promptExpanded { promptDraft = coach.customSystemPrompt }
-                    }
-                } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: "text.alignleft")
-                            .foregroundStyle(coach.hasCustomSystemPrompt ? StrandPalette.accent : StrandPalette.textTertiary)
-                            .accessibilityHidden(true)
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text("Coach instructions")
-                                .font(StrandFont.subhead).foregroundStyle(StrandPalette.textPrimary)
-                            Text(coach.hasCustomSystemPrompt
-                                 ? "Customised. Your edited instructions frame every reply."
-                                 : "Edit how the coach thinks and talks. Takes effect on your next message.")
-                                .font(StrandFont.footnote).foregroundStyle(StrandPalette.textTertiary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        Spacer(minLength: 8)
-                        Image(systemName: promptExpanded ? "chevron.up" : "chevron.down")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(StrandPalette.textTertiary)
-                            .accessibilityHidden(true)
-                    }
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(promptExpanded ? "Collapse coach instructions" : "Edit coach instructions")
-
-                if promptExpanded {
-                    TextEditor(text: $promptDraft)
-                        .font(StrandFont.body)
-                        .foregroundStyle(StrandPalette.textPrimary)
-                        .scrollContentBackground(.hidden)
-                        .frame(minHeight: 140, maxHeight: 240)
-                        .padding(8)
-                        .background(StrandPalette.surfaceInset, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .strokeBorder(StrandPalette.hairline, lineWidth: 1))
-                        .onChangeCompat(of: promptDraft) { newValue in
-                            coach.customSystemPrompt = newValue
-                        }
-                        .accessibilityLabel("Coach instructions editor")
-
-                    HStack {
-                        Spacer()
-                        Button {
-                            coach.resetSystemPrompt()
-                            promptDraft = coach.customSystemPrompt
-                        } label: {
-                            Label("Reset to default", systemImage: "arrow.uturn.backward")
-                                .font(StrandFont.footnote)
-                                .labelStyle(.titleAndIcon)
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(StrandPalette.accent)
-                        .disabled(!coach.hasCustomSystemPrompt)
-                        .accessibilityLabel("Reset coach instructions to default")
-                    }
-                }
-            }
-        }
-    }
-
-    /// K5: the scheduled morning-brief notification settings — enable toggle, time-of-day picker, and an
-    /// explicit "Generate now" button. Mirrors the `ScheduledDebugExport` settings row shape (TestCentreView).
-    private var morningBriefBar: some View {
-        NoopCard(padding: 14, tint: StrandPalette.chargeColor) {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 10) {
-                    Image(systemName: briefEnabled ? "sunrise.fill" : "sunrise")
-                        .foregroundStyle(briefEnabled ? StrandPalette.accent : StrandPalette.textTertiary)
-                        .accessibilityHidden(true)
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text("Morning brief").font(StrandFont.subhead).foregroundStyle(StrandPalette.textPrimary)
-                        Text(briefEnabled
-                             ? "A local notification with today's readiness + training plan, generated on-device each morning."
-                             : "Off: nothing is generated or sent on a schedule.")
-                            .font(StrandFont.footnote).foregroundStyle(StrandPalette.textTertiary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    Spacer(minLength: 8)
-                    Toggle("", isOn: $briefEnabled)
-                        .labelsHidden().toggleStyle(.switch).tint(StrandPalette.accent)
-                        .accessibilityLabel("Morning brief")
-                }
+    /// K5: the scheduled morning-brief notification — toggle, time, and an explicit "Generate Now".
+    private var briefSection: some View {
+        Section {
+            Toggle("Morning Brief", isOn: $briefEnabled)
                 .onChangeCompat(of: briefEnabled) { on in
                     CoachBriefScheduler.setEnabled(on, generateBrief: { await coach.generateBrief() }) { outcome in
                         if outcome == .denied {
                             briefEnabled = false
-                            briefStatus = "Notifications are off for NOOP — enable them in Settings first."
+                            briefStatus = String(localized: "Notifications are off for NOOP.")
                         }
                     }
                 }
-
-                if briefEnabled {
-                    Divider().overlay(StrandPalette.hairline)
+            if briefEnabled {
+                DatePicker("Time", selection: briefTimeBinding, displayedComponents: .hourAndMinute)
+                Button {
+                    generateBriefNow()
+                } label: {
                     HStack {
-                        Text("Time").font(StrandFont.subhead).foregroundStyle(StrandPalette.textPrimary)
-                        Spacer()
-                        DatePicker("", selection: briefTimeBinding, displayedComponents: .hourAndMinute)
-                            .labelsHidden()
-                            .accessibilityLabel("Morning brief time")
-                    }
-                    Text("At \(Platform.deviceNounPhrase == "Mac" ? "this time" : "or soon after"), NOOP will use your key to generate today's brief. Best-effort: \(Platform.deviceNounPhrase) decides exactly when a backgrounded app wakes.")
-                        .font(StrandFont.caption).foregroundStyle(StrandPalette.textTertiary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    NoopButton(briefGenerating ? "Generating…" : "Generate now", systemImage: "sparkles", kind: .secondary) {
-                        generateBriefNow()
-                    }
-                    .disabled(briefGenerating)
-                    if let briefStatus {
-                        Text(briefStatus).font(StrandFont.footnote).foregroundStyle(StrandPalette.textTertiary)
+                        Text("Generate Now")
+                        if briefGenerating {
+                            Spacer()
+                            ProgressView()
+                        }
                     }
                 }
+                .disabled(briefGenerating)
             }
+        } footer: {
+            if let briefStatus { Text(briefStatus) }
         }
     }
 
@@ -335,8 +261,38 @@ struct CoachSettingsView: View {
             if let text {
                 coach.appendGeneratedBrief(text)
             } else {
-                briefStatus = "Couldn't generate a brief right now — check your key and data access."
+                briefStatus = String(localized: "Couldn't generate a brief. Check the key and data access.")
             }
         }
+    }
+}
+
+/// The instructions that frame every reply, edited in place (they persist in the engine and apply from
+/// the next message), with Reset in the bar.
+private struct CoachInstructionsPage: View {
+    @EnvironmentObject var coach: AICoachEngine
+    @State private var draft = ""
+
+    var body: some View {
+        Form {
+            Section {
+                TextEditor(text: $draft)
+                    .font(StrandFont.pro(15))
+                    .frame(minHeight: 320)
+                    .onChangeCompat(of: draft) { coach.customSystemPrompt = $0 }
+                    .accessibilityLabel(Text("Instructions"))
+            }
+        }
+        .settingsPage("Instructions")
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button("Reset") {
+                    coach.resetSystemPrompt()
+                    draft = coach.customSystemPrompt
+                }
+                .disabled(!coach.hasCustomSystemPrompt)
+            }
+        }
+        .onAppear { draft = coach.customSystemPrompt }
     }
 }

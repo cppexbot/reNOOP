@@ -359,6 +359,13 @@ public enum StrandPalette {
     public static let healthSleepCore  = Color(light: "#1F7EFF", dark: "#3D8FFF")
     public static let healthSleepDeep  = Color(light: "#3B33B5", dark: "#5E57E6")
     public static let healthSleepPage  = Color(light: "#FFFFFF", dark: "#000000")
+    /// Coach as a Messages conversation: the plain page, the sender's blue bubble and its text, the grey
+    /// reply bubble, and the typing dots inside it.
+    public static let messagePage         = Color(light: "#FFFFFF", dark: "#000000")
+    public static let messageOutgoing     = Color(light: "#0B84FE", dark: "#0B84FE")
+    public static let messageOutgoingText = Color(light: "#FFFFFF", dark: "#FFFFFF")
+    public static let messageIncoming     = Color(light: "#E9E9EB", dark: "#262628")
+    public static let messageTypingDot    = Color(light: "#8E8E93", dark: "#8E8E93")
     /// Sleep schedule (Health's Full Schedule): the schedule's purple, and the bedtime/wake dial — the
     /// card it sits on, the track ring, the clock face, the bedtime→wake arc, its ticks and end glyphs.
     public static let sleepSchedule       = Color(light: "#5E5CE6", dark: "#7D7AFF")
