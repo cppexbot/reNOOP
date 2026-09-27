@@ -554,6 +554,8 @@ enum DemoScreens {
         case "schedule": return AnyView(SleepScheduleView())
         case "summary":  return AnyView(SummaryView())
         case "live":     return AnyView(LiveView())
+        // Breathe; `--breathe-demo session|summary|stress` opens a session, its summary, or the check-in.
+        case "breathe":  return AnyView(BreathingView())
         case "workouts": return AnyView(NavigationStack { WorkoutsHomeView().tabRouteDestinations() })
         case "intervals": return AnyView(NavigationStack { IntervalTimerView() })
         case "liftlog":  return AnyView(NavigationStack { LiftLogView().tabRouteDestinations() })

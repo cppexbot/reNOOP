@@ -40,7 +40,7 @@ struct BrowseView: View {
     private var tools: [Entry] {
         [
             Entry(id: .live, title: String(localized: "Heart Rate"), icon: "waveform.path.ecg", tint: StrandPalette.healthHeart),
-            Entry(id: .breathe, title: String(localized: "Breathe"), icon: "lungs.fill", tint: StrandPalette.healthRespiratory),
+            Entry(id: .breathe, title: String(localized: "Mindfulness"), icon: "lungs.fill", tint: StrandPalette.healthRespiratory),
             Entry(id: .devices, title: String(localized: "Devices"), icon: "sensor.tag.radiowaves.forward.fill", tint: StrandPalette.textSecondary),
         ].sorted(by: Self.alphabetical)
     }
