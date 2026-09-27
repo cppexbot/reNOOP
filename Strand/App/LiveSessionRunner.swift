@@ -13,19 +13,19 @@ import WhoopStore
 // session screen, walks a cue's pulse list out through the EXISTING hardware buzz, and books the
 // session into the `liveSession` table (once at start with endTs nil, once at end with the totals).
 //
-// Design contract: docs/superpowers/specs/2026-07-04-live-sessions-design.md. Session-scoped: the
-// view owns one runner per presentation (@StateObject), so `start` runs once and a finished runner
-// is never restarted.
+// Design contract: docs/superpowers/specs/2026-07-04-live-sessions-design.md. Session-scoped:
+// `LiveSessionHolder` (on AppModel) makes one runner per session and keeps it while the screen is
+// minimised, so `start` runs once and a finished runner is never restarted.
 //
 // Honesty rules carried over from the engine:
 //   • Nothing here invents a number — the published `Output` is the engine's, verbatim.
 //   • A cue that can't be delivered cleanly is DROPPED, never queued: a late buzz is a wrong buzz.
 //   • Ten minutes of continuous stale ends the session on its own — guarding a dead stream is a lie.
 
-/// UserDefaults keys for the Live Sessions beta gate (the Settings toggle + the Today entry point).
+/// UserDefaults keys for the Live Sessions beta gate (the Settings toggle + the Summary / Browse entries).
 enum LiveSessionPrefs {
     /// Master switch for the whole entry. Default ON — the feature is BETA-labelled in-UI instead of
-    /// hidden; turning it off removes the Start-session control from the Liquid Today entirely.
+    /// hidden; turning it off removes the Summary "+" and the Browse row.
     static let betaKey = "noop.liveSessionsBeta"
 }
 

@@ -241,8 +241,8 @@ struct RootTabView: View {
                 // .activeWorkout routes through the quick-action Live sheet (handled above); this keeps the
                 // switch exhaustive and falls back to Live if it ever reaches the pillar host.
                 case .activeWorkout: LiveView()
-                // .liveSession routes to the Today tab (handled above — its Start entry owns the cover);
-                // this keeps the switch exhaustive and falls back to Today if it ever reaches the host.
+                // .liveSession opens its cover through `LiveSessionShellHost`; this keeps the switch
+                // exhaustive and falls back to the Summary if it ever reaches the host.
                 case .liveSession: SummaryView()
                 // .journal opens through the quick-action Journal sheet (handled above); this keeps the
                 // switch exhaustive and falls back to the journal's Insights host if it ever reaches here.
