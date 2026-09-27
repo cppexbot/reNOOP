@@ -281,19 +281,3 @@ struct HeartRateBroadcastSection: View {
         }
     }
 }
-
-// MARK: - Apple Watch
-
-/// Opens the Apple Watch setup sheet (iOS; the watch reaches NOOP through Apple Health).
-struct AppleWatchSetupRow: View {
-    @State private var showSetup = false
-
-    var body: some View {
-        #if os(iOS)
-        Button("Set up Apple Watch") { showSetup = true }
-            .sheet(isPresented: $showSetup) {
-                AppleWatchSetupView(onClose: { showSetup = false })
-            }
-        #endif
-    }
-}

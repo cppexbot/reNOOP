@@ -412,14 +412,16 @@ public enum StrandPalette {
     public static let settingsAppearanceDarkPage  = Color(hex: "#000000")
     public static let settingsAppearanceDarkCard  = Color(hex: "#2C2C2E")
     public static let settingsAppearanceDarkText  = Color(hex: "#FFFFFF")
-    /// Devices: the drawn product art (a band, a ring, a chest strap), graphite whatever the appearance,
-    /// as Apple renders a product photo on both a white and a black page.
-    public static let deviceBandTop     = Color(hex: "#3A3A3E")
-    public static let deviceBandBottom  = Color(hex: "#18181B")
-    public static let devicePodTop      = Color(hex: "#8E8E93")
-    public static let devicePodBottom   = Color(hex: "#3F3F44")
+    /// Devices: the drawn product art (a band, a ring, a chest strap) — graphite, a step lighter in dark
+    /// appearance so it still reads on a dark card, as Apple lifts a black product photo on a black page.
+    public static let deviceBandTop     = Color(light: "#3A3A3E", dark: "#5C5C62")
+    public static let deviceBandBottom  = Color(light: "#18181B", dark: "#303034")
+    public static let devicePodTop      = Color(light: "#8E8E93", dark: "#AEAEB2")
+    public static let devicePodBottom   = Color(light: "#3F3F44", dark: "#5A5A60")
     public static let deviceSheen       = Color.white.opacity(0.28)
-    public static let deviceEdge        = Color.white.opacity(0.10)
+    public static let deviceEdge        = Color.white.opacity(0.14)
+    /// The name field on a pairing card: iOS's tertiary system fill.
+    public static let deviceField       = Color(light: "#767680", dark: "#767680").opacity(0.12)
     /// Top wash, leading → trailing: warm → violet → cool (sampled from Health's iOS 26 Summary), faded
     /// into `summaryCanvas` by the view.
     public static let summaryWashWarm   = Color(light: "#FFBBA3", dark: "#4E2A24")

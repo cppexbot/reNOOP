@@ -572,10 +572,6 @@ enum DemoScreens {
         case "devices":  return AnyView(NavigationStack { DevicesView().settingsDestinations() })
         case "devicescatalog": return AnyView(NavigationStack { DeviceCardCatalog() })
         case "addwizard": return AnyView(AddWizardDemoHost())
-        // Oura onboarding: the Add-device wizard deep-linked straight to the Oura factory-reset-and-adopt
-        // prep step (the Beta banner + get/lose card + the red irreversible-consent gate), screenshot-able
-        // WITHOUT a ring.
-        case "ouraonboarding": return AnyView(OuraOnboardingDemoHost())
         default:         return nil
         }
     }
@@ -605,23 +601,30 @@ private struct SettingsDemoHost: View {
     }
 }
 
-/// DEBUG-only host so `--demo-screen addwizard` can render the multi-step Add-a-device wizard.
-/// A SwiftUI View body is main-actor, so it can pull the injected LiveState and hand it to the
-/// wizard's `init(live:)` (the nonisolated DemoScreens switch can't construct a LiveState itself).
+/// DEBUG-only host so `--demo-screen addwizard` shows the Add Device sheet over the Devices list, as it
+/// opens for real. `--wizard-type whoop4|whoop5|strap|gym|oura` and `--wizard-step prep|pick|confirm`
+/// deep-link one step so it can be screenshotted without hardware.
 private struct AddWizardDemoHost: View {
     @EnvironmentObject var live: LiveState
-    var body: some View { AddDeviceWizard(live: live, onClose: {}) }
-}
 
-/// DEBUG-only host so `--demo-screen ouraonboarding` renders the Add-device wizard deep-linked to the
-/// Oura factory-reset-and-adopt prep step (the Beta banner + what-you-get/what-you-lose card + the red
-/// irreversible-consent gate). A SwiftUI View body is main-actor, so it can pull the injected LiveState
-/// and seed the wizard's `startAt` into the Oura prep step without a ring present.
-private struct OuraOnboardingDemoHost: View {
-    @EnvironmentObject var live: LiveState
-    var body: some View {
-        AddDeviceWizard(live: live, onClose: {}, startAt: (.oura, .prep))
+    private var startAt: (type: AddDeviceWizard.DeviceType, step: AddDeviceWizard.Step)? {
+        let args = ProcessInfo.processInfo.arguments
+        func arg(_ name: String) -> String? {
+            args.firstIndex(of: name).flatMap { $0 + 1 < args.count ? args[$0 + 1] : nil }
+        }
+        let types: [String: AddDeviceWizard.DeviceType] = [
+            "whoop4": .whoop4, "whoop5": .whoop5mg, "strap": .hrStrap, "gym": .gymEquipment, "oura": .oura,
+        ]
+        let steps: [String: AddDeviceWizard.Step] = ["prep": .prep, "pick": .pick, "confirm": .confirm]
+        guard let t = arg("--wizard-type").flatMap({ types[$0] }) else { return nil }
+        return (t, arg("--wizard-step").flatMap { steps[$0] } ?? .prep)
     }
 
+    var body: some View {
+        NavigationStack { DevicesView().settingsDestinations() }
+            .sheet(isPresented: .constant(true)) {
+                AddDeviceWizard(live: live, onClose: {}, startAt: startAt)
+            }
+    }
 }
 #endif
