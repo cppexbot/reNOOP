@@ -35,12 +35,7 @@ struct SettingsView: View {
             }
 
             Section {
-                SettingsLink(.devices, "Devices", icon: "dot.radiowaves.left.and.right", color: StrandPalette.settingsBlue,
-                             value: String(localized: live.connected ? "Connected" : "Not connected"))
-                #if os(iOS)
-                SettingsLink(.sync, "Sync", icon: "arrow.triangle.2.circlepath", color: StrandPalette.settingsGreen)
-                #endif
-                SettingsLink(.powerSaving, "Power saving", icon: "battery.75percent", color: StrandPalette.settingsGreen)
+                strapRow
             } header: {
                 Text("Strap")
             }
@@ -48,13 +43,8 @@ struct SettingsView: View {
             Section {
                 SettingsLink(.general, "General", icon: "gearshape.fill", color: StrandPalette.settingsGray)
                 SettingsLink(.display, "Display", icon: "sun.max.fill", color: StrandPalette.settingsBlue)
-                #if os(macOS)
                 SettingsLink(.notifications, "Notifications", icon: "bell.badge.fill", color: StrandPalette.settingsRed)
-                #endif
-                #if os(iOS)
-                SettingsLink(.siri, "Siri & Shortcuts", icon: "mic.fill", color: StrandPalette.settingsPurple)
-                #endif
-                SettingsLink(.automations, "Automations", icon: "clock.fill", color: StrandPalette.settingsOrange)
+                SettingsLink(.shortcuts, "Shortcuts", icon: "square.2.layers.3d.fill", color: StrandPalette.settingsPurple)
             } header: {
                 Text("App")
             }
@@ -70,10 +60,7 @@ struct SettingsView: View {
 
             Section {
                 SettingsLink(.appleHealth, "Apple Health", icon: "heart.fill", color: StrandPalette.settingsPink)
-                SettingsLink(.dataSources, "Data Sources", icon: "square.stack.3d.up.fill", color: StrandPalette.settingsIndigo)
-                #if os(iOS)
-                SettingsLink(.shortcutsExport, "Shortcuts Export", icon: "square.and.arrow.up", color: StrandPalette.settingsBlue)
-                #endif
+                SettingsLink(.dataSources, "Import", icon: "square.and.arrow.down.fill", color: StrandPalette.settingsIndigo)
                 SettingsLink(.backup, "Backup", icon: "clock.arrow.circlepath", color: StrandPalette.settingsTeal)
             } header: {
                 Text("Data")
@@ -99,6 +86,26 @@ struct SettingsView: View {
         }
     }
 
+    /// The active strap by name, its link state and charge on the right, as the Watch app heads its list
+    /// with the paired watch. Opens Devices, where the strap's own settings live.
+    private var strapRow: some View {
+        let name = model.deviceRegistry?.devices.first { $0.status == .active }?.displayName
+        var value = String(localized: live.connected ? "Connected" : "Not connected")
+        if live.connected, let pct = live.batteryPct { value += " · \(Int(pct.rounded()))%" }
+        return NavigationLink(value: SettingsPage.devices) {
+            HStack {
+                Label {
+                    Text(verbatim: name ?? String(localized: "Devices"))
+                        .foregroundStyle(StrandPalette.textPrimary)
+                } icon: {
+                    SettingsIcon(systemName: "dot.radiowaves.left.and.right", color: StrandPalette.settingsBlue)
+                }
+                Spacer()
+                Text(value).foregroundStyle(StrandPalette.textSecondary)
+            }
+        }
+    }
+
     /// Health's profile header: the photo (or monogram) centred, the name under it.
     private var header: some View {
         VStack(spacing: 10) {
@@ -121,42 +128,29 @@ struct SettingsView: View {
 enum SettingsPage: Hashable {
     case settings
     case profile, heartRateZones
-    case general, units, display, workouts, sync, scores, backup, about, iphone, developer
-    case devices, dataSources, appleHealth, shortcutsExport, notifications, powerSaving, siri, automations
-    case storage, appleWatch, limitations, testCentre
+    case general, units, display, notifications, shortcuts
+    case workouts, scores
+    case devices, appleHealth, dataSources, backup
+    case about, developer
 
     @ViewBuilder var destination: some View {
         switch self {
-        case .settings:        SettingsView()
-        case .profile:         ProfileDetailsView()
-        case .heartRateZones:  HeartRateZonesPage()
-        case .general:         GeneralSettingsPage()
-        case .units:           UnitsSettingsPage()
-        case .display:         DisplaySettingsPage()
-        case .workouts:        WorkoutsSettingsPage()
-        case .sync:            SyncSettingsPage()
-        case .scores:          ScoresSettingsPage()
-        case .backup:          BackupSyncView()
-        case .about:           AboutSettingsPage()
-        case .iphone:          IPhoneNotesPage()
-        case .developer:       DeveloperSettingsPage()
-        case .devices:         DevicesView()
-        case .dataSources:     DataSourcesView()
-        case .appleHealth:     AppleHealthView()
-        case .powerSaving:     PowerSavingView()
-        case .automations:     AutomationsView()
-        case .storage:         StorageView()
-        case .appleWatch:      AppleWatchAboutHost()
-        case .limitations:     NoopLimitationsView()
-        case .testCentre:      TestCentreView()
-        #if os(iOS)
-        case .shortcutsExport: ShortcutExportSettingsView()
-        case .siri:            SiriShortcutsSettingsView()
-        case .notifications:   EmptyView()
-        #else
-        case .notifications:   NotificationSettingsView().settingsLegacyChrome()
-        case .shortcutsExport, .siri: EmptyView()
-        #endif
+        case .settings:       SettingsView()
+        case .profile:        ProfileDetailsView()
+        case .heartRateZones: HeartRateZonesPage()
+        case .general:        GeneralSettingsPage()
+        case .units:          UnitsSettingsPage()
+        case .display:        DisplaySettingsPage()
+        case .notifications:  NotificationsSettingsPage()
+        case .shortcuts:      ShortcutsSettingsPage()
+        case .workouts:       WorkoutsSettingsPage()
+        case .scores:         ScoresSettingsPage()
+        case .devices:        DevicesView()
+        case .appleHealth:    AppleHealthView()
+        case .dataSources:    DataSourcesView()
+        case .backup:         BackupSyncView()
+        case .about:          AboutSettingsPage()
+        case .developer:      DeveloperSettingsPage()
         }
     }
 }
@@ -192,27 +186,6 @@ extension View {
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
-    }
-
-    /// Chrome for the screens that still draw their own title and cards.
-    func settingsLegacyChrome() -> some View {
-        self
-            .background(StrandPalette.surfaceBase.ignoresSafeArea())
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(.hidden, for: .navigationBar)
-            #endif
-    }
-}
-
-/// Apple Watch data needs its setup sheet, which a value route can't carry as a closure.
-private struct AppleWatchAboutHost: View {
-    @State private var showSetup = false
-    var body: some View {
-        AppleWatchAboutView(onStartSetup: { showSetup = true })
-            .sheet(isPresented: $showSetup) {
-                AppleWatchSetupView(onClose: { showSetup = false })
-            }
     }
 }
 

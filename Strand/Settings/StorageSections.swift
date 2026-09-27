@@ -8,8 +8,9 @@ import StrandDesign
 /// "Clean up now" escape hatch for anyone who already grew a backlog before the fix shipped.
 ///
 /// Read-only otherwise: it shows the database size, the leftover Inbox size, and any stranded import
-/// temp files. The button purges Inbox + temp and truncates the WAL — never touches live rows.
-struct StorageView: View {
+/// temp files. The button purges Inbox + temp and truncates the WAL — never touches live rows. Drawn as
+/// sections at the foot of Settings → Backup.
+struct StorageSections: View {
     @EnvironmentObject var model: AppModel
 
     @State private var report: AppModel.StorageReport?
@@ -18,34 +19,27 @@ struct StorageView: View {
     @State private var lastCleanedSummary: String?
 
     var body: some View {
-        Form {
-            if loading && report == nil {
-                Section {
-                    HStack {
-                        Text("Measuring…")
-                        Spacer()
-                        ProgressView().controlSize(.small)
-                    }
+        // One section carries the load: a modifier on a Group inside a Form lands on EVERY child section.
+        Section {
+            if let report {
+                sizeRow("Health database", bytes: report.db)
+                sizeRow("Leftover import copies", bytes: report.inbox, reclaimable: report.inbox > 0)
+                sizeRow("Import temp files", bytes: report.importTemp, reclaimable: report.importTemp > 0)
+            } else if loading {
+                HStack {
+                    Text("Measuring…")
+                    Spacer()
+                    ProgressView().controlSize(.small)
                 }
-            } else if let report {
-                Section {
-                    sizeRow("Health database", bytes: report.db)
-                    sizeRow("Leftover import copies", bytes: report.inbox, reclaimable: report.inbox > 0)
-                    sizeRow("Import temp files", bytes: report.importTemp, reclaimable: report.importTemp > 0)
-                } header: {
-                    Text("On-device footprint")
-                }
-                cleanUpSection(report)
             } else {
-                Section {
-                    Text("Storage unavailable")
-                } footer: {
-                    Text("Couldn't read the local store right now. Try again in a moment.")
-                }
+                Text("Storage unavailable")
             }
+        } header: {
+            Text("Storage")
         }
-        .settingsPage("Storage")
         .task { await load() }
+
+        if let report { cleanUpSection(report) }
     }
 
     // MARK: - Sections

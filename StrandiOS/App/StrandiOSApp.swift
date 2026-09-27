@@ -602,12 +602,9 @@ private struct SettingsDemoHost: View {
     init(pageName: String?) {
         let pages: [String: SettingsPage] = [
             "profile": .profile, "zones": .heartRateZones, "general": .general, "units": .units,
-            "display": .display, "workouts": .workouts, "sync": .sync, "scores": .scores,
-            "backup": .backup, "about": .about, "iphone": .iphone, "developer": .developer,
-            "devices": .devices, "datasources": .dataSources, "applehealth": .appleHealth,
-            "powersaving": .powerSaving, "automations": .automations, "storage": .storage,
-            "applewatch": .appleWatch, "limitations": .limitations, "testcentre": .testCentre,
-            "shortcutsexport": .shortcutsExport, "siri": .siri,
+            "display": .display, "notifications": .notifications, "shortcuts": .shortcuts,
+            "workouts": .workouts, "scores": .scores, "devices": .devices, "applehealth": .appleHealth,
+            "import": .dataSources, "backup": .backup, "about": .about, "developer": .developer,
         ]
         _path = State(initialValue: pageName.flatMap { pages[$0] }.map { [$0] } ?? [])
     }

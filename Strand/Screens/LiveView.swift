@@ -1297,7 +1297,7 @@ private struct LiveLogCard: View {
             // Users look on Live first when something's wrong (#507/#509), so link straight into the
             // Test Centre diagnostic home, one tap from the log.
             Divider().overlay(StrandPalette.hairline)
-            NavigationLink(destination: TestCentreView()) {
+            NavigationLink(destination: DeveloperSettingsPage()) {
                 HStack(spacing: 8) {
                     Image(systemName: "testtube.2").foregroundStyle(StrandPalette.accent)
                     Text("Open Test Centre to report a bug").font(StrandFont.mono)

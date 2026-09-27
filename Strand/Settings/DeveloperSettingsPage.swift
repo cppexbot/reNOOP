@@ -1,6 +1,7 @@
 //  DeveloperSettingsPage.swift
-//  NOOP · Settings → Developer: Test Centre, the strap log and link, raw export, HRV capture tuning and
-//  the experiments. Same keys and the same BLE + re-score wiring the old Settings cards had.
+//  NOOP · Settings → Developer: the Test Centre (test modes, bug report, strap log, protocol tools,
+//  experiments) with this page's own rows after its diagnostics: the iOS environment dump, raw export, the
+//  WHOOP 4.0 rename and continuous HRV capture. Same keys and the same BLE wiring the old pages had.
 
 import SwiftUI
 import UniformTypeIdentifiers
@@ -21,121 +22,70 @@ struct DeveloperSettingsPage: View {
     /// #927: arm it only inside the quiet-hours window. The default MUST match
     /// `PuffinExperiment.continuousHrvOvernightOnlyEnabled` (#1008).
     @AppStorage(PuffinExperiment.continuousHrvOvernightOnlyKey) private var continuousHrvOvernightOnly = true
-    /// #141: whole night or deep sleep only. Changes the number, so a switch re-scores.
-    @AppStorage(UnitPrefs.hrvWindowKey) private var hrvWindowRaw = HrvWindow.whole.rawValue
-    /// Live Sessions (beta): the Start-session control. Same key the Browse entry reads.
-    @AppStorage(LiveSessionPrefs.betaKey) private var liveSessionsBeta = true
-    /// Sleep staging V2 (default ON). Read at the staging call site in `Repository`.
-    @AppStorage(PuffinExperiment.experimentalSleepV2Key) private var experimentalSleepV2Enabled = true
-    /// #364 follow-up (default OFF): fold a wake block with no locomotion back into light sleep.
-    @AppStorage(PuffinExperiment.motionAwareWakeKey) private var motionAwareWakeEnabled = false
-    /// #103: surface the unverified strap SpO₂ estimate when no calibrated reading exists.
-    @AppStorage(PuffinExperiment.spo2CandidateDisplayKey) private var spo2CandidateDisplayEnabled = false
-    /// The strap model last picked; gates the WHOOP 4.0-only rename and the 5/MG-only SpO₂ estimate.
+    /// The strap model last picked; gates the WHOOP 4.0-only rename.
     @AppStorage("selectedWhoopModel") private var selectedWhoopModelRaw = WhoopModel.whoop4.rawValue
 
     @State private var strapNameDraft = ""
     @State private var rawCsvBusy = false
     @State private var lastRawCsvURL: URL?
     @State private var exportError: String?
+    #if os(iOS)
+    @State private var showDiagnostics = false
+    #endif
 
     var body: some View {
-        Form {
-            Section {
-                NavigationLink(value: SettingsPage.testCentre) {
-                    SettingsRowLabel(title: "Test Centre", icon: "stethoscope", color: StrandPalette.settingsTeal)
-                }
-            }
-
-            strapSection
-            if live.connected && selectedWhoopModelRaw == WhoopModel.whoop4.rawValue {
-                strapNameSection
-            }
-
-            Section {
-                Button {
-                    exportRawSensorCSV()
-                } label: {
-                    HStack {
-                        Text(rawCsvBusy ? "Exporting…" : "Export raw sensor data (CSV)")
-                        if rawCsvBusy { Spacer(); ProgressView().controlSize(.small) }
-                    }
-                }
-                .disabled(rawCsvBusy)
-                #if os(macOS)
-                if let url = lastRawCsvURL {
-                    Button("Reveal in Finder") { NSWorkspace.shared.activateFileViewerSelecting([url]) }
-                }
-                #endif
-            }
-
-            Section {
-                Toggle("Continuous HRV capture", isOn: $continuousHrvEnabled)
-                    .onChangeCompat(of: continuousHrvEnabled) { on in model.ble.setKeepRealtimeForData(on) }
-                if continuousHrvEnabled {
-                    Toggle("Overnight only", isOn: $continuousHrvOvernightOnly)
-                        .onChangeCompat(of: continuousHrvOvernightOnly) { _ in
-                            model.ble.setKeepRealtimeForData(PuffinExperiment.keepRealtimeForDataEnabled)
-                        }
-                }
-                Picker("HRV window", selection: $hrvWindowRaw) {
-                    Text("Night").tag(HrvWindow.whole.rawValue)
-                    Text("Deep sleep").tag(HrvWindow.deep.rawValue)
-                }
-                .settingsPicker()
-                .onChangeCompat(of: hrvWindowRaw) { _ in
-                    // #201/#195: analyzeRecent re-scores and re-folds the baseline in one pass — don't
-                    // re-anchor the baseline epoch.
-                    Task { await model.intelligence.analyzeRecent(); await model.repo.refresh() }
-                }
-            } header: {
-                Text("HRV")
-            }
-
-            Section {
-                Toggle("Live Sessions (beta)", isOn: $liveSessionsBeta)
-                Toggle("Sleep staging (V2)", isOn: $experimentalSleepV2Enabled)
-                Toggle("Motion-aware wake refinement", isOn: $motionAwareWakeEnabled)
-                // Split out of the old 5/MG card so an Oura-only install can reach it too.
-                if selectedWhoopModelRaw == WhoopModel.whoop5mg.rawValue || model.repo.activeDeviceIsOura {
-                    Toggle("Blood Oxygen: strap estimate (WHOOP 5/MG, Oura)", isOn: $spo2CandidateDisplayEnabled)
-                        .onChangeCompat(of: spo2CandidateDisplayEnabled) { _ in
-                            Task { await model.intelligence.analyzeRecent(); await model.repo.refresh() }
-                        }
-                }
-            } header: {
-                Text("Experiments")
-            }
-        }
-        .settingsPage("Developer")
+        TestCentreView(extra: AnyView(developerRows))
         .alert("Export failed", isPresented: Binding(
             get: { exportError != nil }, set: { if !$0 { exportError = nil } })) {
             Button("OK", role: .cancel) { }
         } message: {
             Text(exportError ?? "")
         }
+        #if os(iOS)
+        .sheet(isPresented: $showDiagnostics) { DiagnosticsSheet(onClose: { showDiagnostics = false }) }
+        #endif
+    }
+
+    @ViewBuilder private var developerRows: some View {
+        Section {
+            #if os(iOS)
+            Button("Diagnostics") { showDiagnostics = true }
+            #endif
+            Button {
+                exportRawSensorCSV()
+            } label: {
+                HStack {
+                    Text(rawCsvBusy ? "Exporting…" : "Export raw sensor data (CSV)")
+                    if rawCsvBusy { Spacer(); ProgressView().controlSize(.small) }
+                }
+            }
+            .disabled(rawCsvBusy)
+            #if os(macOS)
+            if let url = lastRawCsvURL {
+                Button("Reveal in Finder") { NSWorkspace.shared.activateFileViewerSelecting([url]) }
+            }
+            #endif
+        }
+
+        if live.connected && selectedWhoopModelRaw == WhoopModel.whoop4.rawValue {
+            strapNameSection
+        }
+
+        Section {
+            Toggle("Continuous HRV capture", isOn: $continuousHrvEnabled)
+                .onChangeCompat(of: continuousHrvEnabled) { on in model.ble.setKeepRealtimeForData(on) }
+            if continuousHrvEnabled {
+                Toggle("Overnight only", isOn: $continuousHrvOvernightOnly)
+                    .onChangeCompat(of: continuousHrvOvernightOnly) { _ in
+                        model.ble.setKeepRealtimeForData(PuffinExperiment.keepRealtimeForDataEnabled)
+                    }
+            }
+        } header: {
+            Text("HRV")
+        }
     }
 
     // MARK: Strap
-
-    /// The strap log (#507/#509) and the connect controls the old Strap card carried.
-    private var strapSection: some View {
-        Section {
-            Button("Copy strap log") { PlatformPasteboard.copy(live.exportableLogText()) }
-            Button("Save strap log…") {
-                Task {
-                    let extra = await DebugDataDiagnostics.dynamicLines(repo: model.repo)
-                    FileExport.exportText(live.exportableLogText(extraHeaderLines: extra),
-                                          suggestedName: FileExport.timestampedName("noop-strap-log", ext: "txt"))
-                }
-            }
-            Button("Re-scan") { model.scan() }
-            Button("Disconnect", role: .destructive) { model.disconnect() }
-                .disabled(!live.connected && !live.bonded)
-        } header: {
-            Text("Strap")
-        }
-    }
 
     /// Rename the WHOOP 4.0's BLE advertising name (Harvard command set). The strap reboots to apply.
     private var strapNameSection: some View {
@@ -199,3 +149,44 @@ struct DeveloperSettingsPage: View {
         }
     }
 }
+
+#if os(iOS)
+// MARK: - Diagnostics sheet
+
+/// A read-only environment dump for bug reports: device, iOS+build, Data Protection (#222), background
+/// refresh, low-power, sideload + cert expiry — with a one-tap Copy.
+struct DiagnosticsSheet: View {
+    let onClose: () -> Void
+
+    /// Captured once at presentation; a snapshot, not a live monitor.
+    private let lines: [String] = IOSDiagnostics.capture().summaryLines()
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    if lines.isEmpty {
+                        Text("No iOS diagnostics available.").foregroundStyle(StrandPalette.textSecondary)
+                    } else {
+                        ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
+                            Text(line)
+                                .font(StrandFont.mono(12))
+                                .textSelection(.enabled)
+                        }
+                    }
+                }
+            }
+            .settingsPage("Diagnostics")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Copy") { PlatformPasteboard.copy(lines.joined(separator: "\n")) }
+                        .disabled(lines.isEmpty)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done", action: onClose)
+                }
+            }
+        }
+    }
+}
+#endif

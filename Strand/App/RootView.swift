@@ -25,11 +25,9 @@ enum NavItem: String, CaseIterable, Identifiable, Hashable {
     case backupSync = "Backup & Sync"
     case fusedRecord = "Your Data, Fused"
     case devices = "Devices"
-    case noopLimitations = "NOOP Limitations"
     case notifications = "Notifications"
     case automation = "Automations"
     case smartAlarm = "Smart Alarm"
-    case powerSaving = "Power saving"
     case settings = "Settings"
     case testCentre = "Test Centre"
 
@@ -62,14 +60,12 @@ enum NavItem: String, CaseIterable, Identifiable, Hashable {
         case .backupSync: return "Backup & Sync"
         case .fusedRecord: return "Your Data, Fused"
         case .devices: return "Devices"
-        case .noopLimitations: return "NOOP Limitations"
         case .notifications: return "Notifications"
         case .automation: return "Automations"
         // "Alarms" is the ONE alarm surface (#766): the strap's silent wake-alarm (moved in from
         // Automations) and the evening wind-down reminder, in one place. Previously "Wind-Down" (#730).
         // The case name and rawValue stay `smartAlarm`/"Smart Alarm" as the in-memory nav identifier only.
         case .smartAlarm: return "Alarms"
-        case .powerSaving: return "Power saving"
         case .settings: return "Settings"
         case .testCentre: return "Test Centre"
         }
@@ -106,12 +102,10 @@ enum NavItem: String, CaseIterable, Identifiable, Hashable {
         case .backupSync: return String(localized: "Backup & Sync")
         case .fusedRecord: return String(localized: "Your Data, Fused")
         case .devices: return String(localized: "Devices")
-        case .noopLimitations: return String(localized: "NOOP Limitations")
         case .notifications: return String(localized: "Notifications")
         case .automation: return String(localized: "Automations")
         // Mirrors the `titleKey` remap above (#766): the row reads "Alarms", not the raw "Smart Alarm".
         case .smartAlarm: return String(localized: "Alarms")
-        case .powerSaving: return String(localized: "Power saving")
         case .settings: return String(localized: "Settings")
         case .testCentre: return String(localized: "Test Centre")
         }
@@ -142,11 +136,9 @@ enum NavItem: String, CaseIterable, Identifiable, Hashable {
         case .backupSync: return "externaldrive.fill.badge.icloud"
         case .fusedRecord: return "square.stack.3d.up.fill"
         case .devices: return "badge.plus.radiowaves.right"
-        case .noopLimitations: return "list.bullet.rectangle"
         case .notifications: return "bell.badge.fill"
         case .automation: return "wand.and.stars"
         case .smartAlarm: return "alarm.fill"
-        case .powerSaving: return "battery.25"
         case .settings: return "gearshape.fill"
         case .testCentre: return "stethoscope"
         }
@@ -181,8 +173,8 @@ struct NavGroup: Identifiable {
             .labBook, .rhythm, .trends,
         ]),
         NavGroup(title: "Data & App", id: "data_app", items: [
-            .devices, .noopLimitations, .dataSources, .appleHealth, .xiaomi, .backupSync, .fusedRecord,
-            .notifications, .automation, .smartAlarm, .powerSaving, .settings, .testCentre,
+            .devices, .dataSources, .appleHealth, .xiaomi, .backupSync, .fusedRecord,
+            .notifications, .automation, .smartAlarm, .settings, .testCentre,
         ]),
     ]
 
@@ -452,13 +444,11 @@ struct RootView: View {
         case .backupSync: BackupSyncView()
         case .fusedRecord: FusedRecordHost()
         case .devices: DevicesView()
-        case .noopLimitations: NoopLimitationsView()
         case .notifications: NotificationSettingsView()
-        case .automation: AutomationsView()
+        case .automation: NotificationsSettingsPage()
         case .smartAlarm: SmartAlarmView()
-        case .powerSaving: PowerSavingView()
         case .settings: settingsDetail
-        case .testCentre: TestCentreView()
+        case .testCentre: DeveloperSettingsPage()
         }
     }
 

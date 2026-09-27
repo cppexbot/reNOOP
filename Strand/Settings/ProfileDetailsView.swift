@@ -38,7 +38,7 @@ struct ProfileSheet: View {
                 }
                 Section {
                     NavigationLink("Devices", value: SettingsPage.devices)
-                    NavigationLink("Data Sources", value: SettingsPage.dataSources)
+                    NavigationLink("Import", value: SettingsPage.dataSources)
                 }
                 Section {
                     NavigationLink("Settings", value: SettingsPage.settings)

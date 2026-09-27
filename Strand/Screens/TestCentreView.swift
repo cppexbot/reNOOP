@@ -7,17 +7,23 @@ import PolarProtocol
 import WhoopStore
 import WhoopProtocol
 
-/// Settings -> Test Centre. The single home for every diagnostic, log and test control (spec section 7).
+/// Settings -> Developer: the Test Centre page. The single home for every diagnostic,
+/// log and test control (spec section 7). `extra` is the Developer page's own rows, drawn after the
+/// diagnostics.
 ///
 /// Four sections: domain test modes (rendered from the registry projection), diagnostic tools, export
 /// and auto-export, advanced/experimental. Section 1 iterates TestCentreLayout.visibleModes so adding a
 /// profile later is a registry entry, never a new screen. The lower three sections re-host the same
-/// bindings and actions that live in SettingsView (strap log, recalibrate, scheduled export, the 5/MG
+/// bindings and actions that live in SettingsView (strap log, scheduled export, the 5/MG
 /// experimental toggles) so the Test Centre is the one place to find them; SettingsView keeps a thin nav
 /// link in. No em-dash in any string here.
 struct TestCentreView: View {
     @EnvironmentObject var model: AppModel
     @EnvironmentObject var live: LiveState
+    @EnvironmentObject var router: NavRouter
+
+    /// The Developer page's rows, drawn after the diagnostics.
+    var extra: AnyView = AnyView(EmptyView())
 
     /// The Report orchestrator: assembles the redacted bundle, runs the mandatory review gate, shares.
     @StateObject private var report = TestCentreReport()
@@ -25,8 +31,6 @@ struct TestCentreView: View {
     /// Re-read activation on appear so a toggle flip elsewhere reflects here.
     @State private var refreshToken = 0
 
-    // Section 2: recalibrate confirm.
-    @State private var showRecalibrateConfirm = false
     @State private var infoTitle = ""
     @State private var infoMessage = ""
     @State private var showInfo = false
@@ -47,8 +51,6 @@ struct TestCentreView: View {
     // moving the UI does not reset an opt-in or lose the ability to undo a persistent strap write.
     @AppStorage(PuffinExperiment.defaultsKey) private var puffinExperiments = false
     @AppStorage(PuffinFrameRecorder.enabledKey) private var puffinCapture = false
-    @AppStorage(PuffinExperiment.deepDataKey) private var deepDataEnabled = false
-    @AppStorage(PuffinExperiment.broadcastHrKey) private var broadcastHrEnabled = false
     @AppStorage(PuffinExperiment.ecgRawDataKey) private var ecgRawDataEnabled = false
 
     /// The strap model the user last picked, the same key SettingsView's showFiveMGControls gate reads.
@@ -148,6 +150,16 @@ struct TestCentreView: View {
     // both default OFF.
     @AppStorage(PuffinExperiment.ppgHrSubLagInterpKey) private var ppgHrSubLagInterpEnabled = false
     @AppStorage(PuffinExperiment.hrvReadinessKey) private var hrvReadinessEnabled = false
+    /// Live Sessions (beta): the Start-session control. Same key the Browse entry reads.
+    @AppStorage(LiveSessionPrefs.betaKey) private var liveSessionsBeta = true
+    /// Sleep staging V2 (default ON). Read at the staging call site in `Repository`.
+    @AppStorage(PuffinExperiment.experimentalSleepV2Key) private var experimentalSleepV2Enabled = true
+    /// #364 follow-up (default OFF): fold a wake block with no locomotion back into light sleep.
+    @AppStorage(PuffinExperiment.motionAwareWakeKey) private var motionAwareWakeEnabled = false
+    /// #103: surface the unverified strap SpO₂ estimate when no calibrated reading exists.
+    @AppStorage(PuffinExperiment.spo2CandidateDisplayKey) private var spo2CandidateDisplayEnabled = false
+    /// v5 Rhythm experimental gate (the screen still shows its own consent clickwrap when opened).
+    @AppStorage(RhythmConsent.enabledKey) private var rhythmEnabled = false
 
     /// True when the connected strap is a 5/MG, so the 5/MG experimental block shows. Mirrors the
     /// SettingsView gate (#22): a confident 4.0 owner never sees controls that cannot touch their strap.
@@ -165,6 +177,7 @@ struct TestCentreView: View {
             testModesSection
             bugReportSection
             diagnosticsSections
+            extra
             if is5MG {
                 rawDataCollectorSection
                 fiveMGProtocolDiagnosticsSections
@@ -177,7 +190,7 @@ struct TestCentreView: View {
             exportSections
             experimentalAlgorithmsSections
         }
-        .settingsPage("Test Centre")
+        .settingsPage("Developer")
         .id(refreshToken)
         .onAppear {
             refreshToken &+= 1
@@ -196,13 +209,6 @@ struct TestCentreView: View {
         }
         .sheet(item: $report.pending) { _ in
             ReportReviewSheet(report: report)
-        }
-        .confirmationDialog("Recalibrate your Charge baseline?",
-                            isPresented: $showRecalibrateConfirm, titleVisibility: .visible) {
-            Button("Recalibrate") { recalibrateCharge() }
-            Button("Cancel", role: .cancel) { }
-        } message: {
-            Text("This restarts the roughly 4-night build-up for Charge and your HRV baseline. Your history stays.")
         }
         .confirmationDialog("Clear scheduled exports?",
                             isPresented: $showClearExportsConfirm, titleVisibility: .visible) {
@@ -280,7 +286,7 @@ struct TestCentreView: View {
         }
     }
 
-    // MARK: - Section 2: Diagnostic tools (strap log + recalibrate + env dump)
+    // MARK: - Section 2: Diagnostic tools (strap log, skin-temp backfill, Polar)
 
     @ViewBuilder private var diagnosticsSections: some View {
         // Strap log, the same exportableLogText the Settings + Live strap-log controls share. The
@@ -294,15 +300,8 @@ struct TestCentreView: View {
                                           suggestedName: FileExport.timestampedName("noop-strap-log", ext: "txt"))
                 }
             }
-            Button("Copy environment dump") { PlatformPasteboard.copy(live.exportableLogText()) }
         } header: {
             Text("Diagnostics")
-        }
-
-        // Recalibrate Charge baseline: the same Baselines.recalibrateRecoveryBaselines call the
-        // Settings Recovery card uses.
-        Section {
-            Button("Recalibrate Charge baseline") { showRecalibrateConfirm = true }
         }
 
         // #1853: skin-temp absolute backfill (on-demand, diagnostic-first). Fills `skinTempC` for nights
@@ -353,28 +352,6 @@ struct TestCentreView: View {
             Toggle("Protocol probes", isOn: $puffinExperiments)
         } header: {
             Text("5/MG protocol diagnostics")
-        }
-
-        Section {
-            Toggle("Broadcast heart rate from the strap", isOn: $broadcastHrEnabled)
-                .onChangeCompat(of: broadcastHrEnabled) { model.ble.setBroadcastHr($0) }
-        } footer: {
-            Text("Writes the reversible 5/MG advertising flag for Garmin, Zwift, and compatible gym equipment.")
-        }
-
-        Section {
-            Toggle("Legacy R22 feature-flag experiment", isOn: $deepDataEnabled)
-            if deepDataEnabled {
-                Button("Send legacy R22 enable sequence") { model.ble.enableWhoop5DeepData() }
-                    .disabled(!live.encryptedBond || !live.worn)
-            }
-            Button("Clear legacy R22 flags on strap") { model.ble.disableWhoop5DeepData() }
-                .disabled(!live.encryptedBond || live.r22DisableReport == BLEManager.deviceConfigProbeWaiting)
-            if let result = live.r22DisableReport {
-                Text(result).foregroundStyle(StrandPalette.textSecondary)
-            }
-        } footer: {
-            Text("The strap accepts these writes, but NOOP has not observed them enabling a separate live stream.")
         }
 
         Section {
@@ -592,16 +569,27 @@ struct TestCentreView: View {
     /// ExperimentalAlgorithmsCard.
     @ViewBuilder private var experimentalAlgorithmsSections: some View {
         Section {
+            Toggle("Live Sessions (beta)", isOn: $liveSessionsBeta)
+            Toggle("Sleep staging (V2)", isOn: $experimentalSleepV2Enabled)
+            Toggle("Motion-aware wake refinement", isOn: $motionAwareWakeEnabled)
+            // Split out of the old 5/MG card so an Oura-only install can reach it too.
+            if is5MG || model.repo.activeDeviceIsOura {
+                Toggle("Blood Oxygen: strap estimate (WHOOP 5/MG, Oura)", isOn: $spo2CandidateDisplayEnabled)
+                    .onChangeCompat(of: spo2CandidateDisplayEnabled) { _ in
+                        Task { await model.intelligence.analyzeRecent(); await model.repo.refresh() }
+                    }
+            }
             Toggle("HR-from-PPG sub-lag interpolation (v26 gap-fill)", isOn: $ppgHrSubLagInterpEnabled)
-        } header: {
-            Text("Experiments")
-        }
-
-        Section {
+            Toggle("Rhythm visualization (experimental)", isOn: $rhythmEnabled)
+            if rhythmEnabled {
+                Button("Open Rhythm") { router.openRhythm() }
+            }
             Toggle("HRV readiness (Plews/Altini)", isOn: $hrvReadinessEnabled)
             // The toggle's OWN effect, shown in place: when on, the live Plews/Altini reading. Nothing
             // renders when off, so the flag off is zero behaviour change and feeds no downstream gate.
             if hrvReadinessEnabled { hrvReadinessReadout }
+        } header: {
+            Text("Experiments")
         }
     }
 
@@ -655,19 +643,6 @@ struct TestCentreView: View {
     }
 
     // MARK: - Shared actions (same calls as the SettingsView controls these re-host)
-
-    /// Re-anchor every baseline that feeds Charge from now, via the single cross-platform source of
-    /// truth, then kick a recompute. Same path as the Settings Recovery card.
-    private func recalibrateCharge() {
-        Baselines.recalibrateRecoveryBaselines()
-        Task {
-            await model.intelligence.analyzeRecent()
-            await model.repo.refresh()
-        }
-        infoTitle = String(localized: "Charge baseline recalibrating")
-        infoMessage = String(localized: "NOOP will re-learn your baseline from tonight's data onward. Your history is kept, and it takes a few nights to settle.")
-        showInfo = true
-    }
 
     /// The manual "Clear scheduled exports" action (#650): wipes every scheduled strap-log / raw-capture
     /// file NOOP has dropped into Documents, regardless of the retention setting, then confirms via the

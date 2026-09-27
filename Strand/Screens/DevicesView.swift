@@ -3,7 +3,7 @@ import StrandDesign
 import StrandAnalytics   // ConnectionReadout - the #987 clock-latch / RTC-epoch readout parsers
 import WhoopStore
 import OuraProtocol
-import WhoopProtocol   // Whoop5Ecg.WristSelection — the MG ECG wrist-selection step
+import WhoopProtocol
 
 // MARK: - Devices
 //
@@ -66,13 +66,6 @@ private struct DevicesContent: View {
     @State private var bodyLocationProbeTarget: PairedDevice?
     /// #761 feature-flag enumeration probe (Test Centre → Connection) — the device whose dialog is open.
     @State private var featureFlagProbeTarget: PairedDevice?
-    /// MG ECG (Labrador) probe — the device whose action dialog is open.
-    @State private var ecgProbeTarget: PairedDevice?
-    /// The SEPARATE wrist-selection confirm. Its own state (and its own dialog) because SELECT_WRIST is a
-    /// persistent strap write and must never ride along inside a start flow.
-    @State private var ecgWristTarget: PairedDevice?
-    /// The Experimental ECG opt-in. Read here so the menu entry appears only once the user has opted in.
-    @AppStorage(PuffinExperiment.ecgKey) private var ecgEnabled = false
     /// #103 device-config READ probe (Test Centre → Connection) — the device whose dialog is open.
     @State private var deviceConfigProbeTarget: PairedDevice?
     /// After removing the ACTIVE device with other devices still paired, prompt to pick a new active one.
@@ -145,14 +138,17 @@ private struct DevicesContent: View {
             // as LiveView's banner; no new copy.
             if let guide = live.reconnectGuide { repairGuideSection(guide) }
             DeviceSyncStatusSection()
-            // #1300: a switcher to flip which strap is active — the "switch, don't combine" option for a
-            // user with two straps (e.g. a 4.0 + a 5/MG). Shown only with 2+ straps, so it auto-collapses
-            // when one is forgotten. Reuses the existing active-strap confirmation.
-            if activeDevices.count > 1 { strapSwitcher }
             ForEach(activeDevices) { device in
                 Section { deviceRows(device) }
             }
             addSection
+            // The strap's own settings, as the Watch app keeps a watch's settings under the watch.
+            StrapSyncSection()
+            PowerSavingSection()
+            StrapGesturesSection()
+            StrapHapticsSection()
+            HeartRateBroadcastSection()
+            StrapConnectionSection()
             // #1300 tier 2: read-only "compare straps" section — how the two straps' most recent shared day
             // lines up per metric (agree / a little different / conflict), reusing the fusion tolerances.
             // Never mixes into a score (I2). Shown only when 2 WHOOP straps share a readable day.
@@ -162,6 +158,7 @@ private struct DevicesContent: View {
         // #1300 tier 2: compute the two-strap comparison off the dialog chain (attaching .task to the whole
         // `body` tips the iOS type-check budget on this already-heavy view).
         .task(id: activeDevices.count) { await loadStrapCompare() }
+        .modifier(PhoneHeartRateBroadcastHost())
     }
 
     /// One paired, non-removed device's rows, with every gate its menu entries depend on.
@@ -171,14 +168,6 @@ private struct DevicesContent: View {
         // type-checker over its budget ("unable to type-check this expression in reasonable time").
         let probeGate = device.status == .active && live.connected
             && SourceCoordinator.isWhoop(device) && TestCentre.active(.connection)
-        // The ECG probe WRITES to the strap, so it carries two gates the read-only probes don't:
-        // the Experimental opt-in, and a strap that has positively attested itself a WHOOP MG
-        // (a plain 5.0 has no electrodes; `.unknown` is not MG).
-        //
-        // `|| model.ecgMayBeRunning` keeps the entry — and therefore Stop — reachable after the
-        // opt-in has been switched off mid-session. Turning a feature off must not remove the
-        // only control that turns the STRAP off; the MG gate still applies either way.
-        let ecgGate = probeGate && (ecgEnabled || model.ecgMayBeRunning) && model.isWhoop5MG
         DeviceRows(
             device: device,
             isActive: device.status == .active,
@@ -233,9 +222,7 @@ private struct DevicesContent: View {
             // #987: clock latch + frame freshness + the 1970/71 RTC warning, active device only.
             liveClockLine: device.status == .active ? strapClockState?.line : nil,
             liveClockWarning: device.status == .active ? strapClockState?.warning : nil,
-            // With the switcher on screen it already offers every paired strap; one "Make active" per
-            // device below it would say the same thing twice.
-            showsMakeActive: activeDevices.count <= 1,
+            showsMakeActive: true,
             onMakeActive: { switchTarget = device },
             onRename: { renameDraft = device.nickname ?? device.displayName; renameTarget = device },
             onRemove: { removeTarget = device },
@@ -267,11 +254,6 @@ private struct DevicesContent: View {
             onAbortSync: (device.status == .active && live.connected && live.backfilling
                           && SourceCoordinator.isWhoop(device))
                 ? { model.ble.abortBackfill() } : nil,
-            // MG ECG probe: the Test Centre gate PLUS the Experimental ECG opt-in PLUS a
-            // positively-identified MG. `ecgGate` is hoisted for the same type-checker reason as
-            // `probeGate`; BLEManager gates the sends again, so the UI gate is defence in depth,
-            // never the only thing standing between a 5.0 and an ECG command.
-            onEcgProbe: ecgGate ? { ecgProbeTarget = device } : nil,
             // #103 device-config READ probe: read-only (asks for VALUES, writes none), both
             // families. Same Test Centre → Connection gate.
             onDeviceConfigProbe: probeGate ? { deviceConfigProbeTarget = device } : nil)
@@ -373,9 +355,6 @@ private struct DevicesContent: View {
         .modifier(BodyLocationProbeSheets(target: $bodyLocationProbeTarget))
         // #761 feature-flag enumeration probe (confirm + result) — same ViewModifier isolation.
         .modifier(FeatureFlagProbeSheets(target: $featureFlagProbeTarget))
-        // MG ECG probe (actions + the separate wrist confirm + result), isolated into its own
-        // ViewModifier for the same iOS type-checker reason as the #690 block above.
-        .modifier(EcgProbeSheets(target: $ecgProbeTarget, wristTarget: $ecgWristTarget))
         // #103 device-config READ probe (confirm + result) — same ViewModifier isolation.
         .modifier(DeviceConfigProbeSheets(target: $deviceConfigProbeTarget))
         // Second, strongly-worded delete-data confirm (reached from the Remove card's secondary control)
@@ -424,6 +403,7 @@ private struct DevicesContent: View {
         Section {
             Button("Add a device") { showAddWizard = true }
                 .accessibilityLabel("Add a device")
+            AppleWatchSetupRow()
         }
     }
 
@@ -549,36 +529,6 @@ private struct DevicesContent: View {
             }
         } header: {
             Text(compareTitle)
-        }
-    }
-
-    /// #1300: the paired straps as a checkmark list, the active one ticked; tapping another opens the SAME
-    /// "Make active?" confirmation the per-device action uses (no accidental switch, history preserved).
-    /// Switching-not-combining: scores stay single-owner-per-day, this just picks the owner. Collapses
-    /// automatically when only one strap remains (the caller gates on count > 1).
-    private var strapSwitcher: some View {
-        Section {
-            ForEach(activeDevices, id: \.id) { device in
-                let isActive = device.status == .active
-                Button { if !isActive { switchTarget = device } } label: {
-                    HStack {
-                        Text(device.displayName)
-                            .foregroundStyle(StrandPalette.textPrimary)
-                            .lineLimit(1)
-                        Spacer(minLength: 8)
-                        if isActive {
-                            Image(systemName: "checkmark")
-                                .fontWeight(.semibold)
-                                .foregroundStyle(StrandPalette.accent)
-                                .accessibilityHidden(true)
-                        }
-                    }
-                    .contentShape(Rectangle())
-                }
-                .accessibilityAddTraits(isActive ? .isSelected : [])
-            }
-        } header: {
-            Text("Active strap")
         }
     }
 
@@ -758,8 +708,6 @@ private struct DeviceRows: View {
     /// it reads the flag NAMES the strap's firmware knows and writes nothing.
     var onFeatureFlagProbe: (() -> Void)? = nil
     var onAbortSync: (() -> Void)? = nil
-    /// WHOOP MG ECG (Labrador) probe. Non-nil only for an MG with the Experimental ECG opt-in on.
-    var onEcgProbe: (() -> Void)? = nil
     /// #103 device-config READ probe (Test Centre → Connection, both WHOOP families). Read-only: it asks
     /// the strap for a config key's VALUE and writes none.
     var onDeviceConfigProbe: (() -> Void)? = nil
@@ -1015,12 +963,6 @@ private struct DeviceRows: View {
                 // Test Centre → Connection.
                 if let onFeatureFlagProbe {
                     Button { onFeatureFlagProbe() } label: { Label("Feature-flag probe (#761 RE)…", systemImage: "ladybug") }
-                }
-                // WHOOP MG ECG (Labrador) probe: WRITES ECG control commands, so unlike the read-only
-                // probes above the parent only passes a closure when the Experimental ECG opt-in is on
-                // AND the strap has identified itself as an MG.
-                if let onEcgProbe {
-                    Button { onEcgProbe() } label: { Label("ECG capture (MG, experimental)…", systemImage: "waveform.path.ecg") }
                 }
                 // #103 device-config READ probe (RE): read-only VALUE reads, both families.
                 // Test Centre → Connection.
@@ -1393,54 +1335,6 @@ private struct FeatureFlagProbeSheets: ViewModifier {
     }
 }
 
-// MARK: - WHOOP MG ECG (Labrador) probe
-
-/// The MG ECG probe's dialogs as one ViewModifier — the action sheet, the SEPARATE wrist confirm, and
-/// the result sheet — isolated for the same iOS type-checker reason as `BodyLocationProbeSheets`.
-///
-/// The wrist selection is deliberately a second, independent confirmation rather than a button inside
-/// the start flow: `SELECT_WRIST` writes strap state that survives a disconnect, and the right/left
-/// mapping is inferred from the client enum's order rather than confirmed on hardware. A persistent
-/// write nobody has verified is exactly the kind of thing that should cost a deliberate extra tap.
-private struct EcgProbeSheets: ViewModifier {
-    @EnvironmentObject var model: AppModel
-    @EnvironmentObject var live: LiveState
-    @Binding var target: PairedDevice?
-    @Binding var wristTarget: PairedDevice?
-
-    func body(content: Content) -> some View {
-        content
-            .confirmationDialog("WHOOP MG ECG capture (experimental)",
-                                isPresented: Binding(get: { target != nil },
-                                                     set: { if !$0 { target = nil } }),
-                                titleVisibility: .visible,
-                                presenting: target) { device in
-                Button("Start ECG capture") { model.ecgStartCapture(); target = nil }
-                Button("Stop ECG capture") { model.ecgStopCapture(); target = nil }
-                Button("Set which wrist you wear it on…") { target = nil; wristTarget = device }
-                Button("Cancel", role: .cancel) { target = nil }
-            } message: { _ in
-                Text("NOOP is not a medical device and this is not an ECG test. It asks your MG to start its ECG subsystem and logs whatever comes back — unvalidated instrumentation for protocol research, never a measurement or a diagnosis, including any heart-rhythm classification the strap happens to send. Don't use it to make a health decision; see a doctor if you have symptoms.\n\nHold the two indents on the clasp with the fingers of your other hand for the whole capture. The MG measures across your wrist AND that clasp, so until you hold it the circuit is open, the strap has nothing to record, and you would see zero packets whatever the firmware did.\n\nNobody has confirmed a strap honours these commands, so the likely outcome is that nothing happens. Everything here is reversible: “Stop” turns the streams back off. Results land in the strap log.")
-            }
-            // Wrist selection: its own step, with its own confirmation and its own warning.
-            //
-            // A SHEET rather than a second confirmationDialog for two reasons: presenting one dialog from
-            // another in the same runloop tick races (the first is still dismissing, and the second can be
-            // dropped), and a dialog's message truncates on iOS — while the persistence warning here is
-            // the whole point of the step and has to be readable in full.
-            .sheet(isPresented: Binding(get: { wristTarget != nil },
-                                        set: { if !$0 { wristTarget = nil } })) {
-                EcgWristSheet(onPick: { wrist in model.ecgSelectWrist(wrist); wristTarget = nil },
-                              onCancel: { wristTarget = nil })
-            }
-            .sheet(isPresented: Binding(get: { live.ecgProbe != nil },
-                                        set: { if !$0 { model.clearEcgProbe() } })) {
-                EcgProbeResultView(text: live.ecgProbe ?? "",
-                                   onClose: { model.clearEcgProbe() })
-            }
-    }
-}
-
 /// The #761 enumeration report (the strap's own flag-name list + the exchange trace), or a "waiting…"
 /// state while the walk runs. Selectable text + a Copy button, structurally identical to the #592/#690
 /// result views. Twin of the Android feature-flag probe result dialog.
@@ -1458,87 +1352,6 @@ private struct FeatureFlagProbeResultView: View {
                 // Reuses the #592/#690 waiting copy — the walk sends one 118 per reply, so at any moment
                 // it is waiting on exactly one strap reply, and the catalog keeps a single translation.
                 Text("Waiting for the strap's reply…")
-                    .font(StrandFont.subhead)
-                    .foregroundStyle(StrandPalette.textSecondary)
-            } else {
-                ScrollView {
-                    Text(text)
-                        .font(StrandFont.mono)
-                        .foregroundStyle(StrandPalette.textSecondary)
-                        .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                #if os(iOS)
-                .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
-                #endif
-            }
-            HStack {
-                if !waiting {
-                    Button("Copy") { PlatformPasteboard.copy(text) }
-                }
-                Spacer()
-                Button("Close") { onClose() }
-            }
-        }
-        .padding(20)
-        .frame(minWidth: 340, minHeight: 260)
-        .background(NoopChromeSurface())
-    }
-}
-
-/// The wrist-selection step: the one ECG command that writes strap state outliving the session, so it
-/// gets its own screen, its own warning, and its own confirmation rather than a button inside the start
-/// flow. The copy names both caveats plainly — that the value persists on the strap, and that the
-/// left/right mapping is read off the order in WHOOP's own app rather than verified on hardware.
-private struct EcgWristSheet: View {
-    let onPick: (Whoop5Ecg.WristSelection) -> Void
-    let onCancel: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Which wrist do you wear it on?")
-                .font(StrandFont.title2)
-                .foregroundStyle(StrandPalette.textPrimary)
-            Text("This one is different from the other ECG controls: it is a setting written to the strap, and it stays there after you disconnect until you change it again.")
-                .font(StrandFont.subhead)
-                .foregroundStyle(StrandPalette.statusWarning)
-                .fixedSize(horizontal: false, vertical: true)
-            Text("It is also not fully confirmed. Which value means “left” and which means “right” is read off the order they appear in WHOOP's own app, not verified on a strap — so it may set the opposite wrist. You can send it again with the other choice at any time, and it changes nothing about your recorded data.")
-                .font(StrandFont.caption)
-                .foregroundStyle(StrandPalette.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-            HStack(spacing: NoopMetrics.space3) {
-                Button("Left wrist") { onPick(.left) }
-                Button("Right wrist") { onPick(.right) }
-                Spacer()
-                Button("Cancel", role: .cancel) { onCancel() }
-            }
-        }
-        .padding(20)
-        .frame(minWidth: 340, minHeight: 220)
-        .background(NoopChromeSurface())
-    }
-}
-
-/// The MG ECG probe's report (verdict + per-command outcomes + candidate packet lines), or a "waiting…"
-/// state while the listen window is open. Read-only, selectable, copyable — structurally identical to
-/// `BodyLocationProbeResultView`, with the non-medical framing pinned above the text so it is read first.
-private struct EcgProbeResultView: View {
-    let text: String
-    let onClose: () -> Void
-    private var waiting: Bool { text == BLEManager.ecgProbeWaiting }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("ECG capture probe result")
-                .font(StrandFont.title2)
-                .foregroundStyle(StrandPalette.textPrimary)
-            Text("Unvalidated instrumentation, not a medical measurement and not a diagnosis.")
-                .font(StrandFont.caption)
-                .foregroundStyle(StrandPalette.statusWarning)
-                .fixedSize(horizontal: false, vertical: true)
-            if waiting {
-                Text("Listening for the strap's reply…")
                     .font(StrandFont.subhead)
                     .foregroundStyle(StrandPalette.textSecondary)
             } else {

@@ -1,5 +1,5 @@
 //  SettingsFeaturePages.swift
-//  NOOP · Settings → Workouts, Sync, Scores.
+//  NOOP · Settings → Workouts, Scores.
 
 import SwiftUI
 import StrandDesign
@@ -31,25 +31,6 @@ struct WorkoutsSettingsPage: View {
     }
 }
 
-// MARK: - Sync (iOS)
-
-struct SyncSettingsPage: View {
-    /// `SyncKeepAwake` holds the screen awake for as long as a strap history sync runs.
-    @AppStorage(ScreenIdle.strapSyncKeepAwakeKey) private var syncKeepScreenOn = false
-    /// Strap-sync Live Activity, independent of the live-HR one.
-    @AppStorage(UnitPrefs.syncLiveActivityKey) private var syncLiveActivityEnabled = true
-
-    var body: some View {
-        Form {
-            Section {
-                Toggle("Keep screen on while syncing", isOn: $syncKeepScreenOn)
-                Toggle("Strap sync in Dynamic Island", isOn: $syncLiveActivityEnabled)
-            }
-        }
-        .settingsPage("Sync")
-    }
-}
-
 // MARK: - Scores
 
 struct ScoresSettingsPage: View {
@@ -61,6 +42,14 @@ struct ScoresSettingsPage: View {
     /// #1545 opt-in: Banister's exponential TRIMP instead of Edwards' zones. Re-scores the window.
     @AppStorage(PuffinExperiment.banisterEffortKey) private var banisterEffortEnabled = false
 
+    /// #141: whole night or deep sleep only. Changes the number, so a switch re-scores.
+    @AppStorage(UnitPrefs.hrvWindowKey) private var hrvWindowRaw = HrvWindow.whole.rawValue
+    /// v5 cycle-awareness opt-in (default OFF, the most sensitive health category, manual-first).
+    @AppStorage(AppModel.cycleAwarenessKey) private var cycleAwareness = false
+    /// The user's "not for me" opt-out (never age-based). Un-hiding re-offers it on Today + Health.
+    @AppStorage(AppModel.cycleAwarenessHiddenKey) private var cycleHidden = false
+
+    @State private var showScoringGuide = false
     @State private var showRecalibrateConfirm = false
     @State private var showRecalibrated = false
     @State private var showStepsCalibration = false
@@ -117,12 +106,53 @@ struct ScoresSettingsPage: View {
             }
 
             Section {
+                Picker("HRV window", selection: $hrvWindowRaw) {
+                    Text("Night").tag(HrvWindow.whole.rawValue)
+                    Text("Deep sleep").tag(HrvWindow.deep.rawValue)
+                }
+                .settingsPicker()
+                .onChangeCompat(of: hrvWindowRaw) { _ in
+                    // #201/#195: analyzeRecent re-scores and re-folds the baseline in one pass.
+                    Task { await model.intelligence.analyzeRecent(); await model.repo.refresh() }
+                }
                 Button("Recalibrate Charge baseline") { showRecalibrateConfirm = true }
             } header: {
                 Text("Charge")
             }
+
+            // #801: cycle awareness reads the menstrual temperature shift, so it is offered only to the
+            // profiles it applies to, gated as the Health opt-in card is.
+            if profile.cycleAwarenessApplies {
+                Section {
+                    Toggle("Show cycle awareness", isOn: Binding(
+                        get: { !cycleHidden },
+                        set: { show in
+                            cycleHidden = !show
+                            if !show {
+                                cycleAwareness = false
+                                model.cycleAwarenessEnabled = false
+                                Task { await model.refreshV5Signals() }
+                            }
+                        }))
+                    if !cycleHidden {
+                        Toggle("Cycle awareness", isOn: $cycleAwareness)
+                            .onChangeCompat(of: cycleAwareness) { on in
+                                model.cycleAwarenessEnabled = on
+                                Task { await model.refreshV5Signals() }
+                            }
+                    }
+                } header: {
+                    Text("Cycle")
+                }
+            }
+
+            Section {
+                Button("How your scores work") { showScoringGuide = true }
+                    .foregroundStyle(StrandPalette.textPrimary)
+            }
         }
         .settingsPage("Scores")
+        .sheet(isPresented: $showScoringGuide) { ScoringGuideView(onClose: { showScoringGuide = false }) }
         .confirmationDialog("Recalibrate your Charge baseline?",
                             isPresented: $showRecalibrateConfirm, titleVisibility: .visible) {
             Button("Recalibrate") { recalibrate() }

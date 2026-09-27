@@ -50,64 +50,36 @@ struct DataSourcesView: View {
     @State private var confirmDeleteAppleHealth = false
     @State private var appleHealthDeletedSummary: String?
 
-    // "Broadcast heart rate" (opt-in, OFF by default): make NOOP a standard BLE Heart Rate peripheral
-    // (0x180D / 0x2A37) so a gym treadmill / Zwift / Peloton can read the live strap HR NOOP receives.
-    // LOCAL Bluetooth only — nothing leaves the device. The toggle is persisted; the broadcaster is owned
-    // here (a pure consumer of LiveState, isolated from the WHOOP/central path).
-    @AppStorage(HrBroadcaster.defaultsKey) private var broadcastHrEnabled = false
-    @AppStorage(PuffinExperiment.broadcastHrKey) private var strapBroadcastHrEnabled = false
-
-    // The broadcaster's diagnostic sink forwards to THIS box, which `onAppear` points at the screen's
-    // `live`. A reference box lets the `@StateObject` capture a stable target at init even though the
-    // `@EnvironmentObject` `live` isn't available until the view runs — so the broadcast-out lifecycle
-    // lines (advertised / who subscribed / why the radio refused) reach the SAME exported strap log the
-    // WHOOP path writes, mirroring Android's `HrBroadcaster(log = { ble.externalLog(it) })`. Every line is
-    // already prefixed "HR-out: " inside HrBroadcaster; privacy-safe (statuses + a subscriber COUNT only).
-    private final class LogSink { weak var live: LiveState? }
-    private let broadcastLogSink: LogSink
-    @StateObject private var hrBroadcaster: HrBroadcaster
-
-    init() {
-        let sink = LogSink()
-        self.broadcastLogSink = sink
-        _hrBroadcaster = StateObject(wrappedValue: HrBroadcaster(log: { [weak sink] line in
-            // HrBroadcaster is @MainActor, so it only ever calls this closure from the main actor — assume
-            // that isolation to forward straight into LiveState (also @MainActor) without an extra runloop
-            // hop, matching Android's synchronous `ble.externalLog(it)`.
-            MainActor.assumeIsolated { sink?.live?.append(log: line) }
-        }))
-    }
-
     var body: some View {
         Form {
-            whoopSection
-            appleHealthSection
-            xiaomiSection
-            nutritionSection
-            liftingSection
-            activityFileSection
-            wearableSection
+            if !repo.days.isEmpty {
+                Section {
+                    LabeledContent("WHOOP", value: String(localized: "\(repo.days.count) days · \(repo.sleeps.count) sleeps stored"))
+                }
+            }
+            Section {
+                importRow("WHOOP Export", target: .whoop, busy: model.isImporting(.whoop),
+                          summary: model.whoopImportSummary, failed: model.whoopImportFailed)
+                importRow("Apple Health", target: .appleHealth, busy: model.isImporting(.appleHealth),
+                          summary: model.appleHealthImportSummary, failed: model.appleHealthImportFailed)
+                importRow("Xiaomi Smart Band (Mi Band)", target: .xiaomi, busy: model.isImporting(.xiaomi),
+                          summary: model.xiaomiImportSummary, failed: model.xiaomiImportFailed)
+                importRow("Oura / Fitbit / Garmin export", target: .wearable, busy: wearableImporting,
+                          summary: wearableSummary, failed: wearableFailed)
+                importRow("Workout file (GPX / TCX / FIT)", target: .activityFile, busy: activityFileImporting,
+                          summary: activityFileSummary, failed: activityFileFailed)
+                importRow("Lifting log (Hevy / Liftosaur)", target: .lifting, busy: liftingImporting,
+                          summary: liftingSummary, failed: liftingFailed)
+                importRow("Nutrition (.csv)", target: .nutrition, busy: nutritionImporting,
+                          summary: nutritionSummary, failed: nutritionFailed)
+            }
             #if OURA_CLOUD_IMPORT
             ouraCloudSection
             #endif
-            broadcastHrSection
-            liveSection
+            appleHealthRemoveSection
         }
-        .settingsPage("Data Sources")
+        .settingsPage("Import")
         .refreshable { await repo.refresh() }
-        .onAppear {
-            // Point the broadcaster's diagnostic sink at this screen's `live` so its broadcast-out
-            // lifecycle lines land in the same exported strap log the WHOOP path uses (issue #421 parity).
-            broadcastLogSink.live = live
-            // Bind the broadcaster to the live HR once, and resume broadcasting if the user left it on.
-            hrBroadcaster.bind(to: live)
-            if broadcastHrEnabled { hrBroadcaster.start() }
-        }
-        .onDisappear {
-            // The broadcast is a foreground convenience tied to this screen's owned object — release the
-            // radio when the screen goes away; toggling it back on (or revisiting) re-starts it.
-            hrBroadcaster.stop()
-        }
         // A single target-aware importer avoids SwiftUI collapsing competing importers on the same screen.
         .fileImporter(isPresented: $showingImporter,
                       allowedContentTypes: importTarget.allowedContentTypes,
@@ -126,114 +98,47 @@ struct DataSourcesView: View {
     /// True while one of this screen's own file imports runs; together with `model.hasActiveImport` it
     /// keeps a second picker from opening mid-import.
     private var localImportBusy: Bool {
-        nutritionImporting || liftingImporting || activityFileImporting
+        nutritionImporting || liftingImporting || activityFileImporting || wearableImporting
     }
 
-    private var whoopSection: some View {
-        let hasWhoop = !repo.days.isEmpty
-        let importingWhoop = model.isImporting(.whoop)
-        return Section {
-            LabeledContent {
-                Text("\(repo.days.count) days · \(repo.sleeps.count) sleeps stored")
-            } label: {
-                statusLine(hasWhoop ? Text("Imported") : Text("Nothing imported"),
-                           color: hasWhoop ? StrandPalette.settingsGreen : StrandPalette.settingsGray)
-            }
-            importButton(importingWhoop ? "Importing…" : "Choose export…", busy: importingWhoop) {
-                presentImporter(.whoop)
-            }
-            .disabled(model.hasActiveImport || localImportBusy)
-            resultLine(model.whoopImportSummary, failed: model.whoopImportFailed)
-        } header: {
-            Text("WHOOP Export")
-        }
-    }
-
-    private var appleHealthSection: some View {
-        let importingAppleHealth = model.isImporting(.appleHealth)
-        return Section {
-            importButton(importingAppleHealth ? "Working…" : "Choose export.zip…", busy: importingAppleHealth) {
-                presentImporter(.appleHealth)
-            }
-            .disabled(model.hasActiveImport || localImportBusy || appleHealthDeleting)
-            resultLine(model.appleHealthImportSummary, failed: model.appleHealthImportFailed)
-            // ah-delete (#616): a destructive "Remove imported data" action wired to
-            // DeviceRegistryStore.deleteAllData(deviceId: "apple-health"). Always offered (the user may
-            // have imported in a prior session, so we don't gate on this run's summary), with a
-            // confirmation step since it permanently clears every Apple-Health-sourced row.
-            importButton(appleHealthDeleting ? "Removing…" : "Remove imported data",
+    /// ah-delete (#616): purge every row stored under the "apple-health" source. Always offered (the user may
+    /// have imported in a prior session), behind a confirmation since it can't be undone.
+    private var appleHealthRemoveSection: some View {
+        Section {
+            importButton(appleHealthDeleting ? "Removing…" : "Remove Apple Health imported data",
                          busy: appleHealthDeleting, role: .destructive) {
                 confirmDeleteAppleHealth = true
             }
             .disabled(model.hasActiveImport || appleHealthDeleting)
-            .accessibilityLabel("Remove Apple Health imported data")
             if let s = appleHealthDeletedSummary {
                 statusLine(Text(s), color: StrandPalette.settingsGreen)
             }
-        } header: {
-            Text("Apple Health")
         }
     }
 
-    private var xiaomiSection: some View {
-        let importingXiaomi = model.isImporting(.xiaomi)
-        return Section {
-            importButton(importingXiaomi ? "Importing…" : "Choose Mi Fitness export…", busy: importingXiaomi) {
-                presentImporter(.xiaomi)
+    /// One importable format: tapping opens the file picker; a spinner while it runs, and the outcome of the
+    /// last import as a dot line under it.
+    @ViewBuilder
+    private func importRow(_ title: LocalizedStringKey, target: ImportTarget, busy: Bool,
+                           summary: String?, failed: Bool) -> some View {
+        Button {
+            presentImporter(target)
+        } label: {
+            HStack {
+                Text(title).foregroundStyle(StrandPalette.textPrimary)
+                Spacer()
+                if busy {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Image(systemName: "square.and.arrow.down")
+                        .foregroundStyle(StrandPalette.accent)
+                        .accessibilityHidden(true)
+                }
             }
-            .disabled(model.hasActiveImport || localImportBusy)
-            resultLine(model.xiaomiImportSummary, failed: model.xiaomiImportFailed)
-        } header: {
-            Text("Xiaomi Smart Band (Mi Band)")
+            .contentShape(Rectangle())
         }
-    }
-
-    private var nutritionSection: some View {
-        Section {
-            importButton(nutritionImporting ? "Importing…" : "Choose .csv…", busy: nutritionImporting) {
-                presentImporter(.nutrition)
-            }
-            .disabled(model.hasActiveImport || localImportBusy)
-            resultLine(nutritionSummary, failed: nutritionFailed)
-        } header: {
-            Text("Nutrition (.csv)")
-        }
-    }
-
-    private var liftingSection: some View {
-        Section {
-            importButton(liftingImporting ? "Importing…" : "Choose export…", busy: liftingImporting) {
-                presentImporter(.lifting)
-            }
-            .disabled(model.hasActiveImport || localImportBusy)
-            resultLine(liftingSummary, failed: liftingFailed)
-        } header: {
-            Text("Lifting log (Hevy / Liftosaur)")
-        }
-    }
-
-    private var activityFileSection: some View {
-        Section {
-            importButton(activityFileImporting ? "Importing…" : "Choose .gpx / .tcx / .fit…", busy: activityFileImporting) {
-                presentImporter(.activityFile)
-            }
-            .disabled(model.hasActiveImport || localImportBusy)
-            resultLine(activityFileSummary, failed: activityFileFailed)
-        } header: {
-            Text("Workout file (GPX / TCX / FIT)")
-        }
-    }
-
-    private var wearableSection: some View {
-        Section {
-            importButton(wearableImporting ? "Importing…" : "Choose export…", busy: wearableImporting) {
-                presentImporter(.wearable)
-            }
-            .disabled(model.hasActiveImport || localImportBusy || wearableImporting)
-            resultLine(wearableSummary, failed: wearableFailed)
-        } header: {
-            Text("Oura / Fitbit / Garmin export")
-        }
+        .disabled(model.hasActiveImport || localImportBusy || appleHealthDeleting)
+        resultLine(summary, failed: failed)
     }
 
     #if OURA_CLOUD_IMPORT
@@ -746,70 +651,6 @@ struct DataSourcesView: View {
                 return [.json, .zip, .data]
                 #endif
             }
-        }
-    }
-
-    private var broadcastHrSection: some View {
-        Section {
-            Toggle("Broadcast HR from this phone", isOn: $broadcastHrEnabled)
-                .accessibilityLabel("Broadcast heart rate as a Bluetooth sensor")
-                .onChangeCompat(of: broadcastHrEnabled) { on in
-                    if on { hrBroadcaster.start() } else { hrBroadcaster.stop() }
-                }
-
-            // Honest live status only while it's on: advertising vs starting up, then a warning if the
-            // radio can't run, else either who's reading it or that we're waiting (never a fabricated
-            // "connected").
-            if broadcastHrEnabled {
-                statusLine(hrBroadcaster.advertising ? Text("Broadcasting") : Text("Starting…"),
-                           color: hrBroadcaster.advertising ? StrandPalette.settingsGreen : StrandPalette.settingsOrange)
-                if let note = hrBroadcaster.statusNote {
-                    Text(note)
-                        .foregroundStyle(StrandPalette.statusWarning)
-                } else if hrBroadcaster.subscriberCount > 0 {
-                    let n = hrBroadcaster.subscriberCount
-                    // Whole-phrase variants per count so translators never see a stitched plural.
-                    Text(n == 1 ? "1 device reading your heart rate"
-                                : "\(n) devices reading your heart rate")
-                        .foregroundStyle(StrandPalette.textSecondary)
-                } else if let hr = live.heartRate {
-                    Text("Sharing \(hr) bpm. Waiting for a device to pair.")
-                        .foregroundStyle(StrandPalette.textSecondary)
-                } else {
-                    Text("No live heart rate yet. Open Live to pair your strap.")
-                        .foregroundStyle(StrandPalette.textSecondary)
-                }
-            }
-        }
-    }
-
-    private var liveSection: some View {
-        // Three-state, consistent with the Live screen's connection pill — a connected-but-
-        // not-yet-streaming strap (e.g. an experimental WHOOP 5/MG link) no longer reads as
-        // "Not connected" on one screen and "Connected" on another (issue #8).
-        // Written as statements rather than a ternary chain: a chain of (Color, LocalizedStringKey)
-        // tuples is the shape that pushes this expression past the iOS type-check budget, and it fails
-        // in CI rather than here.
-        let color: Color
-        let label: LocalizedStringKey
-        if live.encryptedBond {
-            color = StrandPalette.settingsGreen; label = "Bonded, streaming."
-        } else if live.bonded {
-            color = StrandPalette.settingsOrange; label = "Live HR (not fully paired)"
-        } else if live.connected {
-            color = StrandPalette.settingsOrange; label = "Connected."
-        } else {
-            color = StrandPalette.settingsGray; label = "Not connected. Open Live to pair."
-        }
-        return Section {
-            statusLine(Text(label), color: color)
-            Toggle(isOn: $strapBroadcastHrEnabled) {
-                Text("Broadcast heart rate from the strap")
-            }
-            .accessibilityLabel("Broadcast heart rate from the strap")
-            .onChangeCompat(of: strapBroadcastHrEnabled) { model.ble.setBroadcastHr($0) }
-        } header: {
-            Text("WHOOP Strap (Live BLE)")
         }
     }
 

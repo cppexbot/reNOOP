@@ -33,6 +33,19 @@ struct BackupSyncView: View {
     var body: some View {
         Form {
             Section {
+                LabeledContent("Folder", value: folderLabel ?? String(localized: "Not set"))
+                Button(folderLabel == nil ? "Choose folder" : "Change folder") { chooseFolder() }
+                    .disabled(busy)
+                #if os(iOS)
+                // #52: some iOS 26 pickers never return a folder; back up inside NOOP's own Files folder.
+                if !FolderBackup.useInternalFolder {
+                    Button("Use NOOP's own folder (browse in Files)") { useNoopFolder() }
+                        .disabled(busy)
+                }
+                #endif
+            }
+
+            Section {
                 Button {
                     backupNow()
                 } label: {
@@ -42,11 +55,6 @@ struct BackupSyncView: View {
                     }
                 }
                 .disabled(folderLabel == nil || busy)
-            } footer: {
-                Text(lastMs > 0 ? "Last backup: \(relativeTime(lastMs))" : "No backup yet.")
-            }
-
-            Section {
                 Toggle("Daily auto-backup", isOn: $auto)
                     .disabled(folderLabel == nil)
                     .onChangeCompat(of: auto) { on in FolderBackup.autoEnabled = on }
@@ -64,20 +72,9 @@ struct BackupSyncView: View {
                                             nowMs: Int(Date().timeIntervalSince1970 * 1000.0)) {
                     Text("Auto-backup hasn't run in a few days. Check the backup folder is still available — a moved or disconnected cloud folder stops backups silently.")
                         .foregroundStyle(StrandPalette.statusWarning)
+                } else if lastMs > 0 {
+                    Text("Last backup: \(relativeTime(lastMs))")
                 }
-            }
-
-            Section {
-                LabeledContent("Folder", value: folderLabel ?? String(localized: "Not set"))
-                Button(folderLabel == nil ? "Choose folder" : "Change folder") { chooseFolder() }
-                    .disabled(busy)
-                #if os(iOS)
-                // #52: some iOS 26 pickers never return a folder; back up inside NOOP's own Files folder.
-                if !FolderBackup.useInternalFolder {
-                    Button("Use NOOP's own folder (browse in Files)") { useNoopFolder() }
-                        .disabled(busy)
-                }
-                #endif
             }
 
             Section {
@@ -91,6 +88,8 @@ struct BackupSyncView: View {
                 Button("Export CSV…") { runCsvExport() }
             }
             .disabled(busy)
+
+            StorageSections()
         }
         .settingsPage("Backup")
         // Result of a backup or a restore.
@@ -292,7 +291,7 @@ struct BackupSyncView: View {
                     // than leaving the user with a refusal and nowhere to go.
                     let cap = ByteCountFormatter.string(fromByteCount: limit, countStyle: .file)
                     alertTitle = String(localized: "Backup problem")
-                    alertMessage = String(localized: "\(name) is larger than the \(cap) NOOP restores without asking. You can still restore it from Settings → Backup & restore → Import, which will ask you to confirm.")
+                    alertMessage = String(localized: "\(name) is larger than the \(cap) NOOP restores without asking. You can still restore it from Settings → Backup → Import…, which will ask you to confirm.")
                 case .cancelled, .exported, .exportedOversize:
                     alertTitle = String(localized: "Restore problem"); alertMessage = String(localized: "Couldn't restore that backup.")
                 }

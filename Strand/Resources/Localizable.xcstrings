@@ -1,6 +1,15 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Cycle": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Цикл"}} } },
+    "Heart rate broadcast": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Трансляция пульса"}} } },
+    "Import a Health export .zip in Import.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Импортируйте экспорт Здоровья (.zip) в разделе «Импорт»."}} } },
+    "Run a Shortcut": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Запуск быстрой команды"}} } },
+    "Shortcuts": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Быстрые команды"}} } },
+    "Signing expires": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Подпись истекает"}} } },
+    "When put back on": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "При надевании"}} } },
+    "When taken off": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "При снятии"}} } },
+    "Wrist alerts are off": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Уведомления на запястье выключены"}} } },
     "The strap accepts these writes, but NOOP has not observed them enabling a separate live stream.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Браслет принимает эти записи, но NOOP не видел, чтобы они включали отдельный поток данных."}} } },
     "At the next connect, sends the official app's notification mask (1c 01 ff) instead of NOOP's 3f.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "При следующем подключении отправляет маску уведомлений официального приложения (1c 01 ff) вместо 3f от NOOP."}} } },
     "Tested on Gen 3 only.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Проверено только на Gen 3."}} } },

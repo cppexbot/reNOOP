@@ -63,7 +63,6 @@ struct GeneralSettingsPage: View {
 
             Section {
                 NavigationLink("Units", value: SettingsPage.units)
-                NavigationLink("Storage", value: SettingsPage.storage)
             }
         }
         .settingsPage("General")
