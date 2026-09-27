@@ -400,7 +400,7 @@ struct RootView: View {
         case .explore: NavigationStack { AllMetricsView().tabRouteDestinations() }
         case .journal: NavigationStack { JournalView() }
         case .sleep: NavigationStack { SleepHealthView().tabRouteDestinations() }
-        case .trends: TrendsView()
+        case .trends: NavigationStack { TrendsView().tabRouteDestinations() }
         case .workouts: NavigationStack { WorkoutsHomeView().tabRouteDestinations() }
         case .labBook: LabBookView()
         case .appleHealth: AppleHealthView()

@@ -10,16 +10,15 @@ import WhoopStore
 // the root (#135) without the #197 rebuild. Deeper links stay closure-based on purpose: popping a
 // route off the path also pops everything pushed above it, so only the first hop needs a value.
 //
-// Shared with macOS because the tab roots (SummaryView / TrendsView) are the SAME views the sidebar
+// Shared with macOS because the tab roots (SummaryView, SleepHealthView…) are the SAME views the sidebar
 // shell hosts — every `NavigationStack` that hosts one must register
 // `tabRouteDestinations()`, and must register it exactly ONCE: the same value type resolving
 // against two registrations in one stack double-pushes (#38).
 
 /// One first-hop destination reachable from a tab root. `Hashable` so it can ride a `NavigationPath`.
 enum TabRoute: Hashable {
-    /// One metric's detail page by `MetricCatalog` key — the same tap-through the Summary's cards and
-    /// Trends' small-multiples share. Each card opens ITS metric (2026-07-02: not the shared
-    /// Health screen).
+    /// One metric's detail page by `MetricCatalog` key — the tap-through the Summary's cards share.
+    /// Each card opens ITS metric (2026-07-02: not the shared Health screen).
     case metric(String)
     /// One metric's detail by BOTH key and source. `steps` exists under several sources (my-whoop,
     /// apple-health, xiaomi-band); routing by bare key alone resolves whichever catalog entry is
@@ -38,12 +37,16 @@ enum TabRoute: Hashable {
     case sleepNight(String)
     /// The sleep schedule (Health's Full Schedule): the strap alarm and the bedtime reminder.
     case sleepSchedule
+    /// Health's "Show All Health Trends": every metric whose recent readings have clearly moved.
+    case trends
+    /// The long-horizon training load (CTL / ATL / form), reached from Trends.
+    case trainingLoad
 }
 
 extension View {
     /// Maps every `TabRoute` push to its screen. Apply once to the ROOT content of each
     /// `NavigationStack` that hosts a tab-root view (the iOS tab shell's stacks; the macOS
-    /// Summary detail pane and TrendsView's own macOS wrap).
+    /// Summary detail pane and the sidebar's other stacks).
     func tabRouteDestinations() -> some View {
         navigationDestination(for: TabRoute.self) { route in
             switch route {
@@ -70,6 +73,8 @@ extension View {
             case .intervalTimer: IntervalTimerView()
             case .sleepNight(let day): SleepHealthView(initialWakeDay: day)
             case .sleepSchedule: SleepScheduleView()
+            case .trends: TrendsView()
+            case .trainingLoad: TrainingLoadView()
             }
         }
     }

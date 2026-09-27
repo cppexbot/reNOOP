@@ -1,0 +1,125 @@
+//  TrendsView.swift
+//  NOOP · Trends — Health's "Show All Health Trends" page: one card per metric whose recent readings have
+//  clearly moved (`HealthTrendDetector`), each opening that metric's page, then training load, which no
+//  other page shows. The toolbar's share button exports the PDF trends report.
+
+import SwiftUI
+import StrandDesign
+import StrandAnalytics
+import WhoopStore
+
+struct TrendsView: View {
+    @EnvironmentObject private var repo: Repository
+    @AppStorage(UnitPrefs.systemKey) private var unitSystemRaw = UnitSystem.metric.rawValue
+    @AppStorage(UnitPrefs.temperatureKey) private var temperatureRaw = ""
+    @AppStorage(UnitPrefs.effortScaleKey) private var effortScaleRaw = EffortScale.hundred.rawValue
+    @AppStorage(UnitPrefs.skinTempDisplayKey) private var skinTempDisplayRaw = ""
+
+    @State private var snapshot: HealthTrendsSnapshot?
+    @State private var trainingLoad: TrainingLoadEngine.Result?
+
+    private var units: MetricHealthStyle.Units {
+        HealthTrendsUnits.resolve(system: unitSystemRaw, temperature: temperatureRaw, effortScale: effortScaleRaw)
+    }
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 12) {
+                if let snapshot {
+                    if snapshot.items.isEmpty {
+                        emptyState(judged: snapshot.anyJudged)
+                    } else {
+                        ForEach(snapshot.items) { item in
+                            NavigationLink(value: TabRoute.metricSourced(key: item.metric.key, source: item.metric.source)) {
+                                HealthTrendCard(metric: item.metric, trend: item.trend, units: units)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    if let trainingLoad, trainingLoad.isAvailable, let latest = trainingLoad.points.last {
+                        TrainingLoadRow(balance: latest.balance)
+                            .padding(.top, snapshot.items.isEmpty ? 0 : NoopMetrics.space4)
+                    }
+                } else {
+                    ProgressView().frame(maxWidth: .infinity).padding(.top, NoopMetrics.space8)
+                }
+            }
+            .padding(.horizontal, NoopMetrics.screenHPadding)
+            .padding(.bottom, NoopMetrics.space8 + NoopMetrics.tabBarClearance)
+            #if os(macOS)
+            .frame(maxWidth: 680)
+            .frame(maxWidth: .infinity)
+            #endif
+        }
+        .background(StrandPalette.summaryCanvas.ignoresSafeArea())
+        .navigationTitle(Text("Trends"))
+        #if os(iOS)
+        .toolbarTitleDisplayMode(.large)
+        #endif
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) { TrendsReportMenu(days: repo.days) }
+        }
+        .refreshable { await repo.refresh() }
+        .task(id: "\(repo.refreshSeq)|\(skinTempDisplayRaw)") {
+            let prefer = SkinTempDisplay.Kind(rawValue: skinTempDisplayRaw) ?? .absolute
+            guard let loaded = await HealthTrendLoader.load(repo: repo, skinTemp: prefer) else { return }
+            snapshot = loaded
+            trainingLoad = TrainingLoadModel.evaluate(repo.days)
+        }
+    }
+
+    /// "Not Enough Data Yet" until some metric has readings enough to judge; "No Trends" once they have and
+    /// nothing moved.
+    private func emptyState(judged: Bool) -> some View {
+        VStack(spacing: 12) {
+            Image(systemName: HealthTrendsUnits.icon)
+                .font(.system(size: 44, weight: .semibold))
+                .foregroundStyle(StrandPalette.textTertiary)
+            Text(judged ? String(localized: "No Trends") : String(localized: "Not Enough Data Yet"))
+                .font(StrandFont.pro(22, weight: .bold))
+                .foregroundStyle(StrandPalette.textPrimary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 120)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// The trends' shared bits: the units every card reads in, and Health's trends glyph.
+enum HealthTrendsUnits {
+    static let icon = "arrow.triangle.branch"
+
+    static func resolve(system: String, temperature: String, effortScale: String) -> MetricHealthStyle.Units {
+        let unitSystem = UnitSystem(rawValue: system) ?? .metric
+        return .init(system: unitSystem,
+                     temperature: UnitPrefs.resolveTemperature(system: unitSystem, override: temperature),
+                     effortScale: UnitPrefs.resolveEffortScale(effortScale))
+    }
+}
+
+/// Training load as one row under the trends: its name, today's form, and the page with the chart.
+private struct TrainingLoadRow: View {
+    let balance: Double
+
+    var body: some View {
+        NavigationLink(value: TabRoute.trainingLoad) {
+            SummaryCard {
+                VStack(alignment: .leading, spacing: 10) {
+                    SummaryCardTitleRow(icon: "flame.fill", title: String(localized: "Training Load"),
+                                        tint: StrandPalette.activityTitle)
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                        Text(verbatim: TrainingLoadModel.signed(balance))
+                            .font(StrandFont.number(24, weight: .bold))
+                            .foregroundStyle(StrandPalette.textPrimary)
+                        Text("Form")
+                            .font(StrandFont.subhead.weight(.semibold))
+                            .foregroundStyle(StrandPalette.textSecondary)
+                    }
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
+    }
+}

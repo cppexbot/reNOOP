@@ -25,7 +25,7 @@ struct BrowseView: View {
     private var categories: [Entry] {
         var rows = [
             Entry(id: .allMetrics, title: String(localized: "All Metrics"), icon: "square.grid.2x2.fill", tint: StrandPalette.healthOxygen),
-            Entry(id: .trends, title: String(localized: "Trends"), icon: "chart.line.uptrend.xyaxis", tint: StrandPalette.healthRespiratory),
+            Entry(id: .trends, title: String(localized: "Trends"), icon: HealthTrendsUnits.icon, tint: StrandPalette.accent),
             Entry(id: .journal, title: String(localized: "Journal"), icon: "book.pages.fill", tint: StrandPalette.healthMind),
             Entry(id: .insightsHub, title: String(localized: "What Moves You"), icon: "wand.and.sparkles", tint: StrandPalette.healthTemperature),
             Entry(id: .labBook, title: String(localized: "Lab Book"), icon: "list.clipboard.fill", tint: StrandPalette.healthSleepCore),

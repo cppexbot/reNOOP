@@ -18,7 +18,7 @@ import Foundation
 //   • `TrendsReportPage` — the laid-out SwiftUI page (the thing rendered to PDF),
 //     built ENTIRELY from the locked StrandDesign component system (NoopCard,
 //     SectionHeader, Sparkline, the colour worlds) so it matches every other surface.
-//   • `TrendsReportSheet` — the in-app range picker + "Export" CTA presented from Trends.
+//   • `TrendsReportMenu` — the Trends toolbar's share button: a period, then the share sheet.
 //
 // Honesty: an empty range (no metric carried a reading) renders a friendly
 // "not enough data in this range yet" state, never a blank or fabricated page.
@@ -438,23 +438,18 @@ struct TrendsReportPage: View {
 
 /// The in-app sheet: pick a range, preview the page, export to PDF. Presented from the
 /// Trends screen's "Export trends report" button.
-struct TrendsReportSheet: View {
+/// The Trends toolbar's share button: pick a period, and the report for it goes to the share sheet (the
+/// Save panel on macOS) as a one-page PDF.
+struct TrendsReportMenu: View {
     let days: [DailyMetric]
     @EnvironmentObject private var repo: Repository
-    @Environment(\.dismiss) private var dismiss
-    @State private var range: ReportRange = .days90
-    @State private var exporting = false
-    /// Stored daily stress series ("yyyy-MM-dd" → 0–3), for the Stress row (#457). Loaded
-    /// once from the same "my-whoop" series the Stress screen reads; empty until it arrives.
-    @State private var stressByDay: [String: Double] = [:]
     // The same three keys every other screen reads, so the exported page agrees with what the user
     // has been looking at all month (#1637). Temperature has its own override on top of the
     // length/mass system, which is why both are needed to resolve it.
     @AppStorage(UnitPrefs.systemKey) private var unitSystemRaw = UnitSystem.metric.rawValue
     @AppStorage(UnitPrefs.temperatureKey) private var temperatureRaw = ""
     @AppStorage(UnitPrefs.effortScaleKey) private var effortScaleRaw = EffortScale.hundred.rawValue
-
-    private var today: String { Repository.localDayKey(Date()) }
+    @State private var exporting = false
 
     /// The user's display preferences, resolved once for both the headline sentences (built inside
     /// the engine) and the metric cards (rendered by the page). Both surfaces must be handed the
@@ -470,117 +465,38 @@ struct TrendsReportSheet: View {
             effortFactor: scale == .whoop ? UnitFormatter.effortScaleFactor : 1.0)
     }
 
-    private var report: RangeReport {
-        TrendsReportData.report(for: range, days: days, today: today,
-                                stressByDay: stressByDay, units: units)
-    }
-
-    private func seriesMap(start: String, end: String) -> [ReportMetric: [Double]] {
-        var out: [ReportMetric: [Double]] = [:]
-        for metric in ReportMetric.allCases {
-            out[metric] = TrendsReportData.series(metric, from: days, start: start, end: end,
-                                                  stressByDay: stressByDay)
-        }
-        return out
-    }
-
-    private var generatedOn: String {
-        let f = DateFormatter()
-        f.dateStyle = .medium
-        f.timeStyle = .none
-        return f.string(from: Date())
-    }
-
-    private func page(for report: RangeReport) -> TrendsReportPage {
-        TrendsReportPage(report: report, range: range,
-                         series: seriesMap(start: report.start, end: report.end),
-                         generatedOn: generatedOn, units: units)
-    }
-
     var body: some View {
-        let rpt = report
-        ScrollView {
-            VStack(alignment: .leading, spacing: NoopMetrics.sectionSpacing) {
-                VStack(alignment: .leading, spacing: NoopMetrics.space2) {
-                    Text("Export trends report")
-                        .font(StrandFont.title2)
-                        .foregroundStyle(StrandPalette.textPrimary)
-                    Text("A clean, shareable one-page PDF of your recovery, sleep, HRV, resting heart rate and strain over a date range. Saved on your \(Platform.deviceNoun). Nothing leaves the device.")
-                        .font(StrandFont.subhead)
-                        .foregroundStyle(StrandPalette.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
+        Menu {
+            Section("Trends Report (PDF)") {
+                ForEach(ReportRange.allCases) { range in
+                    Button(range.longName) { Task { await export(range) } }
                 }
-
-                VStack(alignment: .leading, spacing: NoopMetrics.space2) {
-                    Text("Range").strandOverline()
-                    SegmentedPillControl(ReportRange.allCases, selection: $range) { $0.label }
-                    Text(range.longName)
-                        .font(StrandFont.footnote)
-                        .foregroundStyle(StrandPalette.textTertiary)
-                }
-
-                // A scaled-down live preview of the page so the user sees exactly what
-                // they'll get before exporting.
-                VStack(alignment: .leading, spacing: NoopMetrics.space2) {
-                    Text("Preview").strandOverline()
-                    page(for: rpt)
-                        .scaleEffect(0.46, anchor: .topLeading)
-                        .frame(width: TrendsReportPage.pageWidth * 0.46,
-                               height: 760 * 0.46, alignment: .topLeading)
-                        .clipped()
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .strokeBorder(StrandPalette.hairline, lineWidth: 1)
-                        )
-                }
-
-                // WHOOP primary action — routed through the unified button system (filled blue accent,
-                // white ink, no glow). The label swaps to "Preparing…" while a PDF is being written.
-                NoopButton(exporting ? "Preparing…" : "Export PDF",
-                           systemImage: "square.and.arrow.up", kind: .primary, fullWidth: true) {
-                    export(rpt)
-                }
-                .disabled(exporting)
-
-                Text("Tip: the share sheet can save the PDF to Files, AirDrop it, or send it on.")
-                    .font(StrandFont.footnote)
-                    .foregroundStyle(StrandPalette.textTertiary)
             }
-            .screenPadding()
-            .padding(.vertical, NoopMetrics.space6)
+        } label: {
+            Label("Share", systemImage: "square.and.arrow.up")
         }
-        #if os(iOS)
-        // #697/#horizontal-swipe parity, see ScreenScaffold.
-        .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
-        #endif
-        .background(StrandPalette.surfaceBase)
-        .frame(width: 460, height: 640)
-        #if os(iOS)
-        .noopSheetPresentation(largeFirst: true)
-        #endif
-        // Load the stored daily stress series for the Stress row (#457). The same
-        // "my-whoop" series the Stress screen prioritises; the report never re-derives it.
-        .task {
-            let pts = await repo.series(key: "stress", source: "my-whoop")
-            stressByDay = Dictionary(pts.map { ($0.day, $0.value) }, uniquingKeysWith: { _, b in b })
-        }
+        .disabled(exporting || days.isEmpty)
     }
 
-    @MainActor
-    private func export(_ report: RangeReport) {
+    private func export(_ range: ReportRange) async {
         guard !exporting else { return }
         exporting = true
-        let name = "NOOP-trends-\(report.start)_to_\(report.end).pdf"
-        TrendsReportRenderer.exportPDF(page: page(for: report), suggestedName: name)
-        exporting = false
-        #if os(macOS)
-        // macOS NSSavePanel is modal and has already returned by now, so closing the report sheet is fine.
-        dismiss()
-        #endif
-        // iOS (#455): do NOT dismiss here. The share sheet is presented ON TOP of this report sheet; calling
-        // dismiss() would tear this sheet — and the share sheet with it — straight back down, so the user
-        // saw nothing. Leave the report up; the share sheet sits over it and returns here when closed.
+        defer { exporting = false }
+        // The stored daily stress series for the Stress row (#457): the same "my-whoop" series the Stress
+        // screen prioritises; the report never re-derives it.
+        let stress = await repo.series(key: "stress", source: "my-whoop")
+        let stressByDay = Dictionary(stress.map { ($0.day, $0.value) }, uniquingKeysWith: { _, b in b })
+        let report = TrendsReportData.report(for: range, days: days, today: Repository.localDayKey(Date()),
+                                             stressByDay: stressByDay, units: units)
+        var series: [ReportMetric: [Double]] = [:]
+        for metric in ReportMetric.allCases {
+            series[metric] = TrendsReportData.series(metric, from: days, start: report.start, end: report.end,
+                                                     stressByDay: stressByDay)
+        }
+        let page = TrendsReportPage(report: report, range: range, series: series,
+                                    generatedOn: Date().formatted(date: .abbreviated, time: .omitted),
+                                    units: units)
+        TrendsReportRenderer.exportPDF(page: page, suggestedName: "NOOP-trends-\(report.start)_to_\(report.end).pdf")
     }
 }
 
@@ -632,10 +548,4 @@ private func previewDays() -> [DailyMetric] {
     .preferredColorScheme(.dark)
 }
 
-#Preview("Trends report — sheet") {
-    TrendsReportSheet(days: previewDays())
-        .environmentObject(Repository(deviceId: "preview"))
-        .frame(width: 480, height: 640)
-        .preferredColorScheme(.dark)
-}
 #endif

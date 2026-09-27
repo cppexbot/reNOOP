@@ -546,7 +546,8 @@ enum DemoScreens {
         let args = CommandLine.arguments
         guard let i = args.firstIndex(of: "--demo-screen"), i + 1 < args.count else { return nil }
         switch args[i + 1].lowercased() {
-        case "trends":   return AnyView(TrendsView())
+        case "trends":   return AnyView(NavigationStack { TrendsView().tabRouteDestinations() })
+        case "trainingload": return AnyView(NavigationStack { TrainingLoadView() })
         // The Sleep tab root (Health-style page).
         case "sleep":    return AnyView(SleepHealthView())
         // The sleep schedule; `--schedule-edit [new]` opens its editor sheet.

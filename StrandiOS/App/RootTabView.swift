@@ -155,8 +155,9 @@ struct RootTabView: View {
                 routedPillar = .coach
                 router.requestedDestination = nil
             case .trends:
-                // Trends left the tab bar for Workouts; a routed open presents it in the pillar sheet.
-                routedPillar = .trends
+                // Trends lives under the Summary, as Health's "Show All Health Trends": a routed open pushes it there.
+                selectedTab = 0
+                tabPaths[0] = NavigationPath([TabRoute.trends])
                 router.requestedDestination = nil
             case .activeWorkout:
                 // The Today active-workout indicator opens Live through the quick-action Live sheet; once
@@ -264,7 +265,7 @@ struct RootTabView: View {
                 case .coach: CoachView()
                 }
             }
-            // The Trends/Today fallbacks above emit TabRoute value pushes (#198), which need a
+            // The Today fallback above emits TabRoute value pushes (#198), which need a
             // destination registered in THIS sheet's stack to resolve.
             .tabRouteDestinations()
             .background(StrandPalette.surfaceBase.ignoresSafeArea())
