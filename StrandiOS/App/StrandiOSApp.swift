@@ -563,6 +563,10 @@ enum DemoScreens {
         case "liftsession": return AnyView(LiftSessionView { })
         case "journal":  return AnyView(NavigationStack { JournalView() })
         case "insights": return AnyView(NavigationStack { InsightsHubView() })
+        // Lab Book; `--labbook-add` opens the Add Reading sheet over it.
+        case "labbook":
+            return AnyView(NavigationStack { LabBookView() }
+                .sheet(isPresented: .constant(args.contains("--labbook-add"))) { MarkerEditorView { _ in } })
         case "explore":  return AnyView(NavigationStack { AllMetricsView().tabRouteDestinations() })
         // One metric's page: `--demo-screen metric --demo-metric hrv` (a catalog key; defaults to HRV).
         case "metric":

@@ -37,6 +37,7 @@ enum AppleDemoSeeder {
         guard requested else { return }
         seedDemoDeviceIfNeeded(into: store)
         await seedTodayRawIfNeeded(into: store)
+        await seedLabMarkersIfNeeded(into: store)
         let existing = (try? await store.dailyMetrics(deviceId: whoop, from: "0000-00-00", to: "9999-99-99")) ?? []
         guard existing.isEmpty else { return }
         do { try await seed(into: store) }
@@ -89,6 +90,49 @@ enum AppleDemoSeeder {
             t += beat / 1_000
         }
         _ = try? await store.insert(Streams(hr: hr, rr: rr), deviceId: whoop)
+    }
+
+    /// A few blood tests and blood-pressure readings over the last nine months, so Lab Book has a logbook
+    /// to show. Only when the logbook is empty.
+    private static func seedLabMarkersIfNeeded(into store: WhoopStore) async {
+        // Under the device Lab Book reads (the registry's active one), which a simulator that has been
+        // through the Devices screens may have moved off the seeded WHOOP.
+        let owner = (try? DeviceRegistryStore(dbQueue: store.registryWriter).activeDeviceId()) ?? whoop
+        let existing = (try? await store.labMarkers(deviceId: owner, category: "bloodPanel")) ?? []
+        guard existing.isEmpty else { return }
+        // Readings reference a `device` row; the paired demo strap has none of its own.
+        if owner != whoop { try? await store.upsertDevice(id: owner, mac: nil, name: owner) }
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        let draws: [(days: Int, values: [(key: String, category: String, value: Double, unit: String, ref: String?)])] = [
+            (270, [("ldl", "bloodPanel", 3.6, "mmol/L", "< 3.0"), ("hdl", "bloodPanel", 1.2, "mmol/L", "> 1.0"),
+                   ("fasting_glucose", "bloodPanel", 5.4, "mmol/L", "3.9–5.5"), ("ferritin", "bloodPanel", 48, "µg/L", "30–400"),
+                   ("vitamin_d", "bloodPanel", 42, "nmol/L", "50–125")]),
+            (180, [("ldl", "bloodPanel", 3.3, "mmol/L", "< 3.0"), ("hdl", "bloodPanel", 1.3, "mmol/L", "> 1.0"),
+                   ("fasting_glucose", "bloodPanel", 5.2, "mmol/L", "3.9–5.5"), ("vitamin_d", "bloodPanel", 58, "nmol/L", "50–125")]),
+            (90, [("ldl", "bloodPanel", 3.0, "mmol/L", "< 3.0"), ("hdl", "bloodPanel", 1.4, "mmol/L", "> 1.0"),
+                  ("ferritin", "bloodPanel", 71, "µg/L", "30–400"), ("vitamin_d", "bloodPanel", 74, "nmol/L", "50–125")]),
+            (21, [("ldl", "bloodPanel", 2.8, "mmol/L", "< 3.0"), ("hdl", "bloodPanel", 1.4, "mmol/L", "> 1.0"),
+                  ("fasting_glucose", "bloodPanel", 5.0, "mmol/L", "3.9–5.5")]),
+        ]
+        var rows: [LabMarkerRow] = []
+        func add(_ key: String, _ category: String, _ value: Double, _ unit: String, _ ref: String?, daysAgo: Int, hour: Int) {
+            let date = cal.date(byAdding: .day, value: -daysAgo, to: today)!.addingTimeInterval(TimeInterval(hour * 3_600))
+            let epoch = Int(date.timeIntervalSince1970)
+            rows.append(LabMarkerRow(id: "\(owner)-\(key)-\(epoch)", deviceId: owner, markerKey: key, category: category,
+                                     day: LabBookFormat.dayKey(date), takenAt: epoch, value: value, valueText: nil,
+                                     unit: unit, source: "manual", note: nil, referenceText: ref))
+        }
+        for draw in draws {
+            for v in draw.values { add(v.key, v.category, v.value, v.unit, v.ref, daysAgo: draw.days, hour: 8) }
+        }
+        for (i, bp) in [(128.0, 84.0), (124, 82), (121, 80), (118, 78), (119, 77)].enumerated() {
+            let daysAgo = 150 - i * 35
+            add("bp_systolic", "bloodPressure", bp.0, "mmHg", nil, daysAgo: daysAgo, hour: 9)
+            add("bp_diastolic", "bloodPressure", bp.1, "mmHg", nil, daysAgo: daysAgo, hour: 9)
+        }
+        do { _ = try await store.upsertLabMarkers(rows) }
+        catch { NSLog("AppleDemoSeeder: lab markers failed — \(error)") }
     }
 
     private static func seed(into store: WhoopStore) async throws {
