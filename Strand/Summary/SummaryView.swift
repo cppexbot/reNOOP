@@ -40,7 +40,6 @@ struct SummaryView: View {
     @AppStorage(DashboardCardPrefs.selectionKey) private var dashboardCardsRaw = ""
     @AppStorage(HostedCardPrefs.selectionKey) private var hostedCardsRaw = ""
 
-    @AppStorage(LiveSessionPrefs.betaKey) private var liveSessionsBeta = true
     @AppStorage(DayCycleMode.storageKey) private var dayCycleModeRaw = DayCycleMode.sleepOnset.rawValue
     @AppStorage(UnitPrefs.systemKey) private var unitSystemRaw = UnitSystem.metric.rawValue
     @AppStorage(UnitPrefs.temperatureKey) private var temperatureRaw = ""
@@ -90,16 +89,7 @@ struct SummaryView: View {
         // Health's chrome: a native large title that folds into the bar on scroll.
         .navigationTitle(Text("Summary"))
         .navigationBarTitleDisplayMode(.large)
-        .toolbar {
-            avatarToolbarItem
-            // "+" in the bar: a Live Session (the running one, or a new one) over the whole display.
-            ToolbarItem(placement: .topBarTrailing) {
-                if liveSessionsBeta {
-                    Button { router.openLiveSession() } label: { Image(systemName: "plus") }
-                        .accessibilityLabel(Text("Start session"))
-                }
-            }
-        }
+        .toolbar { avatarToolbarItem }
         #endif
         .refreshable { await refresh() }
         .task(id: "sleep-\(repo.refreshSeq)-\(dayOffset)") {
@@ -147,11 +137,7 @@ struct SummaryView: View {
                 .accessibilityAddTraits(.isHeader)
             Spacer(minLength: 8)
             SummaryStrapStatus()
-            HStack(spacing: 10) {
-                addButton
-                avatarButton
-            }
-            .summaryGlassGroup(spacing: 10)
+            avatarButton
         }
         .padding(.top, NoopMetrics.space4)
         .padding(.bottom, NoopMetrics.space2)
@@ -183,14 +169,6 @@ struct SummaryView: View {
     }
     #endif
 
-    #if os(macOS)
-    @ViewBuilder private var addButton: some View {
-        if liveSessionsBeta {
-            headerButton(systemImage: "plus", label: "Start session") { router.openLiveSession() }
-        }
-    }
-    #endif
-
     private var avatarButton: some View {
         Button { showSettings = true } label: {
             SummaryAvatar(imageData: profile.avatarImageData, initials: profile.initials,
@@ -204,22 +182,6 @@ struct SummaryView: View {
         #endif
         .accessibilityLabel(Text("Profile and settings"))
     }
-
-    #if os(macOS)
-    private func headerButton(systemImage: String, label: LocalizedStringKey,
-                              action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(StrandPalette.textPrimary)
-                .frame(width: NoopMetrics.compactControlSize, height: NoopMetrics.compactControlSize)
-                .contentShape(Circle())
-        }
-        .buttonStyle(.plain)
-        .summaryGlassCircle()
-        .accessibilityLabel(Text(label))
-    }
-    #endif
 
     /// Health's Summary top: warm on the leading side, violet in the middle, cool on the trailing side,
     /// fading down into the canvas by the first cards.
