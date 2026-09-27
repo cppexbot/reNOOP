@@ -69,7 +69,7 @@ final class DeviceRawSourceParityTests: XCTestCase {
 
     func testStressCannotPinRawReadsToCanonicalNamespace() throws {
         let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
-        let source = try String(contentsOf: root.appendingPathComponent("Strand/Screens/StressView.swift"),
+        let source = try String(contentsOf: root.appendingPathComponent("Strand/Data/StressDayCurve.swift"),
                                 encoding: .utf8)
         let withoutComments = source.replacingOccurrences(of: #"/\*.*?\*/"#, with: "",
                                                            options: .regularExpression)

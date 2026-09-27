@@ -551,7 +551,6 @@ enum DemoScreens {
         case "sleep":    return AnyView(SleepHealthView())
         case "summary":  return AnyView(SummaryView())
         case "live":     return AnyView(LiveView())
-        case "stress":   return AnyView(StressView())
         case "workouts": return AnyView(NavigationStack { WorkoutsHomeView().tabRouteDestinations() })
         case "intervals": return AnyView(NavigationStack { IntervalTimerView() })
         case "liftlog":  return AnyView(NavigationStack { LiftLogView().tabRouteDestinations() })

@@ -13,7 +13,6 @@ enum NavItem: String, CaseIterable, Identifiable, Hashable {
     case sleep = "Sleep"
     case trends = "Trends"
     case workouts = "Workouts"
-    case stress = "Stress"
     case labBook = "Lab Book"
     case appleHealth = "Apple Health"
     case dataSources = "Data Sources"
@@ -42,7 +41,6 @@ enum NavItem: String, CaseIterable, Identifiable, Hashable {
         case .sleep: return "Sleep"
         case .trends: return "Trends"
         case .workouts: return "Workouts"
-        case .stress: return "Stress"
         case .labBook: return "Lab Book"
         case .appleHealth: return "Apple Health"
         case .dataSources: return "Data Sources"
@@ -78,7 +76,6 @@ enum NavItem: String, CaseIterable, Identifiable, Hashable {
         case .sleep: return String(localized: "Sleep")
         case .trends: return String(localized: "Trends")
         case .workouts: return String(localized: "Workouts")
-        case .stress: return String(localized: "Stress")
         case .labBook: return String(localized: "Lab Book")
         case .appleHealth: return String(localized: "Apple Health")
         case .dataSources: return String(localized: "Data Sources")
@@ -106,7 +103,6 @@ enum NavItem: String, CaseIterable, Identifiable, Hashable {
         case .sleep: return "moon.stars.fill"
         case .trends: return "chart.xyaxis.line"
         case .workouts: return "figure.run"
-        case .stress: return "gauge.with.dots.needle.50percent"
         case .labBook: return "books.vertical.fill"
         case .appleHealth: return "heart.fill"
         case .dataSources: return "square.and.arrow.down.fill"
@@ -140,7 +136,7 @@ struct NavGroup: Identifiable {
         NavGroup(title: "Today", id: "today", items: [.today]),
         NavGroup(title: "Sleep", id: "sleep", items: [.sleep]),
         NavGroup(title: "Body", id: "body", items: [
-            .workouts, .live, .stress, .intervals, .breathe,
+            .workouts, .live, .intervals, .breathe,
         ]),
         // S6: the overlapping insight surfaces (Intelligence / What Moves You / Insights / Insights Hub)
         // all collapse under this single Insights group rather than scattering across the flat list.
@@ -406,7 +402,6 @@ struct RootView: View {
         case .sleep: NavigationStack { SleepHealthView().tabRouteDestinations() }
         case .trends: TrendsView()
         case .workouts: NavigationStack { WorkoutsHomeView().tabRouteDestinations() }
-        case .stress: StressView()
         case .labBook: LabBookView()
         case .appleHealth: AppleHealthView()
         case .dataSources: DataSourcesView()

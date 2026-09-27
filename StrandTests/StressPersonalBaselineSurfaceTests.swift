@@ -1,7 +1,7 @@
 import XCTest
 @testable import Strand
 
-/// #2430: the personal daytime-stress lens reaches Stress detail.
+/// #2430: the personal daytime-stress lens reaches the Stress metric page.
 ///
 /// The baseline math has package tests; this pins the app-target wiring that can otherwise compile
 /// while silently omitting the preference at one call site.
@@ -13,10 +13,10 @@ final class StressPersonalBaselineSurfaceTests: XCTestCase {
     }
 
     func testDetailAndProducerUseTheSameSelectedMode() throws {
-        let detail = try source("Strand/Screens/StressView.swift")
+        let detail = try source("Strand/MetricHealth/MetricStressDay.swift")
         let producer = try source("Strand/Data/StressDayCurve.swift")
 
-        XCTAssertTrue(detail.contains("let mode = await DaytimeStressMode.selected("))
+        XCTAssertTrue(detail.contains("StressDayCurve.today("))
         XCTAssertTrue(detail.contains("personalBaseline: PuffinExperiment.stressPersonalBaselineEnabled"))
         XCTAssertTrue(producer.contains("let mode = await DaytimeStressMode.selected("))
         XCTAssertTrue(producer.contains("tzOffsetSeconds: tz, mode: mode,"))

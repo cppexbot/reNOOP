@@ -42,7 +42,6 @@ struct BrowseView: View {
             Category(id: String(localized: "Body"), entries: [
                 Entry(id: .live, title: String(localized: "Live"), icon: "waveform.path.ecg", tint: StrandPalette.metricRose),
                 Entry(id: .labBook, title: String(localized: "Lab Book"), icon: "books.vertical.fill", tint: StrandPalette.metricAmber),
-                Entry(id: .stress, title: String(localized: "Stress"), icon: "bolt.heart.fill", tint: StrandPalette.metricAmber),
                 Entry(id: .breathe, title: String(localized: "Breathe"), icon: "wind", tint: StrandPalette.metricCyan),
             ]),
             Category(id: String(localized: "App"), entries: [
@@ -116,7 +115,7 @@ struct BrowseView: View {
 enum MoreDestination: Hashable {
     case insightsHub, coach, insights, allMetrics
     case trends
-    case live, labBook, stress, breathe
+    case live, labBook, breathe
     case alarms, settings
 
     @ViewBuilder var destination: some View {
@@ -128,7 +127,6 @@ enum MoreDestination: Hashable {
         case .trends:          TrendsView()
         case .live:            LiveView()
         case .labBook:         LabBookView()
-        case .stress:          StressView()
         case .breathe:         BreathingView()
         case .alarms:          SmartAlarmView()
         case .settings:        SettingsView()

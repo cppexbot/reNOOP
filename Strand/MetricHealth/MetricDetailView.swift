@@ -81,6 +81,9 @@ struct MetricDetailView: View {
                 .labelsHidden()
                 .padding(.bottom, 4)
                 chartCard(window)
+                if MetricStressDayCard.applies(to: metric) {
+                    MetricStressDayCard(metric: metric, tint: tint, units: units)
+                }
                 canvas
             }
             .padding(.horizontal, NoopMetrics.screenHPadding)

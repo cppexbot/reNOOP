@@ -1,6 +1,7 @@
 #if DEBUG
 import Foundation
 import WhoopStore
+import WhoopProtocol
 
 // MARK: - DEBUG-only demo seed (Apple parity with Android's DemoSeeder)
 // Seeds a comprehensive, self-contained synthetic dataset so a DEBUG build can walk every screen —
@@ -35,6 +36,7 @@ enum AppleDemoSeeder {
     static func seedIfRequested(into store: WhoopStore) async {
         guard requested else { return }
         seedDemoDeviceIfNeeded(into: store)
+        await seedTodayRawIfNeeded(into: store)
         let existing = (try? await store.dailyMetrics(deviceId: whoop, from: "0000-00-00", to: "9999-99-99")) ?? []
         guard existing.isEmpty else { return }
         do { try await seed(into: store) }
@@ -56,6 +58,37 @@ enum AppleDemoSeeder {
             sourceKind: .liveBLE, capabilities: [.hr, .hrv], status: .paired,
             addedAt: now - 86_400, lastSeenAt: now - 3_600)
         try? registry.add(polar)
+    }
+
+    /// Today's raw heart rate and R-R from 08:00 to now, so the Stress page's hour-by-hour card has a real
+    /// day to score. The daily rows above carry no raw streams. Calm mornings, a tense early afternoon:
+    /// heart rate up and beat-to-beat variability down across 13:00–15:00. Re-runs on a new day.
+    private static func seedTodayRawIfNeeded(into store: WhoopStore) async {
+        let cal = Calendar.current
+        let start = Int(cal.startOfDay(for: Date()).timeIntervalSince1970) + 8 * 3_600
+        let end = Int(Date().timeIntervalSince1970)
+        guard end > start,
+              ((try? await store.hrSamples(deviceId: whoop, from: start, to: end, limit: 1)) ?? []).isEmpty
+        else { return }
+        var rng = SplitMix64(seed: UInt64(start))
+        var hr: [HRSample] = []
+        var rr: [RRInterval] = []
+        var t = Double(start)
+        var nextHR = start
+        while Int(t) < end {
+            let hour = cal.component(.hour, from: Date(timeIntervalSince1970: t))
+            let tense = (13...15).contains(hour) ? 1.0 : (hour == 18 ? 0.5 : 0.0)
+            let bpm = gauss(&rng, 62 + tense * 22, 2)
+            let jitter = 45 * (1 - 0.8 * tense)
+            let beat = (60_000 / bpm + gauss(&rng, 0, jitter)).clamped(400, 1_400)
+            rr.append(RRInterval(ts: Int(t), rrMs: Int(beat)))
+            if Int(t) >= nextHR {
+                hr.append(HRSample(ts: Int(t), bpm: Int(bpm.rounded())))
+                nextHR = Int(t) + 5
+            }
+            t += beat / 1_000
+        }
+        _ = try? await store.insert(Streams(hr: hr, rr: rr), deviceId: whoop)
     }
 
     private static func seed(into store: WhoopStore) async throws {
