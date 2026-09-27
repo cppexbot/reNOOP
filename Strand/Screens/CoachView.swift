@@ -44,6 +44,21 @@ struct CoachView: View {
     /// The screen's bottom safe area, to seat the field 28 pt from the bottom edge as Messages does.
     @State private var bottomInset: CGFloat = 0
 
+    // Messages' motion. A sent question flies from the field into its place; "Delivered" follows a
+    // beat later, and only then the typing bubble grows in; when the reply comes the bubble shrinks
+    // away first and the reply fades in where it was.
+    @State private var flight: OutgoingFlight?
+    /// Where the flight lands. Written by the landing bubble as the transcript scrolls and read by the
+    /// flight on each frame, so it lives outside SwiftUI's state: a change must not redraw the screen.
+    @State private var flightTarget = FlightTarget()
+    @State private var fieldFrame: CGRect = .zero
+    /// A question just sent, whose "Delivered" (and the typing bubble after it) waits its beat.
+    @State private var awaitingDelivery: UUID?
+    @State private var typingShownAt: Date?
+    @State private var typingEndedAt: Date?
+    /// The reply that arrived while the typing bubble is still shrinking away.
+    @State private var heldReply: UUID?
+
     // K4: on-device voice input for the composer (iOS only).
     #if os(iOS)
     @StateObject private var voiceInput = CoachVoiceInput()
@@ -53,6 +68,12 @@ struct CoachView: View {
         Group {
             if coach.isConfigured {
                 chrome(conversation)
+                    .overlay(alignment: .topLeading) {
+                        if let flight {
+                            FlyingMessageBubble(flight: flight, target: flightTarget, viewportHeight: viewport.height)
+                        }
+                    }
+                    .coordinateSpace(name: MessageBubbleFill.space)
             } else {
                 EmptyStateView(title: Text("Coach"), systemImage: "sparkles",
                                description: Text("Connect your own AI provider.")) {
@@ -124,7 +145,20 @@ struct CoachView: View {
         .onChangeCompat(of: coach.dataConsent) { _ in
             Task { await coach.startBriefIfNeeded() }
         }
-        .onChangeCompat(of: coach.messages.map(\.id)) { ids in recordTimes(ids) }
+        .onChangeCompat(of: coach.messages.map(\.id)) { ids in
+            recordTimes(ids)
+            track(ids)
+        }
+        .onChangeCompat(of: wantsTyping) { updateTyping($0) }
+        .onAppear { updateTyping(wantsTyping) }
+        // A flight ends when its spring has settled on its own clock; the bubble underneath takes over.
+        .task(id: flight?.start) {
+            guard let start = flight?.start else { return }
+            while flight?.start == start, flightTarget.elapsed < OutgoingFlight.duration {
+                try? await Task.sleep(nanoseconds: 16_000_000)
+            }
+            if flight?.start == start { flight = nil }
+        }
         .onGeometryChange(for: CGFloat.self, of: { $0.safeAreaInsets.bottom }) { bottomInset = $0 }
     }
 
@@ -173,11 +207,20 @@ struct CoachView: View {
     /// The messages the transcript draws: the streaming reply's empty placeholder is left to the typing
     /// bubble until its first words arrive.
     private var shown: [ChatMessage] {
-        coach.messages.filter { $0.role == .user || !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        coach.messages.filter {
+            $0.id != heldReply
+                && ($0.role == .user || !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
     }
 
-    /// The typing bubble shows while a reply is on its way and none of it is on screen yet.
-    private var showTyping: Bool { coach.sending && shown.last?.role != .assistant }
+    /// The typing bubble shows while a reply is on its way and none of it is on screen yet, once the
+    /// question it answers reads as delivered.
+    private var wantsTyping: Bool {
+        let replyStarted = coach.messages.last.map {
+            $0.role == .assistant && !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        } ?? false
+        return coach.sending && awaitingDelivery == nil && !replyStarted
+    }
 
     private var conversation: some View {
         let messages = shown
@@ -190,9 +233,12 @@ struct CoachView: View {
                     ForEach(Array(messages.enumerated()), id: \.element.id) { index, message in
                         row(message, index: index, in: messages)
                             .id(message.id)
+                            // A reply fades in over half a second; a question arrives by its flight.
+                            .transition(message.role == .assistant ? .opacity : .identity)
                     }
-                    if showTyping {
-                        MessageTypingIndicator(still: motion.poseStill(reduceMotion))
+                    if let typingShownAt {
+                        MessageTypingIndicator(still: motion.poseStill(reduceMotion),
+                                               appearedAt: typingShownAt, endedAt: typingEndedAt)
                             .padding(.bottom, MessageTypingIndicator.overhang)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.leading, 20)
@@ -204,17 +250,19 @@ struct CoachView: View {
                     }
                     Color.clear.frame(height: 16).id("end")
                 }
+                .animation(.easeInOut(duration: 0.5), value: messages.map(\.id))
+                .animation(.easeInOut(duration: 0.25), value: awaitingDelivery)
                 #if os(macOS)
                 .frame(maxWidth: 720)
                 .frame(maxWidth: .infinity)
                 #endif
             }
-            .coordinateSpace(name: MessageBubbleFill.space)
             .onGeometryChange(for: CGSize.self, of: { $0.size }) { viewport = $0 }
             .scrollDismissesKeyboard(.interactively)
             .onAppear { proxy.scrollTo("end", anchor: .bottom) }
-            .onChangeCompat(of: coach.messages.count) { _ in scrollToEnd(proxy) }
-            .onChangeCompat(of: coach.sending) { _ in scrollToEnd(proxy) }
+            .onChangeCompat(of: messages.map(\.id)) { _ in scrollToEnd(proxy) }
+            .onChangeCompat(of: typingShownAt) { _ in scrollToEnd(proxy) }
+            .onChangeCompat(of: awaitingDelivery) { _ in scrollToEnd(proxy) }
             .onChangeCompat(of: coach.errorText) { _ in scrollToEnd(proxy) }
         }
     }
@@ -248,7 +296,7 @@ struct CoachView: View {
         let next = isLast ? nil : messages[index + 1]
         let tail = next?.role != message.role
         let failed = isLast && message.role == .user && !coach.sending && coach.errorText?.isEmpty == false
-        let delivered = isLast && message.role == .user && !failed
+        let delivered = message.id == deliveredID(in: messages) && !failed
         VStack(spacing: 0) {
             if let stamp = stamp(before: index, in: messages) {
                 stampView(stamp)
@@ -285,6 +333,7 @@ struct CoachView: View {
                 .padding(.horizontal, 20)
                 if delivered {
                     Text("Delivered")
+                        .transition(.opacity)
                         .font(StrandFont.pro(11, weight: .medium))
                         .foregroundStyle(StrandPalette.messageMeta)
                         .frame(maxWidth: .infinity, alignment: .trailing)
@@ -295,7 +344,17 @@ struct CoachView: View {
         }
         // Messages' spacing: 4 pt inside a run from one side, 10 pt between runs, counted from the
         // bubble's body (a tail reaches into the gap).
-        .padding(.bottom, next.map { ($0.role == message.role ? 4 : 10) - (tail ? MessageBubbleShape.tailHeight : 0) } ?? 0)
+        .padding(.bottom, next.map { next in
+            if delivered { return 10 }
+            return (next.role == message.role ? 4 : 10) - (tail ? MessageBubbleShape.tailHeight : 0)
+        } ?? 0)
+    }
+
+    /// The question "Delivered" sits under: the latest one, even after the reply has come in, as
+    /// Messages keeps it; while a new question waits for its beat the status stays on the one before,
+    /// and then moves across.
+    private func deliveredID(in messages: [ChatMessage]) -> UUID? {
+        messages.last { $0.role == .user && $0.id != awaitingDelivery && !isLanding($0) }?.id
     }
 
     /// Messages stamps the head of a conversation and any message that follows the previous one by an
@@ -333,6 +392,7 @@ struct CoachView: View {
     @ViewBuilder
     private func bubble(_ message: ChatMessage, tail: Bool) -> some View {
         let outgoing = message.role == .user
+        let landing = isLanding(message)
         Group {
             if outgoing {
                 // Questions stay verbatim `Text`, so a typed `*` or `#` never turns into formatting.
@@ -358,6 +418,13 @@ struct CoachView: View {
         // Long-press lifts the bubble itself, tail and all, as Messages does.
         .contentShape(.contextMenuPreview, MessageBubbleShape(outgoing: outgoing, tail: tail))
         #endif
+        // While its flight is in the air the bubble holds its place unseen and tells the flight where
+        // to land.
+        .opacity(landing ? 0 : 1)
+        .animation(nil, value: landing)
+        .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .named(MessageBubbleFill.space)) }) { frame in
+            if landing { flightTarget.rect = frame }
+        }
         // K8: Copy / Share / Save (a reply).
         .contextMenu {
             Button {
@@ -506,6 +573,7 @@ struct CoachView: View {
         }
         .frame(minHeight: MessageBubbleShape.minSide)
         .messageGlass(RoundedRectangle(cornerRadius: 20.14, style: .continuous))
+        .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .named(MessageBubbleFill.space)) }) { fieldFrame = $0 }
     }
 
     private var placeholder: Text {
@@ -630,9 +698,70 @@ struct CoachView: View {
     private func send(_ text: String) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, !coach.sending else { return }
+        launch(trimmed)
         draft = ""
         composerFocused = false
         Task { await coach.send(trimmed) }
+    }
+
+    /// Sets a question off from the field (unless motion is posed still) and holds its "Delivered"
+    /// for the beat Messages takes to show it.
+    private func launch(_ text: String) {
+        if !motion.poseStill(reduceMotion), fieldFrame != .zero {
+            flightTarget.rect = nil
+            flightTarget.restart()
+            flight = OutgoingFlight(text: text, from: fieldFrame, start: Date())
+        }
+    }
+
+    /// The question a flight is carrying: bound by id once known, and by its text from the very first
+    /// frame it is on screen, so it never shows before its flight lands.
+    private func isLanding(_ message: ChatMessage) -> Bool {
+        guard let flight, message.role == .user else { return false }
+        if let id = flight.messageID { return id == message.id }
+        return message.id == coach.messages.last(where: { $0.role == .user })?.id && message.text == flight.text
+    }
+
+    /// Follows the transcript: ties a flight to the message it became, and lets a reply that arrives
+    /// while the typing bubble is up wait for it to shrink away.
+    private func track(_ ids: [UUID]) {
+        if var current = flight, current.messageID == nil,
+           let landed = coach.messages.last(where: { $0.role == .user && $0.text == current.text }),
+           !(times[landed.id].map { $0 < current.start } ?? false) {
+            current.messageID = landed.id
+            // The clock starts on the frame the message is really there: building the request can hold
+            // the main thread for a moment first, and the flight should not skip ahead through it.
+            current = OutgoingFlight(text: current.text, from: current.from, start: Date(), messageID: landed.id)
+            flightTarget.restart()
+            flight = current
+            awaitingDelivery = landed.id
+            Task {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                if awaitingDelivery == landed.id { awaitingDelivery = nil }
+            }
+        }
+    }
+
+    /// The typing bubble grows in when it is wanted and shrinks away when it is not; a reply that
+    /// ended it waits out the shrink before it fades in.
+    private func updateTyping(_ wanted: Bool) {
+        if wanted {
+            typingEndedAt = nil
+            if typingShownAt == nil { typingShownAt = Date() }
+            return
+        }
+        guard typingShownAt != nil, typingEndedAt == nil else { return }
+        guard !motion.poseStill(reduceMotion) else { typingShownAt = nil; return }
+        let ended = Date()
+        typingEndedAt = ended
+        if let reply = coach.messages.last, reply.role == .assistant { heldReply = reply.id }
+        Task {
+            try? await Task.sleep(nanoseconds: UInt64(MessageTypingIndicator.shrinkDuration * 1_000_000_000))
+            guard typingEndedAt == ended else { return }
+            typingShownAt = nil
+            typingEndedAt = nil
+            heldReply = nil
+        }
     }
 
     /// "Try Again" on an undelivered question: it leaves the transcript and is asked afresh, landing at
@@ -669,6 +798,7 @@ struct CoachView: View {
     }
 
     private func scrollToEnd(_ proxy: ScrollViewProxy) {
-        withAnimation(StrandMotion.fade) { proxy.scrollTo("end", anchor: .bottom) }
+        // Messages scrolls a new message in over 0.3 s.
+        withAnimation(.easeInOut(duration: 0.3)) { proxy.scrollTo("end", anchor: .bottom) }
     }
 }

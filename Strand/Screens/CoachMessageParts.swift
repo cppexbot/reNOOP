@@ -128,26 +128,179 @@ struct MessageBubbleFill: View {
     }
 }
 
+// MARK: - Motion
+
+/// The curves Messages moves with, evaluated by time so an animation can follow a target that is
+/// itself moving (the transcript scrolls while a bubble flies into it).
+enum MessageMotion {
+    /// A CSS-style cubic-bezier timing curve at `x` in 0…1.
+    static func bezier(_ x: Double, _ x1: Double, _ y1: Double, _ x2: Double, _ y2: Double) -> Double {
+        guard x > 0 else { return 0 }
+        guard x < 1 else { return 1 }
+        func coord(_ s: Double, _ a: Double, _ b: Double) -> Double {
+            3 * (1 - s) * (1 - s) * s * a + 3 * (1 - s) * s * s * b + s * s * s
+        }
+        var lo = 0.0, hi = 1.0, s = x
+        for _ in 0..<24 {
+            s = (lo + hi) / 2
+            if coord(s, x1, x2) < x { lo = s } else { hi = s }
+        }
+        return coord(s, y1, y2)
+    }
+
+    /// Core Animation's default curve.
+    static func standard(_ x: Double) -> Double { bezier(x, 0.25, 0.1, 0.25, 1) }
+
+    /// A damped spring from 0 to 1 (SwiftUI's `response` / `dampingFraction`), with an initial velocity
+    /// in fractions per second.
+    static func spring(_ t: Double, response: Double, damping: Double, velocity: Double = 0) -> Double {
+        guard t > 0 else { return 0 }
+        let w = 2 * Double.pi / response
+        if damping < 1 {
+            let wd = w * (1 - damping * damping).squareRoot()
+            return 1 - exp(-damping * w * t) * (cos(wd * t) + ((damping * w - velocity) / wd) * sin(wd * t))
+        }
+        return 1 - exp(-w * t) * (1 + (w - velocity) * t)
+    }
+
+    /// Straight-line interpolation through measured `(time, value)` samples.
+    static func samples(_ t: Double, _ points: [(Double, Double)]) -> Double {
+        guard let first = points.first, let last = points.last else { return 0 }
+        if t <= first.0 { return first.1 }
+        if t >= last.0 { return last.1 }
+        for (a, b) in zip(points, points.dropFirst()) where t <= b.0 {
+            return a.1 + (b.1 - a.1) * (t - a.0) / (b.0 - a.0)
+        }
+        return last.1
+    }
+
+    static func lerp(_ a: CGFloat, _ b: CGFloat, _ t: Double) -> CGFloat { a + (b - a) * CGFloat(t) }
+}
+
+// MARK: - Sending
+
+/// A question on its way from the field into the transcript.
+struct OutgoingFlight: Equatable {
+    let text: String
+    /// The field's frame when it was sent, in the transcript's coordinate space.
+    let from: CGRect
+    let start: Date
+    /// The transcript message it becomes, once the engine has appended it.
+    var messageID: UUID?
+
+    /// Long enough for the spring to settle.
+    static let duration: TimeInterval = 0.75
+}
+
+/// Where a flight lands, kept by reference and outside observation: the landing bubble updates it as
+/// the transcript scrolls and the flight reads it each frame, without redrawing anything else.
+final class FlightTarget {
+    var rect: CGRect?
+    /// The flight's own clock. SwiftUI draws on the main thread, which building the request can hold
+    /// for a tenth of a second; a frame after such a pause moves the flight on by at most 1/30 s, so it
+    /// resumes where it was instead of skipping ahead (Messages animates off the main thread and never
+    /// pauses at all).
+    private(set) var elapsed: TimeInterval = 0
+    private var lastFrame: Date?
+
+    func restart() {
+        elapsed = 0
+        lastFrame = nil
+    }
+
+    func tick(_ now: Date) -> TimeInterval {
+        if let lastFrame { elapsed += min(max(0, now.timeIntervalSince(lastFrame)), 1.0 / 30) }
+        lastFrame = now
+        return elapsed
+    }
+}
+
+/// Messages' send: the field's text turns into a bubble where it was typed, narrows to its text while
+/// dipping to 78 % and springing back, and flies to its place in the transcript. Curves are measured
+/// from the Messages app frame by frame: the travel is a spring (response 0.54, damping 0.71), the
+/// narrowing a critically damped one (0.22), the size and the fade-in follow the recorded samples.
+struct FlyingMessageBubble: View {
+    let flight: OutgoingFlight
+    /// Where the bubble lands, read live: the transcript scrolls while it flies.
+    let target: FlightTarget
+    let viewportHeight: CGFloat
+
+    var body: some View {
+        TimelineView(.animation) { context in
+            let t = target.tick(context.date)
+            let from = CGRect(x: flight.from.minX, y: flight.from.minY,
+                              width: flight.from.width, height: flight.from.height + MessageBubbleShape.tailHeight)
+            let to = target.rect ?? from
+            let travel = MessageMotion.spring(t, response: 0.54, damping: 0.71)
+            let narrow = MessageMotion.spring(t, response: 0.22, damping: 1, velocity: 8)
+            let width = MessageMotion.lerp(from.width, to.width, narrow)
+            let height = MessageMotion.lerp(from.height, to.height, narrow)
+            let right = MessageMotion.lerp(from.maxX, to.maxX, travel)
+            let bottom = MessageMotion.lerp(from.maxY, to.maxY, travel)
+            Text(flight.text)
+                .font(StrandFont.pro(17))
+                .foregroundStyle(StrandPalette.messageOutgoingText)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(width: max(0, to.width - 28), alignment: .leading)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .frame(width: width, height: height, alignment: .topLeading)
+                .background {
+                    MessageBubbleFill(outgoing: true, viewportHeight: viewportHeight)
+                        .clipShape(MessageBubbleShape(outgoing: true, tail: true))
+                }
+                .scaleEffect(Self.scale(t), anchor: .bottomTrailing)
+                .opacity(Self.opacity(t))
+                .position(x: right - width / 2, y: bottom - height / 2)
+        }
+        .allowsHitTesting(false)
+    }
+
+    private static func scale(_ t: Double) -> CGFloat {
+        CGFloat(MessageMotion.samples(t, [(0, 1), (0.063, 0.866), (0.113, 0.81), (0.16, 0.78), (0.2, 0.79),
+                                          (0.235, 0.836), (0.265, 0.87), (0.3, 0.92), (0.333, 0.95),
+                                          (0.365, 0.964), (0.4, 0.99), (0.45, 1.006), (0.5, 1)]))
+    }
+
+    private static func opacity(_ t: Double) -> Double {
+        MessageMotion.samples(t, [(0, 0.6), (0.063, 0.72), (0.097, 0.83), (0.132, 0.97), (0.15, 1)])
+    }
+}
+
 // MARK: - Typing
 
 /// Messages' typing indicator: a grey 57.5 × 35 capsule with two small circles trailing from its
-/// bottom-left corner, three dots fading between 20 % and 45 % a quarter-second apart, and the capsule
-/// breathing by 3 %. Posed still under Reduce Motion / Quiet Motion.
+/// bottom-left corner, three dots fading between 20 % and 45 % a quarter-second apart.
+///
+/// Its motion is ChatKit's: the circles grow in one after another (small, then 0.065 s and 0.12 s
+/// later the medium and the capsule), each from nothing over 0.25 s while nudged out and back along
+/// its own offset over 0.4 s; they then breathe (the small by 15 % over 0.7 s, the medium 10 % over
+/// 0.9 s, the capsule 3 % over 1.9 s); and on `endedAt` everything shrinks away over 0.25 s. Posed
+/// still, whole and unmoving, under Reduce Motion / Quiet Motion.
 struct MessageTypingIndicator: View {
     var still: Bool
+    var appearedAt: Date
+    var endedAt: Date?
 
     /// The room it takes below its capsule, like a bubble's tail.
     static let overhang: CGFloat = 6.71
+    /// How long it takes to shrink away.
+    static let shrinkDuration: TimeInterval = 0.25
 
     var body: some View {
         TimelineView(.animation(minimumInterval: nil, paused: still)) { context in
-            let t = context.date.timeIntervalSinceReferenceDate
+            let t = context.date.timeIntervalSince(appearedAt)
+            let gone = endedAt.map { 1 - MessageMotion.bezier(context.date.timeIntervalSince($0) / Self.shrinkDuration, 0.25, 0, 0.25, 1) } ?? 1
             ZStack(alignment: .topLeading) {
                 Circle().fill(StrandPalette.messageIncoming)
                     .frame(width: 5, height: 5)
+                    .modifier(Grow(t: t, begin: 0, offset: CGSize(width: 5.5, height: -2.5), yCurve: (0.33163, 0.1),
+                                   pulse: (0.15, 0.7), anchor: UnitPoint(x: 0.318, y: 0.318), gone: gone, still: still))
                     .offset(x: -4.95, y: 36.71)
                 Circle().fill(StrandPalette.messageIncoming)
                     .frame(width: 11.5, height: 11.5)
+                    .modifier(Grow(t: t, begin: 0.065, offset: CGSize(width: 5, height: 3.5), yCurve: (0.33163, 0.1),
+                                   pulse: (0.1, 0.9), anchor: UnitPoint(x: 0.326, y: 0.37), gone: gone, still: still))
                     .offset(x: -0.11, y: 26.55)
                 Capsule().fill(StrandPalette.messageIncoming)
                     .frame(width: 57.5, height: 35)
@@ -162,7 +315,8 @@ struct MessageTypingIndicator: View {
                         }
                         .offset(x: 11.67, y: 13.33)
                     }
-                    .scaleEffect(still ? 1 : Self.breath(t), anchor: UnitPoint(x: 0.185, y: 0.28))
+                    .modifier(Grow(t: t, begin: 0.12, offset: CGSize(width: 5, height: -6), yCurve: (0.20918, 0.25816),
+                                   pulse: (0.03, 1.9), anchor: UnitPoint(x: 0.185, y: 0.28), gone: gone, still: still))
             }
             .frame(width: 57.5, height: 35, alignment: .topLeading)
         }
@@ -172,27 +326,36 @@ struct MessageTypingIndicator: View {
     private static func dotOpacity(_ t: Double) -> Double {
         let phase = t.truncatingRemainder(dividingBy: 1).magnitude
         let u = phase < 0.5 ? phase / 0.5 : (1 - phase) / 0.5
-        return 0.2 + 0.25 * bezier(u, 0.75673, 0.015306, 0.58, 1)
+        return 0.2 + 0.25 * MessageMotion.bezier(u, 0.75673, 0.015306, 0.58, 1)
     }
 
-    /// 1 → 1.03 → 1 over 1.9 s, ease-in-ease-out.
-    private static func breath(_ t: Double) -> CGFloat {
-        let u = t.truncatingRemainder(dividingBy: 1.9).magnitude / 1.9
-        let eased = bezier(u, 0.42, 0, 0.58, 1)
-        return 1 + 0.03 * CGFloat(1 - abs(2 * eased - 1))
-    }
+    /// One circle's grow-in, breathing and shrink-away.
+    private struct Grow: ViewModifier {
+        let t: Double
+        let begin: Double
+        let offset: CGSize
+        /// The first control point of the vertical nudge's curve (the second is 0.56122, 0.95408).
+        let yCurve: (Double, Double)
+        /// How much it breathes and over how long.
+        let pulse: (amount: Double, period: Double)
+        let anchor: UnitPoint
+        let gone: Double
+        let still: Bool
 
-    /// A CSS-style cubic-bezier timing curve evaluated at `x`.
-    private static func bezier(_ x: Double, _ x1: Double, _ y1: Double, _ x2: Double, _ y2: Double) -> Double {
-        func coord(_ s: Double, _ a: Double, _ b: Double) -> Double {
-            3 * (1 - s) * (1 - s) * s * a + 3 * (1 - s) * s * s * b + s * s * s
+        func body(content: Content) -> some View {
+            let local = t - begin
+            let grown = still ? 1 : MessageMotion.standard(local / 0.25)
+            let nudge = local / 0.4
+            let bump = { (u: Double) in u < 0.5 ? u / 0.5 : (1 - u) / 0.5 }
+            let dx = still || nudge >= 1 ? 0 : offset.width * bump(MessageMotion.standard(nudge))
+            let dy = still || nudge >= 1 ? 0 : offset.height * bump(MessageMotion.bezier(nudge, yCurve.0, yCurve.1, 0.56122, 0.95408))
+            let cycle = t.truncatingRemainder(dividingBy: pulse.period).magnitude / pulse.period
+            let eased = MessageMotion.bezier(cycle, 0.42, 0, 0.58, 1)
+            let breath = still ? 1 : 1 + pulse.amount * (1 - abs(2 * eased - 1))
+            content
+                .scaleEffect(CGFloat(max(0, grown * breath * gone)), anchor: anchor)
+                .offset(x: dx, y: dy)
         }
-        var lo = 0.0, hi = 1.0, s = x
-        for _ in 0..<24 {
-            s = (lo + hi) / 2
-            if coord(s, x1, x2) < x { lo = s } else { hi = s }
-        }
-        return coord(s, y1, y2)
     }
 }
 
