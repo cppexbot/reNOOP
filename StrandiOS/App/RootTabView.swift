@@ -246,7 +246,7 @@ struct RootTabView: View {
                 switch dest {
                 case .insightsHub: InsightsHubView()
                 case .labBook: LabBookView()
-                case .devices: DevicesView()
+                case .devices: DevicesView().settingsDestinations()
                 case .trends: TrendsView()
                 // .activeWorkout routes through the quick-action Live sheet (handled above); this keeps the
                 // switch exhaustive and falls back to Live if it ever reaches the pillar host.
@@ -347,6 +347,7 @@ struct RootTabView: View {
     private var devicesScreen: some View {
         NavigationStack {
             DevicesView()
+                .settingsDestinations()
                 .background(StrandPalette.surfaceBase.ignoresSafeArea())
                 .navigationBarTitleDisplayMode(.inline)
                 // #1027: same fix as quickScreen — Devices draws the full-bleed liquid sky, so a transparent

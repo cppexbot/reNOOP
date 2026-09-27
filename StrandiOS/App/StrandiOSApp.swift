@@ -569,20 +569,13 @@ enum DemoScreens {
             let page = args.firstIndex(of: "--settings-page").flatMap { $0 + 1 < args.count ? args[$0 + 1] : nil }
             return AnyView(SettingsDemoHost(pageName: page))
         case "profile": return AnyView(ProfileSheet(onClose: {}))
-        case "devices":  return AnyView(DevicesView())
-        case "devicescatalog": return AnyView(DeviceCardCatalog())
+        case "devices":  return AnyView(NavigationStack { DevicesView().settingsDestinations() })
+        case "devicescatalog": return AnyView(NavigationStack { DeviceCardCatalog() })
         case "addwizard": return AnyView(AddWizardDemoHost())
         // Oura onboarding: the Add-device wizard deep-linked straight to the Oura factory-reset-and-adopt
         // prep step (the Beta banner + get/lose card + the red irreversible-consent gate), screenshot-able
         // WITHOUT a ring.
         case "ouraonboarding": return AnyView(OuraOnboardingDemoHost())
-        // Oura device card: the locally-adopted Oura ring card (Beta chip + per-gen honest capability copy
-        // + battery + local-state note), rendered with mock data, no ring required.
-        case "ouradevice": return AnyView(OuraDeviceDemoScreen())
-        // #221: a WHOOP 5/MG whose encrypted bond was refused (#78) — the "Connected · not paired" pill
-        // + self-service pairing guidance, screenshot-able WITHOUT reproducing the bond refusal on real
-        // hardware.
-        case "bondrefused": return AnyView(BondRefusedDemoScreen())
         default:         return nil
         }
     }

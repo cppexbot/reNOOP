@@ -289,6 +289,7 @@ struct TestCentreView: View {
         // Strap log, the same exportableLogText the Settings + Live strap-log controls share. The
         // environment dump is the IOSDiagnostics-backed block exportableLogText already carries.
         Section {
+            NavigationLink("Strap Log") { StrapLogPage() }
             Button("Copy strap log") { PlatformPasteboard.copy(live.exportableLogText()) }
             Button("Save strap log…") {
                 Task {

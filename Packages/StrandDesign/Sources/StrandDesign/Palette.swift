@@ -412,6 +412,14 @@ public enum StrandPalette {
     public static let settingsAppearanceDarkPage  = Color(hex: "#000000")
     public static let settingsAppearanceDarkCard  = Color(hex: "#2C2C2E")
     public static let settingsAppearanceDarkText  = Color(hex: "#FFFFFF")
+    /// Devices: the drawn product art (a band, a ring, a chest strap), graphite whatever the appearance,
+    /// as Apple renders a product photo on both a white and a black page.
+    public static let deviceBandTop     = Color(hex: "#3A3A3E")
+    public static let deviceBandBottom  = Color(hex: "#18181B")
+    public static let devicePodTop      = Color(hex: "#8E8E93")
+    public static let devicePodBottom   = Color(hex: "#3F3F44")
+    public static let deviceSheen       = Color.white.opacity(0.28)
+    public static let deviceEdge        = Color.white.opacity(0.10)
     /// Top wash, leading → trailing: warm → violet → cool (sampled from Health's iOS 26 Summary), faded
     /// into `summaryCanvas` by the view.
     public static let summaryWashWarm   = Color(light: "#FFBBA3", dark: "#4E2A24")

@@ -1,6 +1,6 @@
 //  StrapSettingsSections.swift
-//  NOOP · the strap's own settings. Settings → Devices lists them as one card of rows under the paired
-//  devices, as the Watch app keeps a watch's settings under the watch; each row pushes a small page:
+//  NOOP · the strap's own settings. A device page lists them as one card of rows under the active strap, as
+//  the Watch app keeps a watch's settings under the watch; each row pushes a small page:
 //  sync, power saving, double-tap, haptics, heart-rate broadcast. Same keys and the same BLE wiring the
 //  old Sync, Power saving, Automations and Data Sources pages had.
 
@@ -278,21 +278,6 @@ struct HeartRateBroadcastSection: View {
         } else if let hr = live.heartRate {
             Text("Sharing \(hr) bpm. Waiting for a device to pair.")
                 .foregroundStyle(StrandPalette.textSecondary)
-        }
-    }
-}
-
-// MARK: - Connection
-
-/// Scan again, or drop the link: rows for the Add-a-device card.
-struct StrapConnectionRows: View {
-    @EnvironmentObject private var model: AppModel
-    @EnvironmentObject private var live: LiveState
-
-    var body: some View {
-        Button("Re-scan") { model.scan() }
-        if live.connected || live.bonded {
-            Button("Disconnect", role: .destructive) { model.disconnect() }
         }
     }
 }

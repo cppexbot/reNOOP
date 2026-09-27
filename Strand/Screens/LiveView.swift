@@ -67,10 +67,6 @@ struct LiveView: View {
         )
     }
 
-    /// The live ring's link phase, mirrored off the Oura source (#2305). Meaningful only under
-    /// `activeIsOura`; `.disconnected` otherwise.
-    private var ringPhase: OuraLiveSource.LinkPhase { model.ouraLinkPhase }
-
     /// A trusted WHOOP link, for the console readouts and the bond-only controls.
     ///
     /// Gated on the active device actually BEING a WHOOP (#2075). `LiveState` is one object that every
@@ -113,51 +109,18 @@ struct LiveView: View {
                        topBackground: liquidScaffoldSky()) {
             VStack(alignment: .leading, spacing: NoopMetrics.sectionGap) {
                 consoleHeader
-                // Can't-connect-at-all guidance: the strap wiped its bond (firmware update / WHOOP app
-                // re-bond), so connects loop on "Peer removed pairing information". Show the re-pair steps
-                // right here instead of silently retrying. (5/MG firmware reset, 2026-06)
-                if let guide = live.reconnectGuide { reconnectGuideBanner(guide) }
-                // Bond-refused guidance, shown right here on Live where people actually connect (it
-                // also appears in Settings). A 5/MG strap still bonded to the WHOOP app refuses pairing
-                // with "Encryption is insufficient" — this tells the user to free it and re-pair.
-                if let hint = live.pairingHint { pairingHintBanner(hint) }
-                // Primary Connect affordance, surfaced ABOVE the fold whenever there's no link. The real
-                // Scan & Connect control otherwise lives in `controls` (below the Signal Trust grid), so
-                // an offline user saw only inert copy up top. Gated purely on `!live.connected`, so it
-                // disappears the instant the radio connects. Shared with macOS — it reuses `scanButton`,
-                // which the wide layout already renders in `controls`.
-                // WHOOP only (#2305): under a ring this card named the ring over a button that ran a
-                // WHOOP scan — the #2303 reporter's Re-scan ran a full 5/MG handshake with the ring active.
-                if activeIsWhoop, !live.connected { offlineConnectCallout }
-                // The ring's own above-the-fold affordance: its link phase and a reconnect, shown until
-                // `auth OK` — the same "no link yet" slot the WHOOP callout fills.
-                if activeIsOura, ringPhase != .authenticated { ringConnectCallout }
+                // Pairing, connecting and the strap's controls live on its Devices page.
+                manageDevicesRow
                 bodyConsole
                 // Low-bandwidth fallback note (#80): the radio couldn't sustain the WHOOP 4 R10/R11 raw
                 // realtime burst, so live HR is riding the standard BLE Heart-Rate profile instead. Live HR
                 // still works — this is informational, not an error — so it sits right under the readout in
-                // a calm accent treatment rather than the amber warning banners above.
+                // a calm accent treatment.
                 if Self.shouldShowStandardHRNote(live.standardHRMode) {
                     standardHRNote(live.standardHRMode ?? "")
                 }
                 signalTrustRail
                 sessionConsole
-                // Show the strap picker whenever we're not actively streaming, so a user with both a
-                // WHOOP 4 and a 5/MG can switch between them. (It used to hide once `bonded`, which is
-                // sticky across disconnects — so after the first pairing the picker vanished for good.)
-                // WHOOP only (#2305): `activeConnection` is false for a ring BY CONSTRUCTION, so without
-                // the brand gate the WHOOP picker was shown MORE readily under a ring than under a strap.
-                if activeIsWhoop, !activeConnection { modelPicker }
-                // Scan / Buzz / Disconnect are the WHOOP path (`model.scan` → `BLEManager.connect`, the
-                // explicit user-connect that bypasses the #1881 active-device gate on purpose). A ring
-                // gets its own row; any other brand keeps the Devices row alone.
-                if activeIsWhoop {
-                    controls
-                } else if activeIsOura {
-                    ringControls
-                }
-                manageDevicesRow
-                LiveLogCard()
             }
         }
         .onAppear { refreshLiveSession(); consumeActiveWorkoutRequest() }
@@ -468,50 +431,6 @@ struct LiveView: View {
         .padding(.horizontal, 4)
     }
 
-    private func reconnectGuideBanner(_ guide: String) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(StrandPalette.statusWarning)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Can't connect: your strap's pairing was reset")
-                    .font(StrandFont.subhead).foregroundStyle(StrandPalette.textPrimary)
-                Text(guide)
-                    .font(StrandFont.footnote).foregroundStyle(StrandPalette.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(NoopMetrics.space3)
-        .background(NoopPanelSurface(cornerRadius: 18))
-        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
-            .strokeBorder(StrandPalette.statusWarning.opacity(0.5), lineWidth: 1))
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Reconnect help: \(guide)")
-    }
-
-    private func pairingHintBanner(_ hint: String) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(StrandPalette.statusWarning)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Live HR works. Free the strap to unlock buzz, alarms & sync")
-                    .font(StrandFont.subhead).foregroundStyle(StrandPalette.textPrimary)
-                Text(hint)
-                    .font(StrandFont.footnote).foregroundStyle(StrandPalette.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(NoopMetrics.space3)
-        .background(NoopPanelSurface(cornerRadius: 18))
-        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
-            .strokeBorder(StrandPalette.statusWarning.opacity(0.5), lineWidth: 1))
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Pairing help: \(hint)")
-    }
-
     /// Whether the low-bandwidth standard-HR fallback note should render. The note explains that live HR
     /// is coming over the standard BLE Heart-Rate profile because the radio couldn't sustain the full
     /// stream (#80). Shown only when LiveState carries a non-empty note string; pure so it's unit-testable
@@ -547,81 +466,6 @@ struct LiveView: View {
             .strokeBorder(StrandPalette.accent.opacity(0.4), lineWidth: 1))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Standard HR mode, low bandwidth. \(detail)")
-    }
-
-    // MARK: - Strap picker
-
-    /// Pick the strap family to scan for. Switching the selection drops the current strap's bond so the
-    /// newly-picked one connects fresh — letting a user move between a WHOOP 4 and a 5/MG.
-    private var modelPicker: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 10) {
-                Text("Strap").font(StrandFont.caption).foregroundStyle(StrandPalette.textSecondary)
-                SegmentedPillControl(
-                    WhoopModel.allCases,
-                    selection: Binding(
-                        get: { selectedModel },
-                        set: { newModel in
-                            guard newModel.rawValue != selectedModelRaw else { return }
-                            selectedModelRaw = newModel.rawValue
-                            // Clear the previous strap's sticky bond/connection so the next scan targets the
-                            // new family's service and bonds it fresh.
-                            model.prepareStrapSwitch()
-                        }
-                    ),
-                    label: { $0.displayName }
-                )
-                Spacer()
-            }
-            // Proactive 5/MG guidance: the strap bonds to one host at a time, so if it's still paired in
-            // the official WHOOP app a scan here finds nothing. Shown the moment 5/MG is picked — not only
-            // after a failed scan (#130) or a bond-refusal (which is the separate `pairingHint` banner).
-            if selectedModel == .whoop5mg { whoop5PairingNote }
-        }
-    }
-
-    private var whoop5PairingNote: some View {
-        HStack(alignment: .top, spacing: 8) {
-            Image(systemName: "info.circle").foregroundStyle(StrandPalette.accent)
-            Text("WHOOP 5.0/MG pairs with one app at a time. If a scan finds nothing, unpair it in the official WHOOP app and fully close that app, then Scan again.")
-                .font(StrandFont.footnote)
-                .foregroundStyle(StrandPalette.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-
-    // MARK: - Offline connect callout
-
-    /// The above-the-fold primary Connect affordance, shown only while `!live.connected`. Promotes the
-    /// formerly-inert "Scan and connect…" caption into a frosted card with a real, full-width
-    /// `scanButton` (the same one `controls` renders below), so the offline state has an obvious action
-    /// up top instead of burying it past the Signal Trust grid. Shared with macOS — the wide layout
-    /// shows it stacked above the console, and `scanButton` already styles full-width.
-    @ViewBuilder private var offlineConnectCallout: some View {
-        card {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 10) {
-                    Image(systemName: "antenna.radiowaves.left.and.right")
-                        .foregroundStyle(StrandPalette.accent)
-                        .accessibilityHidden(true)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Start a live stream")
-                            .font(StrandFont.headline)
-                            .foregroundStyle(StrandPalette.textPrimary)
-                        // Name the band Scan will connect to, and point pairing/switching at Devices — so
-                        // an offline user knows both what this button does and where to add a different band.
-                        Text("Scan connects to \(activeDeviceName). To pair or switch bands, open Devices.")
-                            .font(StrandFont.subhead)
-                            .foregroundStyle(StrandPalette.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    Spacer(minLength: 0)
-                }
-                scanButton
-            }
-        }
-        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous)
-            .strokeBorder(StrandPalette.accent.opacity(0.30), lineWidth: 1))
     }
 
     // MARK: - Manage devices link
@@ -668,112 +512,6 @@ struct LiveView: View {
         activeConnection
             ? String(localized: "Connected to \(activeDeviceName). Pair or switch bands in Devices.")
             : String(localized: "\(activeDeviceName) is your active band. Pair or switch bands in Devices.")
-    }
-
-    // MARK: - Controls
-
-    private var controls: some View {
-        // Three equal thirds can't hold all three labels at a legible size on a phone — the longest
-        // ("Scan & Connect") truncates to "Scan &…" even after shrink-to-fit (#175). So on iOS the
-        // primary action takes a full-width row and the two secondary actions share the row beneath;
-        // macOS keeps the single three-up row, where the window is always wide enough. (#175)
-        #if os(iOS)
-        VStack(spacing: NoopMetrics.rowSpacing) {
-            scanButton
-            HStack(spacing: NoopMetrics.rowSpacing) {
-                buzzButton
-                disconnectButton
-            }
-        }
-        #else
-        HStack(spacing: NoopMetrics.rowSpacing) {
-            scanButton
-            buzzButton
-            disconnectButton
-        }
-        #endif
-    }
-
-    // MARK: - Ring controls (#2305)
-
-    /// The ring's above-the-fold card while it is not yet authenticated: the honest phase line and the
-    /// only ring reconnect in the app. Same slot and shape as `offlineConnectCallout`, which is WHOOP-only.
-    @ViewBuilder private var ringConnectCallout: some View {
-        card {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 10) {
-                    Image(systemName: "antenna.radiowaves.left.and.right")
-                        .foregroundStyle(StrandPalette.accent)
-                        .accessibilityHidden(true)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(LiveRingCopy.status(ringPhase, streaming: false))
-                            .font(StrandFont.headline)
-                            .foregroundStyle(StrandPalette.textPrimary)
-                        Text("Reconnect drops the current link, if any, and connects to the ring again. To pair or switch bands, open Devices.")
-                            .font(StrandFont.subhead)
-                            .foregroundStyle(StrandPalette.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    Spacer(minLength: 0)
-                }
-                ringReconnectButton
-            }
-        }
-        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous)
-            .strokeBorder(StrandPalette.accent.opacity(0.30), lineWidth: 1))
-    }
-
-    /// The ring's row in the `controls` slot: one primary action. No Buzz (the ring has no haptic) and no
-    /// Disconnect (a stopped ring source would not reconnect for the night; Devices is where a ring is
-    /// deactivated).
-    private var ringControls: some View {
-        VStack(alignment: .leading, spacing: NoopMetrics.rowSpacing) {
-            Text(LiveRingCopy.status(ringPhase, streaming: ringStreaming))
-                .font(StrandFont.footnote)
-                .foregroundStyle(StrandPalette.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-            ringReconnectButton
-        }
-    }
-
-    /// Drops the current ring link, if any, and connects again — `OuraLiveSource.reconnect()` through the
-    /// coordinator, so it can only reach the ring that is the live source. Enabled in every phase: a ring
-    /// parked in `.authenticating` (#2303) is exactly the case this exists for.
-    private var ringReconnectButton: some View {
-        NoopButton("Reconnect ring", systemImage: "arrow.clockwise",
-                   kind: .primary, fullWidth: true) {
-            model.reconnectOuraRing()
-        }
-    }
-
-    // The connect / buzz / disconnect controls, all routed through the unified NOOP button system:
-    // a filled primary for the lead Scan action, a secondary surface for Buzz, and the destructive
-    // role for Disconnect — sentence-case, single line, optical-centred at controlHeight.
-    private var scanButton: some View {
-        NoopButton(live.connected ? "Re-scan" : "Scan & connect",
-                   systemImage: "antenna.radiowaves.left.and.right",
-                   kind: .primary, fullWidth: true) {
-            model.scan(model: selectedModel)
-        }
-    }
-
-    private var buzzButton: some View {
-        NoopButton("Buzz strap", systemImage: "waveform.path",
-                   kind: .secondary, fullWidth: true) {
-            // #921: the confirmed one-shot sequence (pattern + RUN_ALARM, acked). A bare pattern
-            // write here was the same silent no-buzz path the Siri shortcut hit on a WHOOP 4.0.
-            model.buzzStrapOnce()
-        }
-        .disabled(!activeConnection)
-        .help("Fire a test haptic buzz on the strap (requires an active strap connection)")
-    }
-
-    private var disconnectButton: some View {
-        NoopButton("Disconnect", systemImage: "xmark.circle",
-                   kind: .destructive, fullWidth: true) {
-            model.disconnect()
-        }
-        .disabled(!live.connected)
     }
 
     /// Live tab appeared: take a ref-count on the realtime stream (arms it on the 0→1 edge) and pull a
@@ -1250,88 +988,6 @@ private struct ActiveWorkoutLive: View {
                 .foregroundStyle(tint).lineLimit(1).minimumScaleFactor(0.6)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
-/// The strap log + export controls + Test Centre link. Owns LiveState so the streaming log lines
-/// re-render only this card. Wrapped in the liquid frosted card style.
-private struct LiveLogCard: View {
-    @EnvironmentObject private var live: LiveState
-    @EnvironmentObject private var model: AppModel
-    @AppStorage(CardAppearancePrefs.opacityKey) private var cardOpacityPercent = CardAppearancePrefs.defaultPercent
-    private var cardOpacity: Double { max(0, min(1, Double(cardOpacityPercent) / 100)) }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 12) {
-                Text("STRAP LOG").font(StrandFont.overline).tracking(StrandFont.overlineTracking)
-                    .foregroundStyle(StrandPalette.textSecondary)
-                Spacer()
-                // Export the log so people can attach it to a bug report (issue #17 — macOS users
-                // had no way to share it). Copy → clipboard; Save… → a .txt file.
-                Button("Copy") { copyStrapLog() }
-                    .buttonStyle(.plain).font(StrandFont.mono).foregroundStyle(StrandPalette.accent)
-                Button("Save…") { saveStrapLog() }
-                    .buttonStyle(.plain).font(StrandFont.mono).foregroundStyle(StrandPalette.accent)
-            }
-            ScrollViewReader { proxy in
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 2) {
-                        ForEach(Array(live.log.enumerated()), id: \.offset) { idx, line in
-                            Text(line).font(StrandFont.mono)
-                                .foregroundStyle(StrandPalette.textSecondary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .id(idx)
-                        }
-                    }
-                }
-                #if os(iOS)
-                .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
-                #endif
-                .frame(height: 200)
-                .onChangeCompat(of: live.log.count) { _ in
-                    if let last = live.log.indices.last { proxy.scrollTo(last, anchor: .bottom) }
-                }
-            }
-
-            // Users look on Live first when something's wrong (#507/#509), so link straight into the
-            // Test Centre diagnostic home, one tap from the log.
-            Divider().overlay(StrandPalette.hairline)
-            NavigationLink(destination: DeveloperSettingsPage()) {
-                HStack(spacing: 8) {
-                    Image(systemName: "testtube.2").foregroundStyle(StrandPalette.accent)
-                    Text("Open Test Centre to report a bug").font(StrandFont.mono)
-                        .foregroundStyle(StrandPalette.accent)
-                    Spacer()
-                    Image(systemName: "chevron.right").foregroundStyle(StrandPalette.textSecondary)
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Open Test Centre")
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(NoopPanelSurface(cornerRadius: 22, surfaceOpacity: cardOpacity))
-    }
-
-    // MARK: - Strap-log export (issue #17 — let macOS users share the log for bug reports)
-
-    // The strap-log text builder lives on LiveState (`exportableLogText()`) so the macOS Settings
-    // shortcut shares the exact same output (#17 / #507). These stay as thin wrappers.
-    private func copyStrapLog() {
-        PlatformPasteboard.copy(live.exportableLogText())
-    }
-
-    private func saveStrapLog() {
-        Task {
-            // Settings (#507) and Test Centre fetch these extras before exporting; without them this
-            // site wrote a same-named file silently missing the "Strap & data" + funnel sections, so
-            // which button someone pressed changed what a triager received.
-            let extra = await DebugDataDiagnostics.dynamicLines(repo: model.repo)
-            FileExport.exportText(live.exportableLogText(extraHeaderLines: extra),
-                                  suggestedName: FileExport.timestampedName("noop-strap-log", ext: "txt"))
-        }
     }
 }
 

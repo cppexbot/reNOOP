@@ -406,7 +406,7 @@ struct RootView: View {
         case .appleHealth: AppleHealthView()
         case .dataSources: DataSourcesView()
         case .backupSync: BackupSyncView()
-        case .devices: DevicesView()
+        case .devices: NavigationStack { DevicesView().settingsDestinations() }
         case .notifications: NotificationSettingsView()
         case .automation: NotificationsSettingsPage()
         case .smartAlarm: NavigationStack { SleepScheduleView() }

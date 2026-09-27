@@ -1745,3 +1745,34 @@ private struct DiscoveredRow: View {
         .preferredColorScheme(.dark)
 }
 #endif
+// MARK: - Signal indicator
+
+/// A four-bar Wi-Fi-style signal indicator derived from RSSI. RSSI is negative dBm: closer to 0 is
+/// stronger. Buckets are coarse on purpose — a precise dBm readout would be noise to the user.
+/// Internal (not private) so the Add-a-device wizard reuses the same indicator.
+struct SignalBars: View {
+    let rssi: Int
+
+    static func level(for rssi: Int) -> Int {
+        switch rssi {
+        case (-55)...:    return 4   // very strong
+        case (-67)...:    return 3
+        case (-80)...:    return 2
+        case (-90)...:    return 1
+        default:          return 0
+        }
+    }
+
+    var body: some View {
+        let level = Self.level(for: rssi)
+        HStack(alignment: .bottom, spacing: 2) {
+            ForEach(0..<4, id: \.self) { i in
+                RoundedRectangle(cornerRadius: 1, style: .continuous)
+                    .fill(i < level ? StrandPalette.accent : StrandPalette.hairlineStrong)
+                    .frame(width: 3, height: 6 + CGFloat(i) * 3)
+            }
+        }
+        .frame(width: 22, height: 18, alignment: .bottom)
+        .accessibilityHidden(true)
+    }
+}
