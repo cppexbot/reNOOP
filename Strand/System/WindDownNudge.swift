@@ -215,7 +215,7 @@ enum WindDownNudge {
 
         let content = UNMutableNotificationContent()
         content.title = String(localized: "Time to wind down")
-        content.body = String(localized: "A calm hour now helps you hit your wake time well-rested.")
+        content.body = String(localized: "Bedtime in \(leadMinutes) min.")
         content.sound = .default
 
         // PR#554 — with per-day overrides set, fan out to seven weekday-pinned triggers each at that day's

@@ -157,52 +157,6 @@ private struct RefreshableIfNeeded: ViewModifier {
     }
 }
 
-/// Empty / pending-data placeholder for screens still gathering history. Mirrors `DataPendingNote`'s
-/// icon-anchored card so an empty screen reads as an intentional state rather than a stray text box.
-struct ComingSoon: View {
-    let what: LocalizedStringKey
-    var symbol: String = "sparkles"
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: symbol)
-                .font(StrandFont.headline)
-                .foregroundStyle(StrandPalette.accent)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Coming together")
-                    .font(StrandFont.headline).foregroundStyle(StrandPalette.textPrimary)
-                Text(what)
-                    .font(StrandFont.body).foregroundStyle(StrandPalette.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .padding(20).frame(maxWidth: .infinity, alignment: .leading)
-        .frostedCardSurface()
-    }
-}
-
-/// A reusable "what shows now vs what needs an import" note. Bold title line plus a
-/// body line, with an info/sparkles SF Symbol. Used for empty/pending data states so
-/// every screen explains the live-now path and the import path with timing.
-/// Pulsing "history sync in progress" line (#77). Shown above a screen's empty state while the
-/// strap's historical offload runs, so a half-loaded screen ("No nights here yet") reads as
-/// in-progress rather than final. Shows the honest live signal — chunks pulled so far — never a
-/// percent (total pending is unknowable from the protocol, so a determinate bar would lie).
-struct SyncingHistoryNote: View {
-    let chunks: Int
-
-    var body: some View {
-        HStack(spacing: 10) {
-            StatePill("Syncing strap history…", tone: .accent, pulsing: true)
-            if chunks > 0 {
-                Text("\(chunks) chunks pulled")
-                    .font(StrandFont.footnote)
-                    .foregroundStyle(StrandPalette.textSecondary)
-            }
-        }
-    }
-}
-
 /// Coarse relative-time label for the "History synced N ago" sync-status line. Pure — `now` is
 /// injectable so the bucket edges are unit-testable (RelativeAgoTests) — and deliberately the same
 /// buckets as the Android `relativeAgo` (LiveScreen.kt, ed6a31d) so the two apps read identically.
@@ -215,33 +169,6 @@ func relativeAgo(_ epochSeconds: TimeInterval,
     case ..<3600:   return String(localized: "\(d / 60) min ago")
     case ..<86_400: return String(localized: "\(d / 3600) h ago")
     default:        return String(localized: "\(d / 86_400) d ago")
-    }
-}
-
-struct DataPendingNote: View {
-    let title: LocalizedStringKey
-    let message: LocalizedStringKey
-    var symbol: String = "sparkles"
-
-    var body: some View {
-        StrandCard(padding: 20) {
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: symbol)
-                    .font(StrandFont.headline)
-                    .foregroundStyle(StrandPalette.accent)
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(title)
-                        .font(StrandFont.headline)
-                        .foregroundStyle(StrandPalette.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(message)
-                        .font(StrandFont.subhead)
-                        .foregroundStyle(StrandPalette.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-        }
     }
 }
 

@@ -365,23 +365,9 @@ struct HRVSnapshotView: View {
     // MARK: - Not-bonded hint
 
     private var notBondedHint: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "applewatch.radiowaves.left.and.right")
-                .foregroundStyle(StrandPalette.statusWarning)
-                .accessibilityHidden(true)
-            Text("An HRV reading needs the live R-R stream. Open the Live screen and connect your strap, then come back.")
-                .font(StrandFont.footnote)
-                .foregroundStyle(StrandPalette.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 0)
-        }
-        .padding(14)
-        .background(StrandPalette.statusWarning.opacity(0.08),
-                    in: RoundedRectangle(cornerRadius: NoopMetrics.cardRadius, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: NoopMetrics.cardRadius, style: .continuous)
-                .strokeBorder(StrandPalette.statusWarning.opacity(0.25), lineWidth: 1)
-        )
+        NoticeCard(title: Text("Strap not streaming"),
+                   message: Text("Connect it on the Live screen first."),
+                   systemImage: "applewatch.radiowaves.left.and.right", tone: .warning)
     }
 
     // MARK: - Capture control

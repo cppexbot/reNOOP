@@ -445,36 +445,21 @@ private struct LiveProblemLine: View {
 
     var body: some View {
         if let problem {
-            Button(action: onOpen) {
-                HStack(spacing: 10) {
-                    Image(systemName: problem.icon)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(problem.tint)
-                        .frame(width: 22)
-                    Text(problem.text)
-                        .font(StrandFont.pro(15))
-                        .foregroundStyle(StrandPalette.textPrimary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                    Spacer(minLength: 4)
-                    Text("Devices")
-                        .font(StrandFont.pro(15))
-                        .foregroundStyle(StrandPalette.textSecondary)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(StrandPalette.textTertiary)
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
-                .background(StrandPalette.summaryCard, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .padding(.top, 8)
+            NoticeCard(title: problem.isSyncError ? Text("History sync stopped") : Text(verbatim: problem.text),
+                       message: problem.isSyncError ? Text(verbatim: problem.text) : nil,
+                       systemImage: problem.icon, tone: problem.tone,
+                       actionTitle: "Open Devices", action: onOpen)
+                .padding(.top, 8)
         }
     }
 
-    private struct Problem { let icon: String; let text: String; let tint: Color }
+    private struct Problem {
+        let icon: String
+        let text: String
+        let tone: NoticeCard.Tone
+        /// A sync error is a sentence of its own: it goes under a short title rather than in it.
+        var isSyncError = false
+    }
 
     private var ringStreaming: Bool { live.connected && live.streamingLiveHR }
 
@@ -484,33 +469,33 @@ private struct LiveProblemLine: View {
             guard !ringStreaming else { return nil }
             return Problem(icon: "antenna.radiowaves.left.and.right.slash",
                            text: LiveRingCopy.status(model.ouraLinkPhase, streaming: false),
-                           tint: StrandPalette.statusWarning)
+                           tone: .warning)
         }
         if !live.connected {
             return Problem(icon: "antenna.radiowaves.left.and.right.slash",
-                           text: String(localized: "Strap not connected"), tint: StrandPalette.textSecondary)
+                           text: String(localized: "Strap not connected"), tone: .info)
         }
         if !live.bonded {
             return Problem(icon: "ellipsis.circle", text: String(localized: "Connected, waiting for a streaming state."),
-                           tint: StrandPalette.statusWarning)
+                           tone: .warning)
         }
         if !live.encryptedBond {
             return Problem(icon: "lock.open", text: String(localized: "Live HR (not fully paired)"),
-                           tint: StrandPalette.statusWarning)
+                           tone: .warning)
         }
         if LiveView.shouldShowStandardHRNote(live.standardHRMode) {
             return Problem(icon: "antenna.radiowaves.left.and.right",
-                           text: String(localized: "Standard HR mode (low bandwidth)"), tint: StrandPalette.accent)
+                           text: String(localized: "Standard HR mode (low bandwidth)"), tone: .info)
         }
         if !live.worn {
-            return Problem(icon: "hand.raised", text: String(localized: "Off wrist"), tint: StrandPalette.statusWarning)
+            return Problem(icon: "hand.raised", text: String(localized: "Off wrist"), tone: .warning)
         }
         if let err = live.lastSyncError, !err.isEmpty {
-            return Problem(icon: "exclamationmark.arrow.circlepath", text: err, tint: StrandPalette.statusWarning)
+            return Problem(icon: "exclamationmark.arrow.circlepath", text: err, tone: .warning, isSyncError: true)
         }
         if let pct = live.batteryPct, pct <= 15, live.charging != true {
             return Problem(icon: "battery.25percent", text: String(localized: "Battery \(Int(pct.rounded()))%"),
-                           tint: StrandPalette.metricRose)
+                           tone: .error)
         }
         return nil
     }

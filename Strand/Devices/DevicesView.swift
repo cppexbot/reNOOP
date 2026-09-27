@@ -61,7 +61,7 @@ private struct DevicesList: View {
             // #802: a strap whose bond the strap wiped can't connect until it's re-paired; say so where
             // devices are fixed.
             if let guide = live.reconnectGuide {
-                Section { DeviceWarning(title: "Can't connect: your strap's pairing was reset", detail: guide) }
+                Section { DeviceWarning(title: "Strap pairing was reset", message: "Re-pair it to reconnect.", detail: guide) }
             }
 
             if !current.isEmpty {
@@ -167,26 +167,44 @@ struct DeviceRoute: Hashable {
     let id: String
 }
 
-/// A problem that stops the device working, in the warning hue: a bold line and the fix under it.
+/// A problem that stops the device working: the shared warning notice, set in a Form section as its own
+/// card. The notice says it in one line; the full step-by-step fix opens from "How to Fix".
 struct DeviceWarning: View {
     let title: LocalizedStringKey
+    let message: LocalizedStringKey
     let detail: String
 
+    @State private var showFix = false
+
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(StrandPalette.settingsOrange)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(title)
-                    .font(StrandFont.pro(15, weight: .semibold))
-                    .foregroundStyle(StrandPalette.textPrimary)
-                Text(verbatim: detail)
-                    .font(StrandFont.pro(13))
-                    .foregroundStyle(StrandPalette.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+        NoticeCard(title: Text(title), message: Text(message),
+                   systemImage: "exclamationmark.triangle.fill", tone: .warning,
+                   actionTitle: "How to Fix", action: { showFix = true })
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+            .sheet(isPresented: $showFix) {
+                NavigationStack {
+                    ScrollView {
+                        Text(verbatim: detail)
+                            .font(StrandFont.pro(17))
+                            .foregroundStyle(StrandPalette.textPrimary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(20)
+                    }
+                    .background(StrandPalette.summaryCanvas.ignoresSafeArea())
+                    .navigationTitle(Text(title))
+                    #if os(iOS)
+                    .navigationBarTitleDisplayMode(.inline)
+                    #endif
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            WorkoutSheetCloseButton { showFix = false }
+                        }
+                    }
+                }
+                #if os(iOS)
+                .presentationDetents([.medium, .large])
+                #endif
             }
-        }
-        .accessibilityElement(children: .combine)
     }
 }

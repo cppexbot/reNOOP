@@ -96,12 +96,13 @@ struct SleepScheduleView: View {
                             defaultValue: "The strap buzzes silently. For a loud alarm, use the Clock app."))
             // #864: a WHOOP 5/MG keeps the time but arms nothing until Experimental is on.
             if behavior.smartAlarmEnabled && model.whoop5Detected && !PuffinExperiment.isEnabled {
-                warning(String(localized: "Your WHOOP 5/MG won't arm this until Experimental mode is on (Settings, Experimental). Right now your wake time is saved but the strap is NOT armed. Even with Experimental on, a 5/MG strap-driven wake is still unconfirmed on our side, so keep a backup alarm."))
+                warning(String(localized: "Alarm isn't armed on the strap"),
+                        detail: String(localized: "WHOOP 5/MG needs Experimental mode on. Keep a backup alarm."))
             }
             // #34: only when the strap keeps refusing the alarm, never for a one-off readback quirk.
             if behavior.smartAlarmEnabled && alarmRejectStreak >= 2 {
                 warning(String(localized: "Your strap isn't accepting the alarm"),
-                        detail: String(localized: "The strap keeps reporting a different time than NOOP sends, so its firmware alarm won't fire at your wake time — usually a strap whose clock or alarm has reset. Reset the strap in the official WHOOP app (or fully charge it and reconnect), and keep your phone's Clock alarm as your wake until it takes."))
+                        detail: String(localized: "Reset or recharge the strap, and use the Clock app until it takes."))
             }
         }
     }
@@ -115,23 +116,8 @@ struct SleepScheduleView: View {
     }
 
     private func warning(_ title: String, detail: String? = nil) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(StrandPalette.settingsOrange)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(verbatim: title)
-                    .font(StrandFont.pro(13, weight: detail == nil ? .regular : .semibold))
-                    .foregroundStyle(detail == nil ? StrandPalette.textSecondary : StrandPalette.textPrimary)
-                if let detail {
-                    Text(verbatim: detail)
-                        .font(StrandFont.pro(13))
-                        .foregroundStyle(StrandPalette.textSecondary)
-                }
-            }
-            .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(.horizontal, 16)
+        NoticeCard(title: Text(verbatim: title), message: detail.map { Text(verbatim: $0) },
+                   systemImage: "exclamationmark.triangle.fill", tone: .warning)
     }
 
     // MARK: - Schedules

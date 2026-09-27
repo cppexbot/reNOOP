@@ -71,17 +71,9 @@ struct TrendsView: View {
     /// "Not Enough Data Yet" until some metric has readings enough to judge; "No Trends" once they have and
     /// nothing moved.
     private func emptyState(judged: Bool) -> some View {
-        VStack(spacing: 12) {
-            HealthTrendsGlyph(size: 48)
-                .foregroundStyle(StrandPalette.textTertiary)
-            Text(judged ? String(localized: "No Trends") : String(localized: "Not Enough Data Yet"))
-                .font(StrandFont.pro(22, weight: .bold))
-                .foregroundStyle(StrandPalette.textPrimary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.top, 120)
-        .accessibilityElement(children: .combine)
+        EmptyStateView(title: Text(judged ? String(localized: "No Trends") : String(localized: "Not Enough Data Yet")),
+                       systemImage: "chart.line.uptrend.xyaxis")
+            .padding(.top, 80)
     }
 }
 

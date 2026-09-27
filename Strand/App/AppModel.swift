@@ -1500,9 +1500,9 @@ final class AppModel: ObservableObject {
     static func postInactivity(minutes: Int) {
         #if os(iOS)
         let body = minutes > 0
-            ? String(localized: "You've been seated for about \(minutes) min. Time to move.")
-            : String(localized: "Time to move. You've been seated a while.")
-        postWristAlert(identifier: "inactivity-nudge", title: String(localized: "Move reminder"), body: body)
+            ? String(localized: "Seated for \(minutes) min.")
+            : String(localized: "You've been seated a while.")
+        postWristAlert(identifier: "inactivity-nudge", title: String(localized: "Time to move"), body: body)
         #endif
     }
 
@@ -1511,7 +1511,7 @@ final class AppModel: ObservableObject {
     static func postSmartAlarm() {
         #if os(iOS)
         postWristAlert(identifier: "smart-alarm-wake", title: String(localized: "Smart alarm"),
-                       body: String(localized: "Good morning. Your smart alarm just woke you."))
+                       body: String(localized: "Good morning."))
         #endif
     }
 
@@ -1593,7 +1593,7 @@ final class AppModel: ObservableObject {
         func addRequests() {
             let content = UNMutableNotificationContent()
             content.title = String(localized: "Smart alarm")
-            content.body = String(localized: "Backup wake: your smart alarm time is here.")
+            content.body = String(localized: "Time to wake up.")
             content.sound = .default
             if weekdays.isEmpty {
                 // Every day. When overrides exist, fan out to per-weekday triggers (each at its own time)
@@ -2059,9 +2059,9 @@ final class AppModel: ObservableObject {
         case .quiet, .mild, .suppressed:
             healthAlert = nil
         }
-        if healthAlert != nil, previous == nil {
-            // Notifications retain their established copy contract; Home renders the semantic result.
-            IllnessNotifier.post(result.copy)
+        if let alert = healthAlert, previous == nil {
+            // The notification says what the Summary notice says, from the same copy.
+            IllnessNotifier.post(title: HealthAlertCopy.title(alert), body: HealthAlertCopy.message(alert))
         }
     }
 

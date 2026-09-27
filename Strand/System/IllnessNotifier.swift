@@ -16,7 +16,7 @@ enum IllnessNotifier {
     }
 
     /// Post the early-warning, at most once per local calendar day.
-    static func post(_ message: String) {
+    static func post(title: String, body: String) {
         let day = dayKey(Date())
         let d = UserDefaults.standard
         guard d.string(forKey: lastDayKey) != day else { return }
@@ -30,9 +30,8 @@ enum IllnessNotifier {
         center.getNotificationSettings { settings in
             guard settings.authorizationStatus == .authorized else { return }
             let content = UNMutableNotificationContent()
-            content.title = String(localized: "Early warning: take it easy")
-            content.subtitle = String(localized: "On-device estimate (approximate), not a diagnosis.")
-            content.body = message
+            content.title = title
+            content.body = body
             content.sound = .default
             center.add(UNNotificationRequest(identifier: "illness-watch",
                                              content: content, trigger: nil))

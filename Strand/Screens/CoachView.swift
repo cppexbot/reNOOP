@@ -240,28 +240,14 @@ struct CoachView: View {
         .accessibilityLabel(Text("Coach is thinking"))
     }
 
-    /// A failed send, as Messages marks one: a red line under the conversation. A rejected key carries
-    /// the way to fix it, which opens the key field in settings (the transcript is kept).
+    /// A failed send, under the conversation. A rejected key carries the way to fix it, which opens the
+    /// key field in settings (the transcript is kept).
     private func errorLine(_ message: String) -> some View {
-        VStack(spacing: 4) {
-            Label {
-                Text(message)
-            } icon: {
-                Image(systemName: "exclamationmark.circle.fill")
-            }
-            .font(StrandFont.pro(13))
-            .foregroundStyle(StrandPalette.settingsRed)
-            .multilineTextAlignment(.center)
-            if coach.keyRejected {
-                Button("Update Key") { showSettings = true }
-                    .font(StrandFont.pro(13, weight: .semibold))
-                    .buttonStyle(.plain)
-                    .foregroundStyle(StrandPalette.messageOutgoing)
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 6)
-        .accessibilityElement(children: .combine)
+        NoticeCard(title: Text("Couldn't get a reply"), message: Text(verbatim: message),
+                   systemImage: "exclamationmark.circle.fill", tone: .error,
+                   actionTitle: coach.keyRejected ? "Update Key" : nil,
+                   action: coach.keyRejected ? { showSettings = true } : nil)
+            .padding(.vertical, 6)
     }
 
     // MARK: - Composer

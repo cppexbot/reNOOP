@@ -60,11 +60,11 @@ struct DeviceDetailView: View {
 
             // #221: linked, but the strap refused the bond — the self-service fix right here.
             if r.bondRefused, let hint = live.pairingHint {
-                Section { DeviceWarning(title: "Connected, but not paired", detail: hint) }
+                Section { DeviceWarning(title: "Connected, but not paired", message: "Pair it to sync history.", detail: hint) }
             }
             // #987: a strap clock that reads 1970/71 banks no history.
             if r.isActive, let warning = clockState?.warning {
-                Section { DeviceWarning(title: "Strap clock not set", detail: warning) }
+                Section { DeviceWarning(title: "Strap clock not set", message: "History isn't saved until it's set.", detail: warning) }
             }
 
             Section {

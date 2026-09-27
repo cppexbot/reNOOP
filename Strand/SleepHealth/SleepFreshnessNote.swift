@@ -1,5 +1,5 @@
 //  SleepFreshnessNote.swift
-//  NOOP · Sleep — the "is last night's sleep in yet?" status banner.
+//  NOOP · Sleep — the "is last night's sleep in yet?" notice.
 
 import SwiftUI
 import StrandDesign
@@ -58,23 +58,24 @@ struct SleepFreshnessNote: View {
         )
         switch status {
         case .syncing:
-            SyncingHistoryNote(chunks: live.syncChunksThisSession)
+            let chunks = live.syncChunksThisSession
+            NoticeCard(title: Text("Syncing strap history"),
+                       message: chunks > 0 ? Text("\(chunks) chunks so far") : nil,
+                       tone: .progress)
         case .calculating:
-            DataPendingNote(title: "Calculating last night's sleep…",
-                            message: "Your strap history is in. NOOP is detecting and staging the night now.",
-                            symbol: "waveform.path.ecg")
+            NoticeCard(title: Text("Calculating last night's sleep"), tone: .progress)
         case .syncFailed:
-            DataPendingNote(title: "Last night's sleep hasn't synced",
-                            message: "The history sync stopped before it finished. Keep the strap nearby and try Sync again.",
-                            symbol: "exclamationmark.arrow.triangle.2.circlepath")
+            NoticeCard(title: Text("Sleep hasn't synced"),
+                       message: Text("Keep the strap nearby and sync again."),
+                       systemImage: "exclamationmark.arrow.triangle.2.circlepath", tone: .error)
         case .awaitingSync:
-            DataPendingNote(title: "Waiting for last night's sleep",
-                            message: "Connect the strap and sync its history. NOOP will calculate the night when the overnight data arrives.",
-                            symbol: "arrow.triangle.2.circlepath")
+            NoticeCard(title: Text("Waiting for last night's sleep"),
+                       message: Text("Connect the strap to sync."),
+                       systemImage: "arrow.triangle.2.circlepath", tone: .info)
         case .notDetected:
-            DataPendingNote(title: "Last night's sleep wasn't detected",
-                            message: "Sync finished, but NOOP couldn't confidently identify a sleep window. Keep the strap connected and try Sync again; the older night below is still your latest detected sleep.",
-                            symbol: "moon.zzz")
+            NoticeCard(title: Text("No sleep detected last night"),
+                       message: Text("The night below is your latest."),
+                       systemImage: "moon.zzz.fill", tone: .warning)
         case nil:
             EmptyView()
         }

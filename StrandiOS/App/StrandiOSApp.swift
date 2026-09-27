@@ -565,6 +565,8 @@ enum DemoScreens {
         case "liftsession": return AnyView(LiftSessionView { })
         case "journal":  return AnyView(NavigationStack { JournalView() })
         case "insights": return AnyView(NavigationStack { InsightsHubView() })
+        // Every notice state side by side (the shared NoticeCard, with each screen's real copy).
+        case "notices": return AnyView(NoticeGalleryDemo())
         // First-run setup, optionally on one step: `--onboarding-step 0…6`.
         case "onboarding":
             let n = args.firstIndex(of: "--onboarding-step").flatMap { $0 + 1 < args.count ? Int(args[$0 + 1]) : nil } ?? 0
@@ -652,6 +654,30 @@ private struct CoachDemoHost: View {
             }
             ready = true
         }
+    }
+}
+
+/// DEBUG-only: the notices the app shows, drawn through the shared `NoticeCard` with their real copy.
+private struct NoticeGalleryDemo: View {
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 12) {
+                NoticeCard(title: Text("Syncing strap history"), message: Text("\(12) chunks so far"), tone: .progress)
+                NoticeCard(title: Text("Sleep hasn't synced"), message: Text("Keep the strap nearby and sync again."),
+                           systemImage: "exclamationmark.arrow.triangle.2.circlepath", tone: .error)
+                NoticeCard(title: Text("Signs of strain"), message: Text("Up: \("resting HR, HRV"). Take it easy today."),
+                           systemImage: "exclamationmark.triangle.fill", tone: .warning)
+                NoticeCard(title: Text("Strap not connected"), systemImage: "antenna.radiowaves.left.and.right.slash",
+                           tone: .info, actionTitle: "Open Devices", action: {})
+                NoticeCard(title: Text("Strap pairing was reset"), message: Text("Re-pair it to reconnect."),
+                           systemImage: "exclamationmark.triangle.fill", tone: .warning, actionTitle: "How to Fix", action: {})
+                NoticeCard(title: Text(verbatim: "Сон удалён"), systemImage: "trash.fill", tone: .info,
+                           actionTitle: "Undo", action: {}, onDismiss: {})
+            }
+            .padding(16)
+        }
+        .background(StrandPalette.summaryCanvas.ignoresSafeArea())
+        .navigationTitle(Text(verbatim: "Notices"))
     }
 }
 

@@ -413,34 +413,21 @@ struct SleepHealthView: View {
     }
 
     private func undoBanner(_ undo: SleepUndo) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: "trash")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(StrandPalette.textSecondary)
-            Text(undo.message)
-                .font(StrandFont.footnote)
-                .foregroundStyle(StrandPalette.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 8)
-            Button {
-                Task {
-                    sleepUndoTask?.cancel()
-                    await repo.undoDeleteSleepSession(undo.snapshot)
-                    await intelligence.analyzeRecent()
-                    await repo.refresh()
-                    withAnimation(.easeOut(duration: 0.2)) { sleepUndo = nil }
-                }
-            } label: {
-                Text("Undo").font(StrandFont.subhead.weight(.semibold))
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(StrandPalette.accent)
-            .accessibilityLabel(Text("Undo sleep deletion"))
-        }
-        .padding(14)
-        .background(StrandPalette.summaryCard,
-                    in: RoundedRectangle(cornerRadius: SummaryCard<EmptyView>.radius, style: .continuous))
-        .transition(.opacity)
+        NoticeCard(title: Text(verbatim: undo.message), systemImage: "trash.fill", tone: .info,
+                   actionTitle: "Undo", action: {
+                       Task {
+                           sleepUndoTask?.cancel()
+                           await repo.undoDeleteSleepSession(undo.snapshot)
+                           await intelligence.analyzeRecent()
+                           await repo.refresh()
+                           withAnimation(.easeOut(duration: 0.2)) { sleepUndo = nil }
+                       }
+                   },
+                   onDismiss: {
+                       sleepUndoTask?.cancel()
+                       withAnimation(.easeOut(duration: 0.2)) { sleepUndo = nil }
+                   })
+            .transition(.opacity)
     }
 
     // MARK: - Your schedule

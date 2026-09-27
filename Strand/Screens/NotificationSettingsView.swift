@@ -73,21 +73,9 @@ struct NotificationSettingsView: View {
     }
 
     private var deliveryNote: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "info.circle.fill")
-                .foregroundStyle(StrandPalette.accent)
-                .font(.system(size: 13))
-                .accessibilityHidden(true)
-            Text("Wrist delivery isn't live yet. It needs a small on-device watcher (coming in an update) to read macOS notifications. Everything stays on this Mac. Your choices are saved now and will apply automatically once delivery ships.")
-                .font(StrandFont.footnote)
-                .foregroundStyle(StrandPalette.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(NoopMetrics.space3)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(NoopPanelSurface(tint: StrandPalette.accent, cornerRadius: 10))
-        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous)
-            .stroke(StrandPalette.accent.opacity(0.22), lineWidth: 1))
+        NoticeCard(title: Text("Wrist delivery isn't live yet"),
+                   message: Text("Your choices apply once it ships."),
+                   systemImage: "info.circle.fill", tone: .info)
     }
 
     /// Strap status — mirrors SettingsView's three-state mapping so the pill, its tone and its

@@ -63,7 +63,7 @@ enum StrainTargetNotifier {
         /// NOOP's OWN wording — the feature is reimplemented behaviour, not copied copy.
         static func copy(target: Int) -> (title: String, body: String) {
             (String(localized: "Optimal strain reached"),
-             String(localized: "You've hit today's optimal strain target of \(target). Nice work — your recovery earned it."))
+             String(localized: "Today's target: \(target)."))
         }
     }
 

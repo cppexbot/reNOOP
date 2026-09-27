@@ -90,9 +90,8 @@ struct WorkoutHistoryView: View {
         .background(StrandPalette.summaryCanvas.ignoresSafeArea())
         .navigationTitle(Text("All Workouts"))
         .overlay {
-            if loaded && visible.isEmpty, #available(macOS 14.0, *) {
-                ContentUnavailableView("No Workouts", systemImage: "figure.run",
-                                       description: Text("Workouts you record or import appear here."))
+            if loaded && visible.isEmpty {
+                EmptyStateView(title: Text("No Workouts"), systemImage: "figure.run")
             }
         }
         .task(id: repo.refreshSeq) {

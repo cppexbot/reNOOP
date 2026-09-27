@@ -290,20 +290,8 @@ struct FullDayChartView: View {
     /// Honest empty/dash state — a window the strap offloaded nothing for (a not-yet-synced stretch, an
     /// off-wrist gap, or a metric this device doesn't record). Never a fabricated flat line.
     private var emptyState: some View {
-        VStack(spacing: NoopMetrics.space2) {
-            Image(systemName: "waveform.slash")
-                .font(.system(size: 26, weight: .light))
-                .foregroundStyle(StrandPalette.textTertiary)
-            Text("No \(metric.title.lowercased()) here")
-                .font(StrandFont.body)
-                .foregroundStyle(StrandPalette.textSecondary)
-            Text(emptyReason)
-                .font(StrandFont.footnote)
-                .foregroundStyle(StrandPalette.textTertiary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.horizontal, NoopMetrics.space6)
+        EmptyStateView(title: Text("No \(metric.title.lowercased()) here"), systemImage: "waveform.slash",
+                       description: Text(verbatim: emptyReason))
     }
 
     /// #623: on a 5.0/MG the SpO2 + raw respiration tracks are PERMANENTLY empty (4.0-only wire signals),

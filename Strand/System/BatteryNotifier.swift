@@ -83,11 +83,11 @@ enum BatteryNotifier {
         if result.fireLow {
             post(identifier: "battery-low",
                  title: String(localized: "Low battery"),
-                 body: String(localized: "Recharge your WHOOP before tonight."))
+                 body: String(localized: "Charge it before tonight."))
         }
         if result.fireFull {
             post(identifier: "battery-full",
-                 title: String(localized: "Strap fully charged"),
+                 title: String(localized: "Strap charged"),
                  body: String(localized: "Your WHOOP is at 100%."))
         }
         // #514: the strap has dropped below 100% — pull the stale "fully charged" note (delivered
@@ -115,7 +115,7 @@ enum BatteryNotifier {
         if result.fire {
             post(identifier: "battery-runtime",
                  title: String(localized: "Strap battery low"),
-                 body: String(localized: "\(BatteryEstimator.label(hours: remainingHours)) left on your WHOOP — recharge tonight."))
+                 body: String(localized: "\(BatteryEstimator.label(hours: remainingHours)) left. Charge it tonight."))
         }
     }
 
@@ -138,8 +138,8 @@ enum BatteryNotifier {
         d.set(result.newAlerted, forKey: criticalAlertedKey)
         if result.fire {
             post(identifier: "battery-critical",
-                 title: String(localized: "Charge your WHOOP now"),
-                 body: String(localized: "\(pct)% left. The strap stops recording near 10% — it won't capture tonight unless you charge it."),
+                 title: String(localized: "Charge your strap now"),
+                 body: String(localized: "\(pct)% left. It stops recording near 10%."),
                  interruptionLevel: .timeSensitive)
         }
     }
@@ -170,7 +170,7 @@ enum BatteryNotifier {
         if result.fire, let runway = result.runway {
             post(identifier: "battery-bedtime",
                  title: String(localized: "Won't last the night"),
-                 body: String(localized: "\(BatteryEstimator.label(hours: runway.usableHours)) of recording left, but tonight needs about \(BatteryEstimator.label(hours: runway.requiredHours)). Charge before bed."),
+                 body: String(localized: "\(BatteryEstimator.label(hours: runway.usableHours)) left. Charge before bed."),
                  interruptionLevel: .timeSensitive)
         }
     }

@@ -271,8 +271,8 @@ enum CoachBriefScheduler {
             // No key/consent/network, or the provider returned nothing. Never mark the day done, so the
             // next wake (BGTask retry, or the next foreground open) tries again. Post a low-key retry
             // notification rather than silently doing nothing — the PRD's "unavailable, tap to retry".
-            postNotification(title: String(localized: "Coach brief unavailable"),
-                              body: String(localized: "Couldn't generate today's brief. Tap to try again in Coach."),
+            postNotification(title: String(localized: "Brief unavailable"),
+                              body: String(localized: "Tap to try again."),
                               isRetry: true)
             return false
         }
@@ -283,7 +283,7 @@ enum CoachBriefScheduler {
         #if os(iOS)
         publishToWidget(text)  // K10: mirror into the App Group for the widget
         #endif
-        postNotification(title: String(localized: "Today's coaching brief"),
+        postNotification(title: String(localized: "Today's brief"),
                           body: oneLineSummary(from: text))
         return true
     }
