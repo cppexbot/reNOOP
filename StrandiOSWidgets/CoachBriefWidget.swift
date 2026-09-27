@@ -15,12 +15,16 @@ struct CoachBriefEntry: TimelineEntry {
     let date: Date
     let briefText: String?
     let briefDate: Date?
+    /// The app's Coach master switch (`noop.coachEnabled`), mirrored into the App Group. Off: the widget
+    /// shows nothing of the Coach.
+    var coachEnabled = true
 }
 
 struct CoachBriefProvider: TimelineProvider {
     /// App Group keys — must match `CoachBriefScheduler.K.widgetBriefKey` / `.widgetBriefDateKey`.
     private static let briefKey = "coachBrief.widgetText"
     private static let briefDateKey = "coachBrief.widgetDate"
+    private static let coachEnabledKey = "coachBrief.coachEnabled"
 
     func placeholder(in context: Context) -> CoachBriefEntry {
         CoachBriefEntry(
@@ -48,7 +52,9 @@ struct CoachBriefProvider: TimelineProvider {
         let defaults = UserDefaults(suiteName: WidgetSnapshot.suiteName)
         let text = defaults?.string(forKey: CoachBriefProvider.briefKey)
         let date = defaults?.object(forKey: CoachBriefProvider.briefDateKey) as? Date
-        return CoachBriefEntry(date: Date(), briefText: text, briefDate: date)
+        let enabled = defaults?.object(forKey: CoachBriefProvider.coachEnabledKey) as? Bool ?? true
+        return CoachBriefEntry(date: Date(), briefText: enabled ? text : nil, briefDate: enabled ? date : nil,
+                               coachEnabled: enabled)
     }
 }
 
@@ -57,6 +63,18 @@ struct CoachBriefWidgetView: View {
     let entry: CoachBriefEntry
 
     var body: some View {
+        if !entry.coachEnabled {
+            // Coach switched off in the app: an empty glyph, no copy.
+            Image(systemName: "sparkles")
+                .font(.system(size: 22))
+                .foregroundStyle(StrandPalette.textTertiary)
+                .accessibilityLabel(Text("Coach is off"))
+        } else {
+            content
+        }
+    }
+
+    @ViewBuilder private var content: some View {
         switch family {
         case .accessoryRectangular:
             rectangular
@@ -74,10 +92,10 @@ struct CoachBriefWidgetView: View {
             HStack(spacing: 4) {
                 Image(systemName: "sparkles")
                     .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(StrandPalette.accent)
+                    .foregroundStyle(StrandPalette.healthBody)
                 Text("Coach")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(StrandPalette.textSecondary)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(StrandPalette.healthBody)
                 Spacer(minLength: 0)
                 if let date = entry.briefDate {
                     Text(date, style: .time)
@@ -106,22 +124,16 @@ struct CoachBriefWidgetView: View {
             HStack(spacing: 6) {
                 Image(systemName: "sparkles")
                     .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(StrandPalette.accent)
+                    .foregroundStyle(StrandPalette.healthBody)
                 Text("Coach Brief")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(StrandPalette.textSecondary)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(StrandPalette.healthBody)
                 Spacer()
             }
             if entry.briefText == nil {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("No brief yet")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(StrandPalette.textTertiary)
-                    Text("Enable Morning Brief in Coach settings to see today's readiness here.")
-                        .font(.system(size: 11))
-                        .foregroundStyle(StrandPalette.textTertiary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+                Text("No brief yet")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(StrandPalette.textTertiary)
             } else {
                 Text(briefDisplay)
                     .font(.system(size: 12))
@@ -165,11 +177,11 @@ struct CoachBriefWidget: Widget {
         StaticConfiguration(kind: Self.kind, provider: CoachBriefProvider()) { entry in
             if #available(iOS 17.0, *) {
                 CoachBriefWidgetView(entry: entry)
-                    .containerBackground(StrandPalette.surfaceBase, for: .widget)
+                    .containerBackground(.background, for: .widget)
             } else {
                 CoachBriefWidgetView(entry: entry)
                     .padding()
-                    .background(StrandPalette.surfaceBase)
+                    .background(.background)
             }
         }
         .configurationDisplayName("Coach Brief")

@@ -59,20 +59,19 @@ struct NOOPWidgetView: View {
         }
     }
 
-    // MARK: - Colours (match Today's GlowRing domain constants)
+    // MARK: - Colours (the Summary rings' hues)
 
     private var chargeColor: Color {
-        snap.recovery != nil ? StrandPalette.chargeColor : StrandPalette.textTertiary
+        snap.recovery != nil ? StrandPalette.summaryChargeRing : StrandPalette.textTertiary
     }
 
-    /// Fixed domain accent — `StrandPalette.effortColor`, as the app's Effort ring uses, not the
-    /// value-sampled `effortTint` ramp the old footer bolt used.
+    /// Fixed domain accent — the Summary's Effort ring hue, not a value-sampled ramp.
     private var effortColor: Color {
-        snap.effort != nil ? StrandPalette.effortColor : StrandPalette.textTertiary
+        snap.effort != nil ? StrandPalette.summaryEffortRing : StrandPalette.textTertiary
     }
 
     private var restColor: Color {
-        snap.rest != nil ? StrandPalette.restColor : StrandPalette.textTertiary
+        snap.rest != nil ? StrandPalette.summaryRestRing : StrandPalette.textTertiary
     }
 
     /// Effort centre/accessory text: pre-formatted #313 display when present, else whole-number 0–100.
@@ -145,7 +144,7 @@ struct NOOPWidgetView: View {
                                  ? AnyShapeStyle(StrandPalette.textTertiary)
                                  : AnyShapeStyle(HierarchicalShapeStyle.secondary))
             Text(text ?? "–")
-                .font(.system(size: 15, weight: .semibold, design: .rounded))
+                .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(scoreStyle(hasValue: text != nil, tint: tint))
                 .minimumScaleFactor(0.7)
         }
@@ -236,7 +235,7 @@ struct NOOPWidgetView: View {
                 .foregroundStyle(StrandPalette.textSecondary)
             Spacer()
             Circle()
-                .fill(snap.bonded ? StrandPalette.statusPositive : StrandPalette.statusCritical)
+                .fill(snap.bonded ? StrandPalette.settingsGreen : StrandPalette.settingsRed)
                 .frame(width: 8, height: 8)
                 .accessibilityLabel(snap.bonded ? Text("Connected") : Text("Disconnected"))
         }
@@ -344,7 +343,7 @@ struct NOOPWidgetView: View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text(value ?? "–")
-                    .font(.system(size: 20, weight: .semibold, design: .rounded))
+                    .font(.system(size: 20, weight: .semibold))
                     .foregroundStyle(value == nil ? StrandPalette.textTertiary : tint)
                 if let unit, value != nil {
                     Text(unit).font(.caption2).foregroundStyle(StrandPalette.textTertiary)
@@ -395,7 +394,7 @@ private struct WidgetScoreRing: View {
                         .rotationEffect(.degrees(-90))
                 }
                 Text(text ?? "–")
-                    .font(StrandFont.rounded(diameter * 0.34, weight: .bold))
+                    .font(StrandFont.pro(diameter * 0.34, weight: .bold))
                     .foregroundStyle(text == nil ? StrandPalette.textTertiary : StrandPalette.textPrimary)
                     .monospacedDigit()
                     .lineLimit(1)
@@ -423,11 +422,11 @@ struct NOOPWidget: Widget {
         StaticConfiguration(kind: kind, provider: NOOPProvider()) { entry in
             if #available(iOS 17.0, *) {
                 NOOPWidgetView(entry: entry)
-                    .containerBackground(StrandPalette.surfaceBase, for: .widget)
+                    .containerBackground(.background, for: .widget)
             } else {
                 NOOPWidgetView(entry: entry)
                     .padding()
-                    .background(StrandPalette.surfaceBase)
+                    .background(.background)
             }
         }
         .configurationDisplayName("NOOP")

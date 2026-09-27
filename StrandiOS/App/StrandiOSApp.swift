@@ -74,6 +74,8 @@ struct StrandiOSApp: App {
         let router = NavRouter()
         _router = StateObject(wrappedValue: router)
         NotificationPresenter.shared.onCoachBriefTapped = { [weak router] in router?.openCoach() }
+        // The brief widget shows only while the Coach is on.
+        CoachBriefScheduler.publishMasterSwitch(CoachBriefScheduler.coachMasterEnabled)
         let model = AppModel()
         _model = StateObject(wrappedValue: model)
         // Settings → "Keep screen on while syncing". Wired once here, not as another modifier on `body`.

@@ -39,6 +39,7 @@ enum CoachBriefScheduler {
         // can read it. The app's own UserDefaults.standard isn't visible to the widget.
         static let widgetBriefKey = "coachBrief.widgetText"
         static let widgetBriefDateKey = "coachBrief.widgetDate"
+        static let widgetCoachEnabledKey = "coachBrief.coachEnabled"
     }
 
     /// 07:00 — a brief waiting when you check your phone (matches `ScheduledDebugExport`'s default).
@@ -74,6 +75,9 @@ enum CoachBriefScheduler {
     /// moment the switch goes back on, since the tab returns with it. Android re-arms on the flip instead,
     /// because there the brief is armed from app start rather than from the Coach screen.
     static func applyMasterSwitch(_ on: Bool) {
+        #if os(iOS)
+        publishMasterSwitch(on)
+        #endif
         guard !on else { return }
         cancel()
         // A brief already DELIVERED sits in Notification Centre until the wearer clears it, and tapping it
@@ -152,6 +156,15 @@ enum CoachBriefScheduler {
         // Nudge WidgetKit to reload the coach-brief widget's timeline so it picks up the new text
         // without waiting for the next scheduled refresh. The kind string must match the widget's
         // `kind` property (see CoachBriefWidget.swift in StrandiOSWidgets).
+        WidgetCenter.shared.reloadTimelines(ofKind: Self.widgetKind)
+    }
+
+    /// The Coach master switch, mirrored into the App Group: the brief widget shows only while the Coach
+    /// is on. Called at launch and on every flip of the switch.
+    static func publishMasterSwitch(_ on: Bool) {
+        guard let defaults = UserDefaults(suiteName: WidgetSnapshot.suiteName) else { return }
+        guard defaults.object(forKey: K.widgetCoachEnabledKey) as? Bool != on else { return }
+        defaults.set(on, forKey: K.widgetCoachEnabledKey)
         WidgetCenter.shared.reloadTimelines(ofKind: Self.widgetKind)
     }
     #endif

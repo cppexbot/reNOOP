@@ -133,9 +133,9 @@ struct StressWidgetView: View {
 
     // The ramp's band anchors, taken from the palette tokens the Stress screen's own ramp is built from,
     // rather than the local hexes the Glance twin has to carry. Blue calm, green steady, amber tense.
-    private var calm: Color { StrandPalette.accent }
-    private var steady: Color { StrandPalette.statusPositive }
-    private var tense: Color { StrandPalette.statusWarning }
+    private var calm: Color { StrandPalette.healthMind }
+    private var steady: Color { StrandPalette.settingsGreen }
+    private var tense: Color { StrandPalette.settingsOrange }
 
     /// Vertical, because `StressTrace.segments` maps the score onto Y off a FIXED domain: height already
     /// encodes level, so one top-to-bottom gradient paints every run the colour its own score deserves.
@@ -146,13 +146,18 @@ struct StressWidgetView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Stress")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(StrandPalette.textPrimary)
+            // Health's widget title row: the category glyph and name in its hue.
+            HStack(spacing: 6) {
+                Image(systemName: "brain.head.profile")
+                    .font(.system(size: 12))
+                Text("Stress")
+                    .font(.system(size: 13, weight: .semibold))
+            }
+            .foregroundStyle(StrandPalette.healthMind)
 
             HStack(alignment: .lastTextBaseline, spacing: 4) {
                 Text(latest.map { StressTrace.formatLevel($0) } ?? "—")
-                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                    .font(.system(size: 30, weight: .bold))
                     .foregroundStyle(StrandPalette.textPrimary)
                 if latest != nil {
                     Text("of 3")
@@ -309,11 +314,11 @@ struct StressWidget: Widget {
         StaticConfiguration(kind: Self.kind, provider: StressProvider()) { entry in
             if #available(iOS 17.0, *) {
                 StressWidgetView(entry: entry)
-                    .containerBackground(StrandPalette.surfaceBase, for: .widget)
+                    .containerBackground(.background, for: .widget)
             } else {
                 StressWidgetView(entry: entry)
                     .padding()
-                    .background(StrandPalette.surfaceBase)
+                    .background(.background)
             }
         }
         .configurationDisplayName("Stress")

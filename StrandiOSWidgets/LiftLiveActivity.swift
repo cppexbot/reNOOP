@@ -18,7 +18,7 @@ struct LiftLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: LiftActivityAttributes.self) { context in
             lockScreen(context.state)
-                .activityBackgroundTint(StrandPalette.surfaceBase)
+                .activityBackgroundTint(nil)
                 .activitySystemActionForegroundColor(StrandPalette.textPrimary)
         } dynamicIsland: { context in
             let tint = tint(context.state)
@@ -37,7 +37,7 @@ struct LiftLiveActivity: Widget {
                     .font(.caption)
                     .foregroundStyle(context.state.bpm == nil
                                      ? StrandPalette.textTertiary
-                                     : StrandPalette.metricRose)
+                                     : StrandPalette.healthHeart)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
                     HStack {
@@ -46,7 +46,7 @@ struct LiftLiveActivity: Widget {
                             .foregroundStyle(StrandPalette.textSecondary)
                         Spacer(minLength: 8)
                         clock(context.state, tint: tint)
-                            .font(.system(size: 15, weight: .semibold, design: .rounded))
+                            .font(.system(size: 15, weight: .semibold))
                     }
                 }
             } compactLeading: {
@@ -58,7 +58,7 @@ struct LiftLiveActivity: Widget {
                     Image(systemName: context.state.bpm == nil ? "dumbbell.fill" : "heart.fill")
                 }
                 .font(Self.islandFont)
-                .foregroundStyle(context.state.bpm == nil ? tint : StrandPalette.metricRose)
+                .foregroundStyle(context.state.bpm == nil ? tint : StrandPalette.healthHeart)
             } compactTrailing: {
                 // Sized like the Lock Screen's clock: a running `Text(timerInterval:)` takes every point it
                 // is offered, which stretched the island and left the digits adrift in its middle with blank
@@ -80,13 +80,13 @@ struct LiftLiveActivity: Widget {
     }
 
     /// The Lock Screen clock's face, shared by the clock and the hidden template that sizes it.
-    private static let clockFont = Font.system(size: 22, weight: .bold, design: .rounded)
+    private static let clockFont = Font.system(size: 22, weight: .bold)
     /// The Dynamic Island's compact face, shared by its heart rate, its clock and that clock's template.
-    private static let islandFont = Font.system(size: 13, weight: .semibold, design: .rounded)
+    private static let islandFont = Font.system(size: 13, weight: .semibold)
 
     /// Green while working, amber through the rest — the sheet's and the bar's colour language.
     private func tint(_ state: LiftActivityAttributes.ContentState) -> Color {
-        state.isResting ? StrandPalette.metricAmber : StrandPalette.statusPositive
+        state.isResting ? StrandPalette.fitnessTime : StrandPalette.activityExerciseText
     }
 
     private func lockScreen(_ state: LiftActivityAttributes.ContentState) -> some View {
@@ -136,7 +136,7 @@ struct LiftLiveActivity: Widget {
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(state.bpm == nil
                                  ? StrandPalette.textTertiary
-                                 : StrandPalette.metricRose)
+                                 : StrandPalette.healthHeart)
 
                 Text(verbatim: "00:00")
                     .font(Self.clockFont)

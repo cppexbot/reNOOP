@@ -19,12 +19,12 @@ struct NOOPLiveActivity: Widget {
             HStack(spacing: 14) {
                 Image(systemName: "waveform.path.ecg")
                     .font(.title2)
-                    .foregroundStyle(StrandPalette.statusCritical)
+                    .foregroundStyle(StrandPalette.healthHeart)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(context.attributes.title)
                         .font(.caption).foregroundStyle(StrandPalette.textSecondary)
                     Text("\(Self.shownBpm(context).map(String.init) ?? "–") bpm")
-                        .font(.system(size: 26, weight: .bold, design: .rounded))
+                        .font(.system(size: 26, weight: .bold))
                         .foregroundStyle(StrandPalette.textPrimary)
                 }
                 Spacer()
@@ -39,13 +39,13 @@ struct NOOPLiveActivity: Widget {
                 }
             }
             .padding()
-            .activityBackgroundTint(StrandPalette.surfaceBase)
+            .activityBackgroundTint(nil)
             .activitySystemActionForegroundColor(StrandPalette.textPrimary)
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
                     Label("\(Self.shownBpm(context).map(String.init) ?? "–")", systemImage: "heart.fill")
-                        .foregroundStyle(StrandPalette.statusCritical)
+                        .foregroundStyle(StrandPalette.healthHeart)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     // Charge + Effort (#446) — one more stat alongside the leading live HR.
@@ -62,11 +62,11 @@ struct NOOPLiveActivity: Widget {
                     Text(context.attributes.title).font(.caption).foregroundStyle(.secondary)
                 }
             } compactLeading: {
-                Image(systemName: "heart.fill").foregroundStyle(StrandPalette.statusCritical)
+                Image(systemName: "heart.fill").foregroundStyle(StrandPalette.healthHeart)
             } compactTrailing: {
                 Text("\(Self.shownBpm(context).map(String.init) ?? "–")")
             } minimal: {
-                Image(systemName: "heart.fill").foregroundStyle(StrandPalette.statusCritical)
+                Image(systemName: "heart.fill").foregroundStyle(StrandPalette.healthHeart)
             }
         }
     }
