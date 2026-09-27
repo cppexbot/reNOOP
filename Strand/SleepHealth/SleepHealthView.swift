@@ -15,6 +15,8 @@ struct SleepHealthView: View {
     @EnvironmentObject private var repo: Repository
     @EnvironmentObject private var live: LiveState
     @EnvironmentObject private var intelligence: IntelligenceEngine
+    @EnvironmentObject private var appModel: AppModel
+    @EnvironmentObject private var behavior: BehaviorStore
     @AppStorage(UnitPrefs.systemKey) private var unitSystemRaw = UnitSystem.metric.rawValue
     @AppStorage(UnitPrefs.temperatureKey) private var temperatureRaw = ""
     @AppStorage(UnitPrefs.skinTempDisplayKey) private var skinTempDisplayRaw = ""
@@ -38,6 +40,8 @@ struct SleepHealthView: View {
     @State private var model: SleepModel?
     @State private var night: Night?
     @State private var entries: [SleepNightEntry] = []
+    /// Bumped on appear so the schedule card re-reads the reminder's per-day times after an edit.
+    @State private var scheduleRevision = 0
 
     private static let topAnchorID = "sleepHealth.top"
 
@@ -90,6 +94,7 @@ struct SleepHealthView: View {
         .sheet(item: $addNap) { seed in napSheet(seed) }
         .refreshable { await repo.refresh() }
         .task(id: repo.refreshSeq) { await load() }
+        .onAppear { scheduleRevision += 1 }
         .onChangeCompat(of: nightOffset) { offset in
             night = offset == 0 ? model?.night
                 : SleepModel.decodedNight(at: offset, navDays: navDays,
@@ -179,6 +184,7 @@ struct SleepHealthView: View {
                 SummarySectionHeader(title: "Sleep Schedule")
                 SleepTileGrid(tiles: schedule)
             }
+            scheduleSection
             if let night {
                 // Draws nothing until the body-clock estimate is readable.
                 BodyClockDialSection(actualBedHour: SleepNightDecoding.localClockHour(night.session.effectiveStartTs),
@@ -435,6 +441,36 @@ struct SleepHealthView: View {
         .background(StrandPalette.summaryCard,
                     in: RoundedRectangle(cornerRadius: SummaryCard<EmptyView>.radius, style: .continuous))
         .transition(.opacity)
+    }
+
+    // MARK: - Your schedule
+
+    /// Health's "Your Schedule": the next wake, and the way into the Full Schedule.
+    private var scheduleSection: some View {
+        let _ = scheduleRevision
+        return VStack(alignment: .leading, spacing: 10) {
+            SummarySectionHeader(title: "Your Schedule")
+            NavigationLink(value: TabRoute.sleepSchedule) {
+                SleepNextWakeCard(inputs: SleepScheduleStore.inputs(behavior: behavior, model: appModel),
+                                  trailing: AnyView(fullScheduleRow))
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private var fullScheduleRow: some View {
+        VStack(spacing: 10) {
+            Divider().overlay(StrandPalette.hairline)
+            HStack {
+                Text("Full Schedule & Options")
+                    .font(StrandFont.pro(17))
+                    .foregroundStyle(StrandPalette.textPrimary)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(StrandPalette.textTertiary)
+            }
+        }
     }
 
     // MARK: - Highlights (grouped canvas)

@@ -17,7 +17,7 @@ import XCTest
 final class MoreListParityTests: XCTestCase {
 
     /// Alarms is the destination the iPhone More list had been missing; it must exist in the shared
-    /// sidebar enum (the iPhone `MoreRow("Alarms")` routes to the same `SmartAlarmView`).
+    /// sidebar enum (on iPhone the same `SleepScheduleView` opens from the Sleep tab's "Your Schedule").
     func testSidebarExposesAlarms() {
         XCTAssertTrue(NavItem.allCases.contains(.smartAlarm),
                       "Alarms (smartAlarm) must stay a sidebar destination the iPhone More list mirrors.")

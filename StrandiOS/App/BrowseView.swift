@@ -41,7 +41,6 @@ struct BrowseView: View {
         [
             Entry(id: .live, title: String(localized: "Live Heart Rate"), icon: "waveform.path.ecg", tint: StrandPalette.healthHeart),
             Entry(id: .breathe, title: String(localized: "Breathe"), icon: "lungs.fill", tint: StrandPalette.healthRespiratory),
-            Entry(id: .alarms, title: String(localized: "Alarms"), icon: "alarm.fill", tint: StrandPalette.healthSleepDeep),
             Entry(id: .devices, title: String(localized: "Devices"), icon: "sensor.tag.radiowaves.forward.fill", tint: StrandPalette.textSecondary),
         ].sorted(by: Self.alphabetical)
     }
@@ -116,7 +115,7 @@ struct BrowseView: View {
 /// `RootTabView.browseTab`.
 enum MoreDestination: Hashable {
     case allMetrics, trends, journal, insightsHub, labBook, coach
-    case live, breathe, alarms, devices
+    case live, breathe, devices
 
     @ViewBuilder var destination: some View {
         switch self {
@@ -128,7 +127,6 @@ enum MoreDestination: Hashable {
         case .coach:       CoachView()
         case .live:        LiveView()
         case .breathe:     BreathingView()
-        case .alarms:      SmartAlarmView()
         case .devices:     DevicesView()
         }
     }

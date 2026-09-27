@@ -390,6 +390,8 @@ final class AppModel: ObservableObject {
         // fire once and never re-arm , silent from day two. Re-arm daily so an always-on session keeps
         // waking the user.
         scheduleDailySmartAlarmRearm()
+        // The sleep schedule shows ONE wake time; give the alarm and the bedtime reminder the same one.
+        SleepScheduleStore.reconcileBaseWake(behavior: behavior)
         // Re-apply "Continuous HRV capture" on every (re)bond: if on, the strap should hold the dense
         // realtime stream armed even with no Live screen open, so it banks beat-to-beat R-R 24/7 for
         // better overnight HRV/recovery/sleep. The BLE reconciler arms it on the off→on edge; pushing it
@@ -1669,7 +1671,7 @@ final class AppModel: ObservableObject {
     /// through to BOTH the strap firmware alarm and the backup notification — so a user who sets
     /// "Tuesday 03:30" on the alarm screen is woken at 03:30 on Tuesday, not at the default time with
     /// only the wind-down reminder shifting. Before this, the overrides had exactly two readers
-    /// (`wakeMinutes(forWeekday:)` → the nudge fan-out, and `SmartAlarmView` which edits them) and the
+    /// (`wakeMinutes(forWeekday:)` → the nudge fan-out, and `SleepScheduleView` which edits them) and the
     /// alarm backup took a single time plus a day set, so the control on the alarm screen silently moved
     /// only the evening reminder. Mirrors Android's `reconcileStrapAlarm` which passes `dayOverrides`
     /// to `nextSmartAlarmEpochSec`, and `SmartAlarmScheduler.arm` which reads `targetOverrides`.

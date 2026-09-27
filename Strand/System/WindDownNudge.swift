@@ -182,6 +182,18 @@ enum WindDownNudge {
         if isEnabled { schedule() }
     }
 
+    /// Update the sleep need (the sleep schedule's goal, bedtime → wake), rescheduling if enabled.
+    static func setSleepNeedMinutes(_ minutes: Int) {
+        UserDefaults.standard.set(min(max(minutes, 5 * 60), 11 * 60), forKey: K.sleepNeed)
+        if isEnabled { schedule() }
+    }
+
+    /// Update how long before bedtime the nudge fires, rescheduling if enabled.
+    static func setLeadMinutes(_ minutes: Int) {
+        UserDefaults.standard.set(min(max(minutes, 0), 120), forKey: K.lead)
+        if isEnabled { schedule() }
+    }
+
     /// The minute-of-day the nudge fires: wake − sleepNeed − lead, wrapped into [0, 1440).
     static func nudgeMinuteOfDay() -> Int {
         let raw = wakeMinutes - sleepNeedMinutes - leadMinutes

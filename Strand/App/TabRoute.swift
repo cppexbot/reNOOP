@@ -36,6 +36,8 @@ enum TabRoute: Hashable {
     /// The Sleep page opened on the night that ended on this day ("yyyy-MM-dd") — the Summary's Sleep card
     /// and Rest ring on a past day.
     case sleepNight(String)
+    /// The sleep schedule (Health's Full Schedule): the strap alarm and the bedtime reminder.
+    case sleepSchedule
 }
 
 extension View {
@@ -67,6 +69,7 @@ extension View {
             case .liftLog: LiftLogView()
             case .intervalTimer: IntervalTimerView()
             case .sleepNight(let day): SleepHealthView(initialWakeDay: day)
+            case .sleepSchedule: SleepScheduleView()
             }
         }
     }

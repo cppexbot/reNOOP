@@ -409,7 +409,7 @@ struct RootView: View {
         case .devices: DevicesView()
         case .notifications: NotificationSettingsView()
         case .automation: NotificationsSettingsPage()
-        case .smartAlarm: SmartAlarmView()
+        case .smartAlarm: NavigationStack { SleepScheduleView() }
         case .settings: settingsDetail
         case .testCentre: DeveloperSettingsPage()
         }

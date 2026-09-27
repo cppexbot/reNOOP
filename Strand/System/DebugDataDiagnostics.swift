@@ -551,7 +551,7 @@ enum DebugDataDiagnostics {
                 // having to trust that they belong together.
                 if let readAt { rline += " · read \(relTime(Date().timeIntervalSince1970 - readAt))" }
                 // #34: consecutive rejections — a persistent refusal (vs a one-off) points at a strap whose
-                // alarm register needs a reset, and is what SmartAlarmView warns the user about at ≥2.
+                // alarm register needs a reset, and is what SleepScheduleView warns the user about at ≥2.
                 let streak = d.integer(forKey: "alarm.rejectStreak")
                 if streak >= 2 { rline += " · \(streak) in a row (register likely needs a reset, #34)" }
                 lines.append(rline)

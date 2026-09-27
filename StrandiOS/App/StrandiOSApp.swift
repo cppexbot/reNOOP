@@ -549,6 +549,8 @@ enum DemoScreens {
         case "trends":   return AnyView(TrendsView())
         // The Sleep tab root (Health-style page).
         case "sleep":    return AnyView(SleepHealthView())
+        // The sleep schedule; `--schedule-edit [new]` opens its editor sheet.
+        case "schedule": return AnyView(SleepScheduleView())
         case "summary":  return AnyView(SummaryView())
         case "live":     return AnyView(LiveView())
         case "workouts": return AnyView(NavigationStack { WorkoutsHomeView().tabRouteDestinations() })

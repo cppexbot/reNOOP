@@ -359,6 +359,16 @@ public enum StrandPalette {
     public static let healthSleepCore  = Color(light: "#1F7EFF", dark: "#3D8FFF")
     public static let healthSleepDeep  = Color(light: "#3B33B5", dark: "#5E57E6")
     public static let healthSleepPage  = Color(light: "#FFFFFF", dark: "#000000")
+    /// Sleep schedule (Health's Full Schedule): the schedule's purple, and the bedtime/wake dial — the
+    /// card it sits on, the track ring, the clock face, the bedtime→wake arc, its ticks and end glyphs.
+    public static let sleepSchedule       = Color(light: "#5E5CE6", dark: "#7D7AFF")
+    public static let sleepDialCard       = Color(light: "#F2F2F7", dark: "#2C2C2E")
+    public static let sleepDialTrack      = Color(light: "#E3E3E8", dark: "#000000")
+    public static let sleepDialFace       = Color(light: "#FFFFFF", dark: "#2C2C2E")
+    public static let sleepDialArc        = Color(light: "#FFFFFF", dark: "#3A3A3C")
+    public static let sleepDialArcTick    = Color(light: "#E5E5EA", dark: "#232325")
+    public static let sleepDialKnobGlyph  = Color(light: "#8E8E93", dark: "#98989D")
+    public static let sleepDialSun        = Color(light: "#FFCC00", dark: "#FFD60A")
     /// "Show More Sleep Data" → Comparisons: the Health category hue each overlaid vital is drawn in.
     public static let healthHeart       = Color(light: "#FF2D55", dark: "#FF375F")
     public static let healthRespiratory = Color(light: "#00C7BE", dark: "#63E6E2")
