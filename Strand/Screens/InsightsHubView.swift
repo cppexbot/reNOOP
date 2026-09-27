@@ -484,13 +484,6 @@ final class InsightsHubViewModel: ObservableObject {
             }
         }
         var higherIsBetter: Bool { self != .rhr }
-        var domain: DomainTheme {
-            switch self {
-            case .recovery: return .charge
-            case .hrv, .sleep: return .rest
-            case .rhr: return .stress
-            }
-        }
         func format(_ v: Double) -> String {
             switch self {
             case .recovery, .sleep: return "\(Int(v.rounded()))%"

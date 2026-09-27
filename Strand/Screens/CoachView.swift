@@ -21,6 +21,9 @@ struct CoachView: View {
     private static let draftKey = "coach.composerDraft"
     @State private var draft: String = UserDefaults.standard.string(forKey: "coach.composerDraft") ?? ""
     @FocusState private var composerFocused: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Low Power Mode / Quiet Motion pose the typing dots still too.
+    @ObservedObject private var motion = NoopMotionState.shared
 
     /// #2243: provider, key, model, data access, instructions and the morning brief, in one sheet. A
     /// sheet behaves the same in all three places CoachView appears (macOS route, Browse push, pillar
@@ -221,7 +224,7 @@ struct CoachView: View {
     /// Messages' typing bubble: three grey dots breathing in turn.
     private var typingBubble: some View {
         HStack {
-            TimelineView(.animation) { context in
+            TimelineView(.animation(minimumInterval: nil, paused: motion.poseStill(reduceMotion))) { context in
                 let t = context.date.timeIntervalSinceReferenceDate
                 HStack(spacing: 5) {
                     ForEach(0..<3, id: \.self) { i in

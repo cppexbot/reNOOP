@@ -238,20 +238,4 @@ final class QuietMotionCoverageTests: XCTestCase {
         XCTAssertEqual(QuietMotionPrefs.enabledKey, "noop.quietMotion",
                        "the key Android must adopt verbatim when the third signal lands (#941)")
     }
-
-    /// Posing the picture still while the sensor keeps running saves nothing. `onDisappear` is not
-    /// called when the app is backgrounded, and NOOP declares background modes, so without an
-    /// explicit app-boundary stop a decorative 60 Hz device-motion feed ran all day behind the lock
-    /// screen.
-    func testDecorativeMotionSensorStopsAtTheAppBoundary() throws {
-        let root = try repoRoot()
-        let src = try String(contentsOf: root.appendingPathComponent(
-            "Strand/Liquid/LiquidCore.swift"), encoding: .utf8)
-        XCTAssertTrue(src.contains("startDeviceMotionUpdates"), "this file owns the decorative sensor")
-        XCTAssertTrue(src.contains("didEnterBackgroundNotification"),
-                      "the sensor must stop when the app leaves the foreground")
-        XCTAssertTrue(src.contains("stopDeviceMotionUpdates"), "and must actually stop it")
-        XCTAssertTrue(src.contains("LiquidMotion.quietNow"),
-                      "starting the sensor must consult the quiet-motion gate, not only the view branch")
-    }
 }

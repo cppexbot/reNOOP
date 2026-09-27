@@ -97,7 +97,7 @@ public struct OverviewHRChart: View {
         zoomDomain: Binding<ClosedRange<Date>?> = .constant(nil),
         zoomBounds: ClosedRange<Date>? = nil,
         valueFormat: @escaping (Double) -> String = { String(Int($0.rounded())) },
-        dateFormat: @escaping (Date) -> String = { TrendChart.defaultDateString($0) }
+        dateFormat: @escaping (Date) -> String = { ChartDates.defaultDateString($0) }
     ) {
         let sorted = points.sorted { $0.date < $1.date }
         self.points = sorted
