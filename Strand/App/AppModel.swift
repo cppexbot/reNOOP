@@ -185,10 +185,6 @@ final class AppModel: ObservableObject {
     /// check-in sheet (and any host) surfaces the pending nudge. Owned here so the central hook can reach it. (v5 L3)
     let stressNudgeCenter = StressNudgeCenter()
 
-    /// The running Live Session (silent guardian), if any. Held here so it outlives its screen (⌄) and
-    /// the Summary "+", Browse and the minimised bar all reach the same one.
-    let liveSession = LiveSessionHolder()
-
     private var lastDoubleTapAt: Date = .distantPast
     private var lastCoachZone: Int = -1
     // L3 stress-onset detector state: a rolling R-R buffer + the replay-safe detector state (persisted

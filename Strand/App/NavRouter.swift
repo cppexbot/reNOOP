@@ -24,7 +24,6 @@ final class NavRouter: ObservableObject {
         case labBook
         case trends
         case activeWorkout
-        case liveSession
         case journal
         /// #1862: the Coach screen, opened from the Today Coach launcher sheet once the user picks a
         /// suggestion or submits the composer. The launcher deliberately owns no send/stream/consent
@@ -63,9 +62,6 @@ final class NavRouter: ObservableObject {
     /// presents the in-exercise screen even when the workout is already running, in one tap from the Today
     /// indicator card. The flag is consumed (and cleared) by `LiveView.consumeActiveWorkoutRequest()`.
     func openActiveWorkout() { presentActiveWorkout = true; requestedDestination = .activeWorkout }
-    /// Open a Live Session (silent guardian, beta) — the running one, or a new one. The Summary "+" and
-    /// Browse open it directly; this route is for deep links (an inbox item's "liveSession" key).
-    func openLiveSession() { requestedDestination = .liveSession }
     /// A journal day-offset (daysBack; -1 = Tomorrow) the Today journal widget deep-linked to, so tapping
     /// a SPECIFIC day's bar opens the journal at THAT day instead of always today (#656). InsightsView
     /// consumes it on appear and clears it back to nil. nil = open at today (the default).

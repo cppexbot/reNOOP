@@ -13,7 +13,7 @@ final class HapticPrefsTests: XCTestCase {
     /// An UNSET key reads ON — a fresh install buzzes as the features always did (no migration needed).
     func testUnsetKeysDefaultOn() {
         let d = freshDefaults()
-        for key in [HapticPrefs.breathing, HapticPrefs.intervals, HapticPrefs.liveSession, HapticPrefs.workout] {
+        for key in [HapticPrefs.breathing, HapticPrefs.intervals, HapticPrefs.workout] {
             XCTAssertTrue(HapticPrefs.enabled(key, d), "\(key) must default on")
         }
     }

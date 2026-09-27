@@ -4,17 +4,14 @@
 //  Modelled on the iOS 26 Health app's search tab: a large title, a bold "Categories" header over one
 //  card of rows (a tinted glyph, the name, a chevron) in alphabetical order, and a second, headerless
 //  card below it, as Health keeps Clinical Documents apart. The rows push `MoreDestination` values so
-//  a re-tap of the tab pops them off its bound path (#135/#198), except Live Session, which opens over
-//  the whole display as it does from the Summary "+". Settings is not here: it opens from the Summary
-//  avatar (Health's profile sheet).
+//  a re-tap of the tab pops them off its bound path (#135/#198). Settings is not here: it opens from the
+//  Summary avatar (Health's profile sheet).
 
 import SwiftUI
 import StrandDesign
 
 struct BrowseView: View {
     @AppStorage("noop.coachEnabled") private var coachEnabled = true
-    @AppStorage(LiveSessionPrefs.betaKey) private var liveSessionsBeta = true
-    @EnvironmentObject private var router: NavRouter
     @State private var query = ""
 
     struct Entry: Identifiable {
@@ -76,10 +73,7 @@ struct BrowseView: View {
                         .textCase(nil)
                         .padding(.bottom, 4)
                 }
-                Section {
-                    rows(tools)
-                    if liveSessionsBeta { liveSessionRow }
-                }
+                Section { rows(tools) }
             }
         }
         .listStyle(.insetGrouped)
@@ -93,23 +87,6 @@ struct BrowseView: View {
                 ContentUnavailableView.search(text: query)
             }
         }
-    }
-
-    /// Live Session opens a cover, not a page, so its row is a button (same look, no chevron).
-    private var liveSessionRow: some View {
-        Button { router.openLiveSession() } label: {
-            Label {
-                Text("Live Session")
-                    .font(StrandFont.pro(17, weight: .semibold))
-                    .foregroundStyle(StrandPalette.textPrimary)
-            } icon: {
-                Image(systemName: "shield.lefthalf.filled")
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundStyle(StrandPalette.metricCyan)
-            }
-        }
-        .frame(height: 51)
-        .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20))
     }
 
     private func rows(_ entries: [Entry]) -> some View {

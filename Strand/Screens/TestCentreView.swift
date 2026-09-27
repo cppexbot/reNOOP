@@ -149,8 +149,6 @@ struct TestCentreView: View {
     // both default OFF.
     @AppStorage(PuffinExperiment.ppgHrSubLagInterpKey) private var ppgHrSubLagInterpEnabled = false
     @AppStorage(PuffinExperiment.hrvReadinessKey) private var hrvReadinessEnabled = false
-    /// Live Sessions (beta): the Start-session control. Same key the Browse entry reads.
-    @AppStorage(LiveSessionPrefs.betaKey) private var liveSessionsBeta = true
     /// Sleep staging V2 (default ON). Read at the staging call site in `Repository`.
     @AppStorage(PuffinExperiment.experimentalSleepV2Key) private var experimentalSleepV2Enabled = true
     /// #364 follow-up (default OFF): fold a wake block with no locomotion back into light sleep.
@@ -567,7 +565,6 @@ struct TestCentreView: View {
     /// ExperimentalAlgorithmsCard.
     @ViewBuilder private var experimentalAlgorithmsSections: some View {
         Section {
-            Toggle("Live Sessions (beta)", isOn: $liveSessionsBeta)
             Toggle("Sleep staging (V2)", isOn: $experimentalSleepV2Enabled)
             Toggle("Motion-aware wake refinement", isOn: $motionAwareWakeEnabled)
             // Split out of the old 5/MG card so an Oura-only install can reach it too.

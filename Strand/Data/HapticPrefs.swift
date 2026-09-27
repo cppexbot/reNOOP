@@ -3,8 +3,8 @@ import Foundation
 /// Per-event toggles for NOOP's IN-SESSION strap-haptic cues (#1115) — the byte-parity twin of the Android
 /// `HapticPrefs` (same key strings, same default-on).
 ///
-/// These cues are feedback to something the user explicitly started (Breathing pacer, Interval timer, Live
-/// Session coach cues, workout start/end, biofeedback/resonance), so they DEFAULT ON (opt-out): a fresh
+/// These cues are feedback to something the user explicitly started (Breathing pacer, Interval timer,
+/// workout start/end, biofeedback/resonance), so they DEFAULT ON (opt-out): a fresh
 /// install buzzes as the features always did, and a user turns off any individual cue. (The AMBIENT cues —
 /// inactivity / stress / calls — keep their own opt-in keys.) Nonisolated (plain `UserDefaults`) so any
 /// actor can read a gate at a buzz site.
@@ -17,7 +17,6 @@ enum HapticPrefs {
     /// than sharing `intervals`: someone who wants a silent interval timer at home may well still
     /// want the buzz at the rack, where the phone is face-down on a bench.
     static let liftRest = "haptics.liftRest"
-    static let liveSession = "haptics.liveSession"
     static let workout = "haptics.workout"
 
     /// Whether an in-session cue may fire. DEFAULT-ON: an UNSET key must read `true`. `UserDefaults.bool`

@@ -263,8 +263,6 @@ struct RootView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(StrandPalette.surfaceBase.ignoresSafeArea())
         }
-        // The Live Session sheet (a session outlives its screen; the Summary "+" opens it).
-        .background { LiveSessionShellHost() }
         .task {
             await repo.refresh()
             // Backup & Sync: on-launch catch-up. Gated on the auto toggle being ON (default OFF). A
@@ -288,8 +286,6 @@ struct RootView: View {
             // The Today active-workout indicator routes to the Live surface; LiveView then consumes the
             // one-shot `presentActiveWorkout` flag on appear to open the in-exercise screen.
             case .activeWorkout: selection = .live
-            // A Live Session opens over the Summary (`LiveSessionShellHost` below presents it).
-            case .liveSession: selection = .today
             // The #627 Today journal widget routes to the Journal sidebar row.
             case .journal: selection = .journal
             // #1862: the Today Coach card's launcher hands off here, so the send/stream/consent surface

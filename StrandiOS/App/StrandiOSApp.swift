@@ -2,7 +2,6 @@
 import SwiftUI
 import StrandDesign
 import UserNotifications
-import WhoopStore
 
 /// iOS entry point. Unlike the macOS app (which adds a `MenuBarExtra` scene), iOS uses a single
 /// `WindowGroup`; the glanceable menu-bar role is filled by the Home/Lock-Screen widget instead.
@@ -557,8 +556,6 @@ enum DemoScreens {
         case "live":     return AnyView(LiveView())
         // Breathe; `--breathe-demo session|summary|stress` opens a session, its summary, or the check-in.
         case "breathe":  return AnyView(BreathingView())
-        // A Live Session over the Summary; `--session-demo summary` shows the end card instead.
-        case "session":  return AnyView(LiveSessionDemoHost(summary: args.contains("summary")))
         case "workouts": return AnyView(NavigationStack { WorkoutsHomeView().tabRouteDestinations() })
         case "intervals": return AnyView(NavigationStack { IntervalTimerView() })
         case "liftlog":  return AnyView(NavigationStack { LiftLogView().tabRouteDestinations() })
@@ -603,29 +600,6 @@ private struct SettingsDemoHost: View {
     var body: some View {
         NavigationStack(path: $path) {
             SettingsView().settingsDestinations()
-        }
-    }
-}
-
-/// DEBUG-only: a Live Session opened over the Summary as the "+" opens it, or its end card with a
-/// plausible banked row (the simulator has no strap, so a real session can't reach one).
-private struct LiveSessionDemoHost: View {
-    @EnvironmentObject var model: AppModel
-    let summary: Bool
-
-    var body: some View {
-        if summary {
-            LiveSessionSummaryView(row: LiveSessionRow(startTs: 0, endTs: 2_400, chargeAtStart: 67, floorBpm: 118,
-                                                       ceilingBpm: 142, inBandSec: 1_680, belowSec: 420, aboveSec: 300,
-                                                       pushCount: 2, easeCount: 1, hrSource: "whoop"),
-                                   guardedCount: 4) {}
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.black.ignoresSafeArea())
-                .preferredColorScheme(.dark)
-        } else {
-            SummaryView()
-                .background { LiveSessionShellHost() }
-                .onAppear { model.liveSession.open() }
         }
     }
 }

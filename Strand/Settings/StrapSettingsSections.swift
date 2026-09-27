@@ -186,14 +186,12 @@ struct StrapHapticsSection: View {
 
     @AppStorage(HapticPrefs.breathing) private var breathingHaptic = true
     @AppStorage(HapticPrefs.intervals) private var intervalsHaptic = true
-    @AppStorage(HapticPrefs.liveSession) private var liveSessionHaptic = true
     @AppStorage(HapticPrefs.workout) private var workoutHaptic = true
 
     var body: some View {
         Section {
             Toggle("Breathing pacer", isOn: $breathingHaptic)
             Toggle("Interval timer", isOn: $intervalsHaptic)
-            Toggle("Live Session cues", isOn: $liveSessionHaptic)
             Toggle("Workout start & end", isOn: $workoutHaptic)
             Toggle("HR zones", isOn: $behavior.zoneCoaching)
         }

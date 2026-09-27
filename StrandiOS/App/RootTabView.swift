@@ -114,8 +114,6 @@ struct RootTabView: View {
         .sheet(item: $quickAction) { action in
             quickActionDestination(action)
         }
-        // Live Session owns the whole display, so it is a cover; ⌄ leaves it running under the bar below.
-        .background { LiveSessionShellHost() }
         // Live's "Manage devices" affordance (and any future cross-screen link to Devices) routes here:
         // present the Devices manager in its own nav stack, the same way the quick-action screens do.
         .sheet(isPresented: $showDevices) {
@@ -159,8 +157,6 @@ struct RootTabView: View {
                 // in-exercise screen. Calm sheet easing, matching the other quick-action presents.
                 withAnimation(Self.sheetEase) { quickAction = .live }
                 router.requestedDestination = nil
-            case .liveSession:
-                break   // `LiveSessionShellHost` opens it.
             case .journal:
                 // The #627 Today journal widget opens the journal through the quick-action Journal sheet
                 // (InsightsView), matching the FAB's "Log journal" action. Calm sheet easing.
@@ -195,10 +191,6 @@ struct RootTabView: View {
             }
         }
         .animation(.easeInOut(duration: 0.25), value: liftSession.isActive)
-        // A Live Session put away with ⌄, above the tab bar the same way; it pads itself only while shown.
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            LiveSessionShellBar(insets: EdgeInsets(top: 0, leading: 14, bottom: NoopMetrics.tabBarClearance, trailing: 14))
-        }
         // A session left running by a previous launch is back before this view exists
         // (`LiftSessionController.resumeSaved`, from `StrandiOSApp.init`), as the BAR — not as a sheet
         // thrown in the user's face; they open it when they want it.
@@ -241,9 +233,6 @@ struct RootTabView: View {
                 // .activeWorkout routes through the quick-action Live sheet (handled above); this keeps the
                 // switch exhaustive and falls back to Live if it ever reaches the pillar host.
                 case .activeWorkout: LiveView()
-                // .liveSession opens its cover through `LiveSessionShellHost`; this keeps the switch
-                // exhaustive and falls back to the Summary if it ever reaches the host.
-                case .liveSession: SummaryView()
                 // .journal opens through the quick-action Journal sheet (handled above); this keeps the
                 // switch exhaustive and falls back to the journal's Insights host if it ever reaches here.
                 case .journal: JournalView()

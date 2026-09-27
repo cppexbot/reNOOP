@@ -2,9 +2,8 @@ import XCTest
 import WhoopStore
 @testable import Strand
 
-/// The pure pieces behind the Heart Rate (Live) page, Breathe and Live Session: today's hourly range folded
-/// from the five-minute buckets, the RMSSD a breathing session shows, the length a protocol recommends, the
-/// session summary's verdict, and the holder a minimised session lives in.
+/// The pure pieces behind the Heart Rate (Live) page and Breathe: today's hourly range folded from the
+/// five-minute buckets, the RMSSD a breathing session shows, and the session length a protocol recommends.
 final class LiveBreathHelpersTests: XCTestCase {
 
     private let utc: Calendar = {
@@ -76,42 +75,5 @@ final class LiveBreathHelpersTests: XCTestCase {
         XCTAssertEqual(BreathHub.clock(0), "0:00")
         XCTAssertEqual(BreathHub.clock(65), "1:05")
         XCTAssertEqual(BreathHub.clock(600), "10:00")
-    }
-
-    func testSessionVerdict() {
-        func row(_ inBand: Double, _ below: Double, _ above: Double) -> LiveSessionRow {
-            LiveSessionRow(startTs: 0, endTs: 1, chargeAtStart: nil, floorBpm: 110, ceilingBpm: 140,
-                           inBandSec: inBand, belowSec: below, aboveSec: above, pushCount: 0, easeCount: 0,
-                           hrSource: "whoop")
-        }
-        let cases: [(name: String, row: LiveSessionRow, want: String)] = [
-            ("under five minutes", row(200, 50, 49),
-             String(localized: "Too short to judge — the band needs a few minutes to mean anything.")),
-            ("held", row(700, 200, 100), String(localized: "You held the band. Right where today wanted you.")),
-            ("in and out", row(400, 300, 300), String(localized: "In and out, but the band won more than it lost.")),
-            ("mostly under", row(100, 600, 300),
-             String(localized: "Mostly under the band — there was more in the tank today.")),
-            ("mostly over", row(100, 300, 600),
-             String(localized: "Mostly over the band — harder than today's Charge could pay for.")),
-        ]
-        for c in cases { XCTAssertEqual(LiveSessionSummaryView.verdict(row: c.row), c.want, c.name) }
-        XCTAssertEqual(LiveSessionSummaryView.clock(0), "0:00")
-        XCTAssertEqual(LiveSessionSummaryView.clock(3_599.6), "60:00")
-    }
-
-    @MainActor
-    func testSessionHolderKeepsTheRunnerUntilFinished() {
-        let holder = LiveSessionHolder()
-        XCTAssertNil(holder.runner)
-        holder.open()
-        let first = holder.runner
-        XCTAssertNotNil(first)
-        XCTAssertTrue(holder.isPresented)
-        holder.isPresented = false          // ⌄
-        holder.open()                       // "+" again: the same session comes back
-        XCTAssertTrue(holder.runner === first)
-        holder.finish()
-        XCTAssertNil(holder.runner)
-        XCTAssertFalse(holder.isPresented)
     }
 }
