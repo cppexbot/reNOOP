@@ -38,11 +38,6 @@ struct RootTabView: View {
 
     /// Which quick-action screen the centre FAB is presenting (nil = sheet closed).
     @State private var quickAction: QuickAction?
-    /// Live Session (silent guardian, beta) owns the whole display, so it is a cover rather than a
-    /// quick-action sheet. Started from the quick-action menu or a `.liveSession` deep link.
-    @State private var showLiveSession = false
-    /// Sizes the quick-action menu for its optional Start-session row.
-    @AppStorage(LiveSessionPrefs.betaKey) private var liveSessionsBeta = true
     /// Presents the Devices manager (pair / switch bands) when a screen asks the shell to open it.
     @State private var showDevices = false
     /// A routed v5 pillar screen (Insights hub / Lab Book / fused record / Rhythm) presented as a sheet
@@ -119,9 +114,8 @@ struct RootTabView: View {
         .sheet(item: $quickAction) { action in
             quickActionDestination(action)
         }
-        .fullScreenCover(isPresented: $showLiveSession) {
-            LiveSessionView(onClose: { showLiveSession = false })
-        }
+        // Live Session owns the whole display, so it is a cover; ⌄ leaves it running under the bar below.
+        .background { LiveSessionShellHost() }
         // Live's "Manage devices" affordance (and any future cross-screen link to Devices) routes here:
         // present the Devices manager in its own nav stack, the same way the quick-action screens do.
         .sheet(isPresented: $showDevices) {
@@ -166,9 +160,7 @@ struct RootTabView: View {
                 withAnimation(Self.sheetEase) { quickAction = .live }
                 router.requestedDestination = nil
             case .liveSession:
-                // The shell owns the Live Session cover (the Summary home has no Start entry of its own).
-                showLiveSession = true
-                router.requestedDestination = nil
+                break   // `LiveSessionShellHost` opens it.
             case .journal:
                 // The #627 Today journal widget opens the journal through the quick-action Journal sheet
                 // (InsightsView), matching the FAB's "Log journal" action. Calm sheet easing.
@@ -176,13 +168,6 @@ struct RootTabView: View {
                 router.requestedDestination = nil
             case nil:
                 break
-            }
-        }
-        // A screen's top-bar "+" routes here: open the quick-action sheet, then clear the flag.
-        .onChange(of: router.quickActionsRequested) { _, req in
-            if req {
-                withAnimation(Self.sheetEase) { quickAction = .menu }
-                router.quickActionsRequested = false
             }
         }
         // A cold-launch selection is already pending when this shell appears; a warm selection arrives
@@ -210,6 +195,10 @@ struct RootTabView: View {
             }
         }
         .animation(.easeInOut(duration: 0.25), value: liftSession.isActive)
+        // A Live Session put away with ⌄, above the tab bar the same way; it pads itself only while shown.
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            LiveSessionShellBar(insets: EdgeInsets(top: 0, leading: 14, bottom: NoopMetrics.tabBarClearance, trailing: 14))
+        }
         // A session left running by a previous launch is back before this view exists
         // (`LiftSessionController.resumeSaved`, from `StrandiOSApp.init`), as the BAR — not as a sheet
         // thrown in the user's face; they open it when they want it.
@@ -287,25 +276,10 @@ struct RootTabView: View {
 
     // MARK: - Quick-action sheet
 
-    /// Routes a chosen quick action to the existing screen, or shows the action menu itself.
+    /// Routes a Home Screen quick action to its screen.
     @ViewBuilder
     private func quickActionDestination(_ action: QuickAction) -> some View {
         switch action {
-        case .menu:
-            QuickActionSheet { picked in
-                // Swap the menu for the chosen destination on the next runloop so the sheet
-                // re-presents cleanly (avoids dismiss/re-present races). Calm easing on re-present.
-                quickAction = nil
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                    if picked == .liveSession {
-                        showLiveSession = true
-                    } else {
-                        withAnimation(Self.sheetEase) { quickAction = picked }
-                    }
-                }
-            }
-            .presentationDetents([.height(liveSessionsBeta ? 410 : 344)])
-            .presentationDragIndicator(.hidden)
         case .live:
             quickScreen(LiveView())
         case .workout:
@@ -314,9 +288,6 @@ struct RootTabView: View {
             quickScreen(JournalView())
         case .breathe:
             quickScreen(BreathingView())
-        case .liveSession:
-            // Routed to the cover above before it could get here.
-            EmptyView()
         }
     }
 
@@ -431,93 +402,12 @@ struct RootTabView: View {
 }
 
 
-// MARK: - Quick actions (centre FAB)
+// MARK: - Quick actions (Home Screen icon menu)
 
-/// The destinations the centre FAB can present. `.menu` is the action sheet itself; the rest
-/// route to existing screens. `Identifiable` so it drives `.sheet(item:)`.
+/// The screens a Home Screen quick action opens, as a sheet. `Identifiable` so it drives `.sheet(item:)`.
 private enum QuickAction: Int, Identifiable {
-    case menu, live, workout, journal, breathe
-    /// Never presented as a sheet: the shell swaps the menu for the full-screen Live Session cover.
-    case liveSession
+    case live, workout, journal, breathe
     var id: Int { rawValue }
-}
-
-/// The bottom sheet of quick actions presented by the centre FAB. Spec bottom sheet: surfaceOverlay
-/// fill, gold hairline top edge, grab handle, three flat action rows that route to existing screens.
-private struct QuickActionSheet: View {
-    /// Called with the picked destination (the host swaps the menu for that screen).
-    let onPick: (QuickAction) -> Void
-    @AppStorage(LiveSessionPrefs.betaKey) private var liveSessionsBeta = true
-
-    var body: some View {
-        VStack(spacing: 0) {
-            // Grab handle (36×4) in the slate hairline tone.
-            Capsule()
-                .fill(StrandPalette.hairlineStrong)
-                .frame(width: 36, height: 4)
-                .padding(.top, 10)
-                .padding(.bottom, 14)
-
-            Text("QUICK ACTIONS")
-                .font(StrandFont.overline)
-                .tracking(1.6)
-                .foregroundStyle(StrandPalette.textTertiary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 16)
-                .padding(.bottom, 10)
-
-            VStack(spacing: 8) {
-                row("Live HR", icon: "waveform.path.ecg", tint: StrandPalette.metricRose) { onPick(.live) }
-                row("Start workout", icon: "figure.run", tint: StrandPalette.effortColor) { onPick(.workout) }
-                row("Log journal", icon: "square.and.pencil", tint: StrandPalette.accent) { onPick(.journal) }
-                row("Breathe", icon: "wind", tint: StrandPalette.restColor) { onPick(.breathe) }
-                if liveSessionsBeta {
-                    row("Start session", icon: "shield.lefthalf.filled", tint: StrandPalette.metricCyan) {
-                        onPick(.liveSession)
-                    }
-                }
-            }
-            .padding(.horizontal, 16)
-
-            Spacer(minLength: 0)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(
-            NoopChromeSurface()
-                .overlay(alignment: .top) {
-                    // Gold hairline top edge per the bottom-sheet spec.
-                    Rectangle()
-                        .fill(StrandPalette.gold.opacity(0.35))
-                        .frame(height: 1)
-                }
-                .ignoresSafeArea()
-        )
-    }
-
-    /// One flat action row: hued line-icon tile + title, inset surface, hairline border.
-    private func row(_ title: LocalizedStringKey, icon: String, tint: Color, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 13) {
-                Image(systemName: icon)
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(tint)
-                    .frame(width: 38, height: 38)
-                    .background(RoundedRectangle(cornerRadius: 11, style: .continuous).fill(StrandPalette.surfaceInset))
-                Text(title)
-                    .font(StrandFont.headline)
-                    .foregroundStyle(StrandPalette.textPrimary)
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(StrandPalette.textTertiary)
-            }
-            .padding(.vertical, 10)
-            .padding(.horizontal, 12)
-            .background(NoopPanelSurface(cornerRadius: 14))
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
 }
 
 #endif

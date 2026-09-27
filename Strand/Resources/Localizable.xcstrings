@@ -1,6 +1,14 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "CHARGE\nTODAY": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "ЗАРЯД\nСЕГОДНЯ"}} } },
+    "Guarding": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Охрана"}} } },
+    "No live reading": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Нет данных в реальном времени"}} } },
+    "Coaching pauses until the strap is back.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Подсказки на паузе, пока нет браслета."}} } },
+    "Cues stay quiet for the first minute.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Первую минуту подсказок не будет."}} } },
+    "Silence means you're on track.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Тишина — значит, всё по плану."}} } },
+    "Time in band": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Время в коридоре"}} } },
+    "None": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Нет"}} } },
     "No Limit": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Без ограничения"}} } },
     "Your pace · %@ br/min": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Ваш темп · %@ вд/мин"}} } },
     "Find your pace": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Найти свой темп"}} } },

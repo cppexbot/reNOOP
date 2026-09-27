@@ -1,281 +1,166 @@
 //  LiveSessionView.swift
-//  NOOP · Live Sessions (silent guardian) — the in-session screen + summary sheet.
+//  NOOP · Live Sessions (silent guardian, beta) on the shared recording screen — the one a workout, a gym
+//  session and an interval timer use (`RecordingChrome`): always dark, the phase in the heading with one
+//  line of intent under it, then the heart rate and today's Charge as large figures, and the dark panel
+//  with the running clock, the time held in band and ✕ to end. ⌄ puts the screen away while the session
+//  keeps guarding; a bar above the tab bar brings it back. It ends on one summary card.
 //
-//  Deliberately near-empty: one breathing ring, one line of intent, one honest Charge
-//  sentence that fades, an End button. The ring is the whole language — lit teal and
-//  breathing in band, dimmed below, hot above, grey when the stream is stale (coaching
-//  paused, nothing claimed). NO live HR number by default; a long-press on the ring
-//  reveals the engine's smoothed bpm. A thin outer arc fills with time held in band,
-//  toward an hour. Every value on screen is the engine's `Output`, verbatim — this
-//  file renders, it never decides.
+//  Every value on screen is the engine's `Output` verbatim (via `LiveSessionRunner`) — this file renders,
+//  it never decides. Coaching is silence while in band: the strap buzzes only to push or ease off.
+//
+//  PERF: the runner publishes about once a second, so only leaves observe it (`LiveSessionFigures`,
+//  `LiveSessionHeldRing`, the bar's read-out); the screen itself observes the holder, which changes only
+//  when a session starts, ends or is shown.
 //
 //  Design contract: docs/superpowers/specs/2026-07-04-live-sessions-design.md.
 
 import SwiftUI
+import Combine
 import StrandDesign
 import StrandAnalytics
 import WhoopStore
+
+// MARK: - Holder
+
+/// The session outlives its screen: ⌄ hides the screen, the runner keeps guarding. Held by `AppModel`, so
+/// the Summary "+", Browse and the bar all reach the same one.
+@MainActor
+final class LiveSessionHolder: ObservableObject {
+    @Published private(set) var runner: LiveSessionRunner?
+    @Published var isPresented = false
+    private var endWatch: AnyCancellable?
+
+    /// Show the running session, or start a new one.
+    func open() {
+        if runner == nil || runner?.finalRow != nil {
+            let fresh = LiveSessionRunner()
+            runner = fresh
+            // Both end paths (✕ and the ten-minute stale auto-end) bring the summary up, even minimised.
+            endWatch = fresh.$finalRow.sink { [weak self] row in
+                if row != nil { self?.isPresented = true }
+            }
+        }
+        isPresented = true
+    }
+
+    /// The summary was read: forget the session.
+    func finish() {
+        isPresented = false
+        runner = nil
+        endWatch = nil
+    }
+}
+
+/// A shell's Live Session: the cover, and the `.liveSession` route (a deep link) opening it. Reads the
+/// holder off `AppModel` in this leaf, so the shell itself never observes the model.
+struct LiveSessionShellHost: View {
+    @EnvironmentObject private var model: AppModel
+    @EnvironmentObject private var router: NavRouter
+
+    var body: some View {
+        LiveSessionCoverHost(holder: model.liveSession)
+            .onChangeCompat(of: router.requestedDestination) { dest in
+                guard dest == .liveSession else { return }
+                router.requestedDestination = nil
+                model.liveSession.open()
+            }
+    }
+}
+
+/// The minimised bar for a shell, reading the holder off `AppModel` the same way.
+struct LiveSessionShellBar: View {
+    @EnvironmentObject private var model: AppModel
+    var insets = EdgeInsets()
+
+    var body: some View { LiveSessionBar(holder: model.liveSession, insets: insets) }
+}
+
+/// Presents the session full screen (a sheet on the Mac) whenever the holder asks.
+struct LiveSessionCoverHost: View {
+    @ObservedObject var holder: LiveSessionHolder
+
+    var body: some View {
+        Color.clear.frame(width: 0, height: 0)
+            #if os(iOS)
+            .fullScreenCover(isPresented: $holder.isPresented) { content }
+            #else
+            .sheet(isPresented: $holder.isPresented) { content.frame(minWidth: 480, minHeight: 680) }
+            #endif
+    }
+
+    @ViewBuilder private var content: some View {
+        if let runner = holder.runner {
+            LiveSessionView(runner: runner, holder: holder)
+        }
+    }
+}
+
+// MARK: - Session screen
 
 struct LiveSessionView: View {
     @EnvironmentObject private var model: AppModel
     @EnvironmentObject private var repo: Repository
     @EnvironmentObject private var profile: ProfileStore
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    /// Low Power Mode / the in-app quiet-motion toggle. The guardian breath is a `repeatForever`
-    /// animation that never settles, so it belongs behind the same gate as the liquid surfaces.
-    /// The Android twin gated `LiveSessionScreen`'s breath under battery saver in #911.
-    @ObservedObject private var motion = NoopMotionState.shared
+    let runner: LiveSessionRunner
+    @ObservedObject var holder: LiveSessionHolder
 
-    /// "Card transparency" (0–100, default 100): fades the live-session cards in lockstep with the frosted
-    /// cards; content stays readable. Mirrors Kotlin `NoopPrefs.cardOpacityPercent`.
-    @AppStorage(CardAppearancePrefs.opacityKey) private var cardOpacityPercent = CardAppearancePrefs.defaultPercent
-    private var cardOpacity: Double { max(0, min(1, Double(cardOpacityPercent) / 100)) }
-
-    /// One runner per presentation — created here, started on appear, never restarted.
-    @StateObject private var runner = LiveSessionRunner()
-    let onClose: () -> Void
-
-    /// Long-press reveal for the live (smoothed) bpm — off by default, per the contract.
-    @State private var showBpm = false
-    /// The one Charge sentence: shown for 6 s, then fades and stays gone.
-    @State private var chargeLineVisible = true
-    /// Caller-owned draw for BevelGauge: eases to each new smoothed position. HOLDS the last position
-    /// while stale — the grey tint says "no reading"; snapping to zero would invent a collapse.
-    @State private var ringFraction: Double = 0
-    /// The thin outer "time held in band" arc, filling toward an hour.
-    @State private var heldFraction: Double = 0
-    /// The slow in-band breathing scale (the only motion on screen).
-    @State private var breathe = false
-    @State private var showSummary = false
-    /// "N sessions guarded" for the summary streak line, read from the store when the session ends.
+    /// Whether the session has ended — the one runner change this screen itself follows.
+    @State private var ended = false
     @State private var guardedCount: Int?
 
-    private let ringDiameter: CGFloat = 250
-
     var body: some View {
-        VStack(spacing: 0) {
-            header
-                .padding(.top, NoopMetrics.space6)
-            Spacer()
-            ring
-            Text(guardianLine)
-                .font(StrandFont.subhead)
-                .foregroundStyle(StrandPalette.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.top, NoopMetrics.space6)
-                .padding(.horizontal, NoopMetrics.space6)
-            chargeSentence
-                .padding(.top, NoopMetrics.space3)
-                .padding(.horizontal, NoopMetrics.space6)
-            Spacer()
-            NoopButton("End session", systemImage: "stop.fill", kind: .destructive, fullWidth: true) {
-                endSession()
+        Group {
+            if ended, let row = runner.finalRow {
+                LiveSessionSummaryView(row: row, guardedCount: guardedCount) { holder.finish() }
+            } else {
+                recording
             }
         }
-        .screenPadding()
-        .padding(.vertical, NoopMetrics.space6)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(StrandPalette.surfaceBase.ignoresSafeArea())
-        #if os(macOS)
-        .frame(minWidth: 480, minHeight: 640)
-        #endif
+        .background(Color.black.ignoresSafeArea())
+        .preferredColorScheme(.dark)
         .onAppear {
+            // No-op for a runner already guarding (a re-opened session) or already ended.
             runner.start(model: model, repo: repo, ble: model.ble, profile: profile)
+            ended = runner.finalRow != nil
+            if ended { loadGuardedCount() }
         }
-        // Left without ending (a dismissed sheet on macOS, a shell teardown): end cleanly so the
-        // realtime-HR arm is balanced and the row's totals are banked. Guarded — a normal End already set
-        // finalRow, so this only catches the escape paths.
-        .onDisappear {
-            if runner.finalRow == nil { runner.end() }
-        }
-        // Both end paths (the End tap and the 10-min stale auto-end) land here: load the streak count,
-        // then raise the summary.
-        .onChangeCompat(of: runner.finalRow) { row in
+        .onReceive(runner.$finalRow.dropFirst()) { row in
             guard row != nil else { return }
             loadGuardedCount()
-            showSummary = true
-        }
-        .onChangeCompat(of: runner.output) { out in advance(to: out) }
-        .task { await fadeChargeSentenceLater() }
-        .sheet(isPresented: $showSummary, onDismiss: { onClose() }) {
-            if let row = runner.finalRow {
-                LiveSessionSummarySheet(row: row, guardedCount: guardedCount) {
-                    showSummary = false   // onDismiss closes the whole session screen
-                }
-            }
+            ended = true
         }
     }
 
-    // MARK: - Header
-
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text("SILENT GUARDIAN")
-                .font(StrandFont.overline).tracking(StrandFont.overlineTracking)
-                .foregroundStyle(StrandPalette.metricCyan)
-            HStack(spacing: NoopMetrics.space2) {
-                Text("Live Session")
-                    .font(StrandFont.title1).foregroundStyle(StrandPalette.textPrimary)
-                betaPill
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var betaPill: some View {
-        Text("BETA")
-            .font(StrandFont.overlineScaled(8.5)).tracking(1.2)
-            .foregroundStyle(StrandPalette.textSecondary)
-            .padding(.horizontal, 8).padding(.vertical, 2.5)
-            .background(Capsule().fill(StrandPalette.surfaceInset)
-                .overlay(Capsule().strokeBorder(StrandPalette.hairline, lineWidth: 1)))
-            .accessibilityLabel("Beta feature")
-    }
-
-    // MARK: - Ring
-
-    /// The whole instrument: BevelGauge showing the smoothed position across [floor−20, ceiling+20],
-    /// a thin outer arc of time held in band, tinted by the engine's position, breathing only while
-    /// in band and active. Long-press toggles the bpm read-out.
-    private var ring: some View {
-        ZStack {
-            // Thin outer arc: time held in band this session, filling toward 60 min. Same 240° open
-            // geometry as the gauge (start 150°, span 240°) so the two read as one instrument.
-            Circle()
-                .trim(from: 0, to: heldFraction * (240.0 / 360.0))
-                .rotation(.degrees(150))
-                .stroke(StrandPalette.metricCyan.opacity(0.55),
-                        style: StrokeStyle(lineWidth: 3, lineCap: .round))
-                .frame(width: ringDiameter + 26, height: ringDiameter + 26)
-            BevelGauge(
-                fraction: ringFraction,
-                stops: [Gradient.Stop(color: ringTint.opacity(0.7), location: 0),
-                        Gradient.Stop(color: ringTint, location: 1)],
-                tipColor: ringTint,
-                numberText: bpmText,
-                captionText: showBpm ? "bpm" : nil,
-                stateText: nil,
-                diameter: ringDiameter,
-                showsLabel: showBpm,
-                animatedFraction: ringFraction,
-                bloomActive: false
-            )
-        }
-        .scaleEffect(breathe ? 1.03 : 1.0)
-        .contentShape(Circle())
-        .onLongPressGesture { showBpm.toggle() }
-        .onChangeCompat(of: isBreathing) { on in setBreathing(on) }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(ringAccessibilityLabel))
-        .accessibilityHint(Text("Long press to show or hide your heart rate."))
-    }
-
-    /// Breathing is the "on track" signal: only in band, only once active, never when anything is
-    /// asking for quiet (Reduce Motion, Low Power Mode, or "Reduce motion in NOOP").
-    private var isBreathing: Bool {
-        !motion.poseStill(reduceMotion)
-            && runner.output?.status == .active
-            && runner.output?.position == .inBand
-    }
-
-    private func setBreathing(_ on: Bool) {
-        if on {
-            withAnimation(.easeInOut(duration: 2.6).repeatForever(autoreverses: true)) { breathe = true }
-        } else {
-            withAnimation(.easeOut(duration: 0.5)) { breathe = false }
+    private var recording: some View {
+        VStack(spacing: 0) {
+            RecordingTopBar { holder.isPresented = false }
+            LiveSessionFigures(runner: runner)
+                .padding(.horizontal, 28)
+            RecordingPanel(
+                glyph: AnyView(Image(systemName: "shield.lefthalf.filled")
+                    .font(.system(size: 19, weight: .semibold))
+                    .foregroundStyle(StrandPalette.metricCyan)),
+                clock: {
+                    TimelineView(.periodic(from: .now, by: 1)) { ctx in
+                        RecordingClockText(text: ActiveWorkoutClock.clock(LiveSessionView.elapsed(runner, at: ctx.date)),
+                                           tint: StrandPalette.metricCyan)
+                    }
+                    .accessibilityLabel(Text("Elapsed time"))
+                },
+                trailing: { LiveSessionHeldRing(runner: runner) },
+                leading: { Color.clear.frame(width: 76, height: 76) },
+                center: {
+                    RecordingButton(symbol: "xmark", size: 112, tint: StrandPalette.statusCritical,
+                                    label: "End session") { runner.end() }
+                },
+                right: { Color.clear.frame(width: 76, height: 76) })
         }
     }
 
-    /// The engine's smoothed bpm, only when revealed and only when it exists — a stale stream shows a
-    /// dash, never a held or guessed number.
-    private var bpmText: String {
-        guard let s = runner.output?.smoothedBpm else { return "—" }
-        return "\(Int(s.rounded()))"
-    }
-
-    private var ringTint: Color {
-        guard let out = runner.output, out.smoothedBpm != nil else {
-            return StrandPalette.textTertiary   // stale / no reading yet: grey, no coaching claims
-        }
-        switch out.position {
-        case .inBand: return StrandPalette.metricCyan               // lit: on track
-        case .below:  return StrandPalette.metricCyan.opacity(0.3)  // dim: too easy for today
-        case .above:  return StrandPalette.statusCritical           // hot: today can't pay for this
-        }
-    }
-
-    private var ringAccessibilityLabel: String {
-        guard let out = runner.output, out.smoothedBpm != nil else {
-            return String(localized: "No live reading. Coaching is paused.")
-        }
-        switch out.position {
-        case .inBand: return String(localized: "In your band. On track.")
-        case .below:  return String(localized: "Below your band.")
-        case .above:  return String(localized: "Above your band.")
-        }
-    }
-
-    /// Ease the arc to each new smoothed position across [floor−20, ceiling+20]; hold while stale.
-    private func advance(to out: LiveSessionEngine.Output?) {
-        guard let out else { return }
-        if let s = out.smoothedBpm {
-            let lo = out.band.floorBpm - 20
-            let hi = out.band.ceilingBpm + 20
-            if hi > lo {
-                let f = min(max((s - lo) / (hi - lo), 0), 1)
-                withAnimation(.easeOut(duration: 0.9)) { ringFraction = f }
-            }
-        }
-        withAnimation(.linear(duration: 1.0)) {
-            heldFraction = min(out.inBandSeconds / 3600, 1)
-        }
-    }
-
-    // MARK: - Lines
-
-    /// The screen's one line of intent, honest per engine status — a stale stream never claims guarding.
-    private var guardianLine: String {
-        switch runner.output?.status {
-        case .stale, .none:
-            return String(localized: "No live reading. Coaching is paused until the strap comes back.")
-        case .warmup:
-            return String(localized: "Warming up. Cues stay quiet for the first minute.")
-        case .active:
-            return String(localized: "Guarding your session. Silence means you're on track.")
-        }
-    }
-
-    /// The one honest Charge sentence — what the band is and why — shown for 6 s, then gone.
-    private var chargeSentence: some View {
-        Text(chargeLineText)
-            .font(StrandFont.footnote)
-            .foregroundStyle(StrandPalette.textTertiary)
-            .multilineTextAlignment(.center)
-            .opacity(chargeLineVisible ? 1 : 0)
-            .accessibilityHidden(!chargeLineVisible)
-    }
-
-    private var chargeLineText: String {
-        guard let band = runner.baseBand else { return "" }
-        let floor = Int(band.floorBpm.rounded()), ceiling = Int(band.ceilingBpm.rounded())
-        if let charge = runner.chargeAtStart {
-            return String(localized: "Charge \(Int(charge.rounded())) today, so your band is \(floor)–\(ceiling) bpm.")
-        }
-        return String(localized: "No Charge banked today, so your band takes a careful middle course: \(floor)–\(ceiling) bpm.")
-    }
-
-    /// 6 s on screen, then a slow fade — the sentence said its piece; the ring carries it from here.
-    /// Runs inside `.task`, so a torn-down screen cancels the sleep and skips the (now moot) fade.
-    private func fadeChargeSentenceLater() async {
-        try? await Task.sleep(nanoseconds: 6_000_000_000)
-        guard !Task.isCancelled else { return }
-        withAnimation(.easeOut(duration: 1.2)) { chargeLineVisible = false }
-    }
-
-    // MARK: - End
-
-    private func endSession() {
-        runner.end()   // finalRow lands via onChangeCompat → summary sheet
+    /// Seconds since the session started (0 before it has).
+    static func elapsed(_ runner: LiveSessionRunner, at date: Date) -> Int {
+        runner.startTs > 0 ? max(0, Int(date.timeIntervalSince1970) - runner.startTs) : 0
     }
 
     /// "N sessions guarded" — completed sessions in the recent look-back, this one included (its final
@@ -290,126 +175,285 @@ struct LiveSessionView: View {
     }
 }
 
-// MARK: - Summary sheet
+/// The phase and its line of intent, then the engine's smoothed heart rate against today's band and the
+/// Charge the band was drawn from. Observes the runner, so a tick redraws these and nothing around them.
+private struct LiveSessionFigures: View {
+    @ObservedObject var runner: LiveSessionRunner
 
-/// The end-of-session read-out: time in / below / above the band, the cues sent, a plain verdict, and
-/// the streak line. Everything comes off the banked `LiveSessionRow` — the same record the look-back
-/// reads, so this sheet and history can never disagree.
-struct LiveSessionSummarySheet: View {
+    private var out: LiveSessionEngine.Output? { runner.output }
+    private var reading: Bool { out?.smoothedBpm != nil }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            RecordingHeading(caption: phase, tint: tint, title: intent)
+                .padding(.top, 12)
+            Spacer(minLength: 16)
+            LiveFigure(value: out?.smoothedBpm.map { "\(Int($0.rounded()))" } ?? "--",
+                       label: positionLabel, tint: reading ? tint : .white)
+            Spacer(minLength: 8)
+            LiveFigure(value: runner.chargeAtStart.map { "\(Int($0.rounded()))" } ?? "--",
+                       unit: runner.chargeAtStart == nil ? "" : "%",
+                       label: String(localized: "CHARGE\nTODAY"))
+            Spacer(minLength: 16)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var phase: String {
+        switch out?.status {
+        case .active: return String(localized: "Guarding")
+        case .warmup: return String(localized: "Warming up")
+        case .stale, .none: return String(localized: "No live reading")
+        }
+    }
+
+    /// One line, honest per status — a stale stream never claims guarding.
+    private var intent: String {
+        switch out?.status {
+        case .stale, .none: return String(localized: "Coaching pauses until the strap is back.")
+        case .warmup: return String(localized: "Cues stay quiet for the first minute.")
+        case .active: return String(localized: "Silence means you're on track.")
+        }
+    }
+
+    private var tint: Color {
+        guard let out, out.smoothedBpm != nil else { return .white.opacity(0.6) }
+        switch out.position {
+        case .inBand: return StrandPalette.metricCyan
+        case .below: return StrandPalette.metricCyan.opacity(0.55)
+        case .above: return StrandPalette.statusCritical
+        }
+    }
+
+    /// Where the heart sits against today's band, with the band itself: "IN BAND 118–142".
+    private var positionLabel: String {
+        let band = out?.band ?? runner.baseBand
+        let range = band.map { "\(Int($0.floorBpm.rounded()))–\(Int($0.ceilingBpm.rounded()))" } ?? ""
+        let word: String
+        switch (reading, out?.position) {
+        case (true, .inBand?): word = String(localized: "In band")
+        case (true, .below?): word = String(localized: "Below band")
+        case (true, .above?): word = String(localized: "Above band")
+        default: word = String(localized: "Band")
+        }
+        return "\(word)\n\(range)"
+    }
+}
+
+/// Time held in band this session, filling toward an hour — the ring beside the clock.
+private struct LiveSessionHeldRing: View {
+    @ObservedObject var runner: LiveSessionRunner
+
+    var body: some View {
+        let held = min((runner.output?.inBandSeconds ?? 0) / 3600, 1)
+        ZStack {
+            Circle().stroke(StrandPalette.metricCyan.opacity(0.25), lineWidth: 6)
+            Circle()
+                .trim(from: 0, to: held)
+                .stroke(StrandPalette.metricCyan, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .animation(.linear(duration: 1), value: held)
+        }
+        .padding(3)
+        .accessibilityElement()
+        .accessibilityLabel(Text("Time in band"))
+        .accessibilityValue(Text(LiveSessionSummaryView.clock(runner.output?.inBandSeconds ?? 0)))
+    }
+}
+
+// MARK: - Summary
+
+/// The end-of-session card: a plain verdict, time in / below / above the band, the cues sent, the band,
+/// and the streak line. Everything comes off the banked `LiveSessionRow` — the record history reads, so
+/// the two can never disagree.
+struct LiveSessionSummaryView: View {
     let row: LiveSessionRow
     let guardedCount: Int?
     let onDone: () -> Void
-    @AppStorage(CardAppearancePrefs.opacityKey) private var cardOpacityPercent = CardAppearancePrefs.defaultPercent
-    private var cardOpacity: Double { max(0, min(1, Double(cardOpacityPercent) / 100)) }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: NoopMetrics.sectionSpacing) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("LIVE SESSION")
-                    .font(StrandFont.overline).tracking(StrandFont.overlineTracking)
-                    .foregroundStyle(StrandPalette.metricCyan)
-                Text("Session summary")
-                    .font(StrandFont.title1).foregroundStyle(StrandPalette.textPrimary)
-            }
-            .padding(.top, NoopMetrics.space6)
-
-            Text(Self.verdict(row: row))
-                .font(StrandFont.body)
-                .foregroundStyle(StrandPalette.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            summaryCard {
-                bandRow(String(localized: "In band"), seconds: row.inBandSec, tint: StrandPalette.metricCyan)
-                bandRow(String(localized: "Below band"), seconds: row.belowSec, tint: StrandPalette.textTertiary)
-                bandRow(String(localized: "Above band"), seconds: row.aboveSec, tint: StrandPalette.statusCritical)
-            }
-
-            summaryCard {
-                HStack {
-                    Text("Cues sent").font(StrandFont.subhead).foregroundStyle(StrandPalette.textSecondary)
-                    Spacer()
-                    Text(cueLine).font(StrandFont.captionNumber).foregroundStyle(StrandPalette.textPrimary)
-                }
-                HStack {
-                    Text("Band").font(StrandFont.subhead).foregroundStyle(StrandPalette.textSecondary)
-                    Spacer()
-                    Text("\(Int(row.floorBpm.rounded()))–\(Int(row.ceilingBpm.rounded())) bpm")
-                        .font(StrandFont.captionNumber).foregroundStyle(StrandPalette.textPrimary)
-                }
-            }
-
-            if let n = guardedCount, n > 0 {
-                Text(n == 1 ? String(localized: "1 session guarded")
-                            : String(localized: "\(n) sessions guarded"))
-                    .font(StrandFont.footnote)
-                    .foregroundStyle(StrandPalette.textTertiary)
-                    .frame(maxWidth: .infinity, alignment: .center)
-            }
-
-            Spacer(minLength: NoopMetrics.space3)
-            NoopButton("Done", kind: .primary, fullWidth: true) { onDone() }
-        }
-        .screenPadding()
-        .padding(.vertical, NoopMetrics.space6)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(StrandPalette.surfaceBase.ignoresSafeArea())
-        #if os(macOS)
-        .frame(minWidth: 420, minHeight: 520)
-        #endif
-    }
-
-    // MARK: Rows
-
-    private func bandRow(_ label: String, seconds: Double, tint: Color) -> some View {
-        HStack(spacing: NoopMetrics.rowSpacing) {
-            Circle().fill(tint).frame(width: 8, height: 8)
-            Text(label).font(StrandFont.subhead).foregroundStyle(StrandPalette.textSecondary)
+        VStack(spacing: 0) {
             Spacer()
-            Text(Self.clock(seconds))
-                .font(StrandFont.number(17)).monospacedDigit()
-                .foregroundStyle(StrandPalette.textPrimary)
+            Image(systemName: "shield.lefthalf.filled")
+                .font(.system(size: 44, weight: .semibold))
+                .foregroundStyle(StrandPalette.metricCyan)
+            Text("Live Session")
+                .font(StrandFont.pro(28, weight: .bold))
+                .foregroundStyle(.white)
+                .padding(.top, 14)
+            Text(Self.verdict(row: row))
+                .font(StrandFont.pro(17))
+                .foregroundStyle(.white.opacity(0.7))
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 32)
+                .padding(.top, 6)
+            VStack(spacing: 0) {
+                bandRow(String(localized: "In band"), row.inBandSec, StrandPalette.metricCyan)
+                divider
+                bandRow(String(localized: "Below band"), row.belowSec, .white.opacity(0.4))
+                divider
+                bandRow(String(localized: "Above band"), row.aboveSec, StrandPalette.statusCritical)
+                divider
+                line(String(localized: "Cues sent"), cueLine)
+                divider
+                line(String(localized: "Band"), "\(Int(row.floorBpm.rounded()))–\(Int(row.ceilingBpm.rounded())) \(String(localized: "bpm"))")
+            }
+            .padding(.horizontal, 16)
+            .background(Color.white.opacity(0.1), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .padding(.horizontal, 20)
+            .padding(.top, 24)
+            if let n = guardedCount, n > 0 {
+                Text(n == 1 ? String(localized: "1 session guarded") : String(localized: "\(n) sessions guarded"))
+                    .font(StrandFont.pro(15))
+                    .foregroundStyle(.white.opacity(0.5))
+                    .padding(.top, 14)
+            }
+            Spacer()
+            Button(action: onDone) {
+                Text("Done")
+                    .font(StrandFont.pro(17, weight: .semibold))
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(Capsule().fill(StrandPalette.metricCyan))
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 20)
+            .padding(.bottom, 24)
         }
     }
 
-    private func summaryCard<V: View>(@ViewBuilder _ content: () -> V) -> some View {
-        VStack(alignment: .leading, spacing: NoopMetrics.rowSpacing) { content() }
-            .padding(16)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(NoopPanelSurface(cornerRadius: 22, surfaceOpacity: cardOpacity))
+    private var divider: some View { Divider().overlay(Color.white.opacity(0.15)) }
+
+    private func bandRow(_ label: String, _ seconds: Double, _ tint: Color) -> some View {
+        HStack(spacing: 10) {
+            Circle().fill(tint).frame(width: 8, height: 8)
+            Text(label).foregroundStyle(.white.opacity(0.6))
+            Spacer()
+            Text(Self.clock(seconds)).monospacedDigit().foregroundStyle(.white)
+        }
+        .font(StrandFont.pro(17))
+        .padding(.vertical, 13)
+    }
+
+    private func line(_ label: String, _ value: String) -> some View {
+        HStack {
+            Text(label).foregroundStyle(.white.opacity(0.6))
+            Spacer(minLength: 12)
+            Text(value).foregroundStyle(.white).multilineTextAlignment(.trailing)
+        }
+        .font(StrandFont.pro(17))
+        .padding(.vertical, 13)
     }
 
     private var cueLine: String {
-        if row.pushCount == 0 && row.easeCount == 0 {
-            return String(localized: "None — silence, start to finish")
-        }
+        if row.pushCount == 0 && row.easeCount == 0 { return String(localized: "None") }
         var parts: [String] = []
         if row.pushCount > 0 { parts.append(String(localized: "\(row.pushCount) push")) }
         if row.easeCount > 0 { parts.append(String(localized: "\(row.easeCount) ease-off")) }
         return parts.joined(separator: " · ")
     }
 
-    // MARK: Verdict (pure + honest — fractions of the banked totals, no editorialising beyond them)
-
+    /// Pure + honest — fractions of the banked totals, nothing beyond them.
     static func verdict(row: LiveSessionRow) -> String {
         let total = row.inBandSec + row.belowSec + row.aboveSec
         guard total >= 300 else {
             return String(localized: "Too short to judge — the band needs a few minutes to mean anything.")
         }
         let inFrac = row.inBandSec / total
-        if inFrac >= 0.7 {
-            return String(localized: "You held the band. Right where today wanted you.")
-        }
-        if inFrac >= 0.4 {
-            return String(localized: "In and out, but the band won more than it lost.")
-        }
+        if inFrac >= 0.7 { return String(localized: "You held the band. Right where today wanted you.") }
+        if inFrac >= 0.4 { return String(localized: "In and out, but the band won more than it lost.") }
         return row.belowSec >= row.aboveSec
             ? String(localized: "Mostly under the band — there was more in the tank today.")
             : String(localized: "Mostly over the band — harder than today's Charge could pay for.")
     }
 
-    /// m:ss off the banked seconds (sessions are an hour-scale affair; no hour arithmetic needed).
+    /// m:ss off the banked seconds (sessions are an hour-scale affair).
     static func clock(_ seconds: Double) -> String {
         let s = max(0, Int(seconds.rounded()))
         return String(format: "%d:%02d", s / 60, s % 60)
+    }
+}
+
+// MARK: - Minimised bar
+
+/// The session put away with ⌄, as a bar above the tab bar (the gym session's bar): the shield, the phase,
+/// the heart rate and the clock. Tap to bring the screen back.
+struct LiveSessionBar: View {
+    @ObservedObject var holder: LiveSessionHolder
+    /// Applied only while the bar shows, so a hidden bar takes no room.
+    var insets = EdgeInsets()
+
+    var body: some View {
+        if let runner = holder.runner, !holder.isPresented, runner.finalRow == nil {
+            Button { holder.isPresented = true } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "shield.lefthalf.filled")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(StrandPalette.metricCyan)
+                        .frame(width: 38, height: 38)
+                        .background(Circle().fill(StrandPalette.metricCyan.opacity(0.18)))
+                        .accessibilityHidden(true)
+                    LiveSessionBarReadout(runner: runner)
+                }
+                .padding(8)
+                .liveSessionBarGlass()
+                .contentShape(Capsule())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("Open the running session"))
+            .padding(insets)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
+    }
+}
+
+private struct LiveSessionBarReadout: View {
+    @ObservedObject var runner: LiveSessionRunner
+
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Live Session")
+                    .font(StrandFont.pro(15, weight: .semibold))
+                    .foregroundStyle(StrandPalette.textPrimary)
+                Text(runner.output?.status == .active ? String(localized: "Guarding")
+                     : runner.output?.status == .warmup ? String(localized: "Warming up")
+                     : String(localized: "No live reading"))
+                    .font(StrandFont.pro(13))
+                    .foregroundStyle(StrandPalette.textSecondary)
+            }
+            Spacer(minLength: 6)
+            VStack(alignment: .trailing, spacing: 1) {
+                HStack(spacing: 3) {
+                    Image(systemName: "heart.fill").font(.system(size: 11, weight: .semibold))
+                    Text(runner.output?.smoothedBpm.map { "\(Int($0.rounded()))" } ?? "—")
+                        .font(StrandFont.pro(15, weight: .semibold)).monospacedDigit()
+                }
+                .foregroundStyle(runner.output?.smoothedBpm == nil ? StrandPalette.textTertiary : StrandPalette.healthHeart)
+                TimelineView(.periodic(from: .now, by: 1)) { ctx in
+                    Text(ActiveWorkoutClock.clock(LiveSessionView.elapsed(runner, at: ctx.date)))
+                        .font(.system(size: 20, weight: .semibold, design: .rounded)).monospacedDigit()
+                        .foregroundStyle(StrandPalette.metricCyan)
+                }
+            }
+            .padding(.trailing, 8)
+        }
+    }
+}
+
+private extension View {
+    /// Interactive Liquid Glass on iOS 26 / macOS 26, a material capsule before.
+    @ViewBuilder func liveSessionBarGlass() -> some View {
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, macOS 26.0, *) {
+            self.glassEffect(.regular.interactive(), in: Capsule())
+        } else {
+            self.background(.ultraThinMaterial, in: Capsule())
+        }
+        #else
+        self.background(.ultraThinMaterial, in: Capsule())
+        #endif
     }
 }

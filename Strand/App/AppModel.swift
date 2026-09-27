@@ -181,9 +181,13 @@ final class AppModel: ObservableObject {
     @Published var circadianPhase: CircadianEngine.PhaseEstimate?
 
     /// The L3 passive-nudge surface (haptic biofeedback "stress check-in"). The detector fires onto this
-    /// from `evaluateStress`; both app roots inject it into the environment so the Breathe screen's card
-    /// (and any host) surfaces the pending nudge. Owned here so the central hook can reach it. (v5 L3)
+    /// from `evaluateStress`; both app roots inject it into the environment so the Breathe screen's
+    /// check-in sheet (and any host) surfaces the pending nudge. Owned here so the central hook can reach it. (v5 L3)
     let stressNudgeCenter = StressNudgeCenter()
+
+    /// The running Live Session (silent guardian), if any. Held here so it outlives its screen (⌄) and
+    /// the Summary "+", Browse and the minimised bar all reach the same one.
+    let liveSession = LiveSessionHolder()
 
     private var lastDoubleTapAt: Date = .distantPast
     private var lastCoachZone: Int = -1

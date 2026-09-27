@@ -46,19 +46,12 @@ final class NavRouter: ObservableObject {
     /// active shell (macOS sidebar / iOS tab) reacts and routes itself, then resets this to nil.
     @Published var requestedDestination: Destination?
 
-    /// Set when a screen's top-bar "+" asks the shell to open the quick-action sheet (the sheet lives
-    /// in the iOS shell). The shell presents it, then resets this to false.
-    @Published var quickActionsRequested = false
-
     /// One-shot: `LiveView` reads this on appear to present the in-exercise screen for an already-running
     /// workout (routing alone only reaches the Live root), then clears it. A normal Live visit is
     /// unaffected, since the flag is only raised by `openActiveWorkout()` from the Today indicator card.
     /// The #238 "a workout just started" transition trigger never fires for a session that is already in
     /// flight, so this is the one path that re-opens the live workout for an existing session.
     @Published var presentActiveWorkout = false
-
-    /// Ask the shell to open the quick-action sheet (Live HR · workout · journal · breathe).
-    func requestQuickActions() { quickActionsRequested = true }
 
     /// Ask the shell to open the Devices manager (pair / switch bands). The shell decides how.
     func openDevices() { requestedDestination = .devices }
@@ -70,9 +63,8 @@ final class NavRouter: ObservableObject {
     /// presents the in-exercise screen even when the workout is already running, in one tap from the Today
     /// indicator card. The flag is consumed (and cleared) by `LiveView.consumeActiveWorkoutRequest()`.
     func openActiveWorkout() { presentActiveWorkout = true; requestedDestination = .activeWorkout }
-    /// Open a Live Session (silent guardian, beta). The Liquid Today entry presents the session screen
-    /// directly today; this route exists for deep-link parity so a future shell/inbox item can raise it
-    /// the same way as every other destination.
+    /// Open a Live Session (silent guardian, beta) — the running one, or a new one. The Summary "+" and
+    /// Browse open it directly; this route is for deep links (an inbox item's "liveSession" key).
     func openLiveSession() { requestedDestination = .liveSession }
     /// A journal day-offset (daysBack; -1 = Tomorrow) the Today journal widget deep-linked to, so tapping
     /// a SPECIFIC day's bar opens the journal at THAT day instead of always today (#656). InsightsView

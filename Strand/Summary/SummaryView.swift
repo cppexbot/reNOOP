@@ -30,9 +30,6 @@ struct SummaryView: View {
 
     @State private var showSettings = false
     @State private var customization: TodayCustomizationDestination?
-    #if os(macOS)
-    @State private var showLiveSession = false
-    #endif
 
     // The pinned list is the shared Key Metrics selection; the editor sheet needs every Today binding.
     @AppStorage(KeyMetricPrefs.layoutKey) private var keyMetricsRaw = ""
@@ -93,7 +90,16 @@ struct SummaryView: View {
         // Health's chrome: a native large title that folds into the bar on scroll.
         .navigationTitle(Text("Summary"))
         .navigationBarTitleDisplayMode(.large)
-        .toolbar { avatarToolbarItem }
+        .toolbar {
+            avatarToolbarItem
+            // "+" in the bar: a Live Session (the running one, or a new one) over the whole display.
+            ToolbarItem(placement: .topBarTrailing) {
+                if liveSessionsBeta {
+                    Button { router.openLiveSession() } label: { Image(systemName: "plus") }
+                        .accessibilityLabel(Text("Start session"))
+                }
+            }
+        }
         #endif
         .refreshable { await refresh() }
         .task(id: "sleep-\(repo.refreshSeq)-\(dayOffset)") {
@@ -124,9 +130,6 @@ struct SummaryView: View {
             ProfileSheet(onClose: { showSettings = false })
         }
         #if os(macOS)
-        .sheet(isPresented: $showLiveSession) {
-            LiveSessionView(onClose: { showLiveSession = false })
-        }
         .toolbarBackground(.hidden, for: .windowToolbar)
         #endif
     }
@@ -183,7 +186,7 @@ struct SummaryView: View {
     #if os(macOS)
     @ViewBuilder private var addButton: some View {
         if liveSessionsBeta {
-            headerButton(systemImage: "plus", label: "Start session") { showLiveSession = true }
+            headerButton(systemImage: "plus", label: "Start session") { router.openLiveSession() }
         }
     }
     #endif
