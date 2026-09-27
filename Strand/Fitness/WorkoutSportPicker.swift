@@ -151,6 +151,8 @@ struct WorkoutSheetCloseButton: View {
 
 /// ✓ in the trailing toolbar slot, tinted Exercise green: the iOS 26 confirm role, a checkmark before it.
 struct WorkoutSheetConfirmButton: View {
+    /// Fitness's green by default; Health's sheets confirm in blue.
+    var tint: Color = StrandPalette.activityExerciseText
     let action: () -> Void
 
     var body: some View {
@@ -165,7 +167,7 @@ struct WorkoutSheetConfirmButton: View {
             fallback
             #endif
         }
-        .tint(StrandPalette.activityExerciseText)
+        .tint(tint)
     }
 
     private var fallback: some View {

@@ -46,7 +46,7 @@ struct CoachView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(StrandPalette.messagePage.ignoresSafeArea())
+        .background(StrandPalette.plainPage.ignoresSafeArea())
         .navigationTitle(Text("Coach"))
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)

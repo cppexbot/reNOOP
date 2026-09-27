@@ -59,8 +59,8 @@ struct JournalView: View {
                 sectionHeader("To Log")
                 logCards
                 if !loggedRows.isEmpty {
-                    sectionHeader("Logged")
                     loggedCard
+                        .padding(.top, NoopMetrics.space2)
                 }
             }
             .padding(.horizontal, NoopMetrics.screenHPadding)
@@ -71,7 +71,7 @@ struct JournalView: View {
             .frame(maxWidth: .infinity)
             #endif
         }
-        .background(StrandPalette.summaryCanvas.ignoresSafeArea())
+        .background(StrandPalette.plainPage.ignoresSafeArea())
         .navigationTitle(Text("Journal"))
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
@@ -310,39 +310,48 @@ struct JournalView: View {
         return rows
     }
 
+    /// Health's "Logged" card: grey on the white page, its title inside above a hairline.
     private var loggedCard: some View {
         let rows = loggedRows
-        return SummaryCard {
-            VStack(alignment: .leading, spacing: 0) {
-                ForEach(Array(rows.enumerated()), id: \.element.id) { i, row in
-                    HStack(spacing: 10) {
-                        Image(systemName: row.done ? "checkmark.circle.fill" : "minus.circle.fill")
-                            .font(.system(size: 18))
-                            .foregroundStyle(row.done ? tint : StrandPalette.textTertiary)
-                        Text(verbatim: row.title)
-                            .font(StrandFont.pro(17))
-                            .foregroundStyle(StrandPalette.textPrimary)
-                            .lineLimit(1)
-                        Spacer(minLength: 8)
-                        Text(verbatim: row.value)
-                            .font(StrandFont.pro(17))
-                            .foregroundStyle(StrandPalette.textSecondary)
-                            .lineLimit(1)
+        return VStack(alignment: .leading, spacing: 0) {
+            Text("Logged")
+                .font(StrandFont.pro(17, weight: .semibold))
+                .foregroundStyle(StrandPalette.textPrimary)
+                .padding(.vertical, 12)
+                .accessibilityAddTraits(.isHeader)
+            Rectangle().fill(StrandPalette.hairline).frame(height: NoopMetrics.hairlineWidth)
+            ForEach(Array(rows.enumerated()), id: \.element.id) { i, row in
+                HStack(spacing: 10) {
+                    Image(systemName: row.done ? "checkmark.circle.fill" : "minus.circle.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(row.done ? tint : StrandPalette.textTertiary)
+                    Text(verbatim: row.title)
+                        .font(StrandFont.pro(17))
+                        .foregroundStyle(StrandPalette.textPrimary)
+                        .lineLimit(1)
+                    Spacer(minLength: 8)
+                    Text(verbatim: row.value)
+                        .font(StrandFont.pro(17))
+                        .foregroundStyle(StrandPalette.textSecondary)
+                        .lineLimit(1)
+                }
+                .padding(.vertical, 10)
+                .contentShape(Rectangle())
+                .contextMenu {
+                    if let remove = row.remove {
+                        Button(role: .destructive, action: remove) { Label("Delete", systemImage: "trash") }
                     }
-                    .padding(.vertical, 10)
-                    .contentShape(Rectangle())
-                    .contextMenu {
-                        if let remove = row.remove {
-                            Button(role: .destructive, action: remove) { Label("Delete", systemImage: "trash") }
-                        }
-                    }
-                    if i < rows.count - 1 {
-                        Rectangle().fill(StrandPalette.hairline).frame(height: NoopMetrics.hairlineWidth)
-                            .padding(.leading, 28)
-                    }
+                }
+                if i < rows.count - 1 {
+                    Rectangle().fill(StrandPalette.hairline).frame(height: NoopMetrics.hairlineWidth)
+                        .padding(.leading, 28)
                 }
             }
         }
+        .padding(.horizontal, 16)
+        .padding(.bottom, 4)
+        .background(StrandPalette.plainPageCard,
+                    in: RoundedRectangle(cornerRadius: SummaryCard<EmptyView>.radius, style: .continuous))
     }
 
     private func sectionHeader(_ title: LocalizedStringKey) -> some View {
@@ -428,7 +437,7 @@ struct JournalHabitsSheet: View {
             #endif
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
+                    WorkoutSheetConfirmButton(tint: StrandPalette.settingsBlue) { dismiss() }
                 }
             }
             .alert("Rename…", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
