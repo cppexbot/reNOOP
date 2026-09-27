@@ -1163,28 +1163,28 @@ final class AppModel: ObservableObject {
         ble.connect(model: chosen)
     }
     func disconnect() { ble.disconnect() }
-    /// Restart the connected strap (user-initiated, confirmation-gated in DevicesView). Non-destructive —
+    /// Restart the connected strap (user-initiated, confirmation-gated in DeviceDetailView). Non-destructive —
     /// the strap keeps its data and re-advertises after boot; NOOP auto-reconnects. See BLEManager.rebootStrap().
     func rebootStrap() { ble.rebootStrap() }
     /// Send one WHOOP 4.0 reboot-probe candidate (Test Centre → Connection, 4.0 only). Confirmation-gated
-    /// in DevicesView; finds the real 4.0 reboot frame when the production one is ignored (#235).
+    /// in DeviceDetailView; finds the real 4.0 reboot frame when the production one is ignored (#235).
     func rebootProbe(_ variant: RebootProbeVariant) { ble.rebootProbe(variant) }
 
     /// #592 read-only extended-battery opcode probe (Devices → strap menu, Test Centre → Connection gated).
     func probeExtendedBatteryInfo() { ble.probeExtendedBatteryInfo() }
     func clearExtendedBatteryProbe() { ble.clearExtendedBatteryProbe() }
 
-    // #690: read-only body-location/status probe (0x54). User-initiated, Test-Centre-gated in DevicesView.
+    // #690: read-only body-location/status probe (0x54). User-initiated, Test-Centre-gated in DeviceDetailView.
     func probeBodyLocationAndStatus() { ble.probeBodyLocationAndStatus() }
     func clearBodyLocationProbe() { ble.clearBodyLocationProbe() }
 
     // #761: READ-ONLY feature-flag ENUMERATION probe (117/118) — reads the flag NAMES the strap's firmware
-    // knows and writes nothing. User-initiated, Test-Centre-gated in DevicesView.
+    // knows and writes nothing. User-initiated, Test-Centre-gated in DeviceDetailView.
     func probeFeatureFlags() { ble.probeFeatureFlags() }
     func clearFeatureFlagProbe() { ble.clearFeatureFlagProbe() }
 
     // WHOOP MG ECG ("Labrador") experimental probe. Every entry point is user-initiated and
-    // confirmation-gated in DevicesView, and BLEManager gates the sends again on the Experimental opt-in
+    // confirmation-gated in DeviceDetailView, and BLEManager gates the sends again on the Experimental opt-in
     // plus a positively-identified MG. Unvalidated instrumentation, never a medical measurement.
     /// True only for a POSITIVELY identified WHOOP MG — the gate the ECG UI is offered behind.
     var isWhoop5MG: Bool { ble.isWhoop5MG }
@@ -1200,7 +1200,7 @@ final class AppModel: ObservableObject {
     var ecgMayBeRunning: Bool { ble.ecgMayBeRunning }
     // #103: READ-ONLY device-config READ probe (121/128) — asks the strap for a key's VALUE, the
     // follow-up to #761's key-NAME enumeration. Writes nothing. User-initiated, Test-Centre-gated in
-    // DevicesView.
+    // DeviceDetailView.
     func probeDeviceConfigValues() { ble.probeDeviceConfigValues() }
     func clearDeviceConfigProbe() { ble.clearDeviceConfigProbe() }
 

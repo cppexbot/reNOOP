@@ -46,7 +46,7 @@ struct DeviceCardCatalog: View {
         Form {
             Section {
                 ForEach(mocks) { m in
-                    DeviceRow(device: m.device, readout: m.readout) {}
+                    DeviceRow(device: m.device, readout: m.readout)
                 }
             } header: {
                 Text("My Devices")

@@ -38,7 +38,7 @@ enum SyncChipState: Equatable {
     /// Compact relative age for the status card ("<1m" / "Nm" / "Nh" / "Nd") — deliberately terse.
     ///
     /// EVERY branch must read correctly with a trailing "ago", because that is the only way this value is
-    /// ever consumed (`DevicesView` wraps it in "Synced %@ ago" and "Strap history synced %@ ago"). The
+    /// ever consumed (the device page's Sync row wraps it in "%@ ago"). The
     /// sub-minute branch used to return the word "now", which produced the user-visible "Synced now ago"
     /// for the first minute after any sync (#1472). "<1m" composes; it also needs no catalog entry, being
     /// digits and symbols in every language.

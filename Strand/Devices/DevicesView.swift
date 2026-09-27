@@ -44,8 +44,6 @@ private struct DevicesList: View {
     @State private var showAddWizard = false
     /// After removing the ACTIVE device with others still paired, ask which one becomes active.
     @State private var pickNewActive = false
-    /// The device whose page is pushed.
-    @State private var opened: String?
 
     private var current: [PairedDevice] {
         registry.devices.filter { $0.status != .archived }
@@ -69,7 +67,7 @@ private struct DevicesList: View {
             if !current.isEmpty {
                 Section {
                     ForEach(current) { device in
-                        DeviceRow(device: device, readout: .make(device, live: live)) { opened = device.id }
+                        DeviceRow(device: device, readout: .make(device, live: live))
                     }
                 } header: {
                     Text("My Devices")
@@ -90,7 +88,7 @@ private struct DevicesList: View {
             if !removed.isEmpty {
                 Section {
                     ForEach(removed) { device in
-                        DeviceRow(device: device, readout: .make(device, live: live)) { opened = device.id }
+                        DeviceRow(device: device, readout: .make(device, live: live))
                             .opacity(0.6)
                     }
                 } header: {
@@ -98,10 +96,9 @@ private struct DevicesList: View {
                 }
             }
         }
-        .navigationDestination(isPresented: Binding(get: { opened != nil }, set: { if !$0 { opened = nil } })) {
-            if let opened {
-                DeviceDetailView(registry: registry, deviceId: opened, onRemoved: removedDevice)
-            }
+        // A value route, so the page's own pushes (its SettingsPage rows) stay on the same path.
+        .navigationDestination(for: DeviceRoute.self) { route in
+            DeviceDetailView(registry: registry, deviceId: route.id, onRemoved: removedDevice)
         }
         .sheet(isPresented: $showAddWizard) {
             AddDeviceWizard(live: live) { showAddWizard = false }
@@ -129,10 +126,11 @@ private struct DevicesList: View {
 struct DeviceRow: View {
     let device: PairedDevice
     let readout: DeviceReadout
-    let open: () -> Void
 
     var body: some View {
-        Button(action: open) {
+        ZStack {
+            // The link without its chevron: the row shows ⓘ instead, as the Watch app does.
+            NavigationLink(value: DeviceRoute(id: device.id)) { EmptyView() }.opacity(0)
             HStack(spacing: 12) {
                 Image(systemName: "checkmark")
                     .font(StrandFont.pro(17, weight: .semibold))
@@ -158,11 +156,15 @@ struct DeviceRow: View {
                     .accessibilityHidden(true)
             }
             .padding(.vertical, 6)
-            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
     }
+}
+
+/// The page a device row pushes.
+struct DeviceRoute: Hashable {
+    let id: String
 }
 
 /// A problem that stops the device working, in the warning hue: a bold line and the fix under it.

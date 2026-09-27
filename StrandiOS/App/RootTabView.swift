@@ -348,15 +348,11 @@ struct RootTabView: View {
         NavigationStack {
             DevicesView()
                 .settingsDestinations()
-                .background(StrandPalette.surfaceBase.ignoresSafeArea())
                 .navigationBarTitleDisplayMode(.inline)
-                // #1027: same fix as quickScreen — Devices draws the full-bleed liquid sky, so a transparent
-                // nav bar keeps it edge-to-edge instead of an opaque band clipping the top on scroll.
-                .toolbarBackground(.hidden, for: .navigationBar)
                 .toolbar {
+                    // The round ✓ the Watch app's "All Watches" sheet closes with.
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button("Done") { showDevices = false }
-                            .foregroundStyle(StrandPalette.accent)
+                        DevicesDoneButton { showDevices = false }
                     }
                 }
         }
@@ -544,5 +540,25 @@ extension View {
         } else {
             self
         }
+    }
+}
+
+/// ✓ that closes the Devices sheet: the iOS 26 confirm role (a tinted glass circle), "Done" before it.
+private struct DevicesDoneButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Group {
+            #if compiler(>=6.2)
+            if #available(iOS 26.0, *) {
+                Button(role: .confirm, action: action)
+            } else {
+                Button("Done", action: action)
+            }
+            #else
+            Button("Done", action: action)
+            #endif
+        }
+        .tint(StrandPalette.accent)
     }
 }
