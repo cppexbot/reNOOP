@@ -25,6 +25,8 @@ struct SummaryView: View {
     @State private var snapshot = SummarySnapshot()
     /// The night that ended on the picked day, for the Sleep card.
     @State private var sleepNight: Night?
+    /// Health's Trends, as of now (not the picked day): the first few lead the section at the bottom.
+    @State private var trends: HealthTrendsSnapshot?
 
     @State private var showSettings = false
     @State private var customization: TodayCustomizationDestination?
@@ -69,6 +71,7 @@ struct SummaryView: View {
                         .padding(.horizontal, -8)
                     pinnedSection
                     highlightsSection
+                    trendsSection
                     Color.clear.frame(height: NoopMetrics.tabBarClearance)
                 }
                 .padding(.horizontal, NoopMetrics.screenHPadding)
@@ -95,6 +98,10 @@ struct SummaryView: View {
         .refreshable { await refresh() }
         .task(id: "sleep-\(repo.refreshSeq)-\(dayOffset)") {
             sleepNight = await SleepNightLoader.night(repo: repo, wakeDayKey: selectedKey)
+        }
+        .task(id: "trends-\(repo.refreshSeq)-\(skinTempDisplayRaw)") {
+            let prefer = SkinTempDisplay.Kind(rawValue: skinTempDisplayRaw) ?? .absolute
+            if let loaded = await HealthTrendLoader.load(repo: repo, skinTemp: prefer) { trends = loaded }
         }
         .sensoryFeedbackCompat(trigger: dayOffset)
         .task(id: "\(repo.refreshSeq)-\(dayOffset)-\(dayCycleModeRaw)-\(unitSystemRaw)-\(temperatureRaw)-\(skinTempDisplayRaw)") {
@@ -389,6 +396,44 @@ struct SummaryView: View {
             }
         }
     }
+
+    // MARK: - Trends
+
+    /// Health's Trends at the foot of the Summary: the leading few cards, then the row that opens them all.
+    @ViewBuilder private var trendsSection: some View {
+        if let trends {
+            VStack(alignment: .leading, spacing: 10) {
+                SummarySectionHeader(title: "Trends")
+                ForEach(trends.items.prefix(Self.trendCards)) { item in
+                    NavigationLink(value: TabRoute.metricSourced(key: item.metric.key, source: item.metric.source)) {
+                        HealthTrendCard(metric: item.metric, trend: item.trend,
+                                        units: HealthTrendsUnits.resolve(system: unitSystemRaw, temperature: temperatureRaw,
+                                                                         effortScale: effortScaleRaw))
+                    }
+                    .buttonStyle(.plain)
+                }
+                NavigationLink(value: TabRoute.trends) {
+                    SummaryCard {
+                        HStack(spacing: 10) {
+                            HealthTrendsGlyph(size: 20)
+                                .foregroundStyle(StrandPalette.accent)
+                            Text("Show All Trends")
+                                .font(StrandFont.body)
+                                .foregroundStyle(StrandPalette.textPrimary)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(StrandPalette.textTertiary)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    /// Health shows a few trends on the Summary and the rest behind "Show All Health Trends".
+    private static let trendCards = 3
 
     // MARK: - Loading
 

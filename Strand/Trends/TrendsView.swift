@@ -72,8 +72,7 @@ struct TrendsView: View {
     /// nothing moved.
     private func emptyState(judged: Bool) -> some View {
         VStack(spacing: 12) {
-            Image(systemName: HealthTrendsUnits.icon)
-                .font(.system(size: 44, weight: .semibold))
+            HealthTrendsGlyph(size: 48)
                 .foregroundStyle(StrandPalette.textTertiary)
             Text(judged ? String(localized: "No Trends") : String(localized: "Not Enough Data Yet"))
                 .font(StrandFont.pro(22, weight: .bold))
@@ -86,9 +85,49 @@ struct TrendsView: View {
     }
 }
 
-/// The trends' shared bits: the units every card reads in, and Health's trends glyph.
+/// Health's trends glyph: three arrows fanning out from one point — up, ahead and down.
+struct HealthTrendsGlyph: View {
+    var size: CGFloat = 20
+
+    var body: some View {
+        Canvas { context, box in
+            // Drawn on a 24-point grid, scaled to the box.
+            let k = min(box.width, box.height) / 24
+            func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: x * k, y: y * k) }
+            var path = Path()
+            func head(at tip: CGPoint, from: CGPoint) {
+                let dx = tip.x - from.x, dy = tip.y - from.y
+                let len = max((dx * dx + dy * dy).squareRoot(), 1e-6)
+                let ux = dx / len, uy = dy / len
+                let l = 5 * k, c = cos(0.7), sn = sin(0.7)
+                path.move(to: CGPoint(x: tip.x - l * (ux * c - uy * sn), y: tip.y - l * (uy * c + ux * sn)))
+                path.addLine(to: tip)
+                path.addLine(to: CGPoint(x: tip.x - l * (ux * c + uy * sn), y: tip.y - l * (uy * c - ux * sn)))
+            }
+            // Ahead.
+            path.move(to: p(2, 12))
+            path.addLine(to: p(21, 12))
+            head(at: p(21, 12), from: p(2, 12))
+            // Up and down: level at first, then turning away.
+            for sign: CGFloat in [-1, 1] {
+                let tip = p(20, 12 + sign * 9)
+                let control = p(14, 12 + sign * 3)
+                path.move(to: p(2, 12 + sign * 3))
+                path.addLine(to: p(8, 12 + sign * 3))
+                path.addQuadCurve(to: tip, control: control)
+                head(at: tip, from: control)
+            }
+            context.stroke(path, with: .foreground,
+                           style: StrokeStyle(lineWidth: 2.2 * k, lineCap: .round, lineJoin: .round))
+        }
+        .frame(width: size, height: size)
+        .accessibilityHidden(true)
+    }
+}
+
+/// The trends' shared bits: the units every card reads in, and the SF Symbol lists name Trends by.
 enum HealthTrendsUnits {
-    static let icon = "arrow.triangle.branch"
+    static let icon = "chart.line.uptrend.xyaxis"
 
     static func resolve(system: String, temperature: String, effortScale: String) -> MetricHealthStyle.Units {
         let unitSystem = UnitSystem(rawValue: system) ?? .metric
