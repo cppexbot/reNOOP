@@ -1,6 +1,6 @@
 //  AddDeviceWizard.swift
-//  NOOP · Devices → Add Device — pairing as Apple's pairing card does it: one step per sheet, a big product
-//  picture, a title with at most one line under it, one capsule button, ✕ in the corner.
+//  NOOP · Devices → Add Device — pairing as Apple's pairing card does it: one step per sheet, a big device
+//  glyph, a title with at most one line under it, one capsule button, ✕ in the corner.
 //
 //  Different bands pair completely differently, so the first step asks the device TYPE, then runs the
 //  right scan/register path for it:
@@ -292,7 +292,7 @@ struct AddDeviceWizard: View {
                 #if os(iOS)
                 // The watch reaches NOOP through Apple Health, so it has its own setup, not a scan.
                 Button { showWatchSetup = true } label: {
-                    typeLabel(title: "Apple Watch", art: .symbol("applewatch"))
+                    typeLabel(title: "Apple Watch", art: .appleWatch)
                 }
                 .buttonStyle(.plain)
                 #endif
@@ -376,10 +376,11 @@ struct AddDeviceWizard: View {
 
     private func art(_ t: DeviceType) -> DeviceArtworkKind {
         switch t {
-        case .whoop4, .whoop5mg, .amazfit, .miBand: return .band
-        case .hrStrap:      return .chestStrap
-        case .gymEquipment: return .symbol("figure.run.treadmill")
-        case .garmin:       return .symbol("applewatch")
+        case .whoop4, .whoop5mg: return .whoop(registryModel: t.whoopModel?.rawValue)
+        case .amazfit, .miBand: return .wristband
+        case .hrStrap:      return .heartRateStrap
+        case .gymEquipment: return .gymMachine
+        case .garmin:       return .sportsWatch
         case .oura:         return .ring
         }
     }
@@ -451,7 +452,7 @@ struct AddDeviceWizard: View {
     // MARK: Confirm
 
     private var confirmStep: some View {
-        PairingCard(title: confirmAdvertisedName, detail: nil, art: type.map(art) ?? .band,
+        PairingCard(title: confirmAdvertisedName, detail: nil, art: type.map(art) ?? .heartRateStrap,
                     beta: type?.isExperimental == true) {
             PairingNameField(text: $nameDraft)
             PairingButton(title: "Connect") { askMakeActive = true }
@@ -856,7 +857,7 @@ struct AddDeviceWizard: View {
 // MARK: - Pairing card pieces
 
 /// A step as Apple's pairing card lays it out: a bold centred title and at most one line under it, the
-/// product picture in the middle, the action at the bottom.
+/// device's glyph in the middle, the action at the bottom.
 private struct PairingCard<Actions: View>: View {
     let title: String
     let detail: LocalizedStringKey?
@@ -868,7 +869,7 @@ private struct PairingCard<Actions: View>: View {
         VStack(spacing: 0) {
             PairingTitle(title: title, detail: detail, beta: beta)
             Spacer(minLength: 16)
-            DeviceArtwork(kind: art, size: 170)
+            DeviceArtwork(kind: art, size: 140)
             Spacer(minLength: 16)
             VStack(spacing: 14) { actions }
         }

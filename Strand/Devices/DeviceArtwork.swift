@@ -1,126 +1,106 @@
 //  DeviceArtwork.swift
-//  NOOP · Devices — the product picture a row, a device page and a pairing card lead with, as Apple
-//  leads with a photo of the watch or the AirPods. Drawn with shapes (no brand art): a band with its
-//  sensor pod, a ring, a chest strap; a glyph for everything else.
+//  NOOP · Devices — the picture a device row, a device page, a pairing card and first-run setup lead
+//  with. No product art: each kind of device is one SF Symbol, drawn the way iOS 26 setup screens draw
+//  their header glyph (OnBoardingKit: 46 pt Light, large scale, system blue, gradient colour).
 
 import SwiftUI
 import StrandDesign
 import WhoopStore
+import WhoopProtocol
 
-/// The drawn shapes the Devices screens have.
+/// What kind of device a picture stands for.
 enum DeviceArtworkKind: Equatable {
-    case band, ring, chestStrap
-    case symbol(String)
+    /// A WHOOP strap of one generation.
+    case strap(DeviceFamily)
+    case ring
+    case heartRateStrap
+    case gymMachine
+    case appleWatch
+    /// A band with a screen (Amazfit, Mi Band).
+    case wristband
+    /// A sports watch broadcasting heart rate (Garmin).
+    case sportsWatch
+    case importSource
 
     /// The art for a registered device.
     @MainActor static func of(_ d: PairedDevice) -> DeviceArtworkKind {
         switch d.sourceKind {
         case .oura: return .ring
-        case .ftms: return .symbol("figure.run.treadmill")
-        case .liveAppleWatch: return .symbol("applewatch")
-        case .huami: return .band
+        case .ftms: return .gymMachine
+        case .liveAppleWatch: return .appleWatch
+        case .huami: return .wristband
         default: break
         }
-        if d.isImportSource { return .symbol("square.and.arrow.down") }
-        return SourceCoordinator.isWhoop(d) ? .band : .chestStrap
+        if d.isImportSource { return .importSource }
+        if SourceCoordinator.isWhoop(d), let family = DeviceFamily.forRegistryDevice(model: d.model, brand: d.brand) {
+            return .strap(family)
+        }
+        return .heartRateStrap
+    }
+
+    /// A WHOOP strap from a registry model label or a `WhoopModel` raw value — read through the one resolver
+    /// allowed to interpret those labels.
+    static func whoop(registryModel: String?) -> DeviceArtworkKind {
+        .strap(DeviceFamily.forRegistryModel(registryModel))
+    }
+
+    var systemName: String {
+        switch self {
+        case .strap:          return "applewatch.side.right"
+        case .ring:
+            if #available(iOS 26.0, macOS 26.0, *) { return "ring" }
+            return "circle.circle"
+        case .heartRateStrap: return "heart.circle"
+        case .gymMachine:
+            if #available(iOS 18.0, macOS 15.0, *) { return "figure.run.treadmill" }
+            return "figure.indoor.cycle"
+        case .appleWatch:     return "applewatch"
+        case .wristband:      return "applewatch.side.right"
+        case .sportsWatch:    return "applewatch"
+        case .importSource:   return "square.and.arrow.down"
+        }
     }
 }
 
 struct DeviceArtwork: View {
     let kind: DeviceArtworkKind
-    /// The height the art fills; width follows the shape.
+    /// The square the glyph sits in; 82 is the setup header's slot.
     let size: CGFloat
 
     var body: some View {
-        Group {
-            switch kind {
-            case .band: band
-            case .ring: ring
-            case .chestStrap: chestStrap
-            case .symbol(let name):
-                Image(systemName: name)
-                    .resizable()
-                    .scaledToFit()
-                    .fontWeight(.light)
-                    .foregroundStyle(StrandPalette.textSecondary)
-                    .frame(width: size * 0.62, height: size * 0.62)
-            }
+        SetupGlyph(systemName: kind.systemName, size: size)
+            .accessibilityHidden(true)
+    }
+}
+
+/// An SF Symbol as the iOS 26 setup header draws one: Light weight at the large scale, in system blue with
+/// the gradient colour rendering. 46 pt in the 82 pt slot; other slots scale from that.
+struct SetupGlyph: View {
+    let systemName: String
+    var size: CGFloat = 82
+    var tint: Color = StrandPalette.settingsBlue
+
+    var body: some View {
+        Image(systemName: systemName)
+            .font(.system(size: size * 46 / 82, weight: .light))
+            .imageScale(.large)
+            .foregroundStyle(tint)
+            .setupGradientRendering()
+            .frame(width: size, height: size)
+    }
+}
+
+extension View {
+    @ViewBuilder
+    fileprivate func setupGradientRendering() -> some View {
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, macOS 26.0, *) {
+            self.symbolColorRenderingMode(.gradient)
+        } else {
+            self
         }
-        .frame(width: size, height: size)
-        .accessibilityHidden(true)
-    }
-
-    private var bandFill: LinearGradient {
-        LinearGradient(colors: [StrandPalette.deviceBandTop, StrandPalette.deviceBandBottom],
-                       startPoint: .leading, endPoint: .trailing)
-    }
-
-    private var podFill: LinearGradient {
-        LinearGradient(colors: [StrandPalette.devicePodTop, StrandPalette.devicePodBottom],
-                       startPoint: .topLeading, endPoint: .bottomTrailing)
-    }
-
-    /// A strap seen from above: the woven band running top to bottom, the sensor pod across its middle.
-    private var band: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: size * 0.16, style: .continuous)
-                .fill(bandFill)
-                .frame(width: size * 0.40, height: size)
-                .overlay(
-                    RoundedRectangle(cornerRadius: size * 0.16, style: .continuous)
-                        .strokeBorder(StrandPalette.deviceEdge, lineWidth: max(0.5, size * 0.006))
-                )
-            RoundedRectangle(cornerRadius: size * 0.11, style: .continuous)
-                .fill(podFill)
-                .frame(width: size * 0.54, height: size * 0.38)
-                .overlay(alignment: .top) {
-                    Capsule()
-                        .fill(StrandPalette.deviceSheen)
-                        .frame(width: size * 0.34, height: max(1, size * 0.02))
-                        .padding(.top, size * 0.035)
-                }
-                .overlay(
-                    RoundedRectangle(cornerRadius: size * 0.11, style: .continuous)
-                        .strokeBorder(StrandPalette.deviceEdge, lineWidth: max(0.5, size * 0.008))
-                )
-                .shadow(color: .black.opacity(0.35), radius: size * 0.03, y: size * 0.015)
-        }
-    }
-
-    /// A ring at a slight tilt: a thick titanium band with a lit upper edge.
-    private var ring: some View {
-        ZStack {
-            Ellipse()
-                .strokeBorder(
-                    AngularGradient(colors: [StrandPalette.devicePodTop, StrandPalette.deviceBandBottom,
-                                             StrandPalette.devicePodBottom, StrandPalette.devicePodTop],
-                                    center: .center),
-                    lineWidth: size * 0.15)
-                .frame(width: size * 0.86, height: size * 0.70)
-            Ellipse()
-                .trim(from: 0.58, to: 0.92)
-                .stroke(StrandPalette.deviceSheen, style: StrokeStyle(lineWidth: max(1, size * 0.02), lineCap: .round))
-                .frame(width: size * 0.78, height: size * 0.62)
-        }
-    }
-
-    /// A chest strap from the front: an elastic band with the sensor module in the middle.
-    private var chestStrap: some View {
-        ZStack {
-            Capsule()
-                .fill(bandFill)
-                .frame(width: size, height: size * 0.18)
-                .overlay(Capsule().strokeBorder(StrandPalette.deviceEdge, lineWidth: max(0.5, size * 0.006)))
-            Capsule()
-                .fill(podFill)
-                .frame(width: size * 0.46, height: size * 0.34)
-                .overlay(alignment: .top) {
-                    Capsule()
-                        .fill(StrandPalette.deviceSheen)
-                        .frame(width: size * 0.26, height: max(1, size * 0.02))
-                        .padding(.top, size * 0.04)
-                }
-                .shadow(color: .black.opacity(0.35), radius: size * 0.03, y: size * 0.015)
-        }
+        #else
+        self
+        #endif
     }
 }

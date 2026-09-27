@@ -1,6 +1,6 @@
 //  DevicesView.swift
-//  NOOP · Devices — the paired bands as Bluetooth and the Watch app's "All Watches" list them: a product
-//  picture, the name, "Connected · 82 %", a checkmark on the active one, then "Add Device". A row opens
+//  NOOP · Devices — the paired bands as Bluetooth and the Watch app's "All Watches" list them: the device
+//  glyph, the name, "Connected · 82 %", a checkmark on the active one, then "Add Device". A row opens
 //  the device's page (`DeviceDetailView`), where everything about that one device lives.
 //
 //  A thin UI over `DeviceRegistry`: every mutation is a registry op, and the `SourceCoordinator` (wired
@@ -121,7 +121,7 @@ private struct DevicesList: View {
 
 // MARK: - Row
 
-/// As the Watch app's "All Watches" lists a watch: a checkmark on the active one, the product picture,
+/// As the Watch app's "All Watches" lists a watch: a checkmark on the active one, the device glyph,
 /// the name over "Connected · 82 %", and ⓘ. The row opens the device's page.
 struct DeviceRow: View {
     let device: PairedDevice
@@ -138,7 +138,7 @@ struct DeviceRow: View {
                     .opacity(readout.isActive ? 1 : 0)
                     .accessibilityHidden(!readout.isActive)
                     .accessibilityLabel(Text("Active"))
-                DeviceArtwork(kind: .of(device), size: 64)
+                DeviceArtwork(kind: .of(device), size: 56)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(verbatim: device.displayName)
                         .font(StrandFont.pro(17))

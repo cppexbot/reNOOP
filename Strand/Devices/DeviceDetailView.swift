@@ -1,6 +1,6 @@
 //  DeviceDetailView.swift
 //  NOOP · Devices — one device's page, as Settings opens an AirPods page or a Bluetooth device's ⓘ: the
-//  product picture and name on top, then battery, sync and firmware, the name, the controls (connect,
+//  device glyph and name on top, then battery, sync and firmware, the name, the controls (connect,
 //  buzz, restart), what NOOP reads off it, the strap's own settings, and Disconnect / Forget This Device
 //  at the bottom. Every control calls exactly what the old Devices and Live screens called.
 
@@ -98,11 +98,11 @@ struct DeviceDetailView: View {
 
     // MARK: Hero
 
-    /// The picture on the page's own background, and under it the charge as a green ring and a figure,
+    /// The glyph on the page's own background, and under it the charge as a green ring and a figure,
     /// as Settings heads an AirPods page; the link word when there is no charge to show.
     private func hero(_ device: PairedDevice, _ r: DeviceReadout) -> some View {
         VStack(spacing: 6) {
-            DeviceArtwork(kind: .of(device), size: 150)
+            DeviceArtwork(kind: .of(device), size: 120)
                 .padding(.bottom, 8)
             if let pct = r.batteryPct, !r.bondRefused {
                 ZStack {
