@@ -84,13 +84,29 @@ struct FullDayChartView: View {
     private var visibleWindow: ClosedRange<Date> { zoomDomain ?? dayBounds }
 
     var body: some View {
-        ScreenScaffold(title: "Deep Timeline", subtitle: "Every second of your day, zoomable.") {
-            metricPills
-            dayNav
-            sourcePill
-            chartCard
-            zoomHint
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                dayNav
+                chartCard
+                zoomHint
+                sourceCard
+            }
+            .padding(.horizontal, NoopMetrics.screenHPadding)
+            .padding(.top, NoopMetrics.space2)
+            .padding(.bottom, NoopMetrics.space8 + NoopMetrics.tabBarClearance)
+            #if os(macOS)
+            .frame(maxWidth: 680)
+            .frame(maxWidth: .infinity)
+            #endif
         }
+        #if os(iOS)
+        .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+        #endif
+        .background(StrandPalette.summaryCanvas.ignoresSafeArea())
+        .navigationTitle("Full Day by the Second")
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
         .task(id: taskKey) { await reload() }
         .task(id: annotationKey) { await reloadAnnotations() }
         .task { await landOnLatestDayIfNeeded() }
@@ -130,30 +146,69 @@ struct FullDayChartView: View {
 
     // MARK: Controls
 
-    private var metricPills: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            SegmentedPillControl(Repository.TimelineMetric.allCases, selection: $metric) { $0.title }
-                .padding(.vertical, NoopMetrics.space1 / 2)
+    /// The metric's Health hue, for the track's name above the chart.
+    private var tint: Color {
+        switch metric {
+        case .hr, .hrv: return StrandPalette.healthHeart
+        case .spo2: return StrandPalette.healthOxygen
+        case .skinTemp: return StrandPalette.healthTemperature
+        case .respiration: return StrandPalette.healthRespiratory
+        case .motion, .ouraMovement: return StrandPalette.summaryEffortRing
+        case .bandSleepState: return StrandPalette.healthSleepDeep
         }
     }
 
-    @ViewBuilder private var sourcePill: some View {
-        HStack(spacing: NoopMetrics.rowSpacing) {
-            Image(systemName: "dot.radiowaves.left.and.right")
-                .font(StrandFont.footnote.weight(.medium))
-                .foregroundStyle(StrandPalette.textTertiary)
-            Group {
-                if let sourceName { Text(verbatim: sourceName) } else { Text("My WHOOP") }
+    /// The track on show, as Health names a chart's data type: its title in the card's hue, a menu of the rest.
+    private var metricMenu: some View {
+        Menu {
+            Picker(selection: $metric) {
+                ForEach(Repository.TimelineMetric.allCases) { Text(verbatim: $0.title).tag($0) }
+            } label: {
+                Text(verbatim: metric.title)
             }
-            .font(StrandFont.footnote)
-            .foregroundStyle(StrandPalette.textSecondary)
-            Spacer()
-            // #574 — owned-source scope. The active device is the owned source; "All sources" reveals the honest
-            // disclosure that other sources' raw per-second streams aren't offloaded on-device.
-            SegmentedPillControl([true, false], selection: $ownedOnly) { $0 ? String(localized: "Owned") : String(localized: "All") }
-                .fixedSize()
+            .pickerStyle(.inline)
+        } label: {
+            HStack(spacing: 4) {
+                Text(verbatim: metric.title)
+                    .font(StrandFont.headline)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 11, weight: .semibold))
+            }
+            .foregroundStyle(tint)
         }
-        .padding(.horizontal, NoopMetrics.space1)
+        .tint(tint)
+        #if os(macOS)
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        #endif
+        .fixedSize()
+    }
+
+    /// Where the line comes from, and the #574 owned-source scope: the active device is the owned source;
+    /// "All" reveals the honest disclosure that other sources' raw per-second streams aren't offloaded.
+    private var sourceCard: some View {
+        SummaryCard {
+            HStack(spacing: 10) {
+                Image(systemName: "dot.radiowaves.left.and.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(StrandPalette.textSecondary)
+                Group {
+                    if let sourceName { Text(verbatim: sourceName) } else { Text("My WHOOP") }
+                }
+                .font(StrandFont.pro(17))
+                .foregroundStyle(StrandPalette.textPrimary)
+                .lineLimit(1)
+                Spacer(minLength: 8)
+                Picker("Source", selection: $ownedOnly) {
+                    Text("Owned").tag(true)
+                    Text("All").tag(false)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .fixedSize()
+            }
+            .padding(.top, 2)
+        }
     }
 
     /// Day stepper — move the whole timeline back/forward a day so a user can reach the days that actually
@@ -161,7 +216,10 @@ struct FullDayChartView: View {
     private var dayNav: some View {
         HStack(spacing: NoopMetrics.cardInnerSpacing) {
             Button { stepDay(-1) } label: {
-                Image(systemName: "chevron.left").font(StrandFont.headline.weight(.semibold))
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 15, weight: .semibold))
+                    .frame(width: 44, height: 36)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .foregroundStyle(StrandPalette.accent)
@@ -175,14 +233,16 @@ struct FullDayChartView: View {
             Spacer()
 
             Button { stepDay(1) } label: {
-                Image(systemName: "chevron.right").font(StrandFont.headline.weight(.semibold))
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 15, weight: .semibold))
+                    .frame(width: 44, height: 36)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .foregroundStyle(isOnLatestDay ? StrandPalette.textTertiary : StrandPalette.accent)
             .disabled(isOnLatestDay)
             .accessibilityLabel("Next day")
         }
-        .padding(.horizontal, NoopMetrics.space1)
     }
 
     private var isOnLatestDay: Bool { dayStart >= Repository.logicalDayStart(Date()) }
@@ -211,24 +271,62 @@ struct FullDayChartView: View {
 
     // MARK: Chart
 
-    @ViewBuilder private var chartCard: some View {
-        ChartCard(
-            title: LocalizedStringKey(metric.title),
-            subtitle: resolutionSubtitle,
-            trailing: latestReadout,
-            height: 280,
-            tint: StrandPalette.metricRose
-        ) {
-            if loading && series.points.isEmpty {
-                loadingState
-            } else if series.points.isEmpty {
-                emptyState
-            } else {
-                chart
+    /// Health's chart card: the track, the latest reading and its resolution, then the chart and the
+    /// window's range under a hairline. An empty window shows only the track's name and the empty state.
+    private var chartCard: some View {
+        SummaryCard {
+            VStack(alignment: .leading, spacing: 0) {
+                metricMenu
+                if !displayPoints.isEmpty {
+                    figureHeader
+                        .padding(.top, 6)
+                }
+                Group {
+                    if loading && series.points.isEmpty {
+                        ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else if series.points.isEmpty {
+                        emptyState
+                    } else {
+                        chart
+                    }
+                }
+                .frame(height: 280)
+                .padding(.top, NoopMetrics.space4)
+                if !series.points.isEmpty {
+                    Rectangle().fill(StrandPalette.hairline).frame(height: NoopMetrics.hairlineWidth)
+                        .padding(.top, NoopMetrics.space4)
+                    statsRow
+                        .padding(.top, NoopMetrics.space3)
+                }
             }
-        } footer: {
-            if !series.points.isEmpty { statsFooter }
+            .padding(.top, 4)
         }
+    }
+
+    /// The latest reading as the big figure, and the resolution it was read at under it. The day is named
+    /// once, by the stepper above the card.
+    private var figureHeader: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(alignment: .firstTextBaseline, spacing: 3) {
+                Text(verbatim: displayPoints.last.map { format($0.value) } ?? "—")
+                    .font(StrandFont.pro(34, weight: .bold))
+                    .foregroundStyle(StrandPalette.textPrimary)
+                let unit = unitSuffix.trimmingCharacters(in: .whitespaces)
+                if !unit.isEmpty {
+                    Text(verbatim: unit)
+                        .font(StrandFont.pro(20, weight: .semibold))
+                        .foregroundStyle(StrandPalette.textSecondary)
+                }
+            }
+            .lineLimit(1)
+            .minimumScaleFactor(0.6)
+            Text(verbatim: resolutionSubtitle)
+                .font(StrandFont.pro(17, weight: .semibold))
+                .foregroundStyle(StrandPalette.textSecondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .accessibilityElement(children: .combine)
     }
 
     /// `series.points` in the DISPLAYED unit (#101) — for every metric but skin temp this is just the raw
@@ -277,16 +375,6 @@ struct FullDayChartView: View {
 
     // MARK: States
 
-    private var loadingState: some View {
-        VStack(spacing: NoopMetrics.rowSpacing) {
-            ProgressView().controlSize(.large)
-            Text("Loading the day…")
-                .font(StrandFont.footnote)
-                .foregroundStyle(StrandPalette.textTertiary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
     /// Honest empty/dash state — a window the strap offloaded nothing for (a not-yet-synced stretch, an
     /// off-wrist gap, or a metric this device doesn't record). Never a fabricated flat line.
     private var emptyState: some View {
@@ -310,10 +398,9 @@ struct FullDayChartView: View {
             : String(localized: "Other sources don’t offload raw per-second data on-device.")
     }
 
-    @ViewBuilder private var zoomHint: some View {
+    /// How to move through the chart, one footnote line, and Reset once zoomed in.
+    private var zoomHint: some View {
         HStack(spacing: NoopMetrics.space2) {
-            Image(systemName: zoomDomain == nil ? "arrow.up.left.and.arrow.down.right" : "arrow.down.right.and.arrow.up.left")
-                .font(StrandFont.footnote.weight(.semibold))
             #if os(macOS)
             Text(zoomDomain == nil ? "Scroll to zoom · drag to pan" : "Zoomed in. Drag to pan")
             #else
@@ -321,27 +408,42 @@ struct FullDayChartView: View {
             // feature that doesn't exist. (On the Mac the pointer hover is self-discovering.)
             Text(zoomDomain == nil ? "Pinch to zoom · drag to pan · hold to read" : "Zoomed in. Drag to pan · hold to read")
             #endif
-            Spacer()
+            Spacer(minLength: 8)
             if zoomDomain != nil {
                 Button("Reset") { withAnimation(StrandMotion.interactive) { zoomDomain = nil } }
-                    .font(StrandFont.footnote)
+                    .font(StrandFont.pro(13, weight: .semibold))
                     .foregroundStyle(StrandPalette.accent)
                     .buttonStyle(.plain)
             }
         }
-        .font(StrandFont.footnote)
-        .foregroundStyle(StrandPalette.textTertiary)
-        .padding(.horizontal, NoopMetrics.space1)
-        .padding(.top, NoopMetrics.space1 / 2)
+        .font(StrandFont.pro(13))
+        .foregroundStyle(StrandPalette.textSecondary)
+        .padding(.horizontal, 4)
     }
 
-    private var statsFooter: some View {
+    /// Min / Avg / Max of the visible window, as Health's figure columns.
+    private var statsRow: some View {
         let v = displayPoints.map(\.value)
-        return ChartFooter([
-            ("Min", format(v.min() ?? 0)),
-            ("Avg", format(v.reduce(0, +) / Double(max(1, v.count)))),
-            ("Max", format(v.max() ?? 0)),
-        ])
+        return HStack(alignment: .top, spacing: 0) {
+            stat("Min", format(v.min() ?? 0))
+            stat("Avg", format(v.reduce(0, +) / Double(max(1, v.count))))
+            stat("Max", format(v.max() ?? 0))
+        }
+    }
+
+    private func stat(_ title: LocalizedStringKey, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(title)
+                .font(StrandFont.pro(13, weight: .semibold))
+                .foregroundStyle(StrandPalette.textSecondary)
+            Text(verbatim: value)
+                .font(StrandFont.pro(17, weight: .bold))
+                .foregroundStyle(StrandPalette.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: Read
@@ -414,10 +516,6 @@ struct FullDayChartView: View {
         let m = series.bucketSeconds / 60
         return m >= 1 ? String(localized: "\(m)-minute average")
                       : String(localized: "\(series.bucketSeconds)-second average")
-    }
-
-    private var latestReadout: String? {
-        displayPoints.last.map { "\(format($0.value))\(unitSuffix)" }
     }
 
     private var unitSuffix: String {

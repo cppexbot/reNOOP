@@ -15,9 +15,8 @@ import Foundation
 // This file owns three things:
 //   • `TrendsReportData` — pulls the five metric series out of the Repository's
 //     DailyMetric history and calls RangeReportEngine.build for a range.
-//   • `TrendsReportPage` — the laid-out SwiftUI page (the thing rendered to PDF),
-//     built ENTIRELY from the locked StrandDesign component system (NoopCard,
-//     SectionHeader, Sparkline, the colour worlds) so it matches every other surface.
+//   • `TrendsReportPage` — the laid-out SwiftUI page (the thing rendered to PDF), a
+//     plain white Health-style sheet: bold section titles, grey rounded cards, category hues.
 //   • `TrendsReportMenu` — the Trends toolbar's share button: a period, then the share sheet.
 //
 // Honesty: an empty range (no metric carried a reading) renders a friendly
@@ -151,38 +150,33 @@ enum TrendsReportData {
     }
 }
 
-// MARK: - Metric → colour world
+// MARK: - Metric → category hue
 
-/// The line/accent hue for each report metric — drives the card tint + sparkline gradient
-/// so each metric reads in its established colour world (Charge green, Effort blue, Rest/HRV
-/// blue, Resting-HR burnt-orange) — WHOOP score tokens, no gold.
+/// Each report metric in its Health category hue: Charge / Effort in the ring colours, sleep in the
+/// sleep blue, the heart metrics in Heart pink, breathing in Respiratory teal, skin temperature in
+/// Body Temperature orange, stress in Mindfulness cyan.
 private extension ReportMetric {
-    /// The line/accent colour for the metric, keeping each its long-standing hue.
     var accent: Color {
         switch self {
-        case .workouts:    return StrandPalette.effortColor  // activity → the Effort world
-        case .stress:      return StrandPalette.stressColor  // the Stress world hue
-        case .recovery:    return StrandPalette.chargeColor
-        case .strain:      return StrandPalette.effortColor
-        case .sleepHours:  return StrandPalette.restColor
-        case .hrv:         return StrandPalette.metricPurple
-        case .restingHr:   return StrandPalette.metricRose
-        case .respRate:    return StrandPalette.metricCyan   // breath / air — teal
-        case .skinTempDev: return StrandPalette.metricRose   // temperature — warm (shares RHR's hue)
+        case .workouts:    return StrandPalette.summaryEffortRing
+        case .stress:      return StrandPalette.healthMind
+        case .recovery:    return StrandPalette.summaryChargeRing
+        case .strain:      return StrandPalette.summaryEffortRing
+        case .sleepHours:  return StrandPalette.healthSleepCore
+        case .hrv:         return StrandPalette.healthHeart
+        case .restingHr:   return StrandPalette.healthHeart
+        case .respRate:    return StrandPalette.healthRespiratory
+        case .skinTempDev: return StrandPalette.healthTemperature
         }
-    }
-
-    /// The sparkline gradient (deep → bright in the metric's hue).
-    var sparkGradient: Gradient {
-        Gradient(colors: [accent.opacity(0.45), accent])
     }
 }
 
 // MARK: - The rendered page
 
-/// The laid-out one-page report — the exact view handed to the renderer. A fixed-width
-/// column (A4-ish portrait proportions) so the PDF reads as a clean printed sheet on
-/// both platforms. Built only from StrandDesign primitives.
+/// The laid-out one-page report — the exact view handed to the renderer. A fixed-width white column
+/// (A4-ish portrait proportions) in Health's plain-page look: bold section titles, grey rounded cards,
+/// each metric in its category hue. Rendered off-screen to PDF, so it draws no materials or glass and
+/// always in the light appearance.
 struct TrendsReportPage: View {
     let report: RangeReport
     let range: ReportRange
@@ -199,8 +193,10 @@ struct TrendsReportPage: View {
     /// The fixed page width used for the PDF render. ~ A4 portrait at 72dpi-ish density.
     static let pageWidth: CGFloat = 612
 
+    private static let cardRadius: CGFloat = 16
+
     var body: some View {
-        VStack(alignment: .leading, spacing: NoopMetrics.sectionSpacing) {
+        VStack(alignment: .leading, spacing: 24) {
             header
             if report.isEmpty {
                 emptyState
@@ -210,36 +206,26 @@ struct TrendsReportPage: View {
             }
             footer
         }
-        .padding(NoopMetrics.space8)
+        .padding(32)
         .frame(width: Self.pageWidth, alignment: .leading)
-        .background(StrandPalette.surfaceBase)
-        .environment(\.colorScheme, .dark)
+        .background(StrandPalette.plainPage)
+        .environment(\.colorScheme, .light)
     }
 
     // MARK: Header
 
     private var header: some View {
-        // Report chrome uses the same shared panel surface as the in-app cards.
-        ZStack(alignment: .leading) {
-            NoopPanelSurface(tint: StrandPalette.accent,
-                             cornerRadius: NoopMetrics.cardRadius,
-                             elevated: true)
-            VStack(alignment: .leading, spacing: NoopMetrics.space1) {
-                HStack(alignment: .firstTextBaseline) {
-                    BrandMark(size: 22)
-                    Text("NOOP").font(StrandFont.overline).tracking(StrandFont.overlineTracking)
-                        .foregroundStyle(StrandPalette.accent)
-                    Spacer()
-                    Text(range.longName).strandOverline()
-                }
-                Text("Trends report")
-                    .font(StrandFont.title1)
-                    .foregroundStyle(StrandPalette.textPrimary)
-                Text(rangeLabel)
-                    .font(StrandFont.subhead)
-                    .foregroundStyle(StrandPalette.textSecondary)
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Trends report")
+                .font(StrandFont.pro(28, weight: .bold))
+                .foregroundStyle(StrandPalette.textPrimary)
+            HStack(spacing: 0) {
+                Text(verbatim: range.longName)
+                Text(verbatim: "  ·  ")
+                Text(verbatim: rangeLabel)
             }
-            .padding(NoopMetrics.cardPadding)
+            .font(StrandFont.pro(15))
+            .foregroundStyle(StrandPalette.textSecondary)
         }
     }
 
@@ -250,19 +236,33 @@ struct TrendsReportPage: View {
             : String(localized: "\(prettyDate(report.start))-\(prettyDate(report.end))  ·  \(span) days")
     }
 
+    private func sectionTitle(_ title: LocalizedStringKey) -> some View {
+        Text(title)
+            .font(StrandFont.pro(20, weight: .bold))
+            .foregroundStyle(StrandPalette.textPrimary)
+    }
+
+    private func card<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        content()
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(StrandPalette.plainPageCard,
+                        in: RoundedRectangle(cornerRadius: Self.cardRadius, style: .continuous))
+    }
+
     // MARK: Headlines
 
     private var headlines: some View {
-        NoopCard(tint: StrandPalette.chargeColor) {
-            VStack(alignment: .leading, spacing: NoopMetrics.rowSpacing) {
-                SectionHeader("What changed", overline: "Summary")
-                ForEach(Array(report.headlines.enumerated()), id: \.offset) { _, line in
-                    HStack(alignment: .top, spacing: NoopMetrics.space2) {
-                        Image(systemName: "sparkles")
-                            .font(StrandFont.footnote)
-                            .foregroundStyle(StrandPalette.accent)
+        VStack(alignment: .leading, spacing: 10) {
+            sectionTitle("What changed")
+            card {
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(Array(report.headlines.enumerated()), id: \.offset) { index, line in
+                        if index > 0 {
+                            Rectangle().fill(StrandPalette.hairline).frame(height: NoopMetrics.hairlineWidth)
+                        }
                         Text(line)
-                            .font(StrandFont.subhead)
+                            .font(StrandFont.pro(15))
                             .foregroundStyle(StrandPalette.textPrimary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -274,8 +274,8 @@ struct TrendsReportPage: View {
     // MARK: Per-metric cards
 
     private var metricCards: some View {
-        VStack(alignment: .leading, spacing: NoopMetrics.gap) {
-            SectionHeader("Metrics", overline: "By the numbers")
+        VStack(alignment: .leading, spacing: 10) {
+            sectionTitle("Metrics")
             ForEach(report.metrics, id: \.metric) { stat in
                 metricCard(stat)
             }
@@ -285,85 +285,109 @@ struct TrendsReportPage: View {
     private func metricCard(_ stat: MetricRangeStat) -> some View {
         let metric = stat.metric
         let spark = series[metric] ?? []
-        return NoopCard(tint: metric.accent) {
-            VStack(alignment: .leading, spacing: NoopMetrics.rowSpacing) {
-                // Title + mean read-out + trend chip.
+        return card {
+            VStack(alignment: .leading, spacing: 8) {
+                // Tinted title + trend on the right, then the mean large.
                 HStack(alignment: .firstTextBaseline) {
-                    Text(metric.label).strandOverline()
+                    Text(verbatim: metric.label)
+                        .font(StrandFont.pro(15, weight: .semibold))
+                        .foregroundStyle(metric.accent)
                     Spacer()
-                    Text(meanText(stat))
-                        .font(StrandFont.bodyNumber)
+                    trend(stat)
+                }
+                HStack(alignment: .bottom, spacing: 16) {
+                    Text(verbatim: meanText(stat))
+                        .font(StrandFont.number(24, weight: .bold))
                         .foregroundStyle(StrandPalette.textPrimary)
-                    trendChip(stat)
+                    Spacer(minLength: 0)
+                    // The window as a line (decorative; the numbers are the read).
+                    if spark.count >= 2 {
+                        Sparkline(values: spark, gradient: Gradient(colors: [metric.accent.opacity(0.55), metric.accent]),
+                                  showsArea: false, showsHead: true, showsHover: false)
+                            .frame(width: 220, height: 32)
+                            .accessibilityHidden(true)
+                    } else {
+                        Text("Single reading in range")
+                            .font(StrandFont.pro(13))
+                            .foregroundStyle(StrandPalette.textSecondary)
+                    }
                 }
 
-                // Sparkline over the window (decorative; the numbers below are the read).
-                if spark.count >= 2 {
-                    Sparkline(values: spark, gradient: metric.sparkGradient)
-                        .frame(height: 34)
-                        .accessibilityHidden(true)
-                } else {
-                    Text("Single reading in range")
-                        .font(StrandFont.footnote)
-                        .foregroundStyle(StrandPalette.textTertiary)
-                }
-
-                Divider().overlay(StrandPalette.hairline)
+                Rectangle().fill(StrandPalette.hairline).frame(height: NoopMetrics.hairlineWidth)
 
                 // The numbers: min / max (with the day each fell on) + readings count.
-                ChartFooter([
-                    ("Avg", valueText(stat.mean, metric)),
-                    ("Min", "\(valueText(stat.min.value, metric)) · \(prettyDate(stat.min.day))"),
-                    ("Max", "\(valueText(stat.max.value, metric)) · \(prettyDate(stat.max.day))"),
-                    ("Days", "\(stat.n)"),
-                ])
+                HStack(alignment: .top, spacing: 0) {
+                    figure("Avg", valueText(stat.mean, metric))
+                    figure("Min", "\(valueText(stat.min.value, metric)) · \(prettyDate(stat.min.day))")
+                    figure("Max", "\(valueText(stat.max.value, metric)) · \(prettyDate(stat.max.day))")
+                    figure("Days", "\(stat.n)")
+                }
             }
         }
     }
 
-    /// A trend chip coloured good/bad for the metric (neutral when flat or valence-free).
+    private func figure(_ title: LocalizedStringKey, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(StrandFont.pro(12, weight: .semibold))
+                .foregroundStyle(StrandPalette.textSecondary)
+            Text(verbatim: value)
+                .font(StrandFont.pro(13).monospacedDigit())
+                .foregroundStyle(StrandPalette.textPrimary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// The trend beside the title, coloured good/bad for the metric (grey when flat or valence-free).
     ///
-    /// The chip sits directly beside the mean read-out, so its magnitude must be on the SAME axis as
-    /// the numbers around it (#1637) — a °C delta next to °F values reads as a contradiction. Both
-    /// conversions are pure multiplications, so `displayValue` is correct for a delta as well as a
-    /// level (a °F offset would NOT be, which is why this metric never adds one).
+    /// It sits beside the mean read-out, so its magnitude must be on the SAME axis as the numbers
+    /// around it (#1637) — a °C delta next to °F values reads as a contradiction. Both conversions are
+    /// pure multiplications, so `displayValue` is correct for a delta as well as a level (a °F offset
+    /// would NOT be, which is why this metric never adds one).
     ///
     /// The steady/moving decision and the good/bad colour stay on the STORED delta, matching the
-    /// trend verdict itself — a cosmetic toggle must not turn a "steady" chip into a moving one.
+    /// trend verdict itself — a cosmetic toggle must not turn a "steady" read-out into a moving one.
     @ViewBuilder
-    private func trendChip(_ stat: MetricRangeStat) -> some View {
+    private func trend(_ stat: MetricRangeStat) -> some View {
         let d = stat.halfDelta
         if stat.trend == .flat || abs(d) < 0.05 {
-            TrendChip(text: String(localized: "steady"), color: StrandPalette.textTertiary)
+            Label {
+                Text("steady")
+            } icon: {
+                Image(systemName: "arrow.right")
+            }
+            .font(StrandFont.pro(13, weight: .semibold))
+            .foregroundStyle(StrandPalette.textSecondary)
         } else {
             let up = d > 0
             // Signed-deviation metric (skin-temp Δ): show the move, no good/bad verdict.
             let color: Color = stat.metric.framesGoodBad
-                ? (up == stat.metric.higherIsBetter ? StrandPalette.statusPositive : StrandPalette.metricRose)
-                : StrandPalette.textTertiary
+                ? (up == stat.metric.higherIsBetter ? StrandPalette.settingsGreen : StrandPalette.settingsRed)
+                : StrandPalette.textSecondary
             let sign = up ? "+" : "−"
             let shown = abs(RangeReportEngine.displayValue(d, metric: stat.metric, units: units))
-            TrendChip(text: "\(sign)\(round1Text(shown))", color: color)
+            Label {
+                Text(verbatim: "\(sign)\(round1Text(shown))")
+            } icon: {
+                Image(systemName: up ? "arrow.up.right" : "arrow.down.right")
+            }
+            .font(StrandFont.pro(13, weight: .semibold))
+            .foregroundStyle(color)
         }
     }
 
     // MARK: Empty state
 
     private var emptyState: some View {
-        NoopCard {
-            HStack(alignment: .top, spacing: NoopMetrics.space3) {
-                Image(systemName: "calendar.badge.exclamationmark")
-                    .font(StrandFont.headline)
-                    .foregroundStyle(StrandPalette.accent)
-                VStack(alignment: .leading, spacing: NoopMetrics.space2) {
-                    Text("Not enough data in this range yet")
-                        .font(StrandFont.headline)
-                        .foregroundStyle(StrandPalette.textPrimary)
-                    Text("No workout, stress, recovery, sleep, HRV, resting-HR, strain, respiratory-rate or skin-temp readings fell inside \(range.longName.lowercased()). Wear your strap a few more days, or pick a wider range, then export again.")
-                        .font(StrandFont.subhead)
-                        .foregroundStyle(StrandPalette.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+        card {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Not enough data in this range yet")
+                    .font(StrandFont.pro(17, weight: .semibold))
+                    .foregroundStyle(StrandPalette.textPrimary)
+                Text("No workout, stress, recovery, sleep, HRV, resting-HR, strain, respiratory-rate or skin-temp readings fell inside \(range.longName.lowercased()). Wear your strap a few more days, or pick a wider range, then export again.")
+                    .font(StrandFont.pro(15))
+                    .foregroundStyle(StrandPalette.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -371,22 +395,17 @@ struct TrendsReportPage: View {
     // MARK: Footer
 
     private var footer: some View {
-        VStack(alignment: .leading, spacing: NoopMetrics.space1) {
-            Divider().overlay(StrandPalette.hairline)
+        VStack(alignment: .leading, spacing: 6) {
             // Provenance legend (#457): a clinician (or anyone) reading this needs to know which numbers
             // are directly measured vs. NOOP's own derived scores. HRV / Resting HR come off the strap;
             // Recovery and Strain are computed on-device and are NOT clinical measures.
             Text("How to read this: HRV, Resting HR, Sleep duration, Respiratory rate and Skin temperature are measured from the strap (skin temp is shown as the deviation from your own baseline). Workouts is the count of activities you logged or that were detected. Recovery, Strain and Stress are NOOP's own on-device scores, not clinical measures: Recovery is a daily readiness composite (HRV, resting HR, sleep and skin-temp trend), Strain is cardiovascular load derived from heart rate, and Stress is a 0-3 autonomic-load index from resting HR and HRV.")
-                .font(StrandFont.footnote)
-                .foregroundStyle(StrandPalette.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)
             Text("Generated by NOOP on \(generatedOn) · all on-device, no account, no cloud.")
-                .font(StrandFont.footnote)
-                .foregroundStyle(StrandPalette.textTertiary)
             Text("Informational only, not medical advice.")
-                .font(StrandFont.footnote)
-                .foregroundStyle(StrandPalette.textTertiary)
         }
+        .font(StrandFont.pro(11))
+        .foregroundStyle(StrandPalette.textSecondary)
     }
 
     // MARK: Formatting
@@ -433,10 +452,8 @@ struct TrendsReportPage: View {
     }
 }
 
-// MARK: - Export sheet (range picker + CTA)
+// MARK: - Share menu
 
-/// The in-app sheet: pick a range, preview the page, export to PDF. Presented from the
-/// Trends screen's "Export trends report" button.
 /// The Trends toolbar's share button: pick a period, and the report for it goes to the share sheet (the
 /// Save panel on macOS) as a one-page PDF.
 struct TrendsReportMenu: View {
@@ -543,8 +560,7 @@ private func previewDays() -> [DailyMetric] {
             generatedOn: "Jun 15, 2026")
     }
     .frame(width: 640, height: 900)
-    .background(StrandPalette.surfaceBase)
-    .preferredColorScheme(.dark)
+    .background(StrandPalette.plainPage)
 }
 
 #endif

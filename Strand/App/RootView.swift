@@ -501,7 +501,7 @@ private struct SidebarStatus: View {
             Spacer()
         }
         .padding(10)
-        .background(NoopPanelSurface(cornerRadius: 10))
+        .background(StrandPalette.plainPageCard, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 
     // Shares LiveState.connectionStatus* with the Settings strap card so the two never disagree (#266):

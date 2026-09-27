@@ -28,17 +28,12 @@ struct RawDataCollectorView: View {
     }
 
     var body: some View {
-        ScreenScaffold(
-            title: "5/MG Raw Data Collector",
-            subtitle: "Record a bounded 100 Hz motion session and export its complete timeline."
-        ) {
-            VStack(alignment: .leading, spacing: NoopMetrics.sectionSpacing) {
-                coverageCard
-                controls
-                historicalRangeCard
-                sessionsSection
-            }
+        Form {
+            captureSection
+            historicalSection
+            sessionsSections
         }
+        .settingsPage("5/MG Raw Data Collector")
         .task {
             // Restore a session after navigation/process lifecycle changes. The BLE layer rejects a
             // duplicate arm, so this is safe when capture never stopped.
@@ -82,130 +77,126 @@ struct RawDataCollectorView: View {
         .sheet(item: $markerDraft) { draft in markerSheet(draft) }
     }
 
-    private var coverageCard: some View {
-        StrandCard {
-            VStack(alignment: .leading, spacing: NoopMetrics.space2) {
-                Text("Capture coverage").font(StrandFont.headline).foregroundStyle(StrandPalette.textPrimary)
-                Text(live.connected ? "Band: connected\(live.bonded ? " + paired" : "; pairing")"
-                                    : "Band: disconnected")
-                    .foregroundStyle(live.connected ? StrandPalette.statusPositive : StrandPalette.statusCritical)
-                Text(live.backfilling
-                     ? "History sync: running (\(live.syncChunksThisSession) chunks)"
-                     : "History sync: idle")
-                    .foregroundStyle(StrandPalette.textSecondary)
-                if let active = store.active {
-                    Text("Realtime IMU: session active since \(Self.time(active.startedAtMs))")
-                        .foregroundStyle(StrandPalette.accent)
+    private var captureSection: some View {
+        Section {
+            LabeledContent("Strap") {
+                Text(live.connected ? (live.bonded ? "Connected" : "Pairing…") : "Not connected")
+                    .foregroundStyle(live.connected ? StrandPalette.textSecondary : StrandPalette.statusCritical)
+            }
+            LabeledContent("History sync") {
+                if live.backfilling {
+                    Text("Syncing") + Text(verbatim: " · \(live.syncChunksThisSession)")
+                } else {
+                    Text("Idle")
                 }
             }
-            .font(StrandFont.subhead)
-        }
-    }
-
-    @ViewBuilder private var controls: some View {
-        if store.active != nil {
-            NoopButton("Stop session", systemImage: "stop.fill", kind: .destructive,
-                       fullWidth: true) { Task { await stop() } }
-        } else {
-            NoopButton("Start raw-data session", systemImage: "record.circle", kind: .primary,
-                       fullWidth: true) { start() }
-                .disabled(!live.bonded)
-        }
-    }
-
-    private var historicalRangeCard: some View {
-        StrandCard {
-            VStack(alignment: .leading, spacing: NoopMetrics.space3) {
-                Text("Historical export window").font(StrandFont.headline)
-                Text("Create a session from synchronized history without starting a live capture. 100 Hz coverage is included wherever it still exists in the rolling buffer.")
-                    .font(StrandFont.caption).foregroundStyle(StrandPalette.textTertiary)
-                DatePicker("From", selection: $historicalFrom)
-                DatePicker("To", selection: $historicalTo, in: historicalFrom...)
-                NoopButton("Add historical session", systemImage: "clock.arrow.circlepath",
-                           kind: .secondary, fullWidth: true) {
-                    _ = store.createHistorical(deviceId: model.ble.deviceId,
-                                               from: historicalFrom, to: historicalTo)
+            if let active = store.active {
+                LabeledContent("Recording", value: Self.time(active.startedAtMs))
+                Button(role: .destructive) { Task { await stop() } } label: {
+                    Label("Stop session", systemImage: "stop.fill")
                 }
-                .disabled(historicalTo <= historicalFrom || historicalTo.timeIntervalSince(historicalFrom) > 7 * 86_400)
-            }
-        }
-    }
-
-    private var sessionsSection: some View {
-        VStack(alignment: .leading, spacing: NoopMetrics.space3) {
-            Text("Recorded sessions").font(StrandFont.title2).foregroundStyle(StrandPalette.textPrimary)
-            if store.sessions.isEmpty {
-                Text("No sessions recorded yet.").font(StrandFont.subhead)
-                    .foregroundStyle(StrandPalette.textSecondary)
             } else {
-                NoopButton("Delete all sessions", systemImage: "trash", kind: .destructive,
-                           fullWidth: true) { confirmDeleteAll = true }
-                    .disabled(store.active != nil)
-                ForEach(store.sessions) { session in sessionCard(session) }
+                Button { start() } label: {
+                    Label("Start raw-data session", systemImage: "record.circle")
+                }
+                .disabled(!live.bonded)
             }
         }
     }
 
-    private func sessionCard(_ session: RawDataSessionStore.Session) -> some View {
+    private var historicalSection: some View {
+        Section {
+            DatePicker("From", selection: $historicalFrom)
+            DatePicker("To", selection: $historicalTo, in: historicalFrom...)
+            Button {
+                _ = store.createHistorical(deviceId: model.ble.deviceId,
+                                           from: historicalFrom, to: historicalTo)
+            } label: {
+                Label("Add historical session", systemImage: "clock.arrow.circlepath")
+            }
+            .disabled(historicalTo <= historicalFrom || historicalTo.timeIntervalSince(historicalFrom) > 7 * 86_400)
+        } header: {
+            Text("Historical export window")
+        }
+    }
+
+    @ViewBuilder private var sessionsSections: some View {
+        if store.sessions.isEmpty {
+            Section {
+                Text("No sessions recorded yet.").foregroundStyle(StrandPalette.textSecondary)
+            } header: {
+                Text("Recorded sessions")
+            }
+        } else {
+            ForEach(store.sessions) { session in sessionSection(session) }
+            Section {
+                Button(role: .destructive) { confirmDeleteAll = true } label: {
+                    Label("Delete all sessions", systemImage: "trash")
+                }
+                .disabled(store.active != nil)
+            }
+        }
+    }
+
+    private func sessionSection(_ session: RawDataSessionStore.Session) -> some View {
         let coverageText = imuCoverage[session.id, default: "no complete seconds"]
-        return StrandCard {
-            VStack(alignment: .leading, spacing: NoopMetrics.space3) {
-                Text(Self.range(session)).font(StrandFont.headline).foregroundStyle(StrandPalette.textPrimary)
-                if !session.active, let endMs = session.endedAtMs {
-                    DatePicker("From", selection: Binding(
-                        get: { Date(timeIntervalSince1970: Double(session.startedAtMs) / 1_000) },
-                        set: { store.setRange(sessionId: session.id, from: $0,
-                                              to: Date(timeIntervalSince1970: Double(endMs) / 1_000)) }
-                    ))
-                    DatePicker("To", selection: Binding(
-                        get: { Date(timeIntervalSince1970: Double(endMs) / 1_000) },
-                        set: { store.setRange(sessionId: session.id,
-                                              from: Date(timeIntervalSince1970: Double(session.startedAtMs) / 1_000), to: $0) }
-                    ))
+        let markers = session.events.filter { $0.kind == "marker" }.sorted { $0.atMs < $1.atMs }
+        return Section {
+            if !session.active, let endMs = session.endedAtMs {
+                DatePicker("From", selection: Binding(
+                    get: { Date(timeIntervalSince1970: Double(session.startedAtMs) / 1_000) },
+                    set: { store.setRange(sessionId: session.id, from: $0,
+                                          to: Date(timeIntervalSince1970: Double(endMs) / 1_000)) }
+                ))
+                DatePicker("To", selection: Binding(
+                    get: { Date(timeIntervalSince1970: Double(endMs) / 1_000) },
+                    set: { store.setRange(sessionId: session.id,
+                                          from: Date(timeIntervalSince1970: Double(session.startedAtMs) / 1_000), to: $0) }
+                ))
+            }
+            LabeledContent {
+                if session.active {
+                    Text("Recording").foregroundStyle(StrandPalette.statusWarning)
+                } else {
+                    Text(coverageText)
                 }
-                Text(session.active ? String(localized: "Export status: recording")
-                     : String(localized: "IMU: \(coverageText)"))
-                    .font(StrandFont.caption)
-                    .foregroundStyle(session.active ? StrandPalette.statusWarning : StrandPalette.statusPositive)
-                if let exportedAt = session.lastExportedAtMs {
-                    Text(String(localized: "Last exported \(Self.time(exportedAt)) · export remains available"))
-                        .font(StrandFont.caption)
-                        .foregroundStyle(StrandPalette.textSecondary)
-                }
-                TextField("Session comment", text: Binding(
-                    get: { store.sessions.first(where: { $0.id == session.id })?.comment ?? session.comment },
-                    set: { store.setComment($0, sessionId: session.id) }
-                ), axis: .vertical)
-                    .textFieldStyle(.roundedBorder).lineLimit(2...4)
-                NoopButton("Add marker", systemImage: "mappin.and.ellipse", kind: .secondary,
-                           fullWidth: true) { editMarker(nil, in: session) }
-                let markers = session.events.filter { $0.kind == "marker" }.sorted { $0.atMs < $1.atMs }
-                ForEach(markers) { marker in
-                    Button { editMarker(marker, in: session) } label: {
-                        HStack {
-                            VStack(alignment: .leading, spacing: NoopMetrics.space1) {
-                                (Text(Self.markerLabel(marker.markerType))
-                                    + Text(verbatim: " · \(Self.time(marker.atMs))"))
-                                    .font(StrandFont.subhead).foregroundStyle(StrandPalette.textPrimary)
-                                if let text = marker.text, !text.isEmpty {
-                                    Text(text).font(StrandFont.caption).foregroundStyle(StrandPalette.textSecondary)
-                                }
-                            }
-                            Spacer()
-                            Image(systemName: "chevron.right").foregroundStyle(StrandPalette.textTertiary)
+            } label: {
+                Text(verbatim: "IMU")
+            }
+            if let exportedAt = session.lastExportedAtMs {
+                LabeledContent("Last exported", value: Self.time(exportedAt))
+            }
+            TextField("Session comment", text: Binding(
+                get: { store.sessions.first(where: { $0.id == session.id })?.comment ?? session.comment },
+                set: { store.setComment($0, sessionId: session.id) }
+            ), axis: .vertical)
+                .lineLimit(2...4)
+            ForEach(markers) { marker in
+                Button { editMarker(marker, in: session) } label: {
+                    LabeledContent {
+                        Text(Self.time(marker.atMs))
+                    } label: {
+                        Text(Self.markerLabel(marker.markerType)).foregroundStyle(StrandPalette.textPrimary)
+                        if let text = marker.text, !text.isEmpty {
+                            Text(text)
                         }
                     }
-                    .buttonStyle(.plain)
                 }
-                NoopButton(exportingId == session.id ? "Building export…" : "Export session",
-                           systemImage: "square.and.arrow.up", kind: .secondary, fullWidth: true) {
-                    Task { await export(session) }
-                }
-                .disabled(session.active || exportingId != nil)
-                NoopButton("Delete session", systemImage: "trash", kind: .destructive,
-                           fullWidth: true) { deleteCandidate = session }
-                    .disabled(session.active || exportingId != nil)
             }
+            Button { editMarker(nil, in: session) } label: {
+                Label("Add marker", systemImage: "mappin.and.ellipse")
+            }
+            Button { Task { await export(session) } } label: {
+                Label(exportingId == session.id ? "Building export…" : "Export session",
+                      systemImage: "square.and.arrow.up")
+            }
+            .disabled(session.active || exportingId != nil)
+            Button(role: .destructive) { deleteCandidate = session } label: {
+                Label("Delete session", systemImage: "trash")
+            }
+            .disabled(session.active || exportingId != nil)
+        } header: {
+            Text(verbatim: Self.range(session))
         }
     }
 
@@ -219,7 +210,7 @@ struct RawDataCollectorView: View {
                             let current = Self.markerCurrentTime(session: session, now: timeline.date)
                             Text("Marker: \(binding.wrappedValue.at.formatted(date: .omitted, time: .standard))")
                             Text("Current time: \(current.formatted(date: .omitted, time: .standard))")
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(StrandPalette.textSecondary)
                             HStack {
                                 Button { binding.wrappedValue.at.addTimeInterval(-10) } label: { Text(verbatim: "−10 s") }
                                 Spacer()
@@ -229,6 +220,7 @@ struct RawDataCollectorView: View {
                                 Spacer()
                                 Button { binding.wrappedValue.at.addTimeInterval(10) } label: { Text(verbatim: "+10 s") }
                             }
+                            .buttonStyle(.borderless)
                         }
                     }
                     Section("Marker type") {
@@ -250,11 +242,11 @@ struct RawDataCollectorView: View {
                         }
                     }
                 }
-                .navigationTitle(initial.markerId == nil ? "Add marker" : "Edit marker")
+                .settingsPage(initial.markerId == nil ? "Add marker" : "Edit marker")
                 .toolbar {
-                    ToolbarItem(placement: .cancellationAction) { Button("Cancel") { markerDraft = nil } }
+                    ToolbarItem(placement: .cancellationAction) { WorkoutSheetCloseButton { markerDraft = nil } }
                     ToolbarItem(placement: .confirmationAction) {
-                        Button("Save") { saveMarker(binding.wrappedValue) }
+                        WorkoutSheetConfirmButton(tint: StrandPalette.settingsBlue) { saveMarker(binding.wrappedValue) }
                     }
                 }
             }

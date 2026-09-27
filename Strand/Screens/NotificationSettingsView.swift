@@ -10,65 +10,50 @@ struct NotificationSettingsView: View {
     @StateObject private var store = NotificationSettingsStore()
 
     var body: some View {
-        ScreenScaffold(title: "Notifications",
-                       subtitle: "Buzz your strap when these apps notify you. Everything runs on \(Platform.deviceNounPhrase).") {
-            VStack(alignment: .leading, spacing: NoopMetrics.sectionSpacing) {
-                masterCard
-                    .staggeredAppear(index: 0)
-                // #926: the "every pattern buzzes the same on a 5/MG" note that used to sit here is GONE —
-                // the limitation it described is fixed. overallLoop (byte 11 of the maverick haptic body)
-                // is now written as `loops - 1` by `MaverickHaptics.notificationBuzz`, which `send` builds
-                // the 5/MG body with, so all four patterns are distinct on that family too. Leaving the
-                // note would be worse than never having had it: a caption telling the user their setting
-                // does nothing, next to a control that now works. Kotlin twin carries the same note.
-                if store.activeCategories.isEmpty {
-                    emptyAppsCard
-                        .staggeredAppear(index: 1)
-                } else {
-                    ForEach(Array(store.activeCategories.enumerated()), id: \.element.id) { idx, cat in
-                        categoryCard(cat, apps: store.apps(in: cat))
-                            .staggeredAppear(index: idx + 1)
-                    }
-                }
-                behaviourCard
-                    .staggeredAppear(index: store.activeCategories.count + 1)
+        // #926: the "every pattern buzzes the same on a 5/MG" note is gone: overallLoop (byte 11 of the
+        // maverick haptic body) is now written as `loops - 1` by `MaverickHaptics.notificationBuzz`, so all
+        // four patterns are distinct on that family too. The Kotlin twin carries the same change.
+        Form {
+            Section {
+                deliveryNote
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
             }
+            masterSection
+            if store.activeCategories.isEmpty {
+                Section {
+                    Text("No supported apps found").foregroundStyle(StrandPalette.textSecondary)
+                }
+            } else {
+                ForEach(store.activeCategories) { cat in
+                    categorySection(cat, apps: store.apps(in: cat))
+                }
+            }
+            behaviourSection
         }
+        .settingsPage("Notifications")
     }
 
     // MARK: - Master
 
-    private var masterCard: some View {
-        AlertSection(icon: "bell.badge.fill", title: String(localized: "Wrist alerts"),
-                     blurb: String(localized: "When on, NOOP taps your wrist for the apps you pick below, so you can leave the \(Platform.deviceNoun) and still feel what matters.")) {
-            VStack(alignment: .leading, spacing: NoopMetrics.space4) {
-                Toggle(isOn: $store.masterEnabled) {
-                    Text("Enable wrist alerts")
-                        .font(StrandFont.body)
-                        .foregroundStyle(StrandPalette.textPrimary)
-                }
-                .toggleStyle(.switch)
-                .tint(StrandPalette.accent)
-
-                HStack(spacing: 10) {
-                    StatePill("\(strapPillTitle)", tone: strapPillTone, pulsing: live.connected)
-                    StatePill(store.enabledCount == 1 ? "1 app on" : "\(store.enabledCount) apps on",
-                              tone: store.enabledCount > 0 ? .positive : .neutral,
-                              showsDot: false)
-                    Spacer(minLength: 0)
-                    Button {
-                        model.buzz(loops: 2)
-                    } label: {
-                        Label("Test buzz", systemImage: "waveform.path")
-                    }
-                    .buttonStyle(NoopButtonStyle(.secondary))
-                    .disabled(!live.bonded)
-                    .help(live.bonded ? "Fire a test buzz now" : "Connect your strap to test")
-                    .accessibilityHint(live.bonded ? "Fires a test buzz on your strap" : "Connect your strap to enable")
-                }
-
-                deliveryNote
+    private var masterSection: some View {
+        Section {
+            Toggle("Enable wrist alerts", isOn: $store.masterEnabled)
+            LabeledContent("Strap") {
+                Text(strapStatus).foregroundStyle(strapStatusColor)
             }
+            Button {
+                model.buzz(loops: 2)
+            } label: {
+                Label("Test buzz", systemImage: "waveform.path")
+            }
+            .disabled(!live.bonded)
+            .help(live.bonded ? "Fire a test buzz now" : "Connect your strap to test")
+            .accessibilityHint(live.bonded ? "Fires a test buzz on your strap" : "Connect your strap to enable")
+        } header: {
+            Text("Wrist alerts")
+        } footer: {
+            Text(store.enabledCount == 1 ? "1 app on" : "\(store.enabledCount) apps on")
         }
     }
 
@@ -78,77 +63,48 @@ struct NotificationSettingsView: View {
                    systemImage: "info.circle.fill", tone: .info)
     }
 
-    /// Strap status — mirrors SettingsView's three-state mapping so the pill, its tone and its
-    /// pulse always agree (and never reads "connected" while the strap is offline).
-    private var strapPillTitle: String {
-        if live.connected { return String(localized: "Strap connected") }
-        if live.bonded { return String(localized: "Strap idle") }          // paired but offline — won't deliver
-        return String(localized: "Strap not connected")
+    /// Strap status — mirrors SettingsView's three-state mapping so the value and its colour always
+    /// agree (and never read "connected" while the strap is offline).
+    private var strapStatus: LocalizedStringKey {
+        if live.connected { return "Connected" }
+        if live.bonded { return "Paired" }          // paired but offline — won't deliver
+        return "Not connected"
     }
-    private var strapPillTone: StrandTone {
-        if live.connected { return .positive }
-        if live.bonded { return .warning }
-        return .critical
+    private var strapStatusColor: Color {
+        if live.connected { return StrandPalette.textSecondary }
+        if live.bonded { return StrandPalette.statusWarning }
+        return StrandPalette.statusCritical
     }
 
-    // MARK: - Category card
+    // MARK: - Category section
 
-    private func categoryCard(_ cat: NotifCategory, apps: [NotifApp]) -> some View {
-        AlertSection(icon: cat.symbol, title: cat.rawValue) {
-            VStack(spacing: 0) {
-                ForEach(Array(apps.enumerated()), id: \.element.id) { idx, app in
-                    appRow(app)
-                    if idx < apps.count - 1 { rowDivider }
-                }
-            }
+    private func categorySection(_ cat: NotifCategory, apps: [NotifApp]) -> some View {
+        Section {
+            ForEach(apps) { app in appRow(app) }
+        } header: {
+            Text(cat.rawValue)
         }
-        .opacity(store.masterEnabled ? 1 : StrandPalette.disabledOpacity)
         .disabled(!store.masterEnabled)
-    }
-
-    private var emptyAppsCard: some View {
-        AlertSection(icon: "bell.slash",
-                     title: String(localized: "No supported apps found"),
-                     blurb: String(localized: "NOOP looks for known notification apps on \(Platform.deviceNounPhrase): Mail, Outlook, WhatsApp, Teams, Messages, Slack and similar. Install one and it'll appear here automatically.")) {
-            EmptyView()
-        }
     }
 
     private func appRow(_ app: NotifApp) -> some View {
         let enabled = store.isEnabled(app.id)
-        return HStack(spacing: 12) {
+        return HStack(spacing: 10) {
             appIcon(app)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(app.name)
-                    .font(StrandFont.body)
-                    .foregroundStyle(StrandPalette.textPrimary)
-                Text(enabled ? "Buzzes your wrist" : "Off")
-                    .font(StrandFont.footnote)
-                    .foregroundStyle(enabled ? StrandPalette.accent : StrandPalette.textTertiary)
-            }
-
+            Text(app.name)
+                .foregroundStyle(StrandPalette.textPrimary)
             Spacer(minLength: 8)
-
             if enabled {
-                patternMenu(app)
+                patternPicker(app)
                 testButton(app)
             }
-
             Toggle("", isOn: Binding(
                 get: { store.isEnabled(app.id) },
                 set: { store.setEnabled(app.id, $0) }))
                 .labelsHidden()
                 .toggleStyle(.switch)
-                .tint(StrandPalette.accent)
                 .accessibilityLabel("\(app.name) wrist alerts")
         }
-        .frame(minHeight: 42)
-        .padding(.vertical, 4)
-        .padding(.horizontal, 8)
-        // An enabled app reads as a selected row: a soft accentMuted wash behind it.
-        .background(enabled ? StrandPalette.accentMuted : .clear,
-                    in: RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 
     private func appIcon(_ app: NotifApp) -> some View {
@@ -158,41 +114,26 @@ struct NotificationSettingsView: View {
                     .resizable()
                     .interpolation(.high)
             } else {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
                     .fill(StrandPalette.surfaceInset)
                     .overlay(Image(systemName: app.fallbackSymbol)
                         .foregroundStyle(StrandPalette.textSecondary))
             }
         }
-        .frame(width: 34, height: 34)
+        .frame(width: 24, height: 24)
         .accessibilityHidden(true)
     }
 
-    private func patternMenu(_ app: NotifApp) -> some View {
-        Menu {
+    private func patternPicker(_ app: NotifApp) -> some View {
+        Picker("", selection: Binding(
+            get: { store.pattern(app.id) },
+            set: { store.setPattern(app.id, $0) })) {
             ForEach(BuzzPattern.allCases) { p in
-                Button {
-                    store.setPattern(app.id, p)
-                } label: {
-                    if store.pattern(app.id) == p {
-                        Label(p.label, systemImage: "checkmark")
-                    } else {
-                        Text(p.label)
-                    }
-                }
+                Text(p.label).tag(p)
             }
-        } label: {
-            HStack(spacing: 5) {
-                Image(systemName: "waveform.path").font(.system(size: 11))
-                Text(store.pattern(app.id).label).font(StrandFont.caption)
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background(StrandPalette.surfaceInset, in: Capsule())
-            .overlay(Capsule().strokeBorder(StrandPalette.hairline, lineWidth: 1))
-            .foregroundStyle(StrandPalette.textSecondary)
         }
-        .menuStyle(.borderlessButton)
+        .labelsHidden()
+        .pickerStyle(.menu)
         .fixedSize()
         .help("Choose the buzz pattern for \(app.name)")
     }
@@ -202,11 +143,8 @@ struct NotificationSettingsView: View {
             model.buzz(loops: store.pattern(app.id).loops)
         } label: {
             Image(systemName: "play.fill")
-                .font(.system(size: 11))
-                .frame(width: 24, height: 24)
         }
-        .buttonStyle(.bordered)
-        .tint(StrandPalette.accent)
+        .buttonStyle(.borderless)
         .disabled(!live.bonded)
         .help(live.bonded ? "Test \(app.name) buzz" : "Connect your strap to test")
         .accessibilityLabel("Test \(app.name) buzz")
@@ -215,40 +153,18 @@ struct NotificationSettingsView: View {
 
     // MARK: - Behaviour
 
-    private var behaviourCard: some View {
-        AlertSection(icon: "slider.horizontal.3", title: String(localized: "Behaviour"),
-                     blurb: String(localized: "Fine-tune when alerts reach your wrist.")) {
-            VStack(spacing: 0) {
-                FormToggleRow(label: String(localized: "Only buzz when worn"),
-                              help: String(localized: "Skip alerts when the strap is off your wrist."),
-                              isOn: $store.onlyWhenWorn)
-                rowDivider
-                FormToggleRow(label: String(localized: "Quiet hours"),
-                              help: String(localized: "Mute wrist alerts overnight."),
-                              isOn: $store.quietHoursEnabled)
-                if store.quietHoursEnabled {
-                    rowDivider
-                    HStack(spacing: 12) {
-                        Text("From")
-                            .font(StrandFont.body)
-                            .foregroundStyle(StrandPalette.textPrimary)
-                        DatePicker("", selection: quietStartBinding, displayedComponents: .hourAndMinute)
-                            .labelsHidden()
-                            .datePickerStyle(.compact)
-                            .accessibilityLabel("Quiet hours start")
-                        Text("to")
-                            .font(StrandFont.body)
-                            .foregroundStyle(StrandPalette.textSecondary)
-                        DatePicker("", selection: quietEndBinding, displayedComponents: .hourAndMinute)
-                            .labelsHidden()
-                            .datePickerStyle(.compact)
-                            .accessibilityLabel("Quiet hours end")
-                        Spacer(minLength: 0)
-                    }
-                    .frame(minHeight: 42)
-                    .padding(.vertical, 4)
-                }
+    private var behaviourSection: some View {
+        Section {
+            Toggle("Only buzz when worn", isOn: $store.onlyWhenWorn)
+            Toggle("Quiet hours", isOn: $store.quietHoursEnabled)
+            if store.quietHoursEnabled {
+                DatePicker("From", selection: quietStartBinding, displayedComponents: .hourAndMinute)
+                    .accessibilityLabel("Quiet hours start")
+                DatePicker("To", selection: quietEndBinding, displayedComponents: .hourAndMinute)
+                    .accessibilityLabel("Quiet hours end")
             }
+        } header: {
+            Text("Behaviour")
         }
     }
 
@@ -269,80 +185,6 @@ struct NotificationSettingsView: View {
         let c = Calendar.current.dateComponents([.hour, .minute], from: d)
         return (c.hour ?? 0) * 60 + (c.minute ?? 0)
     }
-
-    // MARK: - Shared
-
-    private var rowDivider: some View {
-        Rectangle()
-            .fill(StrandPalette.hairline)
-            .frame(height: 1)
-            .padding(.vertical, 4)
-    }
-}
-
-// MARK: - Section card (icon + title header, optional blurb, content)
-
-private struct AlertSection<Content: View>: View {
-    let icon: String
-    let title: String
-    var blurb: String? = nil
-    /// The section overline ("Alerts" by default). Lets a section group itself in the Bevel idiom.
-    var overline: String = String(localized: "Alerts")
-    @ViewBuilder var content: () -> Content
-
-    var body: some View {
-        StrandCard(padding: 20, tint: StrandPalette.accent) {
-            VStack(alignment: .leading, spacing: NoopMetrics.space4) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("\(overline)").strandOverline()
-                    HStack(spacing: NoopMetrics.space2 + 2) {
-                        Image(systemName: icon)
-                            .foregroundStyle(StrandPalette.accent)
-                            .accessibilityHidden(true)
-                        Text(title)
-                            .font(StrandFont.title2)
-                            .foregroundStyle(StrandPalette.textPrimary)
-                    }
-                }
-                if let blurb {
-                    Text(blurb)
-                        .font(StrandFont.subhead)
-                        .foregroundStyle(StrandPalette.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                content()
-            }
-        }
-    }
-}
-
-// MARK: - Label + help + switch row
-
-private struct FormToggleRow: View {
-    let label: String
-    let help: String
-    @Binding var isOn: Bool
-
-    var body: some View {
-        HStack(alignment: .center, spacing: 16) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(label)
-                    .font(StrandFont.body)
-                    .foregroundStyle(StrandPalette.textPrimary)
-                Text(help)
-                    .font(StrandFont.footnote)
-                    .foregroundStyle(StrandPalette.textTertiary)
-            }
-            Spacer()
-            Toggle("", isOn: $isOn)
-                .labelsHidden()
-                .toggleStyle(.switch)
-                .tint(StrandPalette.accent)
-                .accessibilityLabel(label)
-        }
-        .frame(minHeight: 42)
-        .padding(.vertical, 4)
-    }
 }
 
 // MARK: - Preview
@@ -356,7 +198,5 @@ private struct FormToggleRow: View {
         .environmentObject(model)
         .environmentObject(model.live)
         .frame(width: 760, height: 940)
-        .background(StrandPalette.surfaceBase)
-        .preferredColorScheme(.dark)
 }
 #endif

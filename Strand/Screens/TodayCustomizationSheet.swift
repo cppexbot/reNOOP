@@ -171,7 +171,7 @@ struct TodayCustomizationSheet: View {
             }
         }
         .interactiveDismissDisabled(isDirty)
-        .tint(StrandPalette.accent)
+        .tint(StrandPalette.settingsBlue)
         #if os(macOS)
         .frame(
             minWidth: NoopMetrics.editorSheetMinWidth,
@@ -239,11 +239,11 @@ struct TodayCustomizationSheet: View {
     private func customizationToolbar(showCancel: Bool) -> some ToolbarContent {
         if showCancel {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel", action: cancel)
+                WorkoutSheetCloseButton(action: cancel)
             }
         }
         ToolbarItem(placement: .confirmationAction) {
-            Button("Save", action: save)
+            WorkoutSheetConfirmButton(tint: StrandPalette.settingsBlue, action: save)
         }
     }
 }
@@ -323,16 +323,8 @@ private struct KeyMetricsCustomizationPage: View {
             onConfigure: { _ in },
             onReset: onReset
         ) {
-            Section("Display") {
-                Toggle(isOn: $detailed) {
-                    VStack(alignment: .leading, spacing: NoopMetrics.space1) {
-                        Text("Detailed tiles")
-                        Text("Show a trend graph beneath each metric.")
-                            .font(StrandFont.caption)
-                            .foregroundStyle(StrandPalette.textSecondary)
-                    }
-                }
-                .accessibilityLabel("Detailed tiles")
+            Section {
+                Toggle("Detailed tiles", isOn: $detailed)
 
                 if detailed {
                     Picker("Trend window", selection: $windowDays) {
@@ -343,6 +335,7 @@ private struct KeyMetricsCustomizationPage: View {
                     .pickerStyle(.segmented)
                 }
             }
+            .listRowBackground(StrandPalette.summaryCard)
         }
         .navigationTitle("Key Metrics")
         #if os(iOS)

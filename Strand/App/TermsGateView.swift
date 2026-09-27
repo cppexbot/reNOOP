@@ -74,7 +74,7 @@ struct TermsGateView: View {
                     .padding(.bottom, 18)
                 }
                 #if os(iOS)
-                // #697/#horizontal-swipe parity, see ScreenScaffold. Shown before onboarding/pairing,
+                // #697: no sideways rubber-band on a vertical page. Shown before onboarding/pairing,
                 // on top of everything, so this is the very first screen a new install sees.
                 .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
                 #endif

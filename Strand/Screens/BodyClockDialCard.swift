@@ -21,8 +21,6 @@ struct BodyClockDialCard: View {
     /// The night's own bed/wake clock hours (0..<24, fractional), from the scored session.
     let actualBedHour: Double
     let actualWakeHour: Double
-    /// The Health-style Sleep page draws the dial in its own card with its own title row.
-    var plain = false
 
     // One hue for both arcs, told apart by dash and weight rather than by a second colour. Two blues
     // competed with the background image; a single legible one plus a dashed, lighter reference does not.
@@ -49,61 +47,32 @@ struct BodyClockDialCard: View {
         // circle with no ideal arc beside it would state something false about the night, so the card
         // stands down instead. Twin of the Kotlin guard.
         if ideal != nil {
-            if plain {
-                SummaryCard {
-                    VStack(alignment: .leading, spacing: NoopMetrics.gap) {
-                        HStack(spacing: 5) {
-                            Image(systemName: "clock.fill")
-                                .font(.system(size: 12, weight: .semibold))
-                            Text("Body clock")
-                                .font(StrandFont.subhead.weight(.semibold))
-                        }
-                        .foregroundStyle(StrandPalette.healthSleepDeep)
-                        content
-                    }
+            SummaryCard {
+                VStack(alignment: .leading, spacing: NoopMetrics.gap) {
+                    SummaryCardTitleRow(icon: "clock.fill", title: String(localized: "Body clock"),
+                                        tint: StrandPalette.healthSleepDeep,
+                                        trailing: CircadianEngine.chronotype(estimate).map { chronotypeText($0) },
+                                        chevron: false)
+                        .accessibilityAddTraits(.isHeader)
+                    content
                 }
-                .accessibilityElement(children: .contain)
-            } else {
-                NoopCard(tint: hue) {
-                    VStack(alignment: .leading, spacing: NoopMetrics.gap) {
-                        header
-                        content
-                    }
-                }
-                .accessibilityElement(children: .contain)
             }
+            .accessibilityElement(children: .contain)
         }
     }
 
     @ViewBuilder private var content: some View {
+        Text(alignmentText)
+            .font(StrandFont.pro(22, weight: .bold))
+            .foregroundStyle(StrandPalette.textPrimary)
+            .fixedSize(horizontal: false, vertical: true)
         dial
             .frame(maxWidth: .infinity)
             .accessibilityElement(children: .ignore)
-            // Label only. The verdict is the caption Text below, a separate element, so giving
-            // the dial the same string as its VALUE made VoiceOver announce it twice.
+            // Label only. The verdict is the Text above, a separate element, so giving the dial the
+            // same string as its VALUE made VoiceOver announce it twice.
             .accessibilityLabel(Text("Body clock dial"))
         legend
-        Text(alignmentText)
-            .font(StrandFont.title2)
-            .foregroundStyle(StrandPalette.textPrimary)
-            .fixedSize(horizontal: false, vertical: true)
-        if let chronotype = CircadianEngine.chronotype(estimate) {
-            Text(chronotypeText(chronotype))
-                .font(StrandFont.footnote)
-                .foregroundStyle(StrandPalette.textTertiary)
-        }
-    }
-
-    private var header: some View {
-        HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Body clock").strandOverline()
-                Text("Last night against your clock")
-                    .font(StrandFont.footnote)
-                    .foregroundStyle(StrandPalette.textTertiary)
-            }
-            Spacer()
-        }
     }
 
     /// Midnight at the top, clocking round to the right — the orientation every 24 h dial uses, so the
@@ -303,7 +272,7 @@ struct BodyClockDialCard: View {
                        label: String(localized: "Your clock"))
             Spacer()
         }
-        .accessibilityHidden(true)   // the caption below already states the comparison in words
+        .accessibilityHidden(true)   // the verdict above already states the comparison in words
     }
 
     private func legendItem(colour: Color, dashed: Bool, label: String) -> some View {

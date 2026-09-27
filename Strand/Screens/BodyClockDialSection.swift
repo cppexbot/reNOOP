@@ -13,14 +13,12 @@ struct BodyClockDialSection: View {
     @EnvironmentObject var appModel: AppModel
     let actualBedHour: Double
     let actualWakeHour: Double
-    var plain = false
 
     /// Drawn only for a fit that is at least `.wide`: an `.unreadable` rhythm has no phase to compare a
     /// night against, and an empty ring would read as a broken chart rather than as "not enough data".
     var body: some View {
         if let phase = appModel.circadianPhase, phase.confidence != .unreadable {
-            BodyClockDialCard(estimate: phase, actualBedHour: actualBedHour, actualWakeHour: actualWakeHour,
-                              plain: plain)
+            BodyClockDialCard(estimate: phase, actualBedHour: actualBedHour, actualWakeHour: actualWakeHour)
         }
     }
 }

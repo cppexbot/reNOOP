@@ -124,7 +124,7 @@ struct DisplaySettingsPage: View {
     // Light/Dark/System theme. Read by both app roots' .preferredColorScheme; default follows the OS.
     @AppStorage(AppearanceMode.storageKey) private var appearanceRaw = AppearanceMode.system.rawValue
     /// Pose every looping animation still and stop the tilt sensor, without system Low Power Mode or
-    /// Reduce Motion. Read by `LiquidMotion` and `NoopMotionState`.
+    /// Reduce Motion. Read by `NoopMotionState`.
     @AppStorage(QuietMotionPrefs.enabledKey) private var quietMotion = false
     /// #1841: iOS 26 minimises the tab bar to a pill on scroll down (`noopTabBarAutoHide`).
     @AppStorage("noop.bottomBarAutoHide") private var bottomBarAutoHide = false

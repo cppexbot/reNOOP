@@ -567,6 +567,17 @@ enum DemoScreens {
         case "insights": return AnyView(NavigationStack { InsightsHubView() })
         // Every notice state side by side (the shared NoticeCard, with each screen's real copy).
         case "notices": return AnyView(NoticeGalleryDemo())
+        // The sheets and pages reworked in the legacy purge: `--demo-sheet hrv|fullday|scoring|whatsnew|howworks|watch|steps`.
+        case "sheet":
+            switch args.firstIndex(of: "--demo-sheet").flatMap({ $0 + 1 < args.count ? args[$0 + 1] : nil }) {
+            case "hrv":      return AnyView(HRVSnapshotView(onClose: {}))
+            case "fullday":  return AnyView(NavigationStack { FullDayChartView() })
+            case "scoring":  return AnyView(ScoringGuideView(onClose: {}))
+            case "whatsnew": return AnyView(WhatsNewView(onClose: {}))
+            case "howworks": return AnyView(HowNoopWorksView(onClose: {}))
+            case "watch":    return AnyView(AppleWatchSetupView(onClose: {}))
+            default:         return nil
+            }
         // First-run setup, optionally on one step: `--onboarding-step 0…6`.
         case "onboarding":
             let n = args.firstIndex(of: "--onboarding-step").flatMap { $0 + 1 < args.count ? Int(args[$0 + 1]) : nil } ?? 0

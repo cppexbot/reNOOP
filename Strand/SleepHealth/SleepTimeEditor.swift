@@ -117,76 +117,82 @@ struct SleepTimeEditor: View {
         }
     }
 
+    /// True when the picked window no longer touches the night's recorded data (#940 guard 2). Drives
+    /// the one-line footer; Save still asks for consent through the alert below.
+    private var windowIsDisjoint: Bool {
+        guard let coverage, let window = validatedWindow else { return false }
+        return SleepEditGuard.isDisjoint(
+            newStart: window.start, newEnd: window.end,
+            coverageStart: coverage.lowerBound, coverageEnd: coverage.upperBound)
+    }
+
+    private func save() {
+        // #940 guard 2: a corrected window that no longer touches the night's recorded coverage has no
+        // data to stage from. Silently accepting it fabricated an all-awake phantom night; ask first.
+        guard let window = validatedWindow else { return }
+        if windowIsDisjoint {
+            confirmingDisjoint = true
+        } else {
+            commit(start: window.start, end: window.end)
+        }
+    }
+
     var body: some View {
-        let canSave = validatedWindow != nil
-
-        VStack(alignment: .leading, spacing: NoopMetrics.gap) {
-            Text(title).font(StrandFont.title2).foregroundStyle(StrandPalette.textPrimary)
-            Text(blurb)
-                .font(StrandFont.subhead).foregroundStyle(StrandPalette.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            NoopCard(padding: NoopMetrics.cardPadding, tint: StrandPalette.restColor) {
-                VStack(alignment: .leading, spacing: 10) {
+        NavigationStack {
+            Form {
+                Section {
                     // Bed is bounded to the PAST (#940): a sleep can't start in the future, and an
                     // unbounded picker let a cross-midnight time roll land the bed on the coming
                     // evening, creating a future-dated night the tab couldn't render.
                     DatePicker(bedLabel, selection: $bed, in: ...Date(),
                                displayedComponents: [.date, .hourAndMinute])
-                        .datePickerStyle(.compact)
-                        .font(StrandFont.body)
-                        .tint(StrandPalette.restColor)
-                    Divider().overlay(StrandPalette.hairline)
                     // The wake date and time are both editable so corrections preserve the exact
                     // endpoint selected by the user (#970).
                     DatePicker(wakeLabel, selection: $wake, in: ...Date(),
                                displayedComponents: [.date, .hourAndMinute])
-                        .datePickerStyle(.compact)
-                        .font(StrandFont.body)
-                        .tint(StrandPalette.restColor)
-                }
-            }
-
-            // Destructive delete for an existing night/nap (#68). Confirmation-gated so a tap can't clear
-            // a night by accident; nil for the "Add a nap" sheet (nothing to delete). Sits below the
-            // pickers, visually separated from the primary Save action.
-            if onDelete != nil {
-                Button(role: .destructive) { confirmingDelete = true } label: {
-                    Label(deleteLabel, systemImage: "trash")
-                        .font(StrandFont.subhead)
-                        .foregroundStyle(StrandPalette.statusCritical)
-                }
-                .buttonStyle(.plain)
-                .disabled(saving)
-                .accessibilityLabel(deleteLabel)
-            }
-
-            HStack(spacing: NoopMetrics.gap) {
-                Button("Cancel") { dismiss() }
-                    .buttonStyle(.noopGhost)
-                    .disabled(saving)
-                Spacer()
-                Button(saving ? "Saving…" : "Save") {
-                    // #940 guard 2: a corrected window that no longer touches the night's recorded
-                    // coverage has no data to stage from. Silently accepting it fabricated an
-                    // all-awake phantom night; ask first.
-                    guard let window = validatedWindow else { return }
-                    if let coverage, SleepEditGuard.isDisjoint(
-                        newStart: window.start, newEnd: window.end,
-                        coverageStart: coverage.lowerBound, coverageEnd: coverage.upperBound) {
-                        confirmingDisjoint = true
+                } footer: {
+                    if windowIsDisjoint {
+                        Label("No recorded data in this window", systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(StrandPalette.settingsOrange)
                     } else {
-                        commit(start: window.start, end: window.end)
+                        Text(blurb)
                     }
                 }
-                .buttonStyle(.noopPrimary)
-                .disabled(saving || !canSave)
-                .opacity(canSave ? 1 : 0.55)
+                .tint(StrandPalette.settingsBlue)
+
+                // Destructive delete for an existing night/nap (#68). Confirmation-gated so a tap can't
+                // clear a night by accident; nil for the "Add a nap" sheet (nothing to delete).
+                if onDelete != nil {
+                    Section {
+                        Button(deleteLabel, role: .destructive) { confirmingDelete = true }
+                            .foregroundStyle(StrandPalette.settingsRed)
+                            .disabled(saving)
+                    }
+                }
+            }
+            .settingsForm()
+            .navigationTitle(Text(title))
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    WorkoutSheetCloseButton { dismiss() }
+                        .disabled(saving)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    if saving {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        WorkoutSheetConfirmButton(tint: StrandPalette.settingsBlue) { save() }
+                            .disabled(validatedWindow == nil)
+                    }
+                }
             }
         }
-        .padding(NoopMetrics.screenPadding)
-        .frame(minWidth: 360)
-        .background(NoopChromeSurface())
+        #if os(macOS)
+        .frame(minWidth: 420, minHeight: 300)
+        #endif
         // #940 guard 1: a time-only roll that lands the bed in the future, or at/after the night's
         // wake, almost always means the PREVIOUS evening (23:00 "yesterday", not tonight). Snap the
         // date back a day so the picker visibly shows the night the user meant. Pure rule + tests:

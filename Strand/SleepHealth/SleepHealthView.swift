@@ -188,8 +188,7 @@ struct SleepHealthView: View {
             if let night {
                 // Draws nothing until the body-clock estimate is readable.
                 BodyClockDialSection(actualBedHour: SleepNightDecoding.localClockHour(night.session.effectiveStartTs),
-                                     actualWakeHour: SleepNightDecoding.localClockHour(night.session.endTs),
-                                     plain: true)
+                                     actualWakeHour: SleepNightDecoding.localClockHour(night.session.endTs))
             }
             let vitals = vitalTiles
             if !vitals.isEmpty {

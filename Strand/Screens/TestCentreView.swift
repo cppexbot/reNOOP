@@ -329,12 +329,11 @@ struct TestCentreView: View {
             NavigationLink {
                 RawDataCollectorView()
             } label: {
-                Text("Open raw-data collector")
-            }
-            HStack(spacing: NoopMetrics.space2) {
-                StatusDot(color: live.connected ? StrandPalette.settingsGreen : StrandPalette.settingsOrange)
-                Text(live.connected ? "WHOOP 5/MG connected." : "Connect your WHOOP 5/MG to start a raw-data session.")
-                    .foregroundStyle(StrandPalette.textSecondary)
+                LabeledContent {
+                    Text(live.connected ? "Connected" : "Not connected")
+                } label: {
+                    Text("5/MG Raw Data Collector")
+                }
             }
         } header: {
             Text(verbatim: "WHOOP 5/MG")
@@ -774,12 +773,9 @@ private struct TestModeRows: View {
             // A toggle mode's status is just "On", which the switch already shows; a guided mode's
             // "Capturing K of N" is the one fact worth its own row.
             if isGuided {
-                HStack(spacing: NoopMetrics.space2) {
-                    StatusDot(color: StrandPalette.settingsGreen)
-                    Text(TestCentreLayout.statusText(for: mode, active: on, elapsedSeconds: elapsed,
-                                                     capturedUnits: capturedUnits))
-                        .foregroundStyle(StrandPalette.textSecondary)
-                }
+                Text(TestCentreLayout.statusText(for: mode, active: on, elapsedSeconds: elapsed,
+                                                 capturedUnits: capturedUnits))
+                    .foregroundStyle(StrandPalette.textSecondary)
             }
             // Live readout (Group E/F): the per-mode rows binding the registry's liveReadout ids, shown
             // only while the mode is on so an inactive mode stays one row.
@@ -1042,27 +1038,27 @@ private struct ReadoutRow: View {
 }
 
 /// The mandatory review-before-share sheet (spec sections 9 and 12): shows the exact redacted report.txt
-/// the user is about to share, with explicit Share and Cancel. Nothing leaves the device until Share.
+/// the user is about to share, with ✕ (cancel) and Share. Nothing leaves the device until Share.
 private struct ReportReviewSheet: View {
     @ObservedObject var report: TestCentreReport
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         let preview = report.pending?.gate.previewText ?? ""
-        return ScreenScaffold(title: "Review before sharing",
-                              subtitle: "This is exactly what your report will contain. Nothing leaves \(Platform.deviceNounPhrase) until you tap Share.") {
-            VStack(alignment: .leading, spacing: NoopMetrics.sectionSpacing) {
+        return NavigationStack {
+            Form {
                 if report.pending?.modeInactive == true {
                     // #1002: the selected profile's test mode is not on, so this bundle carries no capture
-                    // for the very thing being reported (the #812 capture_check only grades ACTIVE modes,
-                    // so without this the report just looked thin with no explanation). Warn plainly, with
-                    // the fix, BEFORE the user ships a report a maintainer can't act on.
-                    Text("Heads up: this test mode is off, so the report has no capture for it. For a useful report, turn the mode on, reproduce the problem while wearing the strap, then report again.")
-                        .font(StrandFont.caption)
-                        .foregroundStyle(StrandPalette.statusWarning)
-                        .fixedSize(horizontal: false, vertical: true)
+                    // for the very thing being reported. Warn, with the fix, BEFORE the user ships it.
+                    Section {
+                        NoticeCard(title: Text("This test mode is off"),
+                                   message: Text("Turn it on, reproduce the problem, then report again."),
+                                   systemImage: "exclamationmark.triangle.fill", tone: .warning)
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(Color.clear)
+                    }
                 }
-                NoopCard {
+                Section {
                     ScrollView {
                         Text(preview.isEmpty ? String(localized: "(nothing to share yet)") : preview)
                             .font(StrandFont.mono)
@@ -1074,17 +1070,25 @@ private struct ReportReviewSheet: View {
                     .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
                     #endif
                     .frame(maxHeight: 360)
+                } footer: {
+                    Text("This is exactly what your report will contain. Nothing leaves \(Platform.deviceNounPhrase) until you tap Share.")
                 }
-                HStack(spacing: NoopMetrics.space3) {
-                    NoopButton("Cancel", systemImage: "xmark", kind: .secondary) {
-                        report.cancel(); dismiss()
-                    }
-                    NoopButton("Share", systemImage: "square.and.arrow.up", kind: .primary) {
+            }
+            .settingsPage("Review before sharing")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    WorkoutSheetCloseButton { report.cancel(); dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
                         report.confirm(); dismiss()
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
                     }
+                    .tint(StrandPalette.settingsBlue)
+                    .accessibilityLabel(Text("Share"))
                 }
             }
         }
     }
 }
-

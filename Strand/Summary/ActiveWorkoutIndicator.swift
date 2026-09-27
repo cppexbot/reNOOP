@@ -47,71 +47,38 @@ struct ActiveWorkoutIndicatorModel: Equatable {
     }
 }
 
+/// The running workout as a Summary card in Fitness's green: the sport's glyph and name in the title row
+/// ("Paused" beside it while paused), then the elapsed clock large. The whole card opens the workout.
 private struct ActiveWorkoutIndicatorCard: View {
     let model: ActiveWorkoutIndicatorModel
     let onReturn: () -> Void
 
     var body: some View {
-        NoopCard(tint: StrandPalette.metricRose) {
-            VStack(alignment: .leading, spacing: NoopMetrics.cardInnerSpacing) {
-                HStack(alignment: .firstTextBaseline, spacing: NoopMetrics.space2) {
-                    // Decorative "live" dot, hidden from VoiceOver (the card itself reads the full state).
-                    Circle()
-                        .fill(StrandPalette.metricRose)
-                        .frame(width: NoopMetrics.space2, height: NoopMetrics.space2)
-                        .accessibilityHidden(true)
-                    Text("WORKOUT IN PROGRESS")
-                        .font(StrandFont.overline)
-                        .tracking(StrandFont.overlineTracking)
-                        .foregroundStyle(StrandPalette.metricRose)
+        Button(action: onReturn) {
+            SummaryCard {
+                VStack(alignment: .leading, spacing: 8) {
                     // A frozen clock alone is ambiguous with a STALLED one, so say which it is. Reuses the
                     // "Paused" string #1533 already localized rather than minting new copy for a tag.
-                    if model.isPaused {
-                        Text("Paused")
-                            .font(StrandFont.overline)
-                            .tracking(StrandFont.overlineTracking)
-                            .foregroundStyle(StrandPalette.textSecondary)
-                    }
-                    Spacer(minLength: NoopMetrics.space2)
+                    SummaryCardTitleRow(icon: sportSymbol(model.sport),
+                                        title: WorkoutSource.localizedSport(model.sport),
+                                        tint: StrandPalette.activityExerciseText,
+                                        trailing: model.isPaused ? String(localized: "Paused") : nil)
                     // A per-second live clock. The TimelineView re-evaluates ONLY this Text every second, so
-                    // the tick never re-renders the rest of the card (let alone the Summary body). bodyNumber
-                    // already carries `.monospacedDigit()`, so no extra modifier here.
+                    // the tick never re-renders the rest of the card (let alone the Summary body).
                     TimelineView(.periodic(from: .now, by: 1)) { context in
-                        Text(ActiveWorkoutIndicatorModel.elapsed(
+                        Text(verbatim: ActiveWorkoutIndicatorModel.elapsed(
                             since: model.startedAt, pausedAt: model.pausedAt,
                             pausedDuration: model.pausedDuration, now: context.date))
-                            .font(StrandFont.bodyNumber)
-                            .foregroundStyle(StrandPalette.textPrimary)
-                    }
-                }
-
-                ViewThatFits(in: .horizontal) {
-                    HStack(alignment: .center, spacing: NoopMetrics.cardInnerSpacing) {
-                        sportLabel
-                        Spacer(minLength: NoopMetrics.space2)
-                        NoopButton("Return to workout", systemImage: "arrow.forward.circle.fill",
-                                   kind: .primary, action: onReturn)
-                    }
-
-                    VStack(alignment: .leading, spacing: NoopMetrics.cardInnerSpacing) {
-                        sportLabel
-                        NoopButton("Return to workout", systemImage: "arrow.forward.circle.fill",
-                                   kind: .primary, fullWidth: true, action: onReturn)
+                            .font(StrandFont.number(34, weight: .bold))
+                            .foregroundStyle(model.isPaused ? StrandPalette.textSecondary : StrandPalette.fitnessTime)
                     }
                 }
             }
         }
-        // Combine the card into one VoiceOver element so the dot + label + clock + button read as a single
-        // "Workout in progress" actionable item rather than five separate stops.
+        .buttonStyle(.plain)
+        // One VoiceOver element: sport + state + clock, activated to return to the workout.
         .accessibilityElement(children: .combine)
-    }
-
-    private var sportLabel: some View {
-        Text(model.sport)
-            .font(StrandFont.headline)
-            .foregroundStyle(StrandPalette.textPrimary)
-            .lineLimit(1)
-            .minimumScaleFactor(0.8)
+        .accessibilityHint(Text("Return to workout"))
     }
 }
 

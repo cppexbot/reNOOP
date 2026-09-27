@@ -54,7 +54,7 @@ struct RootTabView: View {
     @State private var tabPaths: [NavigationPath] = Array(repeating: NavigationPath(), count: 5)
     /// One scroll-to-top token per tab. Bumped when the user re-taps the active tab while it's ALREADY
     /// at its root — the other half of the iOS convention #197/#198 left unserved (an at-root re-tap was
-    /// a no-op). Threaded into each tab's root via `\.scrollToTopSignal`; ScreenScaffold / SummaryView
+    /// a no-op). Threaded into each tab's root via `\.scrollToTopSignal`; SummaryView / SleepHealthView
     /// scroll to their top anchor when their tab's token changes.
     @State private var scrollTop: [Int] = Array(repeating: 0, count: 5)
 
@@ -248,8 +248,7 @@ struct RootTabView: View {
             .tabRouteDestinations()
             .background(StrandPalette.surfaceBase.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
-            // #1027: same fix as quickScreen — the pillar screens draw the full-bleed liquid sky, so a
-            // transparent nav bar keeps it edge-to-edge instead of an opaque band clipping the top on scroll.
+            // #1027: same as quickScreen — a transparent bar over the screen's own canvas.
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -288,11 +287,7 @@ struct RootTabView: View {
                 .tabRouteDestinations()
                 .background(StrandPalette.surfaceBase.ignoresSafeArea())
                 .navigationBarTitleDisplayMode(.inline)
-                // #1027: these screens draw a full-bleed liquid sky (ScreenScaffold topBackground) that runs
-                // edge-to-edge under a transparent bar — exactly how the tab roots present it. An OPAQUE
-                // surfaceBase toolbar background sat on top of that sky and, as the content scrolled up, its
-                // extended status-bar band CLIPPED the sky + the in-content header ("Live Body Console").
-                // Hiding the bar background lets the sky stay continuous under the floating Done button.
+                // #1027: a transparent bar, so each screen's own canvas runs edge to edge under it.
                 .toolbarBackground(.hidden, for: .navigationBar)
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {

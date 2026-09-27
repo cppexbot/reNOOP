@@ -47,62 +47,38 @@ where Item: Identifiable & Equatable, Options: View {
                 }
                 .onMove(perform: moveVisible)
             } header: {
-                Text(shownTitle)
-                    .strandOverline()
-            } footer: {
-                Text("Drag to reorder. Move an item to Hidden to remove it from Today without deleting it.")
-                    .font(StrandFont.footnote)
-                    .foregroundStyle(StrandPalette.textTertiary)
+                EditableLayoutHeader(title: shownTitle)
             }
 
             if draft.hidden.isEmpty {
                 Section {
                     Text("Nothing hidden")
-                        .foregroundStyle(StrandPalette.textTertiary)
+                        .foregroundStyle(StrandPalette.textSecondary)
                 } header: {
-                    Text(hiddenTitle)
-                        .strandOverline()
-                } footer: {
-                    Text("Hidden items remain available here and can be restored at any time.")
-                        .font(StrandFont.footnote)
-                        .foregroundStyle(StrandPalette.textTertiary)
+                    EditableLayoutHeader(title: hiddenTitle)
                 }
             } else if group != nil {
                 // Grouped Available list: one titled Section per origin (e.g. "Sleep", "Trends"), so the
-                // hidden cards read by category. The last group carries the shared restore-hint footer.
+                // hidden cards read by category.
                 let groups = groupedHidden
                 ForEach(groups.indices, id: \.self) { i in
                     Section {
                         ForEach(groups[i].items) { item in hiddenRow(item) }
                     } header: {
-                        Text(groups[i].name)
-                            .strandOverline()
-                    } footer: {
-                        if i == groups.count - 1 {
-                            Text("Hidden items remain available here and can be restored at any time.")
-                                .font(StrandFont.footnote)
-                                .foregroundStyle(StrandPalette.textTertiary)
-                        }
+                        EditableLayoutHeader(title: groups[i].name)
                     }
                 }
             } else {
                 Section {
                     ForEach(draft.hidden) { item in hiddenRow(item) }
                 } header: {
-                    Text(hiddenTitle)
-                        .strandOverline()
-                } footer: {
-                    Text("Hidden items remain available here and can be restored at any time.")
-                        .font(StrandFont.footnote)
-                        .foregroundStyle(StrandPalette.textTertiary)
+                    EditableLayoutHeader(title: hiddenTitle)
                 }
             }
 
             Section {
                 Button("Reset This Layout", role: .destructive, action: onReset)
-                    .font(StrandFont.body)
-                    .foregroundStyle(StrandPalette.statusCritical)
-                    .accessibilityLabel("Reset This Layout")
+                    .foregroundStyle(StrandPalette.settingsRed)
             }
         }
         #if os(iOS)
@@ -111,7 +87,7 @@ where Item: Identifiable & Equatable, Options: View {
         .listStyle(.inset)
         #endif
         .scrollContentBackground(.hidden)
-        .background(StrandPalette.surfaceBase)
+        .background(StrandPalette.summaryCanvas.ignoresSafeArea())
         #if os(iOS)
         .environment(\.editMode, .constant(.active))
         #endif
@@ -164,6 +140,19 @@ where Item: Identifiable & Equatable, Options: View {
     }
 }
 
+/// A section title as Health's edit lists set theirs: bold, sentence case, primary text.
+private struct EditableLayoutHeader: View {
+    let title: String
+
+    var body: some View {
+        Text(title)
+            .font(StrandFont.pro(20, weight: .bold))
+            .foregroundStyle(StrandPalette.textPrimary)
+            .textCase(nil)
+            .accessibilityAddTraits(.isHeader)
+    }
+}
+
 private struct EditableLayoutRow: View {
     let title: String
     let subtitle: String?
@@ -176,50 +165,47 @@ private struct EditableLayoutRow: View {
     let onVisibilityChange: () -> Void
 
     var body: some View {
-        HStack(spacing: NoopMetrics.space3) {
-            RoundedRectangle(cornerRadius: NoopMetrics.space2, style: .continuous)
-                .fill(StrandPalette.surfaceInset)
-                .frame(width: NoopMetrics.space8, height: NoopMetrics.space8)
-                .overlay {
-                    Image(systemName: icon)
-                        .font(StrandFont.subhead.weight(.semibold))
-                        .foregroundStyle(isVisible ? tint : StrandPalette.textTertiary)
-                }
+        HStack(spacing: 12) {
+            Button(action: onVisibilityChange) {
+                Image(systemName: isVisible ? "minus.circle.fill" : "plus.circle.fill")
+                    .font(.system(size: 20))
+                    .foregroundStyle(isVisible ? StrandPalette.settingsRed : StrandPalette.settingsGreen)
+            }
+            .buttonStyle(.plain)
+            .disabled(isVisible && !canHide)
+            .opacity(isVisible && !canHide ? 0.35 : 1)
+            .accessibilityLabel(visibilityLabel)
+
+            Image(systemName: icon)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(tint)
+                .frame(width: 24)
                 .accessibilityHidden(true)
 
-            VStack(alignment: .leading, spacing: NoopMetrics.space1) {
+            VStack(alignment: .leading, spacing: 1) {
                 Text(title)
                     .font(StrandFont.body)
-                    .foregroundStyle(isVisible ? StrandPalette.textPrimary : StrandPalette.textTertiary)
+                    .foregroundStyle(StrandPalette.textPrimary)
                 if let subtitle {
                     Text(subtitle)
-                        .font(StrandFont.caption)
-                        .foregroundStyle(StrandPalette.textTertiary)
+                        .font(StrandFont.footnote)
+                        .foregroundStyle(StrandPalette.textSecondary)
                         .lineLimit(1)
                 }
             }
 
-            Spacer(minLength: NoopMetrics.space2)
+            Spacer(minLength: 8)
 
             if let configurationLabel {
                 Button(configurationLabel, action: onConfigure)
                     .buttonStyle(.plain)
-                    .font(StrandFont.caption.weight(.semibold))
-                    .foregroundStyle(StrandPalette.accent)
+                    .font(StrandFont.body)
+                    .foregroundStyle(StrandPalette.settingsBlue)
                     .accessibilityLabel(String(localized: "Edit \(title)"))
             }
-
-            Button(action: onVisibilityChange) {
-                Image(systemName: isVisible ? "minus.circle.fill" : "plus.circle.fill")
-                    .font(StrandFont.title2)
-                    .foregroundStyle(isVisible ? StrandPalette.textSecondary : StrandPalette.accent)
-            }
-            .buttonStyle(.plain)
-            .disabled(isVisible && !canHide)
-            .accessibilityLabel(visibilityLabel)
         }
         .contentShape(Rectangle())
-        .listRowBackground(NoopChromeSurface())
+        .listRowBackground(StrandPalette.summaryCard)
     }
 
     private var visibilityLabel: String {
@@ -227,5 +213,4 @@ private struct EditableLayoutRow: View {
             ? String(localized: "Hide \(title)")
             : String(localized: "Show \(title)")
     }
-
 }

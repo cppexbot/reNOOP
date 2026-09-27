@@ -64,20 +64,47 @@ struct HRVSnapshotView: View {
     /// Whether the just-finished snapshot has been saved (drives the Save button → "Saved").
     @State private var saved = false
 
+    /// Whether the ⓘ methodology popover is showing.
+    @State private var showAbout = false
+
     private let secondTimer = Timer.publish(every: 1.0, on: .main, in: .common).autoconnect()
 
     private var bonded: Bool { live.bonded }
 
+    private var tint: Color { StrandPalette.healthHeart }
+
     var body: some View {
-        ScreenScaffold(title: "HRV Reading",
-                       subtitle: "A still, seated snapshot of your heart-rate variability") {
-            statusRow
-            captureCard
-            controlRow
-            if phase == .done, let result { resultCard(result) }
-            methodologyCard
-            if !bonded { notBondedHint }
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 28) {
+                    if !bonded { notBondedHint }
+                    stateArea
+                    controls
+                    if phase == .done, let result, result.rmssd != nil { resultCard(result) }
+                }
+                .padding(.horizontal, NoopMetrics.screenHPadding)
+                .padding(.top, NoopMetrics.space4)
+                .padding(.bottom, NoopMetrics.space8)
+                .frame(maxWidth: 560)
+                .frame(maxWidth: .infinity)
+            }
+            .background(StrandPalette.summaryCanvas.ignoresSafeArea())
+            .navigationTitle("HRV Reading")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                if let close = onClose {
+                    ToolbarItem(placement: .cancellationAction) {
+                        WorkoutSheetCloseButton { close() }
+                    }
+                }
+                ToolbarItem(placement: .primaryAction) { aboutButton }
+            }
         }
+        #if os(macOS)
+        .frame(minWidth: 440, minHeight: 600)
+        #endif
         // rrSeq-keyed: equal consecutive packets both count (see RRPacketObserver.swift).
         .onRRPackets(live) { rr in
             ingest(rr)
@@ -92,107 +119,77 @@ struct HRVSnapshotView: View {
         }
     }
 
-    // MARK: - Status row
+    // MARK: - State area
 
-    private var statusRow: some View {
-        HStack(spacing: 10) {
-            switch phase {
-            case .idle:
-                StatePill("Ready", tone: .neutral)
-            case .capturing:
-                StatePill("Capturing", tone: .accent, pulsing: true)
-            case .done:
-                StatePill("Reading complete", tone: .positive, showsDot: true)
-            }
-
-            if bonded {
-                StatePill("Strap live", tone: .positive, showsDot: true)
-            } else {
-                StatePill("Not connected", tone: .warning, showsDot: true)
-            }
-
-            Spacer()
-
-            if let close = onClose {
-                Button {
-                    close()
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 18))
-                        .foregroundStyle(StrandPalette.textTertiary)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Close HRV reading")
-            }
-        }
-    }
-
-    // MARK: - Capture card
-
-    private var captureCard: some View {
-        StrandCard(padding: 24, tint: StrandPalette.restColor) {
-            VStack(spacing: 18) {
-                ZStack {
-                    ScenicHeroBackground(domain: .rest, starCount: 48)
-                        .clipShape(RoundedRectangle(cornerRadius: NoopMetrics.cardRadius, style: .continuous))
-                    captureDial
-                        .padding(.vertical, 6)
-                }
-                .frame(height: 260)
-                .frame(maxWidth: .infinity)
-
-                Text(instruction)
-                    .font(StrandFont.subhead)
-                    .foregroundStyle(phase == .capturing ? StrandPalette.restBright : StrandPalette.textSecondary)
+    /// Idle: a glyph and one line. Capturing and done: the ring, filling over the minute, around the RMSSD.
+    @ViewBuilder private var stateArea: some View {
+        switch phase {
+        case .idle:
+            VStack(spacing: 14) {
+                Image(systemName: "waveform.path.ecg")
+                    .font(.system(size: 56, weight: .semibold))
+                    .foregroundStyle(tint)
+                    .accessibilityHidden(true)
+                Text("Take an HRV reading")
+                    .font(StrandFont.pro(22, weight: .bold))
+                    .foregroundStyle(StrandPalette.textPrimary)
                     .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
             }
+            .frame(maxWidth: .infinity)
+            .padding(.top, 48)
+            .padding(.bottom, 12)
+            .accessibilityElement(children: .combine)
+        case .capturing, .done:
+            VStack(spacing: 16) {
+                captureDial
+                    .frame(width: 240, height: 240)
+                    .frame(maxWidth: .infinity)
+                if let line = statusLine {
+                    Text(line)
+                        .font(StrandFont.pro(15))
+                        .foregroundStyle(StrandPalette.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(.top, 24)
         }
     }
 
-    /// The centre dial: a progress ring around the live RMSSD / countdown. While capturing it shows the
-    /// running RMSSD; idle/done it shows the headline figure or a prompt.
+    /// The ring: a faint track, the minute's progress over it, and the RMSSD in the middle — the running
+    /// figure while capturing, the cleaned result once done.
     private var captureDial: some View {
-        GeometryReader { geo in
-            let d = min(geo.size.width, geo.size.height)
-            ZStack {
-                Circle()
-                    .strokeBorder(StrandPalette.restColor.opacity(0.20), lineWidth: 10)
-                    .frame(width: d, height: d)
+        ZStack {
+            Circle()
+                .stroke(tint.opacity(0.18), lineWidth: 14)
+            Circle()
+                .trim(from: 0, to: captureFraction)
+                .stroke(tint, style: StrokeStyle(lineWidth: 14, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .animation(.easeInOut(duration: 0.4), value: captureFraction)
 
-                Circle()
-                    .trim(from: 0, to: captureFraction)
-                    .stroke(
-                        AngularGradient(colors: [StrandPalette.restDeep, StrandPalette.restBright],
-                                        center: .center),
-                        style: StrokeStyle(lineWidth: 10, lineCap: .round)
-                    )
-                    .rotationEffect(.degrees(-90))
-                    .frame(width: d, height: d)
-                    .animation(.easeInOut(duration: 0.4), value: captureFraction)
-
-                VStack(spacing: 2) {
-                    Text(dialValue)
-                        .font(StrandFont.number(48))
-                        .foregroundStyle(StrandPalette.metricPurple)
-                        .contentTransition(.numericText())
-                        .animation(.snappy, value: dialValue)
-                    Text(dialUnit)
-                        .font(StrandFont.footnote)
-                        .tracking(0.8)
-                        .foregroundStyle(StrandPalette.textTertiary)
-                    if phase == .capturing {
-                        Text("\(secondsRemaining)s left · \(captureBuffer.count) beats")
-                            .font(StrandFont.footnote)
-                            .foregroundStyle(StrandPalette.textTertiary)
-                            .padding(.top, 4)
-                    }
+            VStack(spacing: 2) {
+                Text(verbatim: dialValue)
+                    .font(StrandFont.pro(64, weight: .bold))
+                    .foregroundStyle(StrandPalette.textPrimary)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                    .animation(.snappy, value: dialValue)
+                Text(verbatim: "\(String(localized: "ms")) RMSSD")
+                    .font(StrandFont.pro(15, weight: .semibold))
+                    .foregroundStyle(StrandPalette.textSecondary)
+                if phase == .capturing {
+                    Text("\(secondsRemaining)s left · \(captureBuffer.count) beats")
+                        .font(StrandFont.pro(13))
+                        .foregroundStyle(StrandPalette.textSecondary)
+                        .monospacedDigit()
+                        .padding(.top, 6)
                 }
             }
-            .frame(width: geo.size.width, height: geo.size.height)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(dialAccessibilityLabel)
+            .padding(24)
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(dialAccessibilityLabel)
     }
 
     /// 0…1 capture progress, driving the ring trim.
@@ -215,23 +212,18 @@ struct HRVSnapshotView: View {
         }
     }
 
-    private var dialUnit: String {
-        phase == .idle ? "RMSSD" : "MS RMSSD"
-    }
-
-    private var instruction: String {
+    /// The one line under the ring: how to sit while capturing, or why a finished capture has no number.
+    private var statusLine: String? {
         switch phase {
         case .idle:
-            return bonded
-                ? String(localized: "Sit still and breathe normally. Tap below to take a 60-second reading.")
-                : String(localized: "Connect your strap on the Live screen to take a reading.")
+            return nil
         case .capturing:
             return String(localized: "Sit still, breathe normally. Keep your wrist relaxed and steady.")
         case .done:
             if let r = result, r.rmssd == nil {
                 return String(localized: "Not enough clean beats. Sit still and try again.")
             }
-            return String(localized: "Done. Save this reading to keep it in your trends.")
+            return nil
         }
     }
 
@@ -246,119 +238,137 @@ struct HRVSnapshotView: View {
 
     // MARK: - Controls
 
-    private var controlRow: some View {
-        HStack(spacing: 12) {
-            Button {
-                phase == .capturing ? cancel() : start()
-            } label: {
-                Label(primaryLabel, systemImage: primaryIcon)
-                    .font(StrandFont.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(phase == .capturing ? StrandPalette.statusCritical : StrandPalette.accent)
-            .disabled(!bonded && phase != .capturing)
-            .help(bonded
-                  ? "Take a 60-second seated HRV reading from the live R-R stream."
-                  : "Connect your strap first. The reading needs the live R-R stream.")
-
+    /// Start / Cancel / Take another reading, with Save beside a finished reading.
+    private var controls: some View {
+        VStack(spacing: 12) {
             if phase == .done, let r = result, r.rmssd != nil {
                 Button {
                     save(r)
                 } label: {
-                    Label(saved ? "Saved" : "Save", systemImage: saved ? "checkmark.circle.fill" : "square.and.arrow.down")
-                        .font(StrandFont.body)
-                        .padding(.vertical, 12)
-                        .padding(.horizontal, 8)
+                    Label(saved ? "Saved" : "Save", systemImage: saved ? "checkmark" : "square.and.arrow.down")
+                        .font(StrandFont.pro(17, weight: .semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 6)
                 }
-                .buttonStyle(.bordered)
-                .tint(StrandPalette.accent)
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .tint(tint)
                 .disabled(saved)
+                .modifier(CapsuleButtonShape())
+            }
+
+            primaryButton
+        }
+    }
+
+    @ViewBuilder private var primaryButton: some View {
+        let button = Button {
+            phase == .capturing ? cancel() : start()
+        } label: {
+            Text(primaryLabel)
+                .font(StrandFont.pro(17, weight: .semibold))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 6)
+        }
+        .controlSize(.large)
+        .disabled(!bonded && phase != .capturing)
+        .help(bonded
+              ? "Take a 60-second seated HRV reading from the live R-R stream."
+              : "Connect your strap first. The reading needs the live R-R stream.")
+        .modifier(CapsuleButtonShape())
+
+        switch phase {
+        case .idle:
+            button.buttonStyle(.borderedProminent).tint(tint)
+        case .capturing:
+            button.buttonStyle(.bordered).tint(StrandPalette.settingsRed)
+        case .done:
+            if let r = result, r.rmssd != nil {
+                button.buttonStyle(.bordered).tint(tint)
+            } else {
+                button.buttonStyle(.borderedProminent).tint(tint)
             }
         }
     }
 
     private var primaryLabel: String {
         switch phase {
-        case .idle:      return String(localized: "Take an HRV reading")
+        case .idle:      return String(localized: "Start")
         case .capturing: return String(localized: "Cancel")
         case .done:      return String(localized: "Take another reading")
         }
     }
 
-    private var primaryIcon: String {
-        phase == .capturing ? "stop.fill" : "waveform.path.ecg"
-    }
-
     // MARK: - Result
 
+    /// The rest of the reading as Health figures: SDNN, mean heart rate and the beats it rests on.
     private func resultCard(_ result: HRVAnalyzer.HRVResult) -> some View {
-        StrandCard(padding: 18, tint: StrandPalette.restColor) {
-            VStack(alignment: .leading, spacing: 14) {
-                Text("YOUR READING").strandOverline()
-
-                if result.rmssd == nil {
-                    HStack(spacing: 10) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(StrandPalette.statusWarning)
-                            .accessibilityHidden(true)
-                        Text("Not enough clean beats. Sit still and try again. \(result.nClean) of \(result.nInput) beats survived filtering (need \(HRVAnalyzer.minBeats)).")
-                            .font(StrandFont.footnote)
-                            .foregroundStyle(StrandPalette.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                } else {
-                    HStack(spacing: NoopMetrics.gap) {
-                        metricTile("RMSSD", Self.format(result.rmssd, "%.0f"), "ms", StrandPalette.metricPurple)
-                        metricTile("SDNN", Self.format(result.sdnn, "%.0f"), "ms", StrandPalette.restBright)
-                        metricTile(String(localized: "Mean HR"), Self.format(Self.meanHR(meanNN: result.meanNN), "%.0f"), "bpm", StrandPalette.metricRose)
-                        metricTile(String(localized: "Beats"), "\(result.nClean)", String(localized: "used"), StrandPalette.metricCyan)
-                    }
-                }
+        SummaryCard {
+            HStack(alignment: .top, spacing: 0) {
+                figure("SDNN", Self.format(result.sdnn, "%.0f"), unit: String(localized: "ms"))
+                divider
+                figure(String(localized: "Mean HR"), Self.format(Self.meanHR(meanNN: result.meanNN), "%.0f"),
+                       unit: String(localized: "bpm"))
+                divider
+                figure(String(localized: "Beats"), "\(result.nClean)", unit: "")
             }
+            .padding(.top, 2)
         }
     }
 
-    private func metricTile(_ label: String, _ value: String, _ unit: String, _ accent: Color) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text(label.uppercased()).strandOverline()
-            Spacer(minLength: 6)
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text(value)
-                    .font(StrandFont.number(24))
-                    .foregroundStyle(accent)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-                Text(unit)
-                    .font(StrandFont.caption)
-                    .foregroundStyle(StrandPalette.textTertiary)
+    private var divider: some View {
+        Rectangle()
+            .fill(StrandPalette.hairline)
+            .frame(width: NoopMetrics.hairlineWidth, height: 40)
+            .padding(.horizontal, 12)
+    }
+
+    private func figure(_ title: String, _ value: String, unit: String) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(verbatim: title)
+                .font(StrandFont.pro(13, weight: .semibold))
+                .foregroundStyle(StrandPalette.textSecondary)
+                .lineLimit(1)
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                Text(verbatim: value)
+                    .font(StrandFont.pro(24, weight: .bold))
+                    .foregroundStyle(StrandPalette.textPrimary)
+                if !unit.isEmpty {
+                    Text(verbatim: unit)
+                        .font(StrandFont.pro(15, weight: .semibold))
+                        .foregroundStyle(StrandPalette.textSecondary)
+                }
             }
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .background(NoopPanelSurface(tint: accent, cornerRadius: 10))
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: - Methodology
 
-    /// Source-aware methodology (#537): the first line states the spot RMSSD uses the SAME cleaned
-    /// Task-Force math as the nightly HRV (so the number is comparable to your overnight figure), then
+    /// Source-aware methodology (#537), one tap away: the spot RMSSD uses the SAME cleaned Task-Force math
+    /// as the nightly HRV (so the number is comparable to the overnight figure), then
     /// `SpotHrvReading.caveatFor` adds the honest limits — including the noisier optical-PPG note on a
-    /// WHOOP 5/MG. Single-sourced with Android via the shared helper, no em-dashes.
-    private var methodologyCard: some View {
-        StrandCard(tint: StrandPalette.restColor) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("How this is measured").strandOverline()
+    /// WHOOP 5/MG. Single-sourced with Android via the shared helper.
+    private var aboutButton: some View {
+        Button { showAbout = true } label: {
+            Image(systemName: "info.circle")
+        }
+        .accessibilityLabel(Text("How this is measured"))
+        .popover(isPresented: $showAbout, arrowEdge: .top) {
+            VStack(alignment: .leading, spacing: 10) {
                 Text("A 60-second snapshot of your beat-to-beat (R-R) intervals from the strap, cleaned (range and ectopic-beat filtering) before computing RMSSD the same way your overnight HRV is computed.")
-                    .font(StrandFont.footnote)
-                    .foregroundStyle(StrandPalette.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
                 Text(SpotHrvReading.caveatFor(source))
-                    .font(StrandFont.footnote)
-                    .foregroundStyle(StrandPalette.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .foregroundStyle(StrandPalette.textSecondary)
             }
+            .font(StrandFont.pro(15))
+            .foregroundStyle(StrandPalette.textPrimary)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(NoopMetrics.space4)
+            .frame(width: 320)
+            .modifier(PopoverOnPhone())
         }
     }
 
@@ -513,4 +523,26 @@ enum HRVSnapshot {
     /// Source id this manual reading is stored under — its own source so it sits beside WHOOP / Apple
     /// for the per-source explorer, exactly like the other manual/imported sources.
     static let sourceId = "manual-hrv"
+}
+
+/// The iOS capsule button of Health's sheets; macOS keeps its native bezel (`.capsule` there is macOS 14).
+private struct CapsuleButtonShape: ViewModifier {
+    func body(content: Content) -> some View {
+        #if os(iOS)
+        content.buttonBorderShape(.capsule)
+        #else
+        content
+        #endif
+    }
+}
+
+/// A popover on iPhone too, not a sheet (iOS 16.4 / macOS 13.3 and later).
+private struct PopoverOnPhone: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 16.4, macOS 13.3, *) {
+            content.presentationCompactAdaptation(.popover)
+        } else {
+            content
+        }
+    }
 }

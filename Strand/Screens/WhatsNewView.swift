@@ -1,143 +1,227 @@
 import SwiftUI
 import StrandDesign
 
-/// "What's New" — a proper in-app changelog, shown automatically after an update and reachable any
-/// time from Settings. It also restates, up top, what NOOP is and what to expect, so people who never
-/// open GitHub still understand the experimental footing and the WHOOP 5/MG status.
+/// "What's New", as Apple's own sheets draw it: a big title, one row per change of the latest release
+/// (numbered glyph, bold title, one line) and a single Continue button. Earlier releases are one tap
+/// away. Shown automatically after an update and from Settings → About.
 struct WhatsNewView: View {
     let onClose: () -> Void
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-                // A scenic Charge-tinted hero behind the title region — the same premium backdrop
-                // the Today rings float over, so the changelog opens on-brand.
-                .background {
-                    ScenicHeroBackground(domain: .charge, starCount: 28, fadesToBase: true)
-                }
-            Divider().overlay(StrandPalette.hairline)
+        NavigationStack {
             ScrollView {
-                // PERF: the changelog grows with every release, so this is an ever-lengthening column.
-                // LazyVStack (byte-identical layout to VStack inside a ScrollView — same leading
-                // alignment + sectionGap spacing) builds the off-screen release cards on demand instead
-                // of constructing the entire history up-front each time the sheet opens.
-                LazyVStack(alignment: .leading, spacing: NoopMetrics.sectionGap) {
-                    expectationsCard
-                    ForEach(Array(AppChangelog.releases.enumerated()), id: \.element.id) { index, release in
-                        // The newest release is the headline — give it the brand-green wash; the
-                        // rest stay frosted-neutral so the latest stands out at a glance.
-                        releaseCard(release, isLatest: index == 0)
+                VStack(alignment: .leading, spacing: 32) {
+                    VStack(spacing: 6) {
+                        Text("What's new")
+                            .font(StrandFont.pro(34, weight: .bold))
+                            .foregroundStyle(StrandPalette.textPrimary)
+                            .multilineTextAlignment(.center)
+                        Text(verbatim: "NOOP \(AppChangelog.currentVersion)")
+                            .font(StrandFont.pro(17))
+                            .foregroundStyle(StrandPalette.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 16)
+
+                    if let latest = AppChangelog.releases.first {
+                        WhatsNewRows(release: latest)
+                    }
+
+                    if AppChangelog.releases.count > 1 {
+                        NavigationLink {
+                            WhatsNewEarlierReleases()
+                        } label: {
+                            HStack(spacing: 4) {
+                                Text("Earlier releases")
+                                Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold))
+                            }
+                            .font(StrandFont.pro(15, weight: .semibold))
+                            .foregroundStyle(StrandPalette.settingsBlue)
+                        }
+                        .buttonStyle(.plain)
+                        .frame(maxWidth: .infinity)
                     }
                 }
-                .padding(20)
+                .padding(.horizontal, 32)
+                .padding(.bottom, 24)
+                .frame(maxWidth: 560)
+                .frame(maxWidth: .infinity)
             }
             #if os(iOS)
-            // #697/#horizontal-swipe parity: every other screen (ScreenScaffold, Liquid Today) already
-            // stops a vertical scroll from drifting/bouncing the screen left-right. This sheet runs its
-            // own ScrollView and had never gotten the fix.
             .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
             #endif
-            Divider().overlay(StrandPalette.hairline)
-            footer
+            .background(StrandPalette.plainPage.ignoresSafeArea())
+            .safeAreaInset(edge: .bottom) {
+                Button(action: onClose) {
+                    Text("Continue").frame(maxWidth: .infinity)
+                }
+                .guideProminentButton()
+                .keyboardShortcut(.defaultAction)
+                .frame(maxWidth: 540)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 16)
+            }
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    WorkoutSheetCloseButton(action: onClose)
+                }
+            }
         }
-        // A fixed 560×640 is right for the macOS sheet window, but on iPhone it's wider than the
-        // screen, so the content (and the "Got it" button) ran off the right edge (#185). iOS fills
-        // the presented sheet instead.
         #if os(macOS)
         .frame(width: 560, height: 640)
         #else
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // A long changelog scroll → open full-height, with a grabber for swipe-to-dismiss.
         .noopSheetPresentation(largeFirst: true)
         #endif
-        .background(StrandPalette.surfaceBase)
     }
+}
 
-    private var header: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("WHAT'S NEW").font(StrandFont.overline)
-                    .tracking(StrandFont.overlineTracking)
-                    .foregroundStyle(StrandPalette.textTertiary)
-                Text("NOOP \(AppChangelog.currentVersion)")
-                    .font(StrandFont.rounded(26, weight: .bold))
-                    .foregroundStyle(StrandPalette.textPrimary)
-                Text("Release notes").font(StrandFont.caption)
-                    .foregroundStyle(StrandPalette.textSecondary)
-            }
-            Spacer()
-            Button(action: onClose) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 22))
-                    .foregroundStyle(StrandPalette.textTertiary)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Close")
-        }
-        .padding(20)
-    }
+/// One release as What's New rows. Each changelog entry's lead phrase becomes the bold title and its
+/// first sentence the grey line; issue references and credits stay in the full changelog.
+private struct WhatsNewRows: View {
+    let release: AppChangelog.Release
 
-    private var expectationsCard: some View {
-        NoopCard(tint: StrandPalette.accent) {
-            VStack(alignment: .leading, spacing: 14) {
-                Text("WHAT TO EXPECT").font(StrandFont.overline)
-                    .tracking(StrandFont.overlineTracking)
-                    .foregroundStyle(StrandPalette.textSecondary)
-                ForEach(AppChangelog.expectations) { e in
-                    HStack(alignment: .top, spacing: 12) {
-                        Image(systemName: e.icon)
-                            .foregroundStyle(StrandPalette.accent)
-                            .frame(width: 22)
-                            .padding(.top, 2)
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(e.title).font(StrandFont.headline)
-                                .foregroundStyle(StrandPalette.textPrimary)
-                            Text(e.body).font(StrandFont.subhead)
+    var body: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            ForEach(Array(release.items.enumerated()), id: \.offset) { index, raw in
+                let item = WhatsNewItem(raw)
+                HStack(alignment: .top, spacing: 16) {
+                    Image(systemName: index < 50 ? "\(index + 1).circle.fill" : "circle.fill")
+                        .font(.system(size: 26))
+                        .foregroundStyle(StrandPalette.settingsBlue)
+                        .frame(width: 34)
+                        .accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(verbatim: item.title)
+                            .font(StrandFont.pro(15, weight: .semibold))
+                            .foregroundStyle(StrandPalette.textPrimary)
+                        if let line = item.line {
+                            Text(verbatim: line)
+                                .font(StrandFont.pro(15))
                                 .foregroundStyle(StrandPalette.textSecondary)
-                                .fixedSize(horizontal: false, vertical: true)
+                                .lineLimit(2)
+                        }
+                    }
+                    .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                }
+                .accessibilityElement(children: .combine)
+            }
+        }
+    }
+}
+
+/// Every release before the current one, newest first.
+private struct WhatsNewEarlierReleases: View {
+    var body: some View {
+        Form {
+            Section {
+                ForEach(AppChangelog.releases.dropFirst()) { release in
+                    NavigationLink {
+                        ScrollView {
+                            WhatsNewRows(release: release)
+                                .padding(.horizontal, 24)
+                                .padding(.vertical, 20)
+                                .frame(maxWidth: 560)
+                                .frame(maxWidth: .infinity)
+                        }
+                        .background(StrandPalette.plainPage.ignoresSafeArea())
+                        .navigationTitle(Text(verbatim: "NOOP \(release.version)"))
+                        #if os(iOS)
+                        .navigationBarTitleDisplayMode(.inline)
+                        #endif
+                    } label: {
+                        LabeledContent {
+                            Text(verbatim: release.date)
+                        } label: {
+                            Text(verbatim: release.version)
+                                .font(StrandFont.pro(17, weight: .semibold))
                         }
                     }
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .settingsPage("Earlier releases")
+    }
+}
+
+/// A changelog entry split into a short title and one line.
+private struct WhatsNewItem {
+    let title: String
+    let line: String?
+
+    init(_ raw: String) {
+        let text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        var head = ""
+        var rest = ""
+        if text.hasPrefix("**"),
+           let close = text.range(of: "**", range: text.index(text.startIndex, offsetBy: 2)..<text.endIndex) {
+            head = String(text[text.index(text.startIndex, offsetBy: 2)..<close.lowerBound])
+            rest = String(text[close.upperBound...])
+        } else if let colon = text.range(of: ": "),
+                  text.distance(from: text.startIndex, to: colon.lowerBound) <= 40 {
+            head = String(text[..<colon.lowerBound])
+            rest = String(text[colon.upperBound...])
+        } else {
+            head = Self.firstSentence(text)
+            rest = String(text.dropFirst(head.count))
+        }
+        // Older entries run the title and the detail together with a dash.
+        if head.count > 60, let dash = head.range(of: " - ") ?? head.range(of: " — ") {
+            rest = String(head[dash.upperBound...]) + rest
+            head = String(head[..<dash.lowerBound])
+        }
+        let title = Self.clean(head)
+        let body = String(rest.drop(while: { $0 == "." || $0 == ":" || $0.isWhitespace }))
+        let line = Self.clean(Self.firstSentence(body))
+        self.title = title.isEmpty ? Self.clean(text) : title
+        self.line = line.isEmpty ? nil : line + "."
     }
 
-    private func releaseCard(_ release: AppChangelog.Release, isLatest: Bool = false) -> some View {
-        NoopCard(tint: isLatest ? StrandPalette.accent : nil) {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 8) {
-                    SourceBadge("v\(release.version)")
-                    Text(release.title).font(StrandFont.headline)
-                        .foregroundStyle(StrandPalette.textPrimary)
-                    Spacer()
-                    Text(release.date).font(StrandFont.caption)
-                        .foregroundStyle(StrandPalette.textTertiary)
-                }
-                ForEach(Array(release.items.enumerated()), id: \.offset) { _, item in
-                    HStack(alignment: .top, spacing: 8) {
-                        Circle().fill(StrandPalette.accent).frame(width: 5, height: 5)
-                            .padding(.top, 7)
-                        Text(item).font(StrandFont.subhead)
-                            .foregroundStyle(StrandPalette.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
+    /// Up to and excluding the first sentence-ending ". ", skipping "e.g." / "i.e." style abbreviations.
+    private static func firstSentence(_ s: String) -> String {
+        var search = s.startIndex..<s.endIndex
+        while let dot = s.range(of: ". ", range: search) {
+            let before = s[s.startIndex..<dot.lowerBound]
+            let lastWord = before.split(separator: " ").last.map(String.init) ?? ""
+            if lastWord.count > 1, !lastWord.contains(".") {
+                return String(before)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            search = dot.upperBound..<s.endIndex
         }
+        return s
     }
 
-    private var footer: some View {
-        HStack {
-            Spacer()
-            Button(action: onClose) {
-                Text("Got it").frame(minWidth: 120).padding(.vertical, 4)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(StrandPalette.accent)
-            .keyboardShortcut(.defaultAction)
+    /// Drops markdown emphasis, issue references / credits in parentheses, and the closing period.
+    private static func clean(_ s: String) -> String {
+        var out = s.replacingOccurrences(of: "**", with: "")
+        out = out.replacingOccurrences(of: #"\s*\([^()]*(#\d|thanks @)[^()]*\)"#, with: "",
+                                       options: .regularExpression)
+        out = out.trimmingCharacters(in: .whitespacesAndNewlines)
+        while out.hasSuffix(".") || out.hasSuffix(":") { out.removeLast() }
+        return out.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+}
+
+extension View {
+    /// The one prominent action at the foot of an explainer sheet: a full-width blue capsule, in glass
+    /// on iOS 26.
+    @ViewBuilder
+    func guideProminentButton() -> some View {
+        let styled = self
+            .font(StrandFont.pro(17, weight: .semibold))
+            .controlSize(.large)
+            .tint(StrandPalette.settingsBlue)
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, macOS 26.0, *) {
+            styled.buttonStyle(.glassProminent)
+        } else {
+            styled.buttonStyle(.borderedProminent)
         }
-        .padding(16)
+        #else
+        styled.buttonStyle(.borderedProminent)
+        #endif
     }
 }
