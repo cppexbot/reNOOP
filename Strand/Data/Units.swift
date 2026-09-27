@@ -41,20 +41,6 @@ enum EffortScale: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
-/// How the trend charts (Trends tab) are drawn — a purely cosmetic, display-only toggle. The plotted
-/// data is identical on both settings; only the mark geometry changes (gradient line + area vs vertical
-/// bars). Default is the classic line. Distinct from `ChartStyle`, which chooses the colour ramp; this
-/// chooses line-vs-bar. Mirrored on Android by NoopPrefs("trend.chart.style").
-enum TrendChartStyle: String, CaseIterable, Identifiable {
-    /// The classic gradient-stroked line with a soft area fill (the long-standing look).
-    case line
-    /// Vertical bars from the axis baseline, one per sample, value-ramp filled.
-    case bar
-    var id: String { rawValue }
-    /// Segmented-control label.
-    var label: String { self == .bar ? String(localized: "Bars") : String(localized: "Line") }
-}
-
 /// Which sleep window the nightly HRV is measured over (#141). NOOP historically averages RMSSD across the
 /// WHOLE night (every stage); WHOOP/Polar/etc. sample the last slow-wave-sleep window, which reads lower.
 /// This lets a user match that. It CHANGES the computed avgHrv (NOT display-only), so a switch re-scores +
@@ -96,11 +82,6 @@ enum UnitPrefs {
     /// Effort display scale (#268). Stored raw is an `EffortScale` rawValue; an unset/unknown value
     /// resolves to `.hundred` (NOOP's native axis). Mirrored on Android by NoopPrefs("effort.scale").
     static let effortScaleKey = "effort.scale"
-
-    /// Trend chart style (line vs bar). Stored raw is a `TrendChartStyle` rawValue; an unset/unknown
-    /// value resolves to `.line` (the classic look). Display-only — the plotted data never changes.
-    /// Mirrored on Android by NoopPrefs("trend.chart.style").
-    static let trendChartStyleKey = "trend.chart.style"
 
     /// Nightly-HRV window (#141). Stored raw is an `HrvWindow` rawValue; unset/unknown resolves to `.whole`
     /// (the historical whole-night value). NOT display-only — it changes the computed avgHrv, so the engine

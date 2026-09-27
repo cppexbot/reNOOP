@@ -123,7 +123,6 @@ struct UnitsSettingsPage: View {
 struct DisplaySettingsPage: View {
     // Light/Dark/System theme. Read by both app roots' .preferredColorScheme; default follows the OS.
     @AppStorage(AppearanceMode.storageKey) private var appearanceRaw = AppearanceMode.system.rawValue
-    @AppStorage(UnitPrefs.trendChartStyleKey) private var trendChartStyleRaw = TrendChartStyle.line.rawValue
     /// Pose every looping animation still and stop the tilt sensor, without system Low Power Mode or
     /// Reduce Motion. Read by `LiquidMotion` and `NoopMotionState`.
     @AppStorage(QuietMotionPrefs.enabledKey) private var quietMotion = false
@@ -156,22 +155,16 @@ struct DisplaySettingsPage: View {
                 Text("Appearance")
             }
 
+            #if os(iOS)
             Section {
-                Picker("Trend charts", selection: $trendChartStyleRaw) {
-                    ForEach(TrendChartStyle.allCases) { style in
-                        Text(style.label).tag(style.rawValue)
-                    }
-                }
-                .settingsPicker()
-                #if os(iOS)
                 Picker("App icon", selection: $useNavyIcon) {
                     Text("Default").tag(false)
                     Text("Navy").tag(true)
                 }
                 .settingsPicker()
                 .onChangeCompat(of: useNavyIcon) { applyAppIcon($0) }
-                #endif
             }
+            #endif
 
             Section {
                 Toggle("Reduce motion", isOn: $quietMotion)

@@ -108,8 +108,8 @@ enum TrendsReportData {
     }
 
     /// The inclusive [start, end] "yyyy-MM-dd" window for a range, anchored to today's
-    /// LOCAL day (so a 30-day export is the last 30 calendar days, not the last 30 rows —
-    /// matching TrendsView's window rule). For `.all`, start is the earliest day present.
+    /// LOCAL day (so a 30-day export is the last 30 calendar days, not the last 30 rows).
+    /// For `.all`, start is the earliest day present.
     static func window(for range: ReportRange, days: [DailyMetric],
                        today: String) -> (start: String, end: String) {
         let end = today
@@ -118,8 +118,7 @@ enum TrendsReportData {
             let start = days.map(\.day).min() ?? today
             return (start, end)
         }
-        // Trailing N calendar days ending today, computed via the local-day key so the
-        // window matches TrendsView (Calendar-based, phone-local), then clamped to the
+        // Trailing N calendar days ending today (Calendar-based, phone-local), clamped to the
         // ISO string the engine compares on.
         let startDate = Calendar.current.date(byAdding: .day, value: -(n - 1), to: Date()) ?? Date()
         // Local-zone "yyyy-MM-dd" matching Repository.localDayKey, but self-contained so this stays a
