@@ -39,7 +39,7 @@ struct BackupSyncView: View {
                 #if os(iOS)
                 // #52: some iOS 26 pickers never return a folder; back up inside NOOP's own Files folder.
                 if !FolderBackup.useInternalFolder {
-                    Button("Use NOOP's own folder (browse in Files)") { useNoopFolder() }
+                    Button("NOOP folder") { useNoopFolder() }
                         .disabled(busy)
                 }
                 #endif
@@ -55,11 +55,13 @@ struct BackupSyncView: View {
                     }
                 }
                 .disabled(folderLabel == nil || busy)
-                Toggle("Daily auto-backup", isOn: $auto)
+                Button("Restore…") { openRestorePicker() }
+                    .disabled(folderLabel == nil || busy)
+                Toggle("Daily", isOn: $auto)
                     .disabled(folderLabel == nil)
                     .onChangeCompat(of: auto) { on in FolderBackup.autoEnabled = on }
                 // Wired to FolderBackup.keepCount; the next backup prunes the oldest beyond this count.
-                Picker("Keep last snapshots", selection: $keep) {
+                Picker("Keep backups", selection: $keep) {
                     ForEach(FolderBackup.keepOptions, id: \.self) { n in Text("\(n)").tag(n) }
                 }
                 .settingsPicker()
@@ -78,14 +80,11 @@ struct BackupSyncView: View {
             }
 
             Section {
-                Button("Restore from a backup…") { openRestorePicker() }
-                    .disabled(folderLabel == nil || busy)
-            }
-
-            Section {
-                Button("Export…") { runExport() }
-                Button("Import…") { runImport() }
-                Button("Export CSV…") { runCsvExport() }
+                Button("Export to file…") { runExport() }
+                Button("Import from file…") { runImport() }
+                Button("Export as CSV…") { runCsvExport() }
+            } header: {
+                Text("File")
             }
             .disabled(busy)
 

@@ -24,15 +24,19 @@ struct NotificationsSettingsPage: View {
                 Toggle("Wrist alerts", isOn: $wristAlertsMaster)
             }
             #endif
-            inactivitySection
-            stressSection
             Section {
-                Toggle("Watch for early-illness signs", isOn: $behavior.illnessWatch)
+                inactivityRows
+                stressRows
+            } header: {
+                Text("Reminders")
+            }
+            Section {
+                Toggle("Illness signs", isOn: $behavior.illnessWatch)
                     .onChangeCompat(of: behavior.illnessWatch) { _ in
                         model.reevaluateIllness()
                         if behavior.illnessWatch { IllnessNotifier.requestAuthorization() }
                     }
-                Toggle("Notify when optimal strain is reached", isOn: $behavior.strainTargetNudge)
+                Toggle("Strain target", isOn: $behavior.strainTargetNudge)
                     .onChangeCompat(of: behavior.strainTargetNudge) { on in
                         if on {
                             StrainTargetNotifier.requestAuthorization()
@@ -41,19 +45,15 @@ struct NotificationsSettingsPage: View {
                             model.evaluateStrainTarget()
                         }
                     }
-            } header: {
-                Text("Health")
-            }
-            Section {
-                Toggle("Notify on low and full battery", isOn: $behavior.batteryAlerts)
+                Toggle("Strap charge", isOn: $behavior.batteryAlerts)
                     .onChangeCompat(of: behavior.batteryAlerts) { on in
                         if on { BatteryNotifier.requestAuthorization() }
                     }
                 if behavior.batteryAlerts {
-                    Toggle("Predictive runtime warning", isOn: $behavior.batteryPredictiveAlerts)
+                    Toggle("Charge forecast", isOn: $behavior.batteryPredictiveAlerts)
                 }
             } header: {
-                Text("Strap battery")
+                Text("Alerts")
             }
         }
         .settingsPage("Notifications")
@@ -61,40 +61,36 @@ struct NotificationsSettingsPage: View {
 
     // MARK: - Inactivity reminder (#419)
 
-    private var inactivitySection: some View {
-        Section {
-            Toggle("Inactivity reminder", isOn: $inactivity.enabled)
-            if inactivity.enabled {
-                if !wristAlertsMaster {
-                    // The reminder buzzes through the wrist-alerts gate; say so instead of failing silently.
-                    HStack(spacing: 8) {
-                        Circle()
-                            .fill(StrandPalette.settingsOrange)
-                            .frame(width: 8, height: 8)
-                            .accessibilityHidden(true)
-                        Text("Wrist alerts are off")
-                            .foregroundStyle(StrandPalette.textSecondary)
-                    }
-                }
-                Stepper(value: $inactivity.thresholdMinutes, in: 15...120, step: 15) {
-                    LabeledContent("Sitting for") { Text("\(inactivity.thresholdMinutes) min").monospacedDigit() }
-                }
-                Stepper(value: $inactivity.reNudgeMinutes, in: 15...120, step: 15) {
-                    LabeledContent("Re-nudge every") { Text("\(inactivity.reNudgeMinutes) min").monospacedDigit() }
-                }
-                Stepper(value: $inactivity.buzzLoops, in: 1...4, step: 1) {
-                    LabeledContent("Buzz strength") { Text(verbatim: "\(inactivity.buzzLoops)×").monospacedDigit() }
-                }
-                Toggle("Only during active hours", isOn: $inactivity.activeHoursEnabled)
-                if inactivity.activeHoursEnabled {
-                    DatePicker("From", selection: activeStartBinding, displayedComponents: .hourAndMinute)
-                        .accessibilityLabel("Active hours start")
-                    DatePicker("To", selection: activeEndBinding, displayedComponents: .hourAndMinute)
-                        .accessibilityLabel("Active hours end")
+    @ViewBuilder private var inactivityRows: some View {
+        Toggle("Movement reminder", isOn: $inactivity.enabled)
+        if inactivity.enabled {
+            if !wristAlertsMaster {
+                // The reminder buzzes through the wrist-alerts gate; say so instead of failing silently.
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(StrandPalette.settingsOrange)
+                        .frame(width: 8, height: 8)
+                        .accessibilityHidden(true)
+                    Text("Wrist alerts are off")
+                        .foregroundStyle(StrandPalette.textSecondary)
                 }
             }
-        } header: {
-            Text("Movement")
+            Stepper(value: $inactivity.thresholdMinutes, in: 15...120, step: 15) {
+                LabeledContent("After sitting") { Text("\(inactivity.thresholdMinutes) min").monospacedDigit() }
+            }
+            Stepper(value: $inactivity.reNudgeMinutes, in: 15...120, step: 15) {
+                LabeledContent("Repeat every") { Text("\(inactivity.reNudgeMinutes) min").monospacedDigit() }
+            }
+            Stepper(value: $inactivity.buzzLoops, in: 1...4, step: 1) {
+                LabeledContent("Buzz strength") { Text(verbatim: "\(inactivity.buzzLoops)×").monospacedDigit() }
+            }
+            Toggle("Only during active hours", isOn: $inactivity.activeHoursEnabled)
+            if inactivity.activeHoursEnabled {
+                DatePicker("From", selection: activeStartBinding, displayedComponents: .hourAndMinute)
+                    .accessibilityLabel("Active hours start")
+                DatePicker("To", selection: activeEndBinding, displayedComponents: .hourAndMinute)
+                    .accessibilityLabel("Active hours end")
+            }
         }
     }
 
@@ -102,16 +98,12 @@ struct NotificationsSettingsPage: View {
 
     /// v5 closed-loop check-in (master + sub toggles), default OFF. The keys mirror BiofeedbackPrefs, which
     /// the central detector (`AppModel.evaluateStress`) reads.
-    private var stressSection: some View {
-        Section {
-            Toggle("Stress check-ins (haptic)", isOn: $behavior.stressCheckIn)
-            if behavior.stressCheckIn {
-                Toggle("Auto-nudge", isOn: $behavior.stressAutoNudge)
-                Toggle("Respect quiet hours", isOn: $behavior.stressQuietHours)
-                Toggle("Use my resonance pace", isOn: $behavior.stressUseResonancePace)
-            }
-        } header: {
-            Text("Stress")
+    @ViewBuilder private var stressRows: some View {
+        Toggle("Stress check-ins", isOn: $behavior.stressCheckIn)
+        if behavior.stressCheckIn {
+            Toggle("Auto-nudge", isOn: $behavior.stressAutoNudge)
+            Toggle("Respect quiet hours", isOn: $behavior.stressQuietHours)
+            Toggle("Use my resonance pace", isOn: $behavior.stressUseResonancePace)
         }
     }
 

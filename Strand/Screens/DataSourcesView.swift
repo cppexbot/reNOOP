@@ -54,24 +54,26 @@ struct DataSourcesView: View {
         Form {
             if !repo.days.isEmpty {
                 Section {
-                    LabeledContent("WHOOP", value: String(localized: "\(repo.days.count) days · \(repo.sleeps.count) sleeps stored"))
+                    LabeledContent("Days stored", value: "\(repo.days.count)")
                 }
             }
             Section {
-                importRow("WHOOP Export", target: .whoop, busy: model.isImporting(.whoop),
+                importRow("WHOOP", target: .whoop, busy: model.isImporting(.whoop),
                           summary: model.whoopImportSummary, failed: model.whoopImportFailed)
                 importRow("Apple Health", target: .appleHealth, busy: model.isImporting(.appleHealth),
                           summary: model.appleHealthImportSummary, failed: model.appleHealthImportFailed)
-                importRow("Xiaomi Smart Band (Mi Band)", target: .xiaomi, busy: model.isImporting(.xiaomi),
+                importRow("Mi Fitness", target: .xiaomi, busy: model.isImporting(.xiaomi),
                           summary: model.xiaomiImportSummary, failed: model.xiaomiImportFailed)
-                importRow("Oura / Fitbit / Garmin export", target: .wearable, busy: wearableImporting,
+                importRow("Oura / Fitbit / Garmin", target: .wearable, busy: wearableImporting,
                           summary: wearableSummary, failed: wearableFailed)
-                importRow("Workout file (GPX / TCX / FIT)", target: .activityFile, busy: activityFileImporting,
+                importRow("GPX / TCX / FIT", target: .activityFile, busy: activityFileImporting,
                           summary: activityFileSummary, failed: activityFileFailed)
-                importRow("Lifting log (Hevy / Liftosaur)", target: .lifting, busy: liftingImporting,
+                importRow("Hevy / Liftosaur", target: .lifting, busy: liftingImporting,
                           summary: liftingSummary, failed: liftingFailed)
                 importRow("Nutrition (.csv)", target: .nutrition, busy: nutritionImporting,
                           summary: nutritionSummary, failed: nutritionFailed)
+            } header: {
+                Text("Import from")
             }
             #if OURA_CLOUD_IMPORT
             ouraCloudSection
@@ -105,7 +107,7 @@ struct DataSourcesView: View {
     /// have imported in a prior session), behind a confirmation since it can't be undone.
     private var appleHealthRemoveSection: some View {
         Section {
-            importButton(appleHealthDeleting ? "Removing…" : "Remove Apple Health imported data",
+            importButton(appleHealthDeleting ? "Removing…" : "Remove Apple Health data",
                          busy: appleHealthDeleting, role: .destructive) {
                 confirmDeleteAppleHealth = true
             }

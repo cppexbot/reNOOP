@@ -21,9 +21,9 @@ struct WorkoutsSettingsPage: View {
                 Toggle("Auto-detect workouts", isOn: $autoDetectWorkoutsEnabled)
             }
             Section {
-                Toggle("Keep screen on during a workout", isOn: $workoutKeepScreenOn)
+                Toggle("Keep screen on", isOn: $workoutKeepScreenOn)
                 #if os(iOS)
-                Toggle("Live heart rate in Dynamic Island", isOn: $liveActivityEnabled)
+                Toggle("Heart rate in Dynamic Island", isOn: $liveActivityEnabled)
                 #endif
             }
         }
@@ -62,7 +62,7 @@ struct ScoresSettingsPage: View {
                     Text("0-21").tag(EffortScale.whoop.rawValue)
                 }
                 .settingsPicker()
-                Toggle("Effort: exponential intensity scale", isOn: $banisterEffortEnabled)
+                Toggle("Exponential scale", isOn: $banisterEffortEnabled)
                     .onChangeCompat(of: banisterEffortEnabled) { _ in
                         // The recipe changes stored Effort for every day in the window: re-score now.
                         Task { await model.intelligence.analyzeRecent(); await model.repo.refresh() }
@@ -115,7 +115,7 @@ struct ScoresSettingsPage: View {
                     // #201/#195: analyzeRecent re-scores and re-folds the baseline in one pass.
                     Task { await model.intelligence.analyzeRecent(); await model.repo.refresh() }
                 }
-                Button("Recalibrate Charge baseline") { showRecalibrateConfirm = true }
+                Button("Reset baseline") { showRecalibrateConfirm = true }
             } header: {
                 Text("Charge")
             }
@@ -124,7 +124,7 @@ struct ScoresSettingsPage: View {
             // profiles it applies to, gated as the Health opt-in card is.
             if profile.cycleAwarenessApplies {
                 Section {
-                    Toggle("Show cycle awareness", isOn: Binding(
+                    Toggle("Show cycle", isOn: Binding(
                         get: { !cycleHidden },
                         set: { show in
                             cycleHidden = !show
@@ -135,7 +135,7 @@ struct ScoresSettingsPage: View {
                             }
                         }))
                     if !cycleHidden {
-                        Toggle("Cycle awareness", isOn: $cycleAwareness)
+                        Toggle("Track cycle", isOn: $cycleAwareness)
                             .onChangeCompat(of: cycleAwareness) { on in
                                 model.cycleAwarenessEnabled = on
                                 Task { await model.refreshV5Signals() }
@@ -147,7 +147,7 @@ struct ScoresSettingsPage: View {
             }
 
             Section {
-                Button("How your scores work") { showScoringGuide = true }
+                Button("How scores work") { showScoringGuide = true }
                     .foregroundStyle(StrandPalette.textPrimary)
             }
         }

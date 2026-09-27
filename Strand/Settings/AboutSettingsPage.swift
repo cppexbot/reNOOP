@@ -39,9 +39,13 @@ struct AboutSettingsPage: View {
 
             Section {
                 Button("What's new") { showWhatsNew = true }
+                    .foregroundStyle(StrandPalette.textPrimary)
                 Button("How NOOP works") { showHowNoopWorks = true }
+                    .foregroundStyle(StrandPalette.textPrimary)
+                Link(destination: URL(string: "https://github.com/ryanbr/noop")!) {
+                    Text(verbatim: "GitHub").foregroundStyle(StrandPalette.textPrimary)
+                }
             }
-            .foregroundStyle(StrandPalette.textPrimary)
 
             Section {
                 Button {
@@ -70,10 +74,6 @@ struct AboutSettingsPage: View {
                 Toggle("Check automatically", isOn: $autoCheckUpdates)
             } header: {
                 Text("Updates")
-            }
-
-            Section {
-                Link("Project home & source", destination: URL(string: "https://github.com/ryanbr/noop")!)
             }
 
             Section {

@@ -1,11 +1,11 @@
 //  ShortcutsSettingsPage.swift
-//  NOOP · Settings → Shortcuts: NOOP's ready-made Siri actions, the strap's wear events as Shortcut
-//  triggers, and the Shortcuts-readable Apple Health export. Same keys the old Siri & Shortcuts,
+//  NOOP · Settings → Shortcuts: the strap's wear events as Shortcut triggers, the Shortcuts-readable
+//  Apple Health export, and a link to NOOP's actions in the Shortcuts app. Same keys the old Siri & Shortcuts,
 //  Automations (wear) and Shortcuts Export pages wrote.
 
 import SwiftUI
 #if os(iOS)
-import AppIntents
+import AppIntents   // ShortcutsLink
 #endif
 import StrandDesign
 
@@ -19,22 +19,6 @@ struct ShortcutsSettingsPage: View {
 
     var body: some View {
         Form {
-            #if os(iOS)
-            Section {
-                // NOOPShortcuts auto-registers these with Siri/Spotlight; the tips carry their own chrome.
-                VStack(spacing: NoopMetrics.space2) {
-                    SiriTipView(intent: SyncStrapIntent(), isVisible: .constant(true))
-                    SiriTipView(intent: BuzzStrapIntent(), isVisible: .constant(true))
-                    SiriTipView(intent: MarkMomentIntent(), isVisible: .constant(true))
-                }
-                .siriTipViewStyle(.dark)
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets())
-            } header: {
-                Text("Siri")
-            }
-            #endif
-
             Section {
                 #if os(macOS)
                 Toggle("Lock the Mac when I take the strap off", isOn: $behavior.autoLockOnWristOff)
@@ -47,7 +31,7 @@ struct ShortcutsSettingsPage: View {
 
             #if os(iOS)
             Section {
-                Toggle("Export for Shortcuts (Apple Health)", isOn: $healthExportEnabled)
+                Toggle("Export for Shortcuts", isOn: $healthExportEnabled)
             }
 
             Section {
@@ -63,7 +47,7 @@ struct ShortcutsSettingsPage: View {
 
     /// A Shortcut-name field, right-aligned in its row as Settings draws an editable value.
     private func shortcutField(text: Binding<String>) -> some View {
-        TextField("Shortcut name", text: text, prompt: Text("Shortcut name"))
+        TextField("Shortcut", text: text, prompt: Text("Shortcut"))
             .labelsHidden()
             .multilineTextAlignment(.trailing)
     }

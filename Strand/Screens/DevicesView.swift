@@ -143,12 +143,7 @@ private struct DevicesContent: View {
             }
             addSection
             // The strap's own settings, as the Watch app keeps a watch's settings under the watch.
-            StrapSyncSection()
-            PowerSavingSection()
-            StrapGesturesSection()
-            StrapHapticsSection()
-            HeartRateBroadcastSection()
-            StrapConnectionSection()
+            StrapSettingsCard()
             // #1300 tier 2: read-only "compare straps" section — how the two straps' most recent shared day
             // lines up per metric (agree / a little different / conflict), reusing the fusion tolerances.
             // Never mixes into a score (I2). Shown only when 2 WHOOP straps share a readable day.
@@ -158,7 +153,6 @@ private struct DevicesContent: View {
         // #1300 tier 2: compute the two-strap comparison off the dialog chain (attaching .task to the whole
         // `body` tips the iOS type-check budget on this already-heavy view).
         .task(id: activeDevices.count) { await loadStrapCompare() }
-        .modifier(PhoneHeartRateBroadcastHost())
     }
 
     /// One paired, non-removed device's rows, with every gate its menu entries depend on.
@@ -404,6 +398,7 @@ private struct DevicesContent: View {
             Button("Add a device") { showAddWizard = true }
                 .accessibilityLabel("Add a device")
             AppleWatchSetupRow()
+            StrapConnectionRows()
         }
     }
 
@@ -744,16 +739,6 @@ private struct DeviceRows: View {
             // banks no history in that state, which otherwise looks like a NOOP sync bug).
             if liveClockLine != nil || liveClockWarning != nil { clockRow }
 
-            // What this device CAPTURES — honest, per-model (not the generic stored set, which would
-            // mislabel e.g. a "Blood oxygen" entry when no SpO₂ % ever comes off the strap) — and what
-            // NOOP USES it for.
-            DisclosureGroup {
-                detailLine(symbol: "waveform.path.ecg", text: profile.captures)
-                detailLine(symbol: "bolt.fill", text: profile.powers)
-            } label: {
-                Text("Details").foregroundStyle(StrandPalette.textPrimary)
-            }
-
             if showsMakeActive, let action = primaryAction {
                 Button("Make active", action: action)
             }
@@ -767,9 +752,11 @@ private struct DeviceRows: View {
                 Text(device.displayName)
                     .font(StrandFont.pro(17, weight: .semibold))
                     .foregroundStyle(StrandPalette.textPrimary)
-                Text(profile.displayModel)
-                    .font(StrandFont.pro(15))
-                    .foregroundStyle(StrandPalette.textSecondary)
+                if profile.displayModel != device.displayName {
+                    Text(profile.displayModel)
+                        .font(StrandFont.pro(15))
+                        .foregroundStyle(StrandPalette.textSecondary)
+                }
                 if device.status == .archived {
                     Text(lastSeenLine)
                         .font(StrandFont.pro(13))
@@ -790,10 +777,12 @@ private struct DeviceRows: View {
             Circle().fill(statusColor(state.tone)).frame(width: 8, height: 8).accessibilityHidden(true)
             Text(LocalizedStringKey(state.label)).foregroundStyle(StrandPalette.textPrimary)
             Spacer(minLength: 8)
-            Text(lastSeenLine)
-                .font(StrandFont.pro(15))
-                .foregroundStyle(StrandPalette.textSecondary)
-                .multilineTextAlignment(.trailing)
+            // The state word already says "Live" or "not paired"; only an idle device adds when it was seen.
+            if !isLiveConnected && !bondRefused && device.status != .archived {
+                Text(relativeAgo(TimeInterval(device.lastSeenAt)))
+                    .font(StrandFont.pro(15))
+                    .foregroundStyle(StrandPalette.textSecondary)
+            }
         }
         .accessibilityElement(children: .combine)
     }
@@ -857,18 +846,6 @@ private struct DeviceRows: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityLabel(warning)
             }
-        }
-    }
-
-    /// One glyph-led line inside "Details" (captures / powers).
-    private func detailLine(symbol: String, text: String) -> some View {
-        Label {
-            Text(text)
-                .font(StrandFont.pro(15))
-                .foregroundStyle(StrandPalette.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        } icon: {
-            Image(systemName: symbol).foregroundStyle(StrandPalette.textTertiary)
         }
     }
 

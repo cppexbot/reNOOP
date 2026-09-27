@@ -109,7 +109,7 @@ struct UnitsSettingsPage: View {
                 // #1846: a preference only — a night that measured just one of the two still shows it.
                 Picker("Skin temperature", selection: $skinTempDisplayRaw) {
                     Text("Temperature").tag("")
-                    Text("vs baseline").tag(SkinTempDisplay.Kind.deviation.rawValue)
+                    Text("Deviation").tag(SkinTempDisplay.Kind.deviation.rawValue)
                 }
                 .settingsPicker()
             }
@@ -174,7 +174,7 @@ struct DisplaySettingsPage: View {
             }
 
             Section {
-                Toggle("Reduce motion in NOOP", isOn: $quietMotion)
+                Toggle("Reduce motion", isOn: $quietMotion)
                 #if os(iOS)
                 if #available(iOS 26.0, *) {
                     Toggle("Hide bar when scrolling", isOn: $bottomBarAutoHide)

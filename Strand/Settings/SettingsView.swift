@@ -53,7 +53,7 @@ struct SettingsView: View {
                 SettingsLink(.workouts, "Workouts", icon: "figure.run", color: StrandPalette.settingsGreen)
                 SettingsLink(.scores, "Scores", icon: "gauge.with.needle.fill", color: StrandPalette.settingsRed)
                 SettingsToggle("AI Coach", icon: "sparkles", color: StrandPalette.settingsPurple, isOn: $coachEnabled)
-                SettingsToggle("Hydration tracking", icon: "drop.fill", color: StrandPalette.settingsCyan, isOn: $hydrationEnabled)
+                SettingsToggle("Hydration", icon: "drop.fill", color: StrandPalette.settingsCyan, isOn: $hydrationEnabled)
             } header: {
                 Text("Features")
             }
@@ -130,7 +130,8 @@ enum SettingsPage: Hashable {
     case profile, heartRateZones
     case general, units, display, notifications, shortcuts
     case workouts, scores
-    case devices, appleHealth, dataSources, backup
+    case devices, strapSync, powerSaving, doubleTap, haptics, hrBroadcast
+    case appleHealth, dataSources, backup
     case about, developer
 
     @ViewBuilder var destination: some View {
@@ -146,6 +147,11 @@ enum SettingsPage: Hashable {
         case .workouts:       WorkoutsSettingsPage()
         case .scores:         ScoresSettingsPage()
         case .devices:        DevicesView()
+        case .strapSync:      StrapSyncPage()
+        case .powerSaving:    PowerSavingPage()
+        case .doubleTap:      DoubleTapPage()
+        case .haptics:        HapticsPage()
+        case .hrBroadcast:    HeartRateBroadcastPage()
         case .appleHealth:    AppleHealthView()
         case .dataSources:    DataSourcesView()
         case .backup:         BackupSyncView()

@@ -1,6 +1,43 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Reminders": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Напоминания"}} } },
+    "On": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Вкл."}} } },
+    "Keep screen on": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Не гасить экран"}} } },
+    "In Dynamic Island": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "В Dynamic Island"}} } },
+    "Heart rate in Dynamic Island": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Пульс в Dynamic Island"}} } },
+    "Kick in at": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Включать при заряде"}} } },
+    "Action": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Действие"}} } },
+    "Test": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Проверить"}} } },
+    "HR zones": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Зоны пульса"}} } },
+    "From this phone": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "С телефона"}} } },
+    "From the strap": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "С браслета"}} } },
+    "Movement reminder": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Напоминание размяться"}} } },
+    "After sitting": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Через"}} } },
+    "Repeat every": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Повторять каждые"}} } },
+    "Stress check-ins": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Проверка стресса"}} } },
+    "Illness signs": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Признаки болезни"}} } },
+    "Strap charge": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Заряд браслета"}} } },
+    "Charge forecast": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Прогноз заряда"}} } },
+    "Shortcut": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Команда"}} } },
+    "Export for Shortcuts": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Экспорт для «Команд»"}} } },
+    "Exponential scale": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Экспоненциальная шкала"}} } },
+    "Reset baseline": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Сбросить норму"}} } },
+    "Show cycle": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Показывать цикл"}} } },
+    "Track cycle": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Отслеживать цикл"}} } },
+    "How scores work": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Как считаются показатели"}} } },
+    "Import from": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Импорт из"}} } },
+    "Days stored": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Сохранено дней"}} } },
+    "Remove Apple Health data": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Удалить данные Здоровья"}} } },
+    "Daily": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Ежедневно"}} } },
+    "Keep backups": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Хранить копий"}} } },
+    "NOOP folder": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Папка NOOP"}} } },
+    "Export to file…": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Экспорт в файл…"}} } },
+    "Import from file…": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Импорт из файла…"}} } },
+    "Export as CSV…": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Экспорт в CSV…"}} } },
+    "Deviation": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Отклонение"}} } },
+    "Reduce motion": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Уменьшить движение"}} } },
+    "Restore…": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Восстановить…"}} } },
     "Cycle": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Цикл"}} } },
     "Heart rate broadcast": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Трансляция пульса"}} } },
     "Import a Health export .zip in Import.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Импортируйте экспорт Здоровья (.zip) в разделе «Импорт»."}} } },
@@ -35969,7 +36006,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Создать резервную копию сейчас"
+            "value": "Создать копию сейчас"
           }
         },
         "zh-Hans": {
@@ -164244,7 +164281,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "В вашей папке пока нет резервных копий NOOP. Сначала используйте «Создать резервную копию сейчас»."
+            "value": "В вашей папке пока нет резервных копий NOOP. Сначала используйте «Создать копию сейчас»."
           }
         },
         "zh-Hans": {

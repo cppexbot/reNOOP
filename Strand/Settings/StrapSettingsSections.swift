@@ -1,11 +1,65 @@
 //  StrapSettingsSections.swift
-//  NOOP · the strap's own settings, drawn under the paired devices on Settings → Devices, as the Watch
-//  app keeps a watch's settings under the watch: sync, power saving, double-tap, haptics, heart-rate
-//  broadcast and the connection controls. Same keys and the same BLE wiring the old Sync, Power saving,
-//  Automations, Data Sources and Developer pages had.
+//  NOOP · the strap's own settings. Settings → Devices lists them as one card of rows under the paired
+//  devices, as the Watch app keeps a watch's settings under the watch; each row pushes a small page:
+//  sync, power saving, double-tap, haptics, heart-rate broadcast. Same keys and the same BLE wiring the
+//  old Sync, Power saving, Automations and Data Sources pages had.
 
 import SwiftUI
 import StrandDesign
+
+// MARK: - The card on Devices
+
+/// One row per strap setting, with its state in grey on the right.
+struct StrapSettingsCard: View {
+    @EnvironmentObject private var behavior: BehaviorStore
+    @AppStorage(PuffinExperiment.powerSavingKey) private var powerSavingEnabled = false
+    @AppStorage(HrBroadcaster.defaultsKey) private var phoneBroadcast = false
+    @AppStorage(PuffinExperiment.broadcastHrKey) private var strapBroadcast = false
+
+    var body: some View {
+        Section {
+            #if os(iOS)
+            SettingsLink(.strapSync, "Sync", icon: "arrow.triangle.2.circlepath", color: StrandPalette.settingsGreen)
+            #endif
+            SettingsLink(.powerSaving, "Power saving", icon: "battery.75percent", color: StrandPalette.settingsGreen,
+                         value: onOff(powerSavingEnabled))
+            SettingsLink(.doubleTap, "Double-tap", icon: "hand.tap.fill", color: StrandPalette.settingsBlue,
+                         value: behavior.doubleTapAction.label)
+            SettingsLink(.haptics, "Haptics", icon: "waveform", color: StrandPalette.settingsOrange)
+            SettingsLink(.hrBroadcast, "Heart rate broadcast", icon: "dot.radiowaves.up.forward",
+                         color: StrandPalette.settingsRed, value: onOff(phoneBroadcast || strapBroadcast))
+        }
+    }
+
+    private func onOff(_ on: Bool) -> String { String(localized: on ? "On" : "Off") }
+}
+
+// MARK: - Pages
+
+struct StrapSyncPage: View {
+    var body: some View { Form { StrapSyncSection() }.settingsPage("Sync") }
+}
+
+struct PowerSavingPage: View {
+    var body: some View { Form { PowerSavingSection() }.settingsPage("Power saving") }
+}
+
+struct DoubleTapPage: View {
+    var body: some View { Form { StrapGesturesSection() }.settingsPage("Double-tap") }
+}
+
+struct HapticsPage: View {
+    var body: some View { Form { StrapHapticsSection() }.settingsPage("Haptics") }
+}
+
+/// The phone broadcaster runs while this page is open.
+struct HeartRateBroadcastPage: View {
+    var body: some View {
+        Form { HeartRateBroadcastSection() }
+            .settingsPage("Heart rate broadcast")
+            .modifier(PhoneHeartRateBroadcastHost())
+    }
+}
 
 // MARK: - Sync
 
@@ -19,10 +73,8 @@ struct StrapSyncSection: View {
     var body: some View {
         #if os(iOS)
         Section {
-            Toggle("Keep screen on while syncing", isOn: $syncKeepScreenOn)
-            Toggle("Strap sync in Dynamic Island", isOn: $syncLiveActivityEnabled)
-        } header: {
-            Text("Sync")
+            Toggle("Keep screen on", isOn: $syncKeepScreenOn)
+            Toggle("In Dynamic Island", isOn: $syncLiveActivityEnabled)
         }
         #endif
     }
@@ -47,7 +99,7 @@ struct PowerSavingSection: View {
             Toggle("Power saving mode", isOn: $powerSavingEnabled)
                 .onChangeCompat(of: powerSavingEnabled) { _ in model.applyPowerSaving() }
             if powerSavingEnabled {
-                Picker("Kick in at (strap battery)", selection: $powerSavingPct) {
+                Picker("Kick in at", selection: $powerSavingPct) {
                     ForEach(Array(stride(from: 10, through: 35, by: 5)), id: \.self) { pct in
                         Text(verbatim: "\(pct)%").tag(pct)
                     }
@@ -61,8 +113,6 @@ struct PowerSavingSection: View {
                 Toggle("Low refresh", isOn: $lowRefreshEnabled)
                     .onChangeCompat(of: lowRefreshEnabled) { _ in model.applyPowerSaving() }
             }
-        } header: {
-            Text("Power saving")
         }
     }
 }
@@ -76,22 +126,18 @@ struct StrapGesturesSection: View {
 
     var body: some View {
         Section {
-            Picker("When I double-tap", selection: $behavior.doubleTapAction) {
+            Picker("Action", selection: $behavior.doubleTapAction) {
                 ForEach(doubleTapOptions) { Text($0.label).tag($0) }
             }
             .settingsPicker()
             if behavior.doubleTapAction == .runShortcut {
-                TextField("Shortcut name", text: $behavior.doubleTapShortcut)
+                TextField("Shortcut", text: $behavior.doubleTapShortcut)
             }
-            Button("Test action") {
-                model.runMacAction(behavior.doubleTapAction, shortcut: behavior.doubleTapShortcut)
+            if behavior.doubleTapAction != .none {
+                Button("Test") {
+                    model.runMacAction(behavior.doubleTapAction, shortcut: behavior.doubleTapShortcut)
+                }
             }
-            .disabled(behavior.doubleTapAction == .none)
-            // Live-observing leaf: re-renders on its own when the bond flips, so a ~1 Hz strap tick
-            // doesn't re-render the whole Devices list.
-            BondStateRow()
-        } header: {
-            Text("Double-tap")
         }
 
         if !model.moments.isEmpty {
@@ -131,21 +177,6 @@ struct StrapGesturesSection: View {
     }()
 }
 
-/// "Strap bonded" / "Strap not connected". Owns its own `live` so a strap publish re-renders only this row.
-private struct BondStateRow: View {
-    @EnvironmentObject private var live: LiveState
-    var body: some View {
-        HStack(spacing: 8) {
-            Circle()
-                .fill(live.bonded ? StrandPalette.settingsGreen : StrandPalette.settingsOrange)
-                .frame(width: 8, height: 8)
-                .accessibilityHidden(true)
-            Text(live.bonded ? LocalizedStringKey("Strap bonded") : LocalizedStringKey("Strap not connected"))
-                .foregroundStyle(StrandPalette.textSecondary)
-        }
-    }
-}
-
 // MARK: - Haptics (#1115)
 
 /// Per-event toggles for NOOP's in-session strap buzzes (default ON, the keys `HapticPrefs` reads), plus
@@ -164,9 +195,7 @@ struct StrapHapticsSection: View {
             Toggle("Interval timer", isOn: $intervalsHaptic)
             Toggle("Live Session cues", isOn: $liveSessionHaptic)
             Toggle("Workout start & end", isOn: $workoutHaptic)
-            Toggle("HR-zone coaching", isOn: $behavior.zoneCoaching)
-        } header: {
-            Text("Haptics")
+            Toggle("HR zones", isOn: $behavior.zoneCoaching)
         }
     }
 }
@@ -219,16 +248,14 @@ struct HeartRateBroadcastSection: View {
 
     var body: some View {
         Section {
-            Toggle("Broadcast HR from this phone", isOn: $broadcastHrEnabled)
+            Toggle("From this phone", isOn: $broadcastHrEnabled)
                 .accessibilityLabel("Broadcast heart rate as a Bluetooth sensor")
                 .onChangeCompat(of: broadcastHrEnabled) { on in
                     if on { hrBroadcaster.start() } else { hrBroadcaster.stop() }
                 }
             if broadcastHrEnabled { phoneStatus }
-            Toggle("Broadcast heart rate from the strap", isOn: $strapBroadcastHrEnabled)
+            Toggle("From the strap", isOn: $strapBroadcastHrEnabled)
                 .onChangeCompat(of: strapBroadcastHrEnabled) { model.ble.setBroadcastHr($0) }
-        } header: {
-            Text("Heart rate broadcast")
         }
     }
 
@@ -257,16 +284,15 @@ struct HeartRateBroadcastSection: View {
 
 // MARK: - Connection
 
-/// Scan again, or drop the link.
-struct StrapConnectionSection: View {
+/// Scan again, or drop the link: rows for the Add-a-device card.
+struct StrapConnectionRows: View {
     @EnvironmentObject private var model: AppModel
     @EnvironmentObject private var live: LiveState
 
     var body: some View {
-        Section {
-            Button("Re-scan") { model.scan() }
+        Button("Re-scan") { model.scan() }
+        if live.connected || live.bonded {
             Button("Disconnect", role: .destructive) { model.disconnect() }
-                .disabled(!live.connected && !live.bonded)
         }
     }
 }
