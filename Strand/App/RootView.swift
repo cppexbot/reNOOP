@@ -76,7 +76,7 @@ enum NavItem: String, CaseIterable, Identifiable, Hashable {
         case .sleep: return String(localized: "Sleep")
         case .trends: return String(localized: "Trends")
         case .workouts: return String(localized: "Workouts")
-        case .labBook: return String(localized: "Lab Book")
+        case .labBook: return String(localized: "Lab Results")
         case .appleHealth: return String(localized: "Apple Health")
         case .dataSources: return String(localized: "Data Sources")
         case .backupSync: return String(localized: "Backup & Sync")
@@ -291,6 +291,9 @@ struct RootView: View {
             // #1862: the Today Coach card's launcher hands off here, so the send/stream/consent surface
             // stays in exactly one place.
             case .coach: selection = .coach
+            // The iOS widgets' routes (`WidgetLink`). macOS has no widget to raise them; mapped for completeness.
+            case .today, .stress: selection = .today
+            case .heartRate: selection = .live
             case nil: break
             }
             if dest != nil { router.requestedDestination = nil }

@@ -28,23 +28,16 @@ struct RootTabView: View {
     /// Whatever is running (gym session, intervals, workout), for the mini-player under every tab.
     @EnvironmentObject private var nowRunning: NowRunning
     /// External entry points must wait until the mandatory first-run gates have completed. The root owns
-    /// that state; keeping it explicit here prevents this shell's window-level sheet from covering a gate.
+    /// that state; keeping it explicit here keeps an external action from navigating underneath a gate.
     let homeScreenQuickActionsEnabled: Bool
 
     @EnvironmentObject private var repo: Repository
-    /// Cross-screen navigation requests (e.g. Live → "Manage devices"). Devices isn't a tab — it lives
-    /// behind the More list — so a request presents it as a sheet, matching the quick-action screens.
+    /// Cross-screen navigation requests (e.g. Live → "Manage devices"). A request navigates the tabs the
+    /// way a tap would: it selects the tab the screen lives in and pushes it there, never a sheet.
     @EnvironmentObject private var router: NavRouter
     /// The scene-local receiver for actions chosen from NOOP's Home Screen icon menu.
     @EnvironmentObject private var homeScreenQuickActions: HomeScreenQuickActionSceneDelegate
 
-    /// Which quick-action screen the centre FAB is presenting (nil = sheet closed).
-    @State private var quickAction: QuickAction?
-    /// Presents the Devices manager (pair / switch bands) when a screen asks the shell to open it.
-    @State private var showDevices = false
-    /// A routed v5 pillar screen (Insights hub / Lab Book / fused record / Rhythm) presented as a sheet
-    /// when a hub row deep-links to it via NavRouter. nil = closed.
-    @State private var routedPillar: NavRouter.Destination?
     /// Selected tab, bound so a re-tap can pop / scroll its root. Defaults to Today.
     @State private var selectedTab: Int = 0
     /// One `NavigationPath` per tab, indexed by tab tag. Re-tapping the already-active tab pops
@@ -79,7 +72,6 @@ struct RootTabView: View {
     }
 
     private func reselectTab(_ tag: Int) {
-        Task { await repo.refresh() }
         if !tabPaths[tag].isEmpty {
             tabPaths[tag] = NavigationPath()
         } else {
@@ -108,63 +100,45 @@ struct RootTabView: View {
                 await FolderBackup.catchUpIfDue(checkpoint: { await backupRepo.checkpointForBackup() })
             }
         }
-        // Quick-action sheet: the system's own presentation, as every other sheet.
-        .sheet(item: $quickAction) { action in
-            quickActionDestination(action)
-        }
-        // Live's "Manage devices" affordance (and any future cross-screen link to Devices) routes here:
-        // present the Devices manager in its own nav stack, the same way the quick-action screens do.
-        .sheet(isPresented: $showDevices) {
-            devicesScreen
-        }
-        // v5 pillar deep-links (Insights hub / Lab Book / fused record / Rhythm) present as a sheet in
-        // their own nav stack — the same idiom the quick-action + Devices screens use on iPhone.
-        .sheet(item: $routedPillar) { dest in
-            pillarScreen(dest)
-        }
-        // Honour a router request: Devices keeps its dedicated sheet; the v5 pillars route through the
-        // shared pillar sheet. Cleared so the same tap can fire again later.
+        // Honour a router request by navigating the tabs, as a tap on the same row would: every screen
+        // outside the three main tabs is a Browse row, so it is pushed there. Cleared so the same tap can
+        // fire again later.
         .onChange(of: router.requestedDestination) { _, dest in
             switch dest {
-            case .devices:
-                showDevices = true
-                router.requestedDestination = nil
-            case .insightsHub, .labBook:
-                routedPillar = dest
-                router.requestedDestination = nil
+            case .devices: openInBrowse(.devices)
+            case .insightsHub: openInBrowse(.insightsHub)
+            case .labBook: openInBrowse(.labBook)
+            case .journal: openInBrowse(.journal)
             case .coach:
                 // Guarded on the master switch, because this route is reachable with Coach OFF: a brief
                 // notification already sitting in Notification Centre still calls `openCoach()` when it is
                 // tapped (StrandApp wires `onCoachBriefTapped` to it). Dropping the request leaves the
                 // wearer where they were, which is the honest answer for a feature that is switched off.
-                guard coachEnabled else {
-                    router.requestedDestination = nil
-                    break
-                }
-                // Coach lives in Browse now, so a routed open presents it in the pillar sheet.
-                routedPillar = .coach
-                router.requestedDestination = nil
+                if coachEnabled { openInBrowse(.coach) }
             case .trends:
                 // Trends lives under the Summary, as Health's "Show All Health Trends": a routed open pushes it there.
                 selectedTab = 0
                 tabPaths[0] = NavigationPath([TabRoute.trends])
-                router.requestedDestination = nil
             case .activeWorkout:
                 // The running workout opens the same recording screen as the mini-player does.
                 router.presentActiveWorkout = false
                 nowRunning.expand(.workout)
-                router.requestedDestination = nil
-            case .journal:
-                // The #627 Today journal widget opens the journal through the quick-action Journal sheet
-                // (InsightsView), matching the FAB's "Log journal" action.
-                quickAction = .journal
-                router.requestedDestination = nil
+            // The widgets' taps (`WidgetLink`): the Summary at its root, Live Heart Rate, and Day Stress, which
+            // is pushed on the Summary as its card's tap-through is.
+            case .today:
+                selectedTab = 0
+                tabPaths[0] = NavigationPath()
+            case .heartRate: openInBrowse(.live)
+            case .stress:
+                selectedTab = 0
+                tabPaths[0] = NavigationPath([TabRoute.metricSourced(key: "stress", source: "my-whoop")])
             case nil:
                 break
             }
+            if dest != nil { router.requestedDestination = nil }
         }
         // A cold-launch selection is already pending when this shell appears; a warm selection arrives
-        // through the change callback. Both route through the same screens as the centre FAB.
+        // through the change callback. Both navigate the same way.
         .onAppear {
             presentPendingHomeScreenQuickActionIfPossible()
         }
@@ -190,112 +164,28 @@ struct RootTabView: View {
         }
     }
 
-    /// Mandatory launch gates defer an external action. Once the shell is available, an explicit Home
-    /// Screen choice supersedes any ordinary shell sheet; choosing the already-open destination simply
-    /// consumes the request and leaves that screen in place.
+    /// Mandatory launch gates defer an external action. Once the shell is available, a Home Screen choice
+    /// navigates the tabs exactly as the matching in-app route does.
     private func presentPendingHomeScreenQuickActionIfPossible() {
         guard homeScreenQuickActionsEnabled,
               let action = homeScreenQuickActions.pendingAction else { return }
-
-        let destination: QuickAction = switch action {
-        case .liveHeartRate: .live
-        case .startWorkout: .workout
-        case .logJournal: .journal
-        case .breathe: .breathe
-        }
         homeScreenQuickActions.consume(action)
-        showDevices = false
-        routedPillar = nil
-        quickAction = destination
-    }
-
-    /// A routed v5 pillar screen wrapped in its own nav stack + Done button (mirrors `quickScreen`).
-    @ViewBuilder
-    private func pillarScreen(_ dest: NavRouter.Destination) -> some View {
-        NavigationStack {
-            Group {
-                switch dest {
-                case .insightsHub: InsightsHubView()
-                case .labBook: LabBookView()
-                case .devices: DevicesView().settingsDestinations()
-                case .trends: TrendsView()
-                // .activeWorkout routes through the quick-action Live sheet (handled above); this keeps the
-                // switch exhaustive and falls back to Live if it ever reaches the pillar host.
-                case .activeWorkout: LiveView()
-                // .journal opens through the quick-action Journal sheet (handled above); this keeps the
-                // switch exhaustive and falls back to the journal's Insights host if it ever reaches here.
-                case .journal: JournalView()
-                // .coach switches to the Coach tab (handled above — the morning-brief tap-through and the
-                // #1862 launcher both arrive that way, the launcher's question riding on
-                // `AICoachEngine.pendingPrompt`); this keeps the switch exhaustive and falls back to Coach if
-                // it ever reaches the host.
-                case .coach: CoachView()
-                }
-            }
-            // The Today fallback above emits TabRoute value pushes (#198), which need a
-            // destination registered in THIS sheet's stack to resolve.
-            .tabRouteDestinations()
-            .background(StrandPalette.surfaceBase.ignoresSafeArea())
-            .navigationBarTitleDisplayMode(.inline)
-            // #1027: same as quickScreen — a transparent bar over the screen's own canvas.
-            .toolbarBackground(.hidden, for: .navigationBar)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    SheetConfirmButton(tint: StrandPalette.accent) { routedPillar = nil }
-                }
-            }
-        }
-    }
-
-    // MARK: - Quick-action sheet
-
-    /// Routes a Home Screen quick action to its screen.
-    @ViewBuilder
-    private func quickActionDestination(_ action: QuickAction) -> some View {
         switch action {
-        case .live:
-            quickScreen(LiveView())
-        case .workout:
-            quickScreen(WorkoutsHomeView())
-        case .journal:
-            quickScreen(JournalView())
-        case .breathe:
-            quickScreen(BreathingView())
+        case .liveHeartRate: openInBrowse(.live)
+        case .logJournal: openInBrowse(.journal)
+        case .breathe: openInBrowse(.breathe)
+        case .startWorkout:
+            // Workouts is a main tab: select it, at its root, where a workout starts.
+            selectedTab = 1
+            tabPaths[1] = NavigationPath()
         }
     }
 
-    /// Wraps a routed quick-action screen in its own nav stack so it has a title bar + the
-    /// shared surface background, matching how the More-tab links present these same views.
-    private func quickScreen<V: View>(_ view: V) -> some View {
-        NavigationStack {
-            view
-                .tabRouteDestinations()
-                .background(StrandPalette.surfaceBase.ignoresSafeArea())
-                .navigationBarTitleDisplayMode(.inline)
-                // #1027: a transparent bar, so each screen's own canvas runs edge to edge under it.
-                .toolbarBackground(.hidden, for: .navigationBar)
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        SheetConfirmButton(tint: StrandPalette.accent) { quickAction = nil }
-                    }
-                }
-        }
-    }
-
-    /// The Devices manager wrapped in its own nav stack + Done button (mirrors `quickScreen`, but
-    /// dismisses the dedicated `showDevices` sheet rather than the quick-action item).
-    private var devicesScreen: some View {
-        NavigationStack {
-            DevicesView()
-                .settingsDestinations()
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    // The round ✓ the Watch app's "All Watches" sheet closes with.
-                    ToolbarItem(placement: .topBarTrailing) {
-                        SheetConfirmButton(tint: StrandPalette.accent) { showDevices = false }
-                    }
-                }
-        }
+    /// Selects Browse with `destination` pushed on its otherwise empty stack, so the screen has the same
+    /// back button to Browse it has when reached from its row.
+    private func openInBrowse(_ destination: MoreDestination) {
+        selectedTab = 4
+        tabPaths[4] = NavigationPath([destination])
     }
 
     /// One primary tab's root in its OWN NavigationStack, so in-content NavigationLinks both navigate and
@@ -376,14 +266,6 @@ private struct IntervalRunHost: View {
     let onClose: () -> Void
 
     var body: some View { IntervalRunView(runner: runner, onClose: onClose) }
-}
-
-// MARK: - Quick actions (Home Screen icon menu)
-
-/// The screens a Home Screen quick action opens, as a sheet. `Identifiable` so it drives `.sheet(item:)`.
-private enum QuickAction: Int, Identifiable {
-    case live, workout, journal, breathe
-    var id: Int { rawValue }
 }
 
 #endif

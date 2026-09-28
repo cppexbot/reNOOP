@@ -125,7 +125,7 @@ struct SummaryView: View {
                 hostedCardsRaw: $hostedCardsRaw
             )
         }
-        // Health's profile sheet: the avatar opens the photo + name, Health Details, and the pages behind them.
+        // Health's profile sheet: the avatar opens Settings, photo and name on top.
         .sheet(isPresented: $showSettings) {
             ProfileSheet(onClose: { showSettings = false })
         }

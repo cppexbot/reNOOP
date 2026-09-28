@@ -6,11 +6,11 @@ import Combine
 // A tiny shared navigation hook so a screen can ask the app shell to switch to another top-level
 // destination without knowing how that shell is built. The two shells navigate very differently —
 // macOS drives a `NavigationSplitView` sidebar selection (`RootView`), iOS uses a `TabView` whose
-// "everything else" screens live behind the More tab (`RootTabView`) — so neither exposes a shared
+// "everything else" screens live behind the Browse tab (`RootTabView`) — so neither exposes a shared
 // `selection` binding LiveView could reach. This object is the small, shared bridge between them.
 //
 // Usage: a screen calls `router.openDevices()`; the shell observes `requestedDestination` and routes
-// itself (macOS sets the sidebar selection to `.devices`; iOS presents `DevicesView`). Each consumer
+// itself (macOS sets the sidebar selection to `.devices`; iOS pushes `DevicesView` in its Browse tab). Each consumer
 // clears the request once it's handled so the same tap can fire again later. Injected at both app
 // roots (`StrandApp`, `StrandiOSApp`) as an `@EnvironmentObject`.
 @MainActor
@@ -30,6 +30,12 @@ final class NavRouter: ObservableObject {
         /// surface of its own — it hands the question to the one screen that already has them.
         /// Also the K5 scheduled morning-brief notification's tap-through target.
         case coach
+        /// The Summary (Today) at its root: where the NOOP widget's tap lands (`WidgetLink.today`).
+        case today
+        /// Live Heart Rate: the heart-rate widget's and heart-rate banner's tap (`WidgetLink.heartRate`).
+        case heartRate
+        /// The Day Stress metric page: the stress widget's tap (`WidgetLink.stress`).
+        case stress
 
         var id: String { rawValue }
 
@@ -68,7 +74,7 @@ final class NavRouter: ObservableObject {
     @Published var pendingJournalDayOffset: Int?
 
     /// Open the journal (hosted in the classic Insights screen). The #627 Today journal widget taps here;
-    /// iOS presents InsightsView (the journal quick-action sheet), macOS selects the Insights sidebar row.
+    /// iOS pushes the journal in its Browse tab, macOS selects the Insights sidebar row.
     /// `day` (#656): a specific day-offset to open at (nil = today) — a tapped strip bar passes its day.
     func openJournal(day offset: Int? = nil) {
         pendingJournalDayOffset = offset

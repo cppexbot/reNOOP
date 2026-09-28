@@ -44,8 +44,6 @@ struct StrandiOSApp: App {
     /// Which of the three is running, for the one mini-player under the tab bar (`NowRunningAccessory`).
     @StateObject private var nowRunning: NowRunning
     @Environment(\.scenePhase) private var scenePhase
-    /// Appearance preference (System/Light/Dark). Default follows the OS; the Settings picker writes it.
-    @AppStorage(AppearanceMode.storageKey) private var appearanceRaw = AppearanceMode.system.rawValue
     /// Chart data-colour style (Titanium / Classic throwback). Re-colours gauges + charts.
     @AppStorage(ChartStyle.storageKey) private var chartStyleRaw = ChartStyle.titanium.rawValue
     /// Chrome accent colour (mint / WHOOP blue / custom). Chrome only — never the data colour worlds.
@@ -65,7 +63,7 @@ struct StrandiOSApp: App {
         // #1008: pin the pre-change Overnight-only default for existing installs before
         // anything reads it. Idempotent; a no-op on fresh installs and after the first launch.
         PuffinExperiment.migrateContinuousHrvOvernightDefault()
-        // One fixed look (System / Light / Dark only): pin the retired theme knobs before any view reads them.
+        // One fixed look that follows the system: pin the retired theme knobs before any view reads them.
         AppearanceLock.apply()
         // Debug-only canary: trips if the App Group entitlement is missing on this target before any
         // silent no-op (PendingIntents, WidgetSnapshot.publish, Live Activity) can mask the issue as
@@ -220,6 +218,28 @@ struct StrandiOSApp: App {
         }
     }
 
+    /// Opens NOOP where a widget or Live Activity tap promised (HIG: a widget interaction opens the app at the right
+    /// location). Screens go through `NavRouter`, which the tab shell turns into a tab selection and a push, as a
+    /// tap on the same row would; the running session opens exactly as tapping the mini-player does
+    /// (`NowRunning.expand`). A session that has already finished opens nothing, leaving NOOP where it was.
+    private func openWidgetLink(_ link: WidgetLink) {
+        switch link {
+        case .today: router.requestedDestination = .today
+        case .heartRate: router.requestedDestination = .heartRate
+        case .stress: router.requestedDestination = .stress
+        case .coach: router.openCoach()
+        case .devices: router.openDevices()
+        case .workout:
+            if nowRunning.kind == .lift {
+                nowRunning.expand(.lift)
+            } else if nowRunning.workout != nil {
+                nowRunning.expand(.workout)
+            }
+        case .intervals:
+            if intervals.inProgress { nowRunning.expand(.intervals) }
+        }
+    }
+
     var body: some Scene {
         WindowGroup {
             iOSRootView()
@@ -243,7 +263,7 @@ struct StrandiOSApp: App {
                 // v5 L3: the shared stress check-in nudge surface, so the Breathe screen's passive
                 // card observes the SAME instance the central detector (AppModel.evaluateStress) posts to.
                 .environment(\.stressNudgeCenter, model.stressNudgeCenter)
-                .preferredColorScheme(AppearanceMode.resolve(appearanceRaw).colorScheme)
+                .preferredColorScheme(AppearanceLock.colorScheme)
                 // Match SwiftUI format styles to the localization selected by the app's bundles. Language
                 // changes are process-wide on Apple and are applied after the documented reopen.
                 .environment(\.locale, AppLanguage.activeLocale)
@@ -325,9 +345,15 @@ struct StrandiOSApp: App {
                 // #581: the `noop://import-health` deep link the iOS Shortcut opens after building the
                 // HealthKit-free payload. Filter on the host so other future schemes don't trip the
                 // importer; macOS never registers the scheme so this stays iOS-only.
+                //
+                // Widgets and Live Activities open `noop://<route>` (`WidgetLink`), which lands where the tap
+                // promised (`openWidgetLink`). Any other host (the Oura OAuth `noop://oura/callback`, which its
+                // web-auth session consumes itself) falls through untouched.
                 .onOpenURL { url in
                     if url.host == "import-health" {
                         model.handleHealthImportURL(url)
+                    } else if let link = WidgetLink(url: url) {
+                        openWidgetLink(link)
                     }
                 }
                 .alert("Import Apple Health data?", isPresented: healthImportAlertPresented) {
@@ -474,8 +500,8 @@ private struct iOSRootView: View {
         // First-run setup brings its own navigation stack, as the real launch shows it.
         if DemoScreens.isOnboarding, let demo = DemoScreens.requested { return demo }
         if let demo = DemoScreens.requested {
-            // Inherit the app appearance (set via the Theme picker, or `-theme.appearance light|dark`
-            // in the launch arguments) so demo/marketing shots can be taken in either scheme.
+            // Inherit the root's scheme (`-theme.appearance light|dark` in the launch arguments, see
+            // `AppearanceLock.colorScheme`) so demo/marketing shots can be taken in either scheme.
             return AnyView(
                 NavigationStack {
                     demo
@@ -687,7 +713,7 @@ enum DemoScreens {
             case "watch":    return AnyView(AppleWatchSetupView(onClose: {}))
             default:         return nil
             }
-        // First-run setup, optionally on one step: `--onboarding-step 0…6`.
+        // First-run setup, optionally on one step: `--onboarding-step 0…3`.
         case "onboarding":
             let n = args.firstIndex(of: "--onboarding-step").flatMap { $0 + 1 < args.count ? Int(args[$0 + 1]) : nil } ?? 0
             return AnyView(OnboardingWizard(onFinished: {}, startAt: n))
@@ -700,7 +726,7 @@ enum DemoScreens {
         case "metric":
             let key = args.firstIndex(of: "--demo-metric").flatMap { $0 + 1 < args.count ? args[$0 + 1] : nil } ?? "hrv"
             return MetricCatalog.all.first { $0.key == key }.map { AnyView(MetricDetailView(metric: $0)) }
-        // Settings, optionally opened on one page: `--demo-screen settings --settings-page display`.
+        // Settings, optionally opened on one page: `--demo-screen settings --settings-page general`.
         case "settings":
             let page = args.firstIndex(of: "--settings-page").flatMap { $0 + 1 < args.count ? args[$0 + 1] : nil }
             return AnyView(SettingsDemoHost(pageName: page))
@@ -727,7 +753,7 @@ private struct SettingsDemoHost: View {
     init(pageName: String?) {
         let pages: [String: SettingsPage] = [
             "profile": .profile, "zones": .heartRateZones, "general": .general, "units": .units,
-            "display": .display, "notifications": .notifications, "shortcuts": .shortcuts,
+            "notifications": .notifications, "shortcuts": .shortcuts,
             "workouts": .workouts, "scores": .scores, "devices": .devices, "applehealth": .appleHealth,
             "import": .dataSources, "backup": .backup, "about": .about, "developer": .developer,
         ]

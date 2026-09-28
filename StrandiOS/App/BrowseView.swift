@@ -28,7 +28,7 @@ struct BrowseView: View {
             Entry(id: .trends, title: String(localized: "Trends"), icon: HealthTrendsUnits.icon, tint: StrandPalette.accent),
             Entry(id: .journal, title: String(localized: "Journal"), icon: "book.pages.fill", tint: StrandPalette.healthMind),
             Entry(id: .insightsHub, title: String(localized: "What Moves You"), icon: "wand.and.sparkles", tint: StrandPalette.healthTemperature),
-            Entry(id: .labBook, title: String(localized: "Lab Book"), icon: "list.clipboard.fill", tint: StrandPalette.healthSleepCore),
+            Entry(id: .labBook, title: String(localized: "Lab Results"), icon: "list.clipboard.fill", tint: StrandPalette.healthSleepCore),
         ]
         if coachEnabled {
             rows.append(Entry(id: .coach, title: String(localized: "Coach"), icon: "sparkles", tint: StrandPalette.healthBody))
@@ -49,20 +49,39 @@ struct BrowseView: View {
         a.title.localizedStandardCompare(b.title) == .orderedAscending
     }
 
+    private var trimmedQuery: String { query.trimmingCharacters(in: .whitespaces) }
+
+    private static func contains(_ text: String, _ q: String) -> Bool {
+        text.range(of: q, options: [.caseInsensitive, .diacriticInsensitive]) != nil
+    }
+
     /// Rows whose title contains the query (case- and diacritic-insensitive), as one flat list.
     private var hits: [Entry] {
-        let q = query.trimmingCharacters(in: .whitespaces)
+        let q = trimmedQuery
         return (categories + tools)
-            .filter { $0.title.range(of: q, options: [.caseInsensitive, .diacriticInsensitive]) != nil }
+            .filter { Self.contains($0.title, q) }
             .sorted(by: Self.alphabetical)
     }
 
-    private var searching: Bool { !query.trimmingCharacters(in: .whitespaces).isEmpty }
+    /// The metric pages whose name (or the short name its Summary card uses, "HRV") contains the query,
+    /// one per metric, alphabetically — as Health's search lists data types under its categories.
+    private var metricHits: [MetricDescriptor] {
+        let q = trimmedQuery
+        let matching = MetricCatalog.all.filter {
+            Self.contains($0.title, q) || Self.contains(AllMetricsCatalog.shortTitle($0), q)
+        }
+        return AllMetricsCatalog.oneSourcePerKey(matching, latestDay: [:])
+            .sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
+    }
+
+    private var searching: Bool { !trimmedQuery.isEmpty }
 
     var body: some View {
         List {
             if searching {
-                Section { rows(hits) }
+                let metrics = metricHits
+                if !hits.isEmpty { Section { rows(hits) } }
+                if !metrics.isEmpty { Section { metricRows(metrics) } }
             } else {
                 Section {
                     rows(categories)
@@ -83,7 +102,7 @@ struct BrowseView: View {
         .navigationBarTitleDisplayMode(.large)
         .searchable(text: $query)
         .overlay {
-            if searching && hits.isEmpty {
+            if searching && hits.isEmpty && metricHits.isEmpty {
                 ContentUnavailableView.search(text: query)
             }
         }
@@ -92,19 +111,36 @@ struct BrowseView: View {
     private func rows(_ entries: [Entry]) -> some View {
         ForEach(entries) { entry in
             NavigationLink(value: entry.id) {
-                Label {
-                    Text(entry.title)
-                        .font(StrandFont.pro(17, weight: .semibold))
-                        .foregroundStyle(StrandPalette.textPrimary)
-                } icon: {
-                    Image(systemName: entry.icon)
-                        .font(StrandFont.pro(20, weight: .medium))
-                        .foregroundStyle(entry.tint)
-                }
+                rowLabel(entry.title, icon: entry.icon, tint: entry.tint)
             }
             // Health's rows are 51 pt tall; the default insets on top of the label ran taller.
             .frame(minHeight: 51)
             .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20))
+        }
+    }
+
+    /// A metric's page, under the glyph and tint its All Metrics card carries. The route pins the source,
+    /// so the page opened is the one this row names.
+    private func metricRows(_ metrics: [MetricDescriptor]) -> some View {
+        ForEach(metrics) { metric in
+            NavigationLink(value: TabRoute.metricSourced(key: metric.key, source: metric.source)) {
+                rowLabel(metric.title, icon: AllMetricsCatalog.category(metric).icon,
+                         tint: MetricHealthStyle.tint(metric))
+            }
+            .frame(minHeight: 51)
+            .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20))
+        }
+    }
+
+    private func rowLabel(_ title: String, icon: String, tint: Color) -> some View {
+        Label {
+            Text(title)
+                .font(StrandFont.pro(17, weight: .semibold))
+                .foregroundStyle(StrandPalette.textPrimary)
+        } icon: {
+            Image(systemName: icon)
+                .font(StrandFont.pro(20, weight: .medium))
+                .foregroundStyle(tint)
         }
     }
 }
