@@ -32,6 +32,7 @@ struct LiftSessionEditSheet: View {
     @State private var sessionRpeText = ""
     @State private var originalSessionRpe = ""
     @State private var saving = false
+    @State private var askDiscard = false
     /// A weight or reps field whose 0 was emptied when it was focused.
     @State private var clearedZero: Field?
 
@@ -92,13 +93,16 @@ struct LiftSessionEditSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { SheetCloseButton { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) {
+                    SheetCloseButton { if hasChanges { askDiscard = true } else { dismiss() } }
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     SheetConfirmButton { Task { await save() } }
                         .disabled(saving || !hasChanges)
                 }
             }
             .liftKeyboardDone($focused)
+            .discardGuard(hasChanges: hasChanges, isPresented: $askDiscard) { dismiss() }
         }
         #if os(macOS)
         .frame(minWidth: 520, minHeight: 640)

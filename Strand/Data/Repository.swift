@@ -118,6 +118,16 @@ struct SleepDeletionSnapshot: Equatable {
     var sleepState: [Int]?
 }
 
+/// What `deleteWorkout` hands back so an undo can put the session back: every stored copy it removed, each
+/// with the namespace that held it (verbatim, not the HR-reconciled display row), the GPS route when the
+/// delete took it, and the dismissal marker the delete added, if any.
+struct WorkoutDeletionSnapshot {
+    let row: WorkoutRow
+    var copies: [(deviceId: String, row: WorkoutRow)] = []
+    var route: WorkoutRoute?
+    var addedDismissal: String?
+}
+
 /// Read model over the on-device WhoopStore. Opens its own handle (WAL + busy-timeout makes the
 /// two-handle BLEManager+Repository pattern safe) and publishes the dashboard caches the screens bind to.
 @MainActor
@@ -2913,10 +2923,32 @@ final class Repository: ObservableObject {
 
     /// Delete ONE workout by natural key. A detected row carries its computed owner in `source` and also
     /// gets a durable dismissal marker; everything else the screen can delete (manual) lives under the
-    /// active strap id.
-    func deleteWorkout(_ row: WorkoutRow) async {
-        if WorkoutSource.classify(row.source) == .detected { await dismissDetected(row); return }
-        guard let store = await ensureStore() else { return }
+    /// active strap id. `route` also drops the on-device GPS route stored under the natural key (#524).
+    /// Returns what `restoreWorkout` needs to undo it.
+    @discardableResult
+    func deleteWorkout(_ row: WorkoutRow, route: Bool = false) async -> WorkoutDeletionSnapshot {
+        var snapshot = WorkoutDeletionSnapshot(row: row)
+        if route, let stored = RouteStore.load(startTs: row.startTs, sport: row.sport) {
+            snapshot.route = stored
+            RouteStore.remove(startTs: row.startTs, sport: row.sport)
+        }
+        guard let store = await ensureStore() else { return snapshot }
+        func storedCopies(_ ids: [String]) async -> [(deviceId: String, row: WorkoutRow)] {
+            var out: [(deviceId: String, row: WorkoutRow)] = []
+            for id in ids {
+                let rows = (try? await store.workouts(deviceId: id, from: row.startTs, to: row.startTs,
+                                                      limit: 16)) ?? []
+                out += rows.filter { $0.sport == row.sport }.map { (deviceId: id, row: $0) }
+            }
+            return out
+        }
+        if WorkoutSource.classify(row.source) == .detected {
+            snapshot.copies = await storedCopies([row.source])
+            let token = WorkoutSource.dismissedToken(for: row)
+            if !dismissedDetectedSpans.contains(token) { snapshot.addedDismissal = token }
+            await dismissDetected(row)
+            return snapshot
+        }
         // Sweep every STRAP namespace, not just the active one. A manual row banked under a retained
         // strap or a computed sibling is shown by `workoutRows` and was previously undeletable: the
         // delete touched one namespace, the reload re-read the row from another, and it reappeared
@@ -2929,10 +2961,28 @@ final class Repository: ObservableObject {
         // removes the row the wearer tapped and its copies in the strap namespaces, nothing else. An
         // overlapping-but-differently-keyed session is NOT touched; collapsing those is the dedup's job
         // at display time, not a delete's.
-        for id in Self.deletableWorkoutNamespaces(rawIds: rawPhysiologyReadIds(store: store)) {
+        let namespaces = Self.deletableWorkoutNamespaces(rawIds: rawPhysiologyReadIds(store: store))
+        snapshot.copies = await storedCopies(namespaces)
+        for id in namespaces {
             _ = try? await store.deleteWorkouts(deviceId: id, sport: row.sport,
                                                 from: row.startTs, to: row.startTs)
         }
+        return snapshot
+    }
+
+    /// Undo a `deleteWorkout`: re-insert every removed copy into the namespace that held it, put the route
+    /// back and lift the dismissal marker the delete added.
+    func restoreWorkout(_ snapshot: WorkoutDeletionSnapshot) async {
+        if let token = snapshot.addedDismissal { dismissedDetectedSpans.removeAll { $0 == token } }
+        if let route = snapshot.route {
+            RouteStore.store(route, startTs: snapshot.row.startTs, sport: snapshot.row.sport)
+        }
+        if let store = await ensureStore() {
+            for copy in snapshot.copies {
+                _ = try? await store.upsertWorkouts([copy.row], deviceId: copy.deviceId)
+            }
+        }
+        await refresh()
     }
 
     /// #64: merge two-or-more overlapping / adjacent MANUAL or DETECTED sessions into ONE manual session

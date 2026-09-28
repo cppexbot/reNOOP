@@ -346,9 +346,11 @@ enum DataBackup {
     /// Pick a `.noopbak` (ZIP) or legacy `.sqlite` backup, validate it, snapshot the current DB
     /// to a side file, then copy the backup over the live database path (removing the `-wal`/`-shm`
     /// siblings). The store stays open, so the swapped-in file only takes effect after a relaunch —
-    /// the caller informs the user.
+    /// the caller informs the user. `confirm` is asked with the picked file's name before anything is
+    /// replaced; false cancels.
     @MainActor
-    static func runImport(allowOversize: Bool = false) async -> BackupResult {
+    static func runImport(allowOversize: Bool = false,
+                          confirm: @MainActor (_ name: String) async -> Bool = { _ in true }) async -> BackupResult {
         let dbPath: String
         do { dbPath = try StorePaths.defaultDatabasePath() }
         catch { return .failure(String(localized: "Couldn't locate the NOOP database. \(error.localizedDescription)")) }
@@ -371,6 +373,7 @@ enum DataBackup {
         // copy in our temp dir, so no security-scoped bookkeeping is needed).
         guard let pickedSource = await DocumentPicker.importFile(backupContentTypes()) else { return .cancelled }
         #endif
+        guard await confirm(pickedSource.lastPathComponent) else { return .cancelled }
 
         // Hand the chosen file to the same hardened restore core the folder (Backup & Sync) path uses,
         // so the unzip / magic-byte / GRDB-origin / sidecar-snapshot / rollback logic lives in one place.

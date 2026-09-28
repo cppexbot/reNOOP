@@ -74,3 +74,16 @@ extension View {
     /// stays for links in the content. Put on a toolbar `Button` or `Menu`.
     func barGlyph() -> some View { tint(StrandPalette.textPrimary) }
 }
+
+extension View {
+    /// An editor sheet that holds unsaved input: swipe-down is refused while `hasChanges`, and setting
+    /// `isPresented` (the ✕) asks before `onDiscard` throws the edits away, as iOS's own editors do.
+    func discardGuard(hasChanges: Bool, isPresented: Binding<Bool>,
+                      onDiscard: @escaping () -> Void) -> some View {
+        interactiveDismissDisabled(hasChanges)
+            .confirmationDialog(Text(verbatim: ""), isPresented: isPresented) {
+                Button("Discard Changes", role: .destructive, action: onDiscard)
+                Button("Keep Editing", role: .cancel) {}
+            }
+    }
+}

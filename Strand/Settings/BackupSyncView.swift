@@ -29,6 +29,9 @@ struct BackupSyncView: View {
     // Whole-file export / import / CSV (the old Settings "Backup & restore" card), on the same page.
     @State private var showOversizeRestoreConfirm = false
     @State private var oversizeRestoreMessage = ""
+    /// The picked file awaiting the same Replace-all-data question Restore asks, and its answer.
+    @State private var pendingImport: String?
+    @State private var importAnswer: CheckedContinuation<Bool, Never>?
 
     var body: some View {
         Form {
@@ -120,6 +123,14 @@ struct BackupSyncView: View {
                 ? "Replace all current data with the backup from \(absoluteTime(snap.timeMs))? This cannot be undone."
                 : "Replace all current data with the backup \(snap.name)? This cannot be undone.")
         }
+        .alert("Restore this backup?",
+               isPresented: Binding(get: { pendingImport != nil }, set: { if !$0 { pendingImport = nil } }),
+               presenting: pendingImport) { _ in
+            Button("Replace all data", role: .destructive) { answerImport(true) }
+            Button("Cancel", role: .cancel) { answerImport(false) }
+        } message: { name in
+            Text("Replace all current data with the backup \(name)? This cannot be undone.")
+        }
     }
 
     // MARK: - File export / import
@@ -135,9 +146,18 @@ struct BackupSyncView: View {
     private func runImport(allowOversize: Bool = false) {
         busy = true
         Task {
-            let result = await DataBackup.runImport(allowOversize: allowOversize)
+            // The oversize retry comes from its own Restore alert, answered after this one.
+            let result = await DataBackup.runImport(allowOversize: allowOversize) { name in
+                if allowOversize { return true }
+                return await withCheckedContinuation { importAnswer = $0; pendingImport = name }
+            }
             handleBackup(result)
         }
+    }
+
+    private func answerImport(_ replace: Bool) {
+        importAnswer?.resume(returning: replace)
+        importAnswer = nil
     }
 
     private func runCsvExport() {

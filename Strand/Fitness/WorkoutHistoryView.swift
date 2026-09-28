@@ -9,6 +9,7 @@ import WhoopStore
 struct WorkoutHistoryView: View {
     @EnvironmentObject private var repo: Repository
     @EnvironmentObject private var intelligence: IntelligenceEngine
+    @Environment(\.undoManager) private var undoManager
 
     @State private var rows: [WorkoutRow] = []
     @State private var loaded = false
@@ -67,7 +68,7 @@ struct WorkoutHistoryView: View {
                         .listRowBackground(RoundedRectangle(cornerRadius: 22, style: .continuous)
                             .fill(StrandPalette.summaryCard))
                         .listRowSeparator(.hidden)
-                        .swipeActions {
+                        .swipeActions(allowsFullSwipe: false) {
                             Button(role: .destructive) { delete(row) } label: {
                                 Label("Delete", systemImage: "trash")
                             }
@@ -157,10 +158,15 @@ struct WorkoutHistoryView: View {
         Button("Delete", systemImage: "trash", role: .destructive) { delete(row) }
     }
 
+    /// Shake (or Edit ▸ Undo) puts the session and its route back.
     private func delete(_ row: WorkoutRow) {
-        // #524: also drop the on-device GPS route stored under this session's natural key.
-        RouteStore.remove(startTs: row.startTs, sport: row.sport)
-        Task { await repo.deleteWorkout(row); await repo.refresh() }
+        let undo = undoManager
+        Task {
+            let snapshot = await repo.deleteWorkout(row, route: true)
+            await repo.refresh()
+            undo?.registerUndo(withTarget: repo) { r in Task { await r.restoreWorkout(snapshot) } }
+            undo?.setActionName(String(localized: "Delete Workout"))
+        }
     }
 }
 

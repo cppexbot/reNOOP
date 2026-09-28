@@ -49,6 +49,9 @@ struct LiftProgramItemSheet: View {
 
     /// Drives the pushed exercise list; a pick sets the exercise and pops back.
     @State private var pickingExercise = false
+    @State private var askDiscard = false
+    /// What the sheet opened with, to tell an edit from a look (nil until loaded).
+    @State private var initial: Draft?
     @Environment(\.dynamicTypeSize) private var dts
 
     @FocusState private var focused: Field?
@@ -65,6 +68,16 @@ struct LiftProgramItemSheet: View {
         !maxRpeText.trimmingCharacters(in: .whitespaces).isEmpty && maxRpe == nil
     }
     private var canSave: Bool { !trimmedExercise.isEmpty && !maxRpeInvalid }
+
+    private struct Draft: Equatable {
+        var exercise: String, primary: LiftMuscle?, secondaries: Set<LiftMuscle>
+        var fields: [String]
+    }
+    private var draft: Draft {
+        Draft(exercise: exercise, primary: primary, secondaries: secondaries,
+              fields: [setsText, repsText, weightText, restText, maxRpeText, note])
+    }
+    private var hasChanges: Bool { initial.map { $0 != draft } ?? false }
 
     var body: some View {
         NavigationStack {
@@ -137,13 +150,16 @@ struct LiftProgramItemSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { SheetCloseButton { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) {
+                    SheetCloseButton { if hasChanges { askDiscard = true } else { dismiss() } }
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     SheetConfirmButton { Task { await save() } }
                         .disabled(!canSave)
                 }
             }
             .liftKeyboardDone($focused)
+            .discardGuard(hasChanges: hasChanges, isPresented: $askDiscard) { dismiss() }
         }
         #if os(macOS)
         .frame(minWidth: 480, minHeight: 640)
@@ -220,6 +236,7 @@ struct LiftProgramItemSheet: View {
             maxRpeText = item.targetRpe.map { LiftFormat.trim($0) } ?? ""
             note = item.note ?? ""
         }
+        initial = draft
         guard let store = await repo.storeHandle() else { return }
         vocabulary = (try? await store.liftExercises(deviceId: repo.deviceId)) ?? []
         // An existing line adopts whatever classification its exercise already carries, so editing a
@@ -227,6 +244,7 @@ struct LiftProgramItemSheet: View {
         if let item, let known = vocabulary.first(where: { $0.name == item.exercise }) {
             primary = known.primaryMuscle
             secondaries = Set(known.secondaryMuscles)
+            initial = draft
         }
     }
 

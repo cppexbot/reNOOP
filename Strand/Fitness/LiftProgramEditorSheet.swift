@@ -30,6 +30,9 @@ struct LiftProgramEditorSheet: View {
     /// The line being added or edited (nil = that sheet is closed).
     @State private var editingItem: ItemEditTarget?
     @State private var confirmingDelete = false
+    @State private var askDiscard = false
+    /// What the sheet opened with, to tell an edit from a look.
+    @State private var initial = Draft()
     @Environment(\.dynamicTypeSize) private var dts
 
     @AppStorage(UnitPrefs.systemKey) private var unitSystemRaw = UnitSystem.metric.rawValue
@@ -44,6 +47,13 @@ struct LiftProgramEditorSheet: View {
     private enum Field: Hashable { case name, note }
 
     private var isNew: Bool { program == nil }
+
+    private struct Draft: Equatable {
+        var name = ""
+        var note = ""
+        var items: [LiftProgramItemRow] = []
+    }
+    private var hasChanges: Bool { Draft(name: name, note: note, items: items) != initial }
     private var canSave: Bool {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !saving
     }
@@ -117,7 +127,9 @@ struct LiftProgramEditorSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { SheetCloseButton { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) {
+                    SheetCloseButton { if hasChanges { askDiscard = true } else { dismiss() } }
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     SheetConfirmButton { Task { await save() } }
                         .disabled(!canSave)
@@ -136,6 +148,7 @@ struct LiftProgramEditorSheet: View {
         #if os(macOS)
         .frame(minWidth: 480, minHeight: 600)
         #endif
+        .discardGuard(hasChanges: hasChanges, isPresented: $askDiscard) { dismiss() }
         .task { await loadIfNeeded() }
         .sheet(item: $editingItem) { target in
             LiftProgramItemSheet(item: target.item) { saved in
@@ -212,8 +225,10 @@ struct LiftProgramEditorSheet: View {
         guard let program else { return }
         name = program.name
         note = program.note ?? ""
+        initial = Draft(name: name, note: note)
         guard let store = await repo.storeHandle() else { return }
         items = (try? await store.liftProgramItems(programId: program.id)) ?? []
+        initial.items = items
     }
 
     private func save() async {

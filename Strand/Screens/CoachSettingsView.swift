@@ -20,6 +20,7 @@ struct CoachSettingsView: View {
     @State private var customModel = false
     @State private var customModelDraft = ""
     @State private var showClearConfirm = false
+    @State private var showDisconnectConfirm = false
 
     /// Morning-brief settings, read from `CoachBriefScheduler` on init.
     @State private var briefEnabled: Bool = CoachBriefScheduler.isEnabled
@@ -48,10 +49,14 @@ struct CoachSettingsView: View {
                     Section {
                         Button("Clear Conversation", role: .destructive) { showClearConfirm = true }
                             .disabled(coach.messages.isEmpty)
-                        Button("Disconnect", role: .destructive) {
-                            coach.disconnect()
-                            keyDraft = ""
-                        }
+                        Button("Disconnect", role: .destructive) { showDisconnectConfirm = true }
+                            .confirmationDialog("Disconnect \(coach.provider.displayName)?",
+                                                isPresented: $showDisconnectConfirm, titleVisibility: .visible) {
+                                Button("Disconnect", role: .destructive) {
+                                    coach.disconnect()
+                                    keyDraft = ""
+                                }
+                            }
                     }
                 }
             }

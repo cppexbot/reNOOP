@@ -58,6 +58,16 @@ struct ManualWorkoutSheet: View {
     /// (a settled choice), so the form isn't permanently half-covered.
     /// Drives the pushed activity list; a pick sets the sport and pops back.
     @State private var pickingSport = false
+    @State private var askDiscard = false
+    /// What the sheet opened with, to tell an edit from a look. State, so a re-created view keeps the first.
+    @State private var initial: [String]
+    private var hasChanges: Bool {
+        Self.fields(sport, start, end, avgHrText, kcalText, distanceText) != initial
+    }
+    private static func fields(_ sport: String, _ start: Date, _ end: Date,
+                               _ texts: String...) -> [String] {
+        [sport, "\(start.timeIntervalSince1970)", "\(end.timeIntervalSince1970)"] + texts
+    }
 
     /// Measured natural height of the floating suggestion panel's content, so the overlay can size
     /// itself (capped at 168) instead of being squeezed to the text field's height. See `suggestionList`.
@@ -70,7 +80,8 @@ struct ManualWorkoutSheet: View {
         let e = editing
         // Seeds the LOCALE-STABLE editable form, not the localized display: the field's content is
         // persisted verbatim on save, and a translated word would split cross-source dedup per language.
-        _sport = State(initialValue: e.map { WorkoutSource.editableSport($0.sport) } ?? "")
+        let sport0 = e.map { WorkoutSource.editableSport($0.sport) } ?? ""
+        _sport = State(initialValue: sport0)
         // A fresh add opens on a VALID 45 minute session ending now, keeping the long-standing 45 minute
         // default length. It used to start at `Date()` with a 45 minute duration, so the implied end was
         // always 45 minutes in the future and `buildManualRow` rejected it: the sheet opened with Save
@@ -79,12 +90,15 @@ struct ManualWorkoutSheet: View {
         // fresh add with a red line. Anchoring to the end is also the truer default for the retroactive
         // entry this sheet is for.
         let defaultEnd = Date()
-        _start = State(initialValue: e.map { Date(timeIntervalSince1970: TimeInterval($0.startTs)) }
-                       ?? defaultEnd.addingTimeInterval(-45 * 60))
-        _end = State(initialValue: e.map { Date(timeIntervalSince1970: TimeInterval($0.endTs)) }
-                     ?? defaultEnd)
-        _avgHrText = State(initialValue: e?.avgHr.map(String.init) ?? "")
-        _kcalText = State(initialValue: e?.energyKcal.map { String(Int($0.rounded())) } ?? "")
+        let start0 = e.map { Date(timeIntervalSince1970: TimeInterval($0.startTs)) }
+            ?? defaultEnd.addingTimeInterval(-45 * 60)
+        let end0 = e.map { Date(timeIntervalSince1970: TimeInterval($0.endTs)) } ?? defaultEnd
+        let avgHr0 = e?.avgHr.map(String.init) ?? ""
+        let kcal0 = e?.energyKcal.map { String(Int($0.rounded())) } ?? ""
+        _start = State(initialValue: start0)
+        _end = State(initialValue: end0)
+        _avgHrText = State(initialValue: avgHr0)
+        _kcalText = State(initialValue: kcal0)
         // Pre-fill the distance in the user's unit so an untouched edit round-trips the stored metres
         // (buildManualRow then re-stores exactly what's shown). @AppStorage isn't usable pre-init, so read
         // the same key directly.
@@ -93,7 +107,9 @@ struct ManualWorkoutSheet: View {
         let sys = UnitPrefs.resolveDistance(
             system: bodySystem,
             override: UserDefaults.standard.string(forKey: UnitPrefs.distanceSystemKey) ?? "")
-        _distanceText = State(initialValue: e?.distanceM.map { Self.distanceEntryString($0, system: sys) } ?? "")
+        let distance0 = e?.distanceM.map { Self.distanceEntryString($0, system: sys) } ?? ""
+        _distanceText = State(initialValue: distance0)
+        _initial = State(initialValue: Self.fields(sport0, start0, end0, avgHr0, kcal0, distance0))
     }
 
     /// The stored metres shown as a clean editable number in `system`'s unit (km/mi) — trailing zeros and a
@@ -153,12 +169,15 @@ struct ManualWorkoutSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { SheetCloseButton { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) {
+                    SheetCloseButton { if hasChanges { askDiscard = true } else { dismiss() } }
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     SheetConfirmButton { save() }
                         .disabled(builtRow == nil)
                 }
             }
+            .discardGuard(hasChanges: hasChanges, isPresented: $askDiscard) { dismiss() }
         }
         #if os(macOS)
         .frame(minWidth: 460, minHeight: 520)

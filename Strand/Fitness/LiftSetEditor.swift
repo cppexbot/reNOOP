@@ -30,6 +30,12 @@ struct LiftSetEditor: View {
     private let originalWeight: Double
     private let originalReps: Int?
     private let originalRPE: Double?
+    private let originalWarmup: Bool
+    @State private var askDiscard = false
+
+    private var hasChanges: Bool {
+        weight != originalWeight || reps != (originalReps ?? 0) || rpe != originalRPE || warmup != originalWarmup
+    }
 
     init(title: String, exercise: String, system: UnitSystem, weightKg: Double?, reps: Int?, rpe: Double?,
          warmup: Bool, lastTime: String?, canStart: Bool, isDone: Bool,
@@ -50,6 +56,7 @@ struct LiftSetEditor: View {
         _reps = State(initialValue: reps ?? 0)
         originalRPE = rpe
         _rpe = State(initialValue: rpe)
+        originalWarmup = warmup
         _warmup = State(initialValue: warmup)
     }
 
@@ -131,7 +138,9 @@ struct LiftSetEditor: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { SheetCloseButton { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) {
+                    SheetCloseButton { if hasChanges { askDiscard = true } else { dismiss() } }
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     SheetConfirmButton {
                         save()
@@ -139,6 +148,7 @@ struct LiftSetEditor: View {
                     }
                 }
             }
+            .discardGuard(hasChanges: hasChanges, isPresented: $askDiscard) { dismiss() }
         }
         #if os(iOS)
         .presentationDetents([.medium, .large])
