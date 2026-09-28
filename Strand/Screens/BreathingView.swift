@@ -362,9 +362,10 @@ private struct BreathCalmCard: View {
     @EnvironmentObject private var model: AppModel
     @EnvironmentObject private var live: LiveState
     @ScaledMetric(relativeTo: .title2) private var glyphSize: CGFloat = 24
+    @AppStorage(HapticPrefs.breathing) private var breathingHaptics = true
 
     private var restingBand: Bool { model.bpm.map { $0 >= 55 && $0 <= 120 } ?? false }
-    private var canRun: Bool { hub.controller.canBuzz && restingBand }
+    private var canRun: Bool { hub.controller.canBuzz && breathingHaptics && restingBand }
 
     var body: some View {
         Button { hub.startCalm(reduceMotion: reduceMotion) } label: {
@@ -379,6 +380,7 @@ private struct BreathCalmCard: View {
 
     private var detail: String {
         if !hub.controller.canBuzz { return String(localized: "Needs a connected strap") }
+        if !breathingHaptics { return String(localized: "Turn on breathing haptics") }
         if !restingBand { return String(localized: "Waiting for a resting heart rate") }
         return String(localized: "3 min · a rhythm just below your pulse")
     }
@@ -471,6 +473,7 @@ private struct BreathSessionView: View {
                 Spacer(minLength: 12)
                 BreathFlower(progress: hub.progress, tint: StrandPalette.healthRespiratory)
                     .frame(width: 280, height: 280)
+                    .opacity(hub.flowerOpacity)
                 Text(hub.phaseWord)
                     .font(StrandFont.pro(34, weight: .semibold))
                     .foregroundStyle(.white)
@@ -693,6 +696,8 @@ final class BreathHub: ObservableObject {
     @Published private(set) var phaseLabel: String?
     /// The flower: 0 folded, 1 open. Set inside `withAnimation` for the stage's length.
     @Published private(set) var progress: CGFloat = 0
+    /// Calm's beat under Reduce Motion, which pulses the flower's light instead of its size.
+    @Published private(set) var flowerOpacity: Double = 1
     @Published private(set) var seconds = 0
     @Published private(set) var rmssd: Double?
 
@@ -740,6 +745,10 @@ final class BreathHub: ObservableObject {
                 guard let self, let kind = self.kind, kind != .paced else { return }
                 self.seconds = s
             }
+            .store(in: &subs)
+        controller.$calmBeat
+            .dropFirst()
+            .sink { [weak self] _ in self?.pulseCalm() }
             .store(in: &subs)
     }
 
@@ -844,6 +853,7 @@ final class BreathHub: ObservableObject {
         phase = .inhale
         phaseLabel = nil
         seconds = 0
+        flowerOpacity = 1
         hrStart = model.bpm
         presented = true
     }
@@ -926,6 +936,21 @@ final class BreathHub: ObservableObject {
     }
 
     // MARK: Pacing
+
+    /// Calm: each metronome beat shows on the flower too, so the rhythm does not live on the wrist alone.
+    private func pulseCalm() {
+        guard kind == .calm else { return }
+        let still = reduceMotion
+        withAnimation(.easeInOut(duration: 0.15)) {
+            if still { flowerOpacity = 0.6 } else { progress = 0.45 }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+            guard let self else { return }
+            withAnimation(.easeInOut(duration: 0.25)) {
+                if still { self.flowerOpacity = 1 } else if self.kind == .calm { self.progress = 0.35 }
+            }
+        }
+    }
 
     /// Resonance and the sweep: the controller publishes each cue's phase; the flower takes the rest of it.
     private func controllerPhaseChanged(_ phase: BreathPhase) {

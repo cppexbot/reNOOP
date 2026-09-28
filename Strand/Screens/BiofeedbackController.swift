@@ -63,6 +63,8 @@ final class BiofeedbackController: ObservableObject {
     @Published private(set) var calmStartHR: Int? = nil
     /// The latest target tempo the metronome settled on (bpm), for the live readout.
     @Published private(set) var calmTargetBpm: Double? = nil
+    /// Counts the metronome's beats, so the screen can show each one as well as the wrist feels it.
+    @Published private(set) var calmBeat = 0
     /// The honest L2 outcome line once the session ends ("HR settled 78 → 69 over 2:30" or the
     /// "held steady" path). nil while running / before any L2 ran.
     @Published private(set) var calmOutcome: String? = nil
@@ -297,6 +299,7 @@ final class BiofeedbackController: ObservableObject {
         }
         calmTargetBpm = step.targetBpm
         fireBuzz(loops: 1)   // one light pulse per target beat — a felt metronome, not a shock
+        calmBeat &+= 1
 
         let interval = step.intervalMs ?? 1_000
         let next = DispatchWorkItem { [weak self] in self?.scheduleCalmStep(config: config) }
