@@ -84,6 +84,8 @@ xcrun simctl launch --terminate-running-process booted com.noopapp.noop --demo-s
 
 ### CR-1. Dynamic Type не работает для ~80 % текста, масштаб ограничен AX1 — Critical
 
+Статус: исправлено, 3680748a, 1a85ade7.
+
 **What.**
 - Весь «фирменный» кегль в `Packages/StrandDesign/Sources/StrandDesign/Typography.swift` (`pro`, `rounded`, `number`, `display`, строки 19–21, 39–41, 100–102, 113–115) — это `Font.system(size:)`.
 - По коду: 520 строк с фиксированным кеглем в 91 файле (414 текстовых, 106 иконок) против 156 строк с текстовыми стилями.
@@ -139,6 +141,8 @@ public static func rounded(_ size: CGFloat, weight: Font.Weight = .bold) -> Font
 ---
 
 ### CR-2. Цветной текст в светлой теме ниже 3:1 и не темнеет при «Увеличить контраст» — Critical
+
+Статус: исправлено, f70a026f.
 
 **What.**
 - **Заголовки карточек** в оттенке категории: 17 pt semibold на белой карточке (`SummaryCards.swift:68–70, 124, 148–149`, `SleepMetricCards.swift:101,106`, цвета — `MetricHealthStyle.swift:238–249`):
@@ -199,6 +203,8 @@ public static func rounded(_ size: CGFloat, weight: Font.Weight = .bold) -> Font
 
 ### CR-3. Графики немы или врут для VoiceOver — Critical (по коду)
 
+Статус: исправлено, a645ef78.
+
 **What.**
 - **Главный график страницы показателя** (`Strand/MetricHealth/MetricHealthChart.swift:37–38`) закрыт через `.accessibilityElement(children: .ignore)` с подписью `window.range.label`. В ru VoiceOver произносит одну букву: «Н», «М», «6М» или «Г». Вместе с этим пропадают Audio Graphs и элементы на каждый столбец, которые Swift Charts даёт бесплатно. `accessibilityChartDescriptor` не используется нигде.
 - **Графики сна на Canvas:**
@@ -245,6 +251,8 @@ Text(range.label).accessibilityLabel(Text(range.spokenName))   // «Неделя
 
 ### CR-4. Циферблат расписания сна управляется только перетаскиванием — Critical (по коду)
 
+Статус: исправлено, 6995ed84.
+
 **What.**
 - Единственное adjustable-действие (`Strand/SleepSchedule/SleepScheduleDial.swift:35–42`) сдвигает **оба** конца на ±15 мин.
 - Изменить отдельно отбой, подъём или длительность через VoiceOver, Switch Control или Voice Control нельзя: это возможно только жестом `DragGesture` (`:155`).
@@ -272,6 +280,8 @@ Text(range.label).accessibilityLabel(Text(range.spokenName))   // «Неделя
 ---
 
 ### CR-5. Ключевые контролы без понятной подписи VoiceOver — Critical (по коду)
+
+Статус: исправлено, 0af70563.
 
 **What.**
 - **Главная цифра экрана записи и сессии в зале.** `.accessibilityLabel("Elapsed time")` / `("Session")` на `TimelineView` (`LiveWorkoutView.swift:164–167`, `LiftSessionView.swift:398–401`) заменяет сам текст часов: VoiceOver говорит «Elapsed time» и не говорит время.
@@ -314,6 +324,8 @@ spokenFeature: String(localized: "Live heart rate")
 ---
 
 ### CR-6. Мелкие тап-зоны и отмена, исчезающая по таймеру — Critical
+
+Статус: исправлено, 6ab14bbb (Коуч — e40aa956).
 
 **What.**
 - **`NoticeCard`:**
@@ -359,6 +371,8 @@ AccessibilityNotification.Announcement(label).post()
 
 ### CR-7. Экран условий и онбординг лежат слоем поверх живого таб-бара — Critical (по коду)
 
+Статус: исправлено, 5b06c5dd.
+
 **What.** `StrandiOSApp.swift:493–518`: `ZStack { RootTabView; OnboardingWizard; TermsGateView }`. Шлюзы первого запуска — обычные слои без `accessibilityHidden` у `RootTabView` и без трейта `.isModal`. VoiceOver, Switch Control и Full Keyboard Access могут дойти до вкладок и Сводки под экраном условий и нажать их, не приняв условия.
 
 **Why.** `modality.md › Modality`: "Modality is a design technique that presents content in a separate, dedicated mode that prevents interaction with the parent view and requires an explicit action to dismiss."
@@ -381,6 +395,8 @@ RootTabView(...)
 
 ### CR-8. «Спокойствие» передаёт ритм только вибрацией — Critical (по коду)
 
+Статус: исправлено, b10fdcc0.
+
 **What.**
 - В режиме Calm цветок стоит на месте (`BreathingView.swift:775–782`: `progress = 0.35`), а на экране только «Follow the rhythm on your wrist».
 - `canRun` не проверяет `HapticPrefs.breathing`. Если вибрация дыхания выключена, сессия идёт 3 минуты и ничего не передаёт. Звуковые подсказки в Calm тоже не звучат.
@@ -402,6 +418,8 @@ controller.$calmBeat.dropFirst().sink { [weak self] _ in self?.pulse() }   // 0.
 
 ### CR-9. Текст виджетов мельче 11 pt с контрастом 3,9:1 — Critical (по коду)
 
+Статус: исправлено, c375b167 (кадр виджета — вместе с WG-2).
+
 **What.**
 - Подписи колец — 9 pt (`StrandiOSWidgets/NOOPWidget.swift:182`), `minimumScaleFactor(0.7)` → 10,5 pt (`:149`).
 - `HeartRateWidget.swift:163,178` — 10 pt; `:234` — 9 pt.
@@ -420,6 +438,8 @@ controller.$calmBeat.dropFirst().sink { [weak self] _ in self?.pulse() }   // 0.
 ---
 
 ### CR-10. Коуч сам отправляет данные здоровья, хотя подписано «Только по запросу» — Critical
+
+Статус: исправлено, ba8f53d7, e40aa956.
 
 **What.**
 - Под шапкой чата написано «Ваш сервер · 🔒 Только по запросу» (`CoachView.swift:278–295`).
@@ -441,6 +461,8 @@ controller.$calmBeat.dropFirst().sink { [weak self] _ in self?.pulse() }   // 0.
 ---
 
 ### CR-11. Ввод данных портит данные: запятая не принимается, колёса веса округляют сохранённое — Critical
+
+Статус: исправлено, 141afac2.
 
 **What.**
 - **Дистанция при ручном добавлении** разбирается через `Double(t)` (`Strand/Fitness/ManualWorkoutSheet.swift:231`). На русской `.decimalPad` дробный разделитель — запятая, а `Double("5,2") == nil`. Проверено в симуляторе: после ввода «5,2 км» форма показывает «Расстояние должно быть в диапазоне 0–1 000 km.» (ещё и с английским «km»), а ✓ остаётся неактивной. Дробную дистанцию ввести нельзя.
@@ -474,6 +496,8 @@ let kg = weightTouched ? LiftFormat.kilograms(fromDisplay: weight, system: syste
 ---
 
 ### CR-12. Голосовой ввод Коуча сломан — Critical (по коду, микрофона в симуляторе нет)
+
+Статус: исправлено, e40aa956.
 
 **What.** `CoachView.swift:625–647, 676–694`:
 - Первая частичная расшифровка делает черновик непустым. Кнопка «стоп» заменяется на «Отправить», хотя запись продолжается.
@@ -679,6 +703,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 ### 4. Страница показателя, «Все показатели», Тренды
 
 **M-1. ⓘ озвучивается «О приложении»; поповеры принудительно в компактной ширине — Improvement · Medium**
+- **Статус:** ⓘ исправлено, a645ef78; поповеры — этап 4.
 - **What:**
   - `MetricDetailView.swift:176`: `InfoButton(label: "About")` в ru озвучивается «О приложении».
   - `SummaryView.swift:303`, `SleepHealthView.swift:136`: `.presentationCompactAdaptation(.popover)` с фиксированной рамкой 320×360; календарь дня — самодельный поповер.
