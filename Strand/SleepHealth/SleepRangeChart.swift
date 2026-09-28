@@ -16,9 +16,6 @@ struct SleepRangeChart: View {
     var overlay: [SleepComparisonPoint] = []
     var overlayColor: Color = StrandPalette.healthHeart
 
-    private let axisHeight: CGFloat = 20
-    private let labelWidth: CGFloat = 40
-
     /// Clock domain in minutes-of-night (after 18:00), whole hours, with room either side of the data.
     private var domain: ClosedRange<Double> {
         guard let lo = window.bars.map(\.onsetMin).min(), let hi = window.bars.map(\.wakeMin).max() else {
@@ -29,23 +26,25 @@ struct SleepRangeChart: View {
     }
 
     var body: some View {
-        GeometryReader { geo in
-            let plotWidth = geo.size.width - labelWidth
-            let plotHeight = geo.size.height - axisHeight
-            ZStack(alignment: .topLeading) {
-                Canvas { ctx, _ in
-                    drawGrid(ctx, width: plotWidth, height: plotHeight)
-                    drawBars(ctx, width: plotWidth, height: plotHeight)
-                    drawOverlay(ctx, width: plotWidth, height: plotHeight)
+        // The clock and the slot names take the room their labels need, so neither runs into the plot or
+        // into each other at any text size.
+        VStack(spacing: 4) {
+            HStack(spacing: 4) {
+                Canvas { ctx, size in
+                    drawGrid(ctx, width: size.width, height: size.height)
+                    drawBars(ctx, width: size.width, height: size.height)
+                    drawOverlay(ctx, width: size.width, height: size.height)
                 }
-                .frame(width: plotWidth, height: plotHeight)
-                hourLabels(height: plotHeight)
-                    .offset(x: plotWidth + 4)
-                slotLabels(width: plotWidth)
-                    .offset(y: plotHeight + 4)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                hourLabels
+            }
+            HStack(spacing: 4) {
+                slotLabels
+                // Keeps the slot names under the plot only: the clock column's width, drawn empty.
+                hourLabelSet(every: 1).frame(height: 0).hidden()
             }
         }
-        // Axis labels sit in fixed gutters: they follow Dynamic Type only as far as the gutters hold them.
+        // Past this size the clock alone would take a third of the plot.
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .accessibilityElement(children: .contain)
         .modifier(AccessibilityLabelIfPresent(text: window.averageAsleepMin.map {
@@ -159,14 +158,24 @@ struct SleepRangeChart: View {
 
     // MARK: - Labels
 
-    private func hourLabels(height: CGFloat) -> some View {
-        ZStack(alignment: .topLeading) {
-            ForEach(gridHours, id: \.self) { minutes in
+    /// The clock down the trailing edge: every gridline while the labels fit, every other one once they don't.
+    private var hourLabels: some View {
+        ViewThatFits(in: .vertical) {
+            hourLabelSet(every: 1)
+            hourLabelSet(every: 2)
+        }
+    }
+
+    private func hourLabelSet(every step: Int) -> some View {
+        let d = domain
+        let hours = gridHours.enumerated().filter { $0.offset % step == 0 }.map(\.element)
+        let axis = AxisTickLabels(vertical: true,
+                                  fractions: hours.map { CGFloat(($0 - d.lowerBound) / (d.upperBound - d.lowerBound)) })
+        return axis {
+            ForEach(hours, id: \.self) { minutes in
                 Text(clockLabel(minutes))
                     .font(StrandFont.caption)
                     .foregroundStyle(StrandPalette.textSecondary)
-                    .fixedSize()
-                    .offset(y: y(minutes, height: height) - 7)
             }
         }
     }
@@ -177,17 +186,25 @@ struct SleepRangeChart: View {
             .formatted(.dateTime.hour().minute().locale(AppLanguage.activeLocale))
     }
 
-    private func slotLabels(width: CGFloat) -> some View {
-        ZStack(alignment: .topLeading) {
-            ForEach(Array(window.slotStarts.enumerated()), id: \.offset) { slot, start in
-                if let text = slotLabel(slot: slot, start: start) {
-                    Text(text)
-                        .font(StrandFont.caption)
-                        .foregroundStyle(StrandPalette.textSecondary)
-                        .fixedSize()
-                        .frame(width: 40)
-                        .offset(x: slotCenter(slot, width: width) - 20)
-                }
+    /// The slot names under the plot; every other one when they would touch.
+    private var slotLabels: some View {
+        ViewThatFits(in: .horizontal) {
+            slotLabelSet(every: 1)
+            slotLabelSet(every: 2)
+        }
+    }
+
+    private func slotLabelSet(every step: Int) -> some View {
+        let n = CGFloat(max(1, window.slotStarts.count))
+        let labelled = window.slotStarts.enumerated()
+            .compactMap { slot, start in slotLabel(slot: slot, start: start).map { (slot: slot, text: $0) } }
+            .enumerated().filter { $0.offset % step == 0 }.map(\.element)
+        let axis = AxisTickLabels(fractions: labelled.map { (CGFloat($0.slot) + 0.5) / n })
+        return axis {
+            ForEach(labelled, id: \.slot) { label in
+                Text(label.text)
+                    .font(StrandFont.caption)
+                    .foregroundStyle(StrandPalette.textSecondary)
             }
         }
     }
@@ -211,6 +228,60 @@ struct SleepRangeChart: View {
             guard opensMonth else { return nil }
             return start.formatted(.dateTime.month(.abbreviated).locale(locale))
         }
+    }
+}
+
+/// Chart axis labels, each centred on its tick at a fraction along the axis and kept inside it. Across the
+/// axis it is as wide (or tall) as its largest label. Asked for its ideal length it reports what the labels
+/// need not to touch, so a `ViewThatFits` can fall back to a sparser set instead of printing "09:0011:00".
+struct AxisTickLabels: Layout {
+    var vertical = false
+    let fractions: [CGFloat]
+    var gap: CGFloat = 6
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let sizes = subviews.map { $0.sizeThatFits(.unspecified) }
+        let cross = sizes.map { vertical ? $0.width : $0.height }.max() ?? 0
+        let length = (vertical ? proposal.height : proposal.width) ?? neededLength(sizes)
+        return vertical ? CGSize(width: cross, height: length) : CGSize(width: length, height: cross)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let sizes = subviews.map { $0.sizeThatFits(.unspecified) }
+        let length = vertical ? bounds.height : bounds.width
+        for (i, start) in starts(sizes, length: length).enumerated() {
+            let point = vertical ? CGPoint(x: bounds.minX, y: bounds.minY + start)
+                                 : CGPoint(x: bounds.minX + start, y: bounds.minY)
+            subviews[i].place(at: point, anchor: .topLeading, proposal: ProposedViewSize(sizes[i]))
+        }
+    }
+
+    /// Each label's leading edge along the axis: centred on its tick, clamped inside the axis.
+    private func starts(_ sizes: [CGSize], length: CGFloat) -> [CGFloat] {
+        sizes.enumerated().map { i, size in
+            let extent = vertical ? size.height : size.width
+            let f = i < fractions.count ? fractions[i] : 0
+            return min(max(0, f * length - extent / 2), max(0, length - extent))
+        }
+    }
+
+    private func fits(_ sizes: [CGSize], length: CGFloat) -> Bool {
+        let s = starts(sizes, length: length)
+        let extents = sizes.map { vertical ? $0.height : $0.width }
+        guard let widest = extents.max(), widest <= length else { return extents.isEmpty }
+        let spans = zip(s, extents).map { ($0, $0 + $1) }.sorted { $0.0 < $1.0 }
+        return zip(spans, spans.dropFirst()).allSatisfy { $0.1 + gap <= $1.0 }
+    }
+
+    /// The shortest axis the labels fit on, to the nearest point (the search ceiling when they never do).
+    private func neededLength(_ sizes: [CGSize]) -> CGFloat {
+        var lo: CGFloat = 0, hi: CGFloat = 4096
+        guard fits(sizes, length: hi) else { return hi }
+        while hi - lo > 1 {
+            let mid = (lo + hi) / 2
+            if fits(sizes, length: mid) { hi = mid } else { lo = mid }
+        }
+        return hi.rounded(.up)
     }
 }
 

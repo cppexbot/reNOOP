@@ -40,7 +40,7 @@ struct SummarySectionHeader: View {
             : AnyLayout(HStackLayout(alignment: .firstTextBaseline))
         layout {
             Text(title)
-                .font(StrandFont.rounded(22))
+                .font(StrandFont.pro(22, weight: .bold))
                 .foregroundStyle(StrandPalette.textPrimary)
             if !dts.isAccessibilitySize { Spacer() }
             if let actionTitle, let action {
@@ -286,14 +286,15 @@ struct SummaryMetricCard: View {
     }
 }
 
-/// A week at a glance: a line for continuous vitals, bars for daily totals. Draws nothing under two points.
+/// A week at a glance: a line for continuous vitals, bars for daily totals. Draws nothing under three
+/// points: two bars read as a pair of capsules (a toggle), not as a week.
 struct SummaryMiniChart: View {
     let values: [Double]
     let style: SummaryMetricReading.ChartStyle
     let tint: Color
 
     var body: some View {
-        if values.count >= 2 {
+        if values.count >= 3 {
             switch style {
             case .line:
                 Sparkline(values: values, gradient: Gradient(colors: [tint.opacity(0.55), tint]),
@@ -569,7 +570,11 @@ struct DayPager<Picker: View>: View {
                     .foregroundStyle(StrandPalette.textPrimary)
             }
             .buttonStyle(.plain)
-            .popover(isPresented: $showPicker) { picker }
+            // A popover where there is room for one; on iPhone the system turns it into a sheet, as Health
+            // shows its calendars, so the calendar is never squeezed into a compact popover.
+            .popover(isPresented: $showPicker) {
+                picker.presentationDetents([.medium, .large])
+            }
             Spacer(minLength: 0)
             arrow("chevron.right", enabled: canGoForward, action: onForward)
                 .accessibilityLabel(Text(forwardLabel))

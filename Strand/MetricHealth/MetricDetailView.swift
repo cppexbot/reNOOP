@@ -117,7 +117,12 @@ struct MetricDetailView: View {
             VStack(alignment: .leading, spacing: 0) {
                 header(window)
                 Group {
-                    if loaded {
+                    if showsImportState {
+                        // Nothing recorded: one way to fill it, in place of an empty chart.
+                        EmptyStateView(title: Text("No Data"), systemImage: metric.icon) {
+                            NavigationLink { DataSourcesView() } label: { Text("Import History") }
+                        }
+                    } else if loaded {
                         MetricHealthChart(window: window, spec: MetricHealthStyle.chart(metric, series: series),
                                           tint: tint, segments: segments(window),
                                           axisLabel: { v in
@@ -165,9 +170,13 @@ struct MetricDetailView: View {
             ? (isTotal ? String(localized: "TOTAL") : nil)
             : String(localized: "AVERAGE")
         // A picked day of a level has no aggregate to name; a blank keeps the header from jumping.
-        let words = [aggregate, state].compactMap { $0 }
-        let caption = words.isEmpty ? " " : words.joined(separator: " · ")
         let value = picked?.value ?? window.average
+        // A skin-temperature deviation carries a plain "°C": the header says it is one.
+        let deviation = metric.unit == "°C" && value.map { SkinTempDisplay.kind(of: $0) == .deviation } == true
+            ? String(localized: "Deviation").uppercased(with: locale) : nil
+        let words = [aggregate, deviation, state].compactMap { $0 }
+        // With nothing recorded, the empty state under the header names it; the header stays blank.
+        let caption = words.isEmpty || showsImportState ? " " : words.joined(separator: " · ")
         let dates = picked.map { MetricHealthSeries.pointLabel($0, range: range, calendar: calendar, locale: locale) }
             ?? MetricHealthSeries.spanLabel(window, calendar: calendar, locale: locale)
         return VStack(alignment: .leading, spacing: 2) {
@@ -178,7 +187,7 @@ struct MetricDetailView: View {
                 if let value {
                     figure(MetricHealthStyle.tokens(metric, value, units: units), size: 34)
                 } else {
-                    Text(loaded ? String(localized: "No Data") : " ")
+                    Text(loaded && !showsImportState ? String(localized: "No Data") : " ")
                         .font(StrandFont.pro(34, weight: .bold))
                         .foregroundStyle(StrandPalette.textPrimary)
                 }
@@ -282,6 +291,10 @@ struct MetricDetailView: View {
             .accessibilityAddTraits(.isHeader)
     }
 
+    /// No reading on record for a metric that comes from an import or a strap (not Fitness Age, which is
+    /// computed here and explains itself).
+    private var showsImportState: Bool { loaded && series.isEmpty && metric.key != "fitness_age" }
+
     @ViewBuilder
     private var emptyState: some View {
         if metric.key == "fitness_age" {
@@ -313,13 +326,6 @@ struct MetricDetailView: View {
                     }
                 }
             }
-        } else {
-            SummaryCard {
-                Text("Import your history first. A WHOOP export in Data Sources fills every metric you can explore here in about a minute.")
-                    .font(StrandFont.pro(15))
-                    .foregroundStyle(StrandPalette.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
         }
     }
 
@@ -344,6 +350,7 @@ struct MetricDetailView: View {
                 HStack(spacing: 6) {
                     Image(systemName: metric.icon)
                         .font(.system(size: highlightIconSize, weight: .semibold))
+                        .accessibilityHidden(true)
                     Text(metric.title)
                         .font(StrandFont.pro(17, weight: .semibold))
                         .lineLimit(dts.isAccessibilitySize ? 3 : 1)
@@ -488,6 +495,7 @@ struct MetricDetailView: View {
                 Image(systemName: "chevron.right")
                     .font(StrandFont.pro(13, weight: .semibold))
                     .foregroundStyle(StrandPalette.textTertiary)
+                    .accessibilityHidden(true)
             }
         }
         .padding(.vertical, 13)
@@ -538,17 +546,16 @@ private struct TopScrollAnchor: ViewModifier {
 
 /// The Fitness Age not-ready lead: a concrete countdown of nights-of-wear still needed (from the shared
 /// `nightsUntilReady`), noting the profile basics only when they're actually missing. File-scope so the
-/// Fitness Age metric page's empty state reads it from one source. Kept WORD-FOR-WORD identical to the Android
-/// `fitnessReadyLead` so the two platforms match.
+/// Fitness Age metric page's empty state reads it from one source. Says what appears and when, with no "we".
 func fitnessReadyLeadCopy(rhrDays: Int, hasAge: Bool, hasSex: Bool) -> String {
     let remaining = FitnessAgeEngine.nightsUntilReady(rhrDays: rhrDays)
     let needsBasics = !hasAge || !hasSex
     switch (remaining, needsBasics) {
-    case (0, false): return String(localized: "A few more days and we can show your Fitness Age.")
-    case (0, true):  return String(localized: "Add your age and sex below and we can show your Fitness Age.")
-    case (1, false): return String(localized: "1 more night of wear and we can show your Fitness Age.")
-    case (1, true):  return String(localized: "1 more night of wear, plus your age and sex below, and we can show your Fitness Age.")
-    case (let n, false): return String(localized: "\(n) more nights of wear and we can show your Fitness Age.")
-    case (let n, true):  return String(localized: "\(n) more nights of wear, plus your age and sex below, and we can show your Fitness Age.")
+    case (0, false): return String(localized: "Fitness Age appears after a few more days of wear.")
+    case (0, true):  return String(localized: "Add your age and sex below to see your Fitness Age.")
+    case (1, false): return String(localized: "Fitness Age appears after 1 more night of wear.")
+    case (1, true):  return String(localized: "Add your age and sex below; Fitness Age appears after 1 more night of wear.")
+    case (let n, false): return String(localized: "Fitness Age appears after \(n) more nights of wear.")
+    case (let n, true):  return String(localized: "Add your age and sex below; Fitness Age appears after \(n) more nights of wear.")
     }
 }

@@ -112,6 +112,7 @@ struct SleepTileGrid: View {
                     Image(systemName: t.icon)
                         .font(StrandFont.pro(13, weight: .semibold))
                         .frame(width: iconSlot, alignment: .center)
+                        .accessibilityHidden(true)
                     Text(t.title)
                         .font(StrandFont.subhead.weight(.semibold))
                         .lineLimit(perRow == 1 ? 2 : 1)

@@ -37,11 +37,7 @@ struct SleepScheduleEditor: View {
                 VStack(alignment: .leading, spacing: 12) {
                     SleepScheduleHeader(title: "Days Active")
                     SleepScheduleDayCircles(days: $edit.days)
-                    Text("Bedtime and Wake Up")
-                        .font(StrandFont.pro(17, weight: .semibold))
-                        .foregroundStyle(StrandPalette.textSecondary)
-                        .padding(.horizontal, 4)
-                        .padding(.top, NoopMetrics.space4)
+                    SleepScheduleHeader(title: "Bedtime and Wake Up")
                     dialCard
                     if !edit.isBase {
                         SleepScheduleHeader(title: "Alarm Options")
@@ -53,7 +49,7 @@ struct SleepScheduleEditor: View {
                             .disabled(!alarmToggleEnabled)
                         }
                         if !isNew {
-                            Button {
+                            Button(role: .destructive) {
                                 var gone = edit
                                 gone.delete = true
                                 if let stored = SleepSchedule.applying(gone, to: inputs) { onSave(stored) }

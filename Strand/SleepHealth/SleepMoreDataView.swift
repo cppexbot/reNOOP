@@ -82,7 +82,8 @@ struct SleepMoreDataView: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) { SheetConfirmButton(tint: StrandPalette.accent) { dismiss() } }
+                // Read-only: nothing to save, so the sheet closes with ✕ rather than a confirming ✓.
+                ToolbarItem(placement: .cancellationAction) { SheetCloseButton { dismiss() } }
             }
         }
         #if os(macOS)
@@ -234,7 +235,7 @@ struct SleepMoreDataView: View {
                                  selected: selected)
                 }
                 .buttonStyle(.plain)
-                .allowsHitTesting(range != .sixMonths)   // weekly averages carry no stage bands to pick
+                .disabled(range == .sixMonths)   // weekly averages carry no stage bands to pick
                 .accessibilityAddTraits(selected ? .isSelected : [])
             }
         }
@@ -294,16 +295,9 @@ struct SleepMoreDataView: View {
                                  selected: selected)
                 }
                 .buttonStyle(.plain)
-                .allowsHitTesting(row.plottable)
+                .disabled(!row.plottable)
                 .accessibilityAddTraits(selected ? .isSelected : [])
             }
-            Text(range == .day
-                 ? String(localized: "Heart rate is drawn over the night's stages. The other vitals are one reading per night.")
-                 : String(localized: "Choose a vital to see it night by night beside your sleep."))
-                .font(StrandFont.footnote)
-                .foregroundStyle(StrandPalette.textSecondary)
-                .padding(.horizontal, 4)
-                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -628,10 +622,6 @@ private struct SleepDebtNightsCard: View {
             .frame(height: 80)
             .accessibilityElement(children: .contain)
             .accessibilityLabel(Text("Sleep Debt"))
-            Text("Each bar is a night against the \(SleepFormat.duration(minutes: ledger.needMin)) sleep debt is counted from: above the line met it, below fell short.")
-                .font(StrandFont.footnote)
-                .foregroundStyle(StrandPalette.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(16)
         .background(StrandPalette.summaryCard, in: RoundedRectangle(cornerRadius: SummaryCard<EmptyView>.radius,

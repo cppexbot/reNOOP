@@ -86,9 +86,11 @@ struct HealthTrendChart: View {
     let baselineLabel: String
     let recentLabel: String
 
-    /// Room above the plot for the figures that sit on the lines.
-    private let labelRoom: CGFloat = 22
-    private let labelHeight: CGFloat = 18
+    /// Room above the plot for the figures over the lines, grown with the text as far as the cap below.
+    @ScaledMetric(relativeTo: .subheadline) private var scaledLabelRoom: CGFloat = 26
+    private var labelRoom: CGFloat { min(scaledLabelRoom, 34) }
+    /// The clear gap between a figure and the line it names.
+    private let labelGap: CGFloat = 6
 
     var body: some View {
         let values = trend.slots.compactMap { $0 }
@@ -112,11 +114,12 @@ struct HealthTrendChart: View {
                 averageLine(from: firstRecorded, to: split - slot * 0.25, y: y(trend.baselineAverage),
                             color: StrandPalette.textSecondary)
                 averageLine(from: split + slot * 0.25, to: geo.size.width, y: y(trend.recentAverage), color: tint)
+                // Each figure stands on its line, its own height clear above it, never across it.
                 label(baselineLabel, color: StrandPalette.textSecondary, width: geo.size.width - firstRecorded,
                       alignment: .leading)
-                    .offset(x: firstRecorded, y: y(trend.baselineAverage) - labelHeight - 4)
+                    .offset(x: firstRecorded, y: y(trend.baselineAverage) - labelGap)
                 label(recentLabel, color: tint, width: geo.size.width, alignment: .trailing)
-                    .offset(y: y(trend.recentAverage) - labelHeight - 4)
+                    .offset(y: y(trend.recentAverage) - labelGap)
             }
         }
         // The figures ride fixed rows over the lines: they follow Dynamic Type only as far as the rows hold them.
@@ -168,7 +171,10 @@ struct HealthTrendChart: View {
             .font(StrandFont.pro(15, weight: .semibold))
             .foregroundStyle(StrandPalette.text(for: color))
             .lineLimit(1)
-            .frame(width: width, height: labelHeight, alignment: alignment)
+            .fixedSize(horizontal: false, vertical: true)
+            // A zero-height row the text stands on: the offset above places the text's foot, whatever its
+            // size, and the figure rises from there instead of hanging across the line.
+            .frame(width: width, height: 0, alignment: alignment == .leading ? .bottomLeading : .bottomTrailing)
     }
 
     private func averageLine(from x0: CGFloat, to x1: CGFloat, y: CGFloat, color: Color) -> some View {

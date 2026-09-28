@@ -4,6 +4,7 @@
 //  Native glass needs both the Xcode 26 toolchain (Swift 6.2, whose SDK declares `glassEffect`) and an
 //  iOS 26 / macOS 26 runtime. The compiler guard keeps an Xcode 16 build compiling the fallback, so the
 //  deployment targets (iOS 17 / macOS 13) are unchanged. Views never call `glassEffect` directly.
+//  The screen's backdrop (canvas and wash) lives here too, since it is what the glass sits over.
 
 import SwiftUI
 import StrandDesign
@@ -40,9 +41,53 @@ extension View {
         #endif
     }
 
+    /// The Summary's backdrop: the grouped canvas with Health's warm → cool wash across the top. It sits
+    /// behind the whole screen and runs under the status and navigation bars rather than inside the scroll
+    /// content, so the wash reaches the top edge in every appearance (Reduce Transparency included) and no
+    /// toolbar background of our own cuts it off.
+    func summaryBackdrop() -> some View {
+        background {
+            ZStack(alignment: .top) {
+                StrandPalette.summaryCanvas
+                SummaryWash()
+            }
+            .ignoresSafeArea()
+        }
+    }
+
     private func summaryMaterialCircle() -> some View {
         self
             .background(.ultraThinMaterial, in: Circle())
             .overlay(Circle().strokeBorder(StrandPalette.hairline, lineWidth: NoopMetrics.hairlineWidth))
     }
+}
+
+/// Health's Summary top: warm on the leading side, violet in the middle, cool on the trailing side, solid
+/// under the bars and the title, fading into the canvas by the first cards.
+private struct SummaryWash: View {
+    var body: some View {
+        LinearGradient(
+            colors: [StrandPalette.summaryWashWarm, StrandPalette.summaryWashViolet, StrandPalette.summaryWashCool],
+            startPoint: .leading, endPoint: .trailing
+        )
+        .mask {
+            LinearGradient(stops: [.init(color: .black, location: 0),
+                                   .init(color: .black, location: Self.solidFraction),
+                                   .init(color: .clear, location: 1)],
+                           startPoint: .top, endPoint: .bottom)
+        }
+        .frame(height: Self.height)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+
+    // From the screen's top edge: iPhone's status bar, bar and large title stay solid; the Mac has neither
+    // bar nor large title above its content.
+    #if os(iOS)
+    private static let height: CGFloat = 390
+    private static let solidFraction = 0.4
+    #else
+    private static let height: CGFloat = 240
+    private static let solidFraction = 0.0
+    #endif
 }

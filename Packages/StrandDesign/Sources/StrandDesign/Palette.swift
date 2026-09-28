@@ -751,13 +751,13 @@ public enum SleepStage: String, CaseIterable, Sendable {
     case deep
     case rem
 
-    /// Display label.
+    /// Display label, in Health's words: light sleep is "Core", REM is translated like the other stages.
     public var label: String {
         switch self {
         case .awake: return String(localized: "Awake", bundle: .module)
-        case .light: return String(localized: "Light", bundle: .module)
+        case .light: return String(localized: "Core", bundle: .module)
         case .deep:  return String(localized: "Deep", bundle: .module)
-        case .rem:   return "REM"
+        case .rem:   return String(localized: "REM", bundle: .module)
         }
     }
 

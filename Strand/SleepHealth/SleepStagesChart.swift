@@ -1,7 +1,7 @@
 //  SleepStagesChart.swift
 //  NOOP · Sleep — one night's stages in the Apple Health layout.
 //
-//  Four labelled rows (Awake, REM, Light, Deep) separated by hairlines, dashed hour gridlines, rounded
+//  Four rows (Awake, REM, Core, Deep) named down the trailing edge, separated by hairlines, dashed hour gridlines, rounded
 //  blocks per interval and a soft vertical connector wherever the night moves between stages. Drawing
 //  only: the intervals come from the same `SleepModel.Night` the rest of the app reads.
 
@@ -33,77 +33,93 @@ struct SleepStagesChart: View {
     var compact = false
 
     static let rowOrder: [SleepStage] = [.awake, .rem, .light, .deep]
-    private var axisHeight: CGFloat { compact ? 0 : 20 }
 
     private var span: TimeInterval { max(1, intervals.map(\.end).max() ?? 1) }
 
     var body: some View {
-        GeometryReader { geo in
-            let plotHeight = geo.size.height - axisHeight
-            let rowHeight = plotHeight / CGFloat(Self.rowOrder.count)
-            ZStack(alignment: .topLeading) {
-                grid(width: geo.size.width, plotHeight: plotHeight, rowHeight: rowHeight)
-                Canvas { ctx, size in
-                    drawStages(ctx, width: size.width, rowHeight: rowHeight)
-                    drawOverlay(ctx, size: size)
+        Group {
+            if compact {
+                plot
+            } else {
+                // The stage names and the clock take the room their labels need, beside and under the plot,
+                // so neither lies on the blocks nor runs into the other at any text size.
+                VStack(spacing: 4) {
+                    HStack(spacing: 6) {
+                        plot.frame(maxWidth: .infinity, maxHeight: .infinity)
+                        rowLabels
+                    }
+                    HStack(spacing: 6) {
+                        hourLabels
+                        // Keeps the clock under the plot only: the stage-name column's width, drawn empty.
+                        rowLabels.frame(height: 0).hidden()
+                    }
                 }
-                .frame(width: geo.size.width, height: plotHeight)
-                if !compact {
-                    rowLabels(rowHeight: rowHeight)
-                    hourLabels(width: geo.size.width)
-                        .offset(y: plotHeight + 4)
-                }
+                // Past this size the stage names alone would take a third of the plot.
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
             }
         }
-        // Axis labels sit in fixed gutters: they follow Dynamic Type only as far as the gutters hold them.
-        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .modifier(StagesAccessibility(compact: compact, summary: accessibilitySummary) { stageElements })
     }
 
     // MARK: - Layout pieces
 
-    private func grid(width: CGFloat, plotHeight: CGFloat, rowHeight: CGFloat) -> some View {
+    private var plot: some View {
         Canvas { ctx, size in
-            let line = GraphicsContext.Shading.color(StrandPalette.hairline)
-            for i in 0...Self.rowOrder.count {
-                let y = CGFloat(i) * rowHeight
-                ctx.stroke(Path { $0.move(to: CGPoint(x: 0, y: y)); $0.addLine(to: CGPoint(x: size.width, y: y)) },
-                           with: line, lineWidth: 1)
-            }
-            for tick in hourTicks() {
-                let x = xPos(tick.offset, width: size.width)
-                ctx.stroke(Path { $0.move(to: CGPoint(x: x, y: 0)); $0.addLine(to: CGPoint(x: x, y: plotHeight)) },
-                           with: line, style: StrokeStyle(lineWidth: 1, dash: [2, 3]))
-            }
+            let rowHeight = size.height / CGFloat(Self.rowOrder.count)
+            drawGrid(ctx, size: size, rowHeight: rowHeight)
+            drawStages(ctx, width: size.width, rowHeight: rowHeight)
+            drawOverlay(ctx, size: size)
         }
-        .frame(width: width, height: plotHeight)
     }
 
-    private func rowLabels(rowHeight: CGFloat) -> some View {
+    private func drawGrid(_ ctx: GraphicsContext, size: CGSize, rowHeight: CGFloat) {
+        let line = GraphicsContext.Shading.color(StrandPalette.hairline)
+        for i in 0...Self.rowOrder.count {
+            let y = CGFloat(i) * rowHeight
+            ctx.stroke(Path { $0.move(to: CGPoint(x: 0, y: y)); $0.addLine(to: CGPoint(x: size.width, y: y)) },
+                       with: line, lineWidth: 1)
+        }
+        for tick in hourTicks() {
+            let x = xPos(tick.offset, width: size.width)
+            ctx.stroke(Path { $0.move(to: CGPoint(x: x, y: 0)); $0.addLine(to: CGPoint(x: x, y: size.height)) },
+                       with: line, style: StrokeStyle(lineWidth: 1, dash: [2, 3]))
+        }
+    }
+
+    /// The stage names down the trailing edge, one centred on each row.
+    private var rowLabels: some View {
         VStack(alignment: .leading, spacing: 0) {
             ForEach(Self.rowOrder, id: \.self) { stage in
                 Text(stage.label)
                     .font(StrandFont.caption)
                     .foregroundStyle(StrandPalette.textSecondary)
-                    .padding(.leading, 4)
-                    .padding(.top, 3)
-                    .frame(height: rowHeight, alignment: .topLeading)
+                    .lineLimit(1)
+                    .frame(maxHeight: .infinity, alignment: .leading)
             }
         }
-        .allowsHitTesting(false)
+        .fixedSize(horizontal: true, vertical: false)
     }
 
-    private func hourLabels(width: CGFloat) -> some View {
-        ZStack(alignment: .topLeading) {
-            ForEach(hourTicks().enumerated().filter { $0.offset % 2 == 0 }.map(\.element), id: \.offset) { tick in
+    /// Every second hour while the labels fit, sparser once they would touch.
+    private var hourLabels: some View {
+        ViewThatFits(in: .horizontal) {
+            hourLabelSet(every: 2)
+            hourLabelSet(every: 3)
+            hourLabelSet(every: 4)
+            hourLabelSet(every: 6)
+        }
+    }
+
+    private func hourLabelSet(every step: Int) -> some View {
+        let ticks = hourTicks().enumerated().filter { $0.offset % step == 0 }.map(\.element)
+        let axis = AxisTickLabels(fractions: ticks.map { CGFloat($0.offset / span) })
+        return axis {
+            ForEach(ticks, id: \.offset) { tick in
                 Text(tick.date, format: .dateTime.hour().minute().locale(AppLanguage.activeLocale))
                     .font(StrandFont.caption)
                     .foregroundStyle(StrandPalette.textSecondary)
-                    .fixedSize()
-                    .offset(x: min(max(0, xPos(tick.offset, width: width) + 3), width - 44))
             }
         }
-        .frame(width: width, alignment: .leading)
     }
 
     // MARK: - Drawing
@@ -198,7 +214,6 @@ struct SleepStagesChart: View {
                 }
             }
         }
-        .padding(.bottom, axisHeight)
     }
 
     private var accessibilitySummary: String {

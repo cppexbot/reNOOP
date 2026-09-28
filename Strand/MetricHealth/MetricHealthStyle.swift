@@ -169,8 +169,10 @@ enum MetricHealthStyle {
             let kind = SkinTempDisplay.kind(of: value)
             let fahrenheit = units.temperature == .fahrenheit
             let n = SkinTempDisplay.numberString(value, kind: kind, fahrenheit: fahrenheit, decimals: metric.decimals)
+            // A deviation reads as Health writes one, "+0.4 °C": the sign marks it as a move from baseline
+            // (the page's header names it "Deviation"), so the unit is plain degrees rather than "Δ°C".
             return [Token(text: n.replacingOccurrences(of: ".", with: locale.decimalSeparator ?? "."), isUnit: false),
-                    Token(text: SkinTempDisplay.unitSymbol(kind: kind, fahrenheit: fahrenheit), isUnit: true)]
+                    Token(text: SkinTempDisplay.unitSymbol(kind: .absolute, fahrenheit: fahrenheit), isUnit: true)]
         }
         if isSteps(metric) {
             return [Token(text: number(value, decimals: 0, locale: locale), isUnit: false),

@@ -36,6 +36,8 @@ struct TrainingLoadView: View {
 
     private static let fitnessTint = StrandPalette.activityTitle
     private static let fatigueTint = StrandPalette.healthRespiratory
+    private static let fitnessStroke = StrokeStyle(lineWidth: 2.5, lineCap: .round)
+    private static let fatigueStroke = StrokeStyle(lineWidth: 2.5, lineCap: .round, dash: [5, 3])
 
     var body: some View {
         ScrollView {
@@ -108,9 +110,11 @@ struct TrainingLoadView: View {
                     .padding(.top, NoopMetrics.space4)
                 Rectangle().fill(StrandPalette.hairline).frame(height: NoopMetrics.hairlineWidth)
                     .padding(.top, NoopMetrics.space4)
-                legendRow(String(localized: "Fitness · 42 days"), value: latest?.chronicLoad, tint: Self.fitnessTint)
+                legendRow(String(localized: "Fitness · 42 days"), value: latest?.chronicLoad, tint: Self.fitnessTint,
+                          stroke: Self.fitnessStroke)
                     .padding(.top, NoopMetrics.space3)
-                legendRow(String(localized: "Fatigue · 7 days"), value: latest?.acuteLoad, tint: Self.fatigueTint)
+                legendRow(String(localized: "Fatigue · 7 days"), value: latest?.acuteLoad, tint: Self.fatigueTint,
+                          stroke: Self.fatigueStroke)
                     .padding(.top, NoopMetrics.space2)
             }
             .padding(.top, 4)
@@ -124,13 +128,14 @@ struct TrainingLoadView: View {
             ForEach(rows) { r in
                 LineMark(x: .value("Day", r.date), y: .value("Load", r.fitness), series: .value("Series", "fitness"))
                     .foregroundStyle(Self.fitnessTint)
-                    .lineStyle(StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                    .lineStyle(Self.fitnessStroke)
                     .interpolationMethod(.monotone)
             }
             ForEach(rows) { r in
+                // Dashed as well as a second hue, so the two lines part without colour.
                 LineMark(x: .value("Day", r.date), y: .value("Load", r.fatigue), series: .value("Series", "fatigue"))
                     .foregroundStyle(Self.fatigueTint)
-                    .lineStyle(StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                    .lineStyle(Self.fatigueStroke)
                     .interpolationMethod(.monotone)
             }
         }
@@ -147,12 +152,16 @@ struct TrainingLoadView: View {
                 AxisValueLabel().font(StrandFont.pro(12)).foregroundStyle(StrandPalette.textSecondary)
             }
         }
-        .accessibilityLabel(Text("Training load: chronic vs acute"))
+        .accessibilityLabel(Text("Fitness and Fatigue"))
     }
 
-    private func legendRow(_ title: String, value: Double?, tint: Color) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Circle().fill(tint).frame(width: 8, height: 8)
+    /// A legend line: a swatch drawn in the line's own stroke (solid or dashed), its name, its latest value.
+    private func legendRow(_ title: String, value: Double?, tint: Color, stroke: StrokeStyle) -> some View {
+        HStack(alignment: .center, spacing: 8) {
+            Path { p in p.move(to: CGPoint(x: 0, y: 1.5)); p.addLine(to: CGPoint(x: 18, y: 1.5)) }
+                .stroke(tint, style: stroke)
+                .frame(width: 18, height: 3)
+                .accessibilityHidden(true)
             Text(title)
                 .font(StrandFont.pro(15))
                 .foregroundStyle(StrandPalette.textSecondary)
@@ -169,6 +178,6 @@ struct TrainingLoadView: View {
         f.calendar = calendar
         f.locale = locale
         f.dateTemplate = range == .year ? "MMMy" : "dMMMy"
-        return f.string(from: from, to: to)
+        return MetricHealthSeries.rangeDash(f.string(from: from, to: to))
     }
 }

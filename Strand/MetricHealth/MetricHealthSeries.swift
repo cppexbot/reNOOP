@@ -233,6 +233,12 @@ enum MetricHealthSeries {
         f.calendar = calendar
         f.locale = locale
         f.dateTemplate = template
-        return f.string(from: from, to: to)
+        return rangeDash(f.string(from: from, to: to))
+    }
+
+    /// A date range joined by the en dash, as Health prints one ("22–28 сент."): some locales' interval
+    /// patterns (Russian among them) join with an em dash.
+    static func rangeDash(_ text: String) -> String {
+        text.replacingOccurrences(of: "\u{2014}", with: "\u{2013}")
     }
 }

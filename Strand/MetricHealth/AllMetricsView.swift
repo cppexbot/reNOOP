@@ -275,11 +275,14 @@ struct AllMetricsView: View {
                         .font(StrandFont.pro(13, weight: .semibold))
                         .foregroundStyle(StrandPalette.textTertiary)
                         .rotationEffect(.degrees(expanded ? 90 : 0))
+                        .accessibilityHidden(true)
                 }
                 .padding(.vertical, 13)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            // The chevron's turn is the only sign it opened: VoiceOver hears the state instead.
+            .accessibilityValue(Text(expanded ? "Expanded" : "Collapsed"))
             if expanded {
                 ForEach(metrics) { metric in
                     Rectangle().fill(StrandPalette.hairline).frame(height: NoopMetrics.hairlineWidth)
@@ -292,6 +295,7 @@ struct AllMetricsView: View {
                             Image(systemName: "chevron.right")
                                 .font(StrandFont.pro(13, weight: .semibold))
                                 .foregroundStyle(StrandPalette.textTertiary)
+                                .accessibilityHidden(true)
                         }
                         .padding(.vertical, 13)
                         .contentShape(Rectangle())

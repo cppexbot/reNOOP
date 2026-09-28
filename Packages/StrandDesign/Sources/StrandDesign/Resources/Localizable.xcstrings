@@ -1,6 +1,8 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Core": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Основной"}} } },
+    "REM": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Быстрый сон"}} } },
     "Heart rate": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Пульс"}} } },
     "average %@": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "среднее %@"}} } },
     "%lld days ago": {

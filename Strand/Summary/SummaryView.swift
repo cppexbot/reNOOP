@@ -81,13 +81,12 @@ struct SummaryView: View {
                     Color.clear.frame(height: NoopMetrics.tabBarClearance)
                 }
                 .padding(.horizontal, NoopMetrics.screenHPadding)
-                .background(alignment: .top) { wash }
                 #if os(macOS)
                 .frame(maxWidth: 680)
                 .frame(maxWidth: .infinity)
                 #endif
             }
-            .background(StrandPalette.summaryCanvas.ignoresSafeArea())
+            .summaryBackdrop()
             #if os(iOS)
             .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
             .onChange(of: scrollToTopSignal) { _, _ in
@@ -193,26 +192,6 @@ struct SummaryView: View {
         .accessibilityLabel(Text("Profile and settings"))
     }
 
-    /// Health's Summary top: warm on the leading side, violet in the middle, cool on the trailing side,
-    /// fading down into the canvas by the first cards.
-    private var wash: some View {
-        LinearGradient(
-            colors: [StrandPalette.summaryWashWarm, StrandPalette.summaryWashViolet, StrandPalette.summaryWashCool],
-            startPoint: .leading, endPoint: .trailing
-        )
-        .mask {
-            LinearGradient(stops: [.init(color: .black, location: 0),
-                                   .init(color: .black, location: 0.55),
-                                   .init(color: .clear, location: 1)],
-                           startPoint: .top, endPoint: .bottom)
-        }
-        .frame(height: 520)
-        .padding(.horizontal, -NoopMetrics.screenHPadding)
-        .offset(y: -300)
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
-    }
-
     // MARK: - Rings
 
     private var effortScale: EffortScale { UnitPrefs.resolveEffortScale(effortScaleRaw) }
@@ -244,7 +223,9 @@ struct SummaryView: View {
             SummaryRingRow(id: "effort", title: String(localized: "Effort"),
                            value: SummaryMetricReading.decimal(
                                snapshot.effort.map { UnitFormatter.effortValue($0, scale: effortScale) }),
-                           unit: "", caption: nil, color: StrandPalette.activityExerciseText,
+                           // "/100" (or "/21") as the metric page and All Metrics write it.
+                           unit: snapshot.effort == nil ? "" : "/" + UnitFormatter.effortScaleMax(effortScale),
+                           caption: nil, color: StrandPalette.activityExerciseText,
                            route: .metric(HeroRingMetric.effort)),
             SummaryRingRow(id: "rest", title: String(localized: "Rest"),
                            value: SummaryMetricReading.int(snapshot.rest), unit: snapshot.rest == nil ? "" : "%",
@@ -299,10 +280,6 @@ struct SummaryView: View {
             .datePickerStyle(.graphical)
             .labelsHidden()
             .padding(12)
-            .frame(minWidth: 320, minHeight: 360)
-            #if os(iOS)
-            .presentationCompactAdaptation(.popover)
-            #endif
     }
 
 
@@ -345,13 +322,14 @@ struct SummaryView: View {
             NavigationLink(value: TabRoute.allMetrics) {
                 SummaryCard {
                     HStack {
-                        Text("Show all metrics")
+                        Text("Show All Metrics")
                             .font(StrandFont.body)
                             .foregroundStyle(StrandPalette.textPrimary)
                         Spacer()
                         Image(systemName: "chevron.right")
                             .font(StrandFont.pro(12, weight: .semibold))
                             .foregroundStyle(StrandPalette.textTertiary)
+                            .accessibilityHidden(true)
                     }
                 }
             }
@@ -399,6 +377,7 @@ struct SummaryView: View {
                             Image(systemName: "chevron.right")
                                 .font(StrandFont.pro(12, weight: .semibold))
                                 .foregroundStyle(StrandPalette.textTertiary)
+                                .accessibilityHidden(true)
                         }
                     }
                 }

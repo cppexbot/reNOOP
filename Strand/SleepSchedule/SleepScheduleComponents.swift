@@ -51,6 +51,7 @@ struct SleepScheduleTime: View {
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Image(systemName: symbol)
                     .foregroundStyle(muted ? StrandPalette.textSecondary : StrandPalette.sleepSchedule)
+                    .accessibilityHidden(true)
                 Text(label)
                     .foregroundStyle(StrandPalette.textSecondary)
                     .multilineTextAlignment(centered ? .center : .leading)
@@ -107,10 +108,11 @@ struct SleepScheduleEntryCard: View {
     var body: some View {
         let locale = AppLanguage.activeLocale
         let pair = SleepScheduleTime.pairLayout(dts)
+        let daysText = entry.days.isEmpty ? String(localized: "schedule.noDays", defaultValue: "No Days")
+            : SleepSchedule.weekdaySummary(Set(entry.days))
         SleepScheduleCard {
             VStack(alignment: .leading, spacing: 8) {
-                Text(entry.days.isEmpty ? String(localized: "schedule.noDays", defaultValue: "No Days")
-                     : SleepSchedule.weekdaySummary(Set(entry.days)))
+                Text(daysText)
                     .font(StrandFont.pro(17, weight: .semibold))
                     .foregroundStyle(StrandPalette.sleepSchedule)
                 pair {
@@ -126,6 +128,8 @@ struct SleepScheduleEntryCard: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                // Several cards each carry an "Edit": VoiceOver hears which schedule it opens.
+                .accessibilityLabel(Text("Edit \(daysText)"))
                 .padding(.top, 2)
             }
         }
@@ -204,7 +208,9 @@ struct SleepScheduleDayCircles: View {
                     Text(verbatim: SleepSchedule.weekdayLetter(dow, locale: locale))
                         .font(StrandFont.pro(17, weight: .medium))
                         .foregroundStyle(on ? Color.white : StrandPalette.textPrimary)
-                        .frame(width: 38, height: 38)
+                        // Health's 44 pt circles, narrowing only where seven of them cannot fit the row.
+                        .frame(maxWidth: 44, maxHeight: 44)
+                        .aspectRatio(1, contentMode: .fit)
                         .background(on ? StrandPalette.accent : Color.clear, in: Circle())
                         .frame(maxWidth: .infinity, minHeight: 44)
                         .contentShape(Rectangle())
@@ -214,7 +220,7 @@ struct SleepScheduleDayCircles: View {
                 .accessibilityAddTraits(on ? .isSelected : [])
             }
         }
-        // 9 + 44 + 9: the card keeps its height with the 44 pt targets round the 38 pt circles.
+        // 9 + 44 + 9 round the 44 pt circles.
         .padding(.vertical, 9)
         .padding(.horizontal, 6)
         // Seven fixed circles across the row: the letters follow Dynamic Type only as far as a circle holds one.

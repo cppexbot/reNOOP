@@ -133,10 +133,6 @@ struct SleepHealthView: View {
         .datePickerStyle(.graphical)
         .labelsHidden()
         .padding(12)
-        .frame(minWidth: 320, minHeight: 360)
-        #if os(iOS)
-        .presentationCompactAdaptation(.popover)
-        #endif
     }
 
     // MARK: - Ranges
@@ -444,6 +440,7 @@ struct SleepHealthView: View {
                 Image(systemName: "chevron.right")
                     .font(StrandFont.pro(chevronSize, weight: .semibold))
                     .foregroundStyle(StrandPalette.textTertiary)
+                    .accessibilityHidden(true)
             }
         }
     }
@@ -489,8 +486,8 @@ struct SleepHealthView: View {
                 }
             }
             Divider()
-            Button { logMark(.bedtime) } label: { Label("Going to sleep", systemImage: "moon.zzz.fill") }
-            Button { logMark(.wake) } label: { Label("I'm awake", systemImage: "sun.max.fill") }
+            Button { logMark(.bedtime) } label: { Label("Log going to sleep", systemImage: "moon.zzz.fill") }
+            Button { logMark(.wake) } label: { Label("Log waking up", systemImage: "sun.max.fill") }
         } label: {
             Image(systemName: "ellipsis")
         }
