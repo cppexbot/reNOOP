@@ -64,6 +64,9 @@ struct CoachView: View {
     // K4: on-device voice input for the composer (iOS only).
     #if os(iOS)
     @StateObject private var voiceInput = CoachVoiceInput()
+    /// The draft as it was when dictation started; the live transcript is appended to it, never over it.
+    @State private var dictationBase = ""
+    @Environment(\.openURL) private var openURL
     @ScaledMetric(relativeTo: .body) private var micWidth: CGFloat = 37
     #endif
     @ScaledMetric(relativeTo: .caption2) private var lockSize: CGFloat = 8
@@ -121,9 +124,8 @@ struct CoachView: View {
         }
         // K2 + K5 ordering matters and every step gates on an EMPTY transcript, so this is ONE `.task`
         // running sequentially: restore whatever the prior launch persisted, THEN surface a brief the
-        // scheduled notification already generated (if any), THEN the interactive first-open brief — so
-        // `startBriefIfNeeded` only ever runs over the network when both of the above left the transcript
-        // genuinely empty.
+        // scheduled notification already generated (if any). The interactive brief is only ever asked for
+        // by its suggestion chip: opening the chat never sends data by itself (CR-10).
         .task {
             await coach.loadPersistedMessagesIfNeeded()
             historyLoaded = true
@@ -133,7 +135,6 @@ struct CoachView: View {
                 coach.surfaceScheduledBrief(stored)
             }
             CoachBriefScheduler.activateIfEnabled { await coach.generateBrief() }
-            await coach.startBriefIfNeeded()
         }
         // #1862: a question handed over by a launcher. Cleared BEFORE sending so a rebuild mid-flight
         // cannot send it twice; an unconfigured handoff degrades to showing setup.
@@ -153,11 +154,6 @@ struct CoachView: View {
         #if os(iOS)
         .sensoryFeedback(.impact(weight: .light), trigger: replyArrived)
         #endif
-        // A consent toggle after the initial load re-checks the brief; `startBriefIfNeeded` is a no-op
-        // once a conversation exists.
-        .onChangeCompat(of: coach.dataConsent) { _ in
-            Task { await coach.startBriefIfNeeded() }
-        }
         .onChangeCompat(of: coach.messages.map(\.id)) { ids in
             recordTimes(ids)
             track(ids)
@@ -467,6 +463,10 @@ struct CoachView: View {
                 .font(StrandFont.pro(22))
                 .foregroundStyle(StrandPalette.messageFailure)
                 .frame(width: failureSide, height: failureSide)
+                // A 44 pt target without moving the glyph or the bubble beside it.
+                .frame(width: max(44, failureSide), height: max(44, failureSide))
+                .contentShape(Circle())
+                .padding(-(max(44, failureSide) - failureSide) / 2)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text("Not Delivered"))
@@ -504,7 +504,20 @@ struct CoachView: View {
 
     /// K7: follow-ups once the coach has answered, contextual questions otherwise.
     private var suggestions: [String] {
-        coach.messages.last?.role == .assistant ? AICoachEngine.followUpSuggestions : coach.suggestions
+        if coach.messages.last?.role == .assistant { return AICoachEngine.followUpSuggestions }
+        // On an empty chat the brief is the first question, sent only when tapped.
+        let brief = coach.messages.isEmpty && coach.isConfigured && coach.dataConsent
+        return (brief ? [Self.briefPrompt] : []) + coach.suggestions
+    }
+
+    private static let briefPrompt = "Today’s Brief"
+
+    private func choose(_ prompt: String) {
+        if prompt == Self.briefPrompt {
+            Task { await coach.startBriefIfNeeded() }
+        } else {
+            send(Self.localized(prompt))
+        }
     }
 
     /// Suggestions under the field while it is empty: when the keyboard is up, and on an empty chat.
@@ -548,7 +561,7 @@ struct CoachView: View {
     private var plusMenu: some View {
         Menu {
             ForEach(suggestions, id: \.self) { prompt in
-                Button { send(Self.localized(prompt)) } label: {
+                Button { choose(prompt) } label: {
                     Label(Self.localized(prompt), systemImage: "sparkles")
                 }
             }
@@ -602,7 +615,7 @@ struct CoachView: View {
                             .fill(StrandPalette.hairline)
                             .frame(width: NoopMetrics.hairlineWidth, height: 22)
                     }
-                    Button { send(Self.localized(prompt)) } label: {
+                    Button { choose(prompt) } label: {
                         HStack(spacing: 5) {
                             Image(systemName: "sparkles").font(StrandFont.pro(13, weight: .medium))
                             Text(verbatim: Self.localized(prompt)).font(StrandFont.pro(15))
@@ -630,7 +643,13 @@ struct CoachView: View {
     /// The send arrow once there is something to send; the mic (iOS) while the field is empty.
     @ViewBuilder
     private var trailingControl: some View {
-        if hasDraft {
+        #if os(iOS)
+        // Stop stays in place for the whole recording, even once the transcript has made a draft (CR-12).
+        let recording = voiceInput.isRecording
+        #else
+        let recording = false
+        #endif
+        if hasDraft && !recording {
             Button { send(draft) } label: {
                 Image(systemName: "arrow.up")
                     .font(StrandFont.pro(16, weight: .bold))
@@ -638,6 +657,11 @@ struct CoachView: View {
                     .frame(width: sendWidth, height: sendHeight)
                     .background(StrandPalette.messageSend, in: Capsule())
                     .opacity(coach.sending ? 0.4 : 1)
+                    // A 44 pt target round the 38 × 28 capsule; the negative padding keeps the field's layout.
+                    .frame(width: max(44, sendWidth), height: max(44, sendHeight))
+                    .contentShape(Rectangle())
+                    .padding(.horizontal, -(max(44, sendWidth) - sendWidth) / 2)
+                    .padding(.vertical, -(max(44, sendHeight) - sendHeight) / 2)
             }
             .buttonStyle(.plain)
             .disabled(coach.sending)
@@ -668,37 +692,39 @@ struct CoachView: View {
         .disabled(!micButtonEnabled)
         .accessibilityLabel(Text(voiceInput.isRecording ? "Stop voice input" : "Voice input"))
         .accessibilityHint(Text(voiceInput.statusMessage ?? String(localized: "Transcribes your question on-device")))
-        .task {
-            // Pre-check on appear so the button reflects the right state without a tap.
-            if voiceInput.authorization == .notDetermined {
-                voiceInput.requestAuthorization { _ in }
-            }
-        }
     }
 
-    /// Tappable while not sending, and only if voice is usable or permission hasn't been asked yet.
+    /// Tappable while not sending; when access was refused a tap opens Settings, where it can be given.
     private var micButtonEnabled: Bool {
-        !coach.sending && (voiceInput.canUseVoice || voiceInput.authorization == .notDetermined)
+        !coach.sending && (voiceInput.canUseVoice || voiceInput.authorization == .notDetermined
+            || voiceInput.authorization == .denied)
     }
 
     private func toggleVoice() {
         if voiceInput.isRecording {
-            voiceInput.stopTranscribing { finalText in
-                let trimmed = finalText.trimmingCharacters(in: .whitespacesAndNewlines)
-                if !trimmed.isEmpty {
-                    // Append (not replace) so the user can speak into existing text.
-                    draft = draft.isEmpty ? trimmed : "\(draft) \(trimmed)"
-                }
-            }
+            // The transcript is already in the draft; the final text only settles it.
+            voiceInput.stopTranscribing { finalText in dictate(finalText) }
+        } else if voiceInput.authorization == .denied {
+            if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
         } else if voiceInput.authorization == .notDetermined {
+            // Asked on the first tap, not on opening the chat (CR-12).
             voiceInput.requestAuthorization { state in
-                if state == .authorized {
-                    voiceInput.startTranscribing { partial in draft = partial }
-                }
+                if state == .authorized { startDictation() }
             }
         } else {
-            voiceInput.startTranscribing { partial in draft = partial }
+            startDictation()
         }
+    }
+
+    private func startDictation() {
+        dictationBase = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        voiceInput.startTranscribing { partial in dictate(partial) }
+    }
+
+    private func dictate(_ transcript: String) {
+        let spoken = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !spoken.isEmpty else { return }
+        draft = [dictationBase, spoken].filter { !$0.isEmpty }.joined(separator: " ")
     }
     #endif
 
