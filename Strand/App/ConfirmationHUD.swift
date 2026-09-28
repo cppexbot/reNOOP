@@ -4,8 +4,11 @@
 
 import SwiftUI
 import StrandDesign
+import Accessibility
 #if os(iOS)
 import UIKit
+#elseif os(macOS)
+import AppKit
 #endif
 
 /// Posts a confirmation ("Copied", "Backed up", "Logged bedtime at 23:42.") to the capsule the app root hangs
@@ -32,11 +35,27 @@ final class Confirmation: ObservableObject {
         // A capsule is a label, not a sentence: shared copy that ends in a full stop loses it here.
         let label = title.hasSuffix(".") && !title.hasSuffix("..") ? String(title.dropLast()) : title
         current = Item(title: label, systemImage: systemImage)
+        announce(label)
         hide = Task { [weak self] in
             try? await Task.sleep(nanoseconds: 1_600_000_000)
             guard !Task.isCancelled else { return }
             self?.current = nil
         }
+    }
+
+    /// The capsule takes no focus and is gone in moments, so VoiceOver speaks it instead.
+    private func announce(_ label: String) {
+        #if os(iOS)
+        AccessibilityNotification.Announcement(label).post()
+        #elseif os(macOS)
+        if #available(macOS 14.0, *) {
+            AccessibilityNotification.Announcement(label).post()
+        } else if let window = NSApp.keyWindow ?? NSApp.mainWindow {
+            NSAccessibility.post(element: window, notification: .announcementRequested,
+                                 userInfo: [.announcement: label,
+                                            .priority: NSAccessibilityPriorityLevel.high.rawValue])
+        }
+        #endif
     }
 
     #if os(iOS)
@@ -74,6 +93,7 @@ final class Confirmation: ObservableObject {
 /// The capsule itself. A leaf: it alone observes `Confirmation`.
 private struct ConfirmationCapsule: View {
     @ObservedObject private var confirmation = Confirmation.shared
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         Group {
@@ -86,7 +106,7 @@ private struct ConfirmationCapsule: View {
                     .padding(.vertical, 12)
                     .modifier(CapsuleSurface())
                     .padding(.top, 8)
-                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .transition(reduceMotion ? AnyTransition.opacity : AnyTransition.move(edge: .top).combined(with: .opacity))
                     .id(item.id)
                     .accessibilityAddTraits(.updatesFrequently)
             }

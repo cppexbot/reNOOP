@@ -49,6 +49,10 @@ struct InfoButton<Content: View>: View {
                 .foregroundStyle(StrandPalette.textPrimary)
                 .frame(width: discSize, height: discSize)
                 .background(StrandPalette.summaryCanvas, in: Circle())
+                // A 44 pt target round the disc, laid out at the disc's size.
+                .frame(width: max(44, discSize), height: max(44, discSize))
+                .contentShape(Circle())
+                .padding(-(max(44, discSize) - discSize) / 2)
         }
     }
 }

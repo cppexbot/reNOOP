@@ -31,7 +31,6 @@ struct SleepHealthView: View {
     @State private var wakeEdit: WakeEdit?
     @State private var addNap: AddNapSeed?
     @State private var sleepUndo: SleepUndo?
-    @State private var sleepUndoTask: Task<Void, Never>?
 
     // Loaded inputs, as the full Sleep screen loads them.
     @State private var allSessions: [CachedSleepSession] = []
@@ -96,6 +95,8 @@ struct SleepHealthView: View {
         .refreshable { await repo.refresh() }
         .task(id: repo.refreshSeq) { await load() }
         .onAppear { scheduleRevision += 1 }
+        // The undo stays until ✕ or Undo, never on a timer; leaving the screen puts it away.
+        .onDisappear { sleepUndo = nil }
         .onChangeCompat(of: nightOffset) { offset in
             night = offset == 0 ? model?.night
                 : SleepModel.decodedNight(at: offset, navDays: navDays,
@@ -366,7 +367,7 @@ struct SleepHealthView: View {
             await intelligence.analyzeRecent()
             await repo.refresh()
         }, onDelete: {
-            // Durably tombstoned so a re-detect does not bring it back (#68); undoable for a few seconds (#65).
+            // Durably tombstoned so a re-detect does not bring it back (#68); undoable until put away (#65).
             let snapshot = await repo.deleteSleepSession(detectedStartTs: edit.detectedStartTs, endTs: edit.wakeTs)
             await intelligence.analyzeRecent()
             await repo.refresh()
@@ -394,29 +395,17 @@ struct SleepHealthView: View {
     }
 
     private func presentUndo(_ snapshot: SleepDeletionSnapshot, displayStart: Int, windowEnd: Int) {
-        sleepUndoTask?.cancel()
         // A hand-edited / added night writes no tombstone, so only a detected one promises no re-detection.
         let message = snapshot.session.userEdited
             ? String(localized: "Sleep deleted.")
             : String(localized: "Sleep deleted. NOOP won't detect sleep between \(Self.clock(displayStart)) and \(Self.clock(windowEnd)) again.")
         withAnimation(.easeOut(duration: 0.2)) { sleepUndo = SleepUndo(snapshot: snapshot, message: message) }
-        let armed = snapshot.session.startTs
-        sleepUndoTask = Task {
-            try? await Task.sleep(nanoseconds: 7_000_000_000)
-            guard !Task.isCancelled else { return }
-            await MainActor.run {
-                if sleepUndo?.snapshot.session.startTs == armed {
-                    withAnimation(.easeOut(duration: 0.2)) { sleepUndo = nil }
-                }
-            }
-        }
     }
 
     private func undoBanner(_ undo: SleepUndo) -> some View {
         NoticeCard(title: Text(verbatim: undo.message), systemImage: "trash.fill", tone: .info,
                    actionTitle: "Undo", action: {
                        Task {
-                           sleepUndoTask?.cancel()
                            await repo.undoDeleteSleepSession(undo.snapshot)
                            await intelligence.analyzeRecent()
                            await repo.refresh()
@@ -424,7 +413,6 @@ struct SleepHealthView: View {
                        }
                    },
                    onDismiss: {
-                       sleepUndoTask?.cancel()
                        withAnimation(.easeOut(duration: 0.2)) { sleepUndo = nil }
                    })
             .transition(.opacity)

@@ -44,10 +44,14 @@ struct SummarySectionHeader: View {
                 .foregroundStyle(StrandPalette.textPrimary)
             if !dts.isAccessibilitySize { Spacer() }
             if let actionTitle, let action {
-                Button(actionTitle, action: action)
-                    .font(StrandFont.body)
-                    .foregroundStyle(StrandPalette.accent)
-                    .buttonStyle(.plain)
+                Button(action: action) {
+                    Text(actionTitle)
+                        .font(StrandFont.body)
+                        .foregroundStyle(StrandPalette.accent)
+                        // A 44 pt target around the text without moving the header (CR-6).
+                        .contentShape(Rectangle().inset(by: -12))
+                }
+                .buttonStyle(.plain)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -580,7 +584,7 @@ struct DayPager<Picker: View>: View {
                 .font(StrandFont.pro(15, weight: .semibold))
                 .foregroundStyle(enabled ? StrandPalette.accent : StrandPalette.textTertiary)
                 .frame(minWidth: 44, minHeight: 36)
-                .contentShape(Rectangle())
+                .contentShape(Rectangle().inset(by: -4))
         }
         .buttonStyle(.plain)
         .disabled(!enabled)

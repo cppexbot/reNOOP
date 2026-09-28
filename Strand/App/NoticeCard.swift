@@ -1,6 +1,6 @@
 //  NoticeCard.swift
 //  NOOP · the one in-app notice, as Health and Fitness show theirs on iOS 26: a card with a glyph coloured
-//  by what it means, a one-line title, at most one short sentence, at most one action, and ✕ (or a swipe)
+//  by what it means, a short title, at most one short sentence, at most one action, and ✕ (or a swipe)
 //  when it can be put away. Every banner, status plaque and warning in the app draws through this.
 
 import SwiftUI
@@ -32,11 +32,11 @@ struct NoticeCard: View {
     var onDismiss: (() -> Void)?
 
     @State private var dragX: CGFloat = 0
-    @Environment(\.dynamicTypeSize) private var dts
     @ScaledMetric(relativeTo: .body) private var glyphSize: CGFloat = 18
     @ScaledMetric(relativeTo: .body) private var glyphWidth: CGFloat = 24
     @ScaledMetric(relativeTo: .body) private var glyphHeight: CGFloat = 22
     @ScaledMetric(relativeTo: .caption) private var closeSize: CGFloat = 24
+    private var closeHit: CGFloat { max(44, closeSize) }
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -46,8 +46,7 @@ struct NoticeCard: View {
                 title
                     .font(StrandFont.pro(15, weight: .semibold))
                     .foregroundStyle(StrandPalette.textPrimary)
-                    .lineLimit(dts.isAccessibilitySize ? nil : 1)
-                    .minimumScaleFactor(dts.isAccessibilitySize ? 1 : 0.85)
+                    .fixedSize(horizontal: false, vertical: true)
                 if let message {
                     message
                         .font(StrandFont.pro(15))
@@ -55,11 +54,15 @@ struct NoticeCard: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 if let actionTitle, let action {
-                    Button(actionTitle, action: action)
-                        .font(StrandFont.pro(15, weight: .semibold))
-                        .foregroundStyle(StrandPalette.settingsBlue)
-                        .buttonStyle(.plain)
-                        .padding(.top, 4)
+                    Button(action: action) {
+                        Text(actionTitle)
+                            .font(StrandFont.pro(15, weight: .semibold))
+                            .foregroundStyle(StrandPalette.settingsBlue)
+                            // A 44 pt target around the text; the card keeps its height.
+                            .contentShape(Rectangle().inset(by: -12))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, 4)
                 }
             }
             Spacer(minLength: 0)
@@ -70,6 +73,10 @@ struct NoticeCard: View {
                         .foregroundStyle(StrandPalette.textSecondary)
                         .frame(width: closeSize, height: closeSize)
                         .background(StrandPalette.textTertiary.opacity(0.18), in: Circle())
+                        // A 44 pt target round the 24 pt disc, without growing the card.
+                        .frame(width: closeHit, height: closeHit)
+                        .contentShape(Circle())
+                        .padding(-(closeHit - closeSize) / 2)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(Text("Close"))
