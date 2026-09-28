@@ -303,6 +303,8 @@ targets:
         # a typed question already uses.
         NSSpeechRecognitionUsageDescription: "NOOP transcribes your question on this iPhone so you can ask the coach out loud."
         NSMicrophoneUsageDescription: "NOOP uses the microphone so you can ask the coach a question by voice."
+        # AL-1: the smart alarm's phone backup is a system alarm (AlarmKit), which needs its own permission.
+        NSAlarmKitUsageDescription: "NOOP sets a system alarm as the phone’s backup to your strap’s silent wake."
         # #187: the opt-in AI Coach's "Custom (OpenAI-compatible)" provider can point at a LOCAL LLM on
         # the LAN (Ollama / LM Studio at http://192.168.x.x:11434). ATS blocks cleartext by default;
         # NSAllowsLocalNetworking exempts loopback/.local/private-LAN hosts ONLY — public HTTPS endpoints
@@ -330,6 +332,8 @@ targets:
         # Required by HealthKit on iOS 15+ for the observer queries registered by HealthKitBridge.
         com.apple.developer.healthkit.background-delivery: true
         com.apple.developer.healthkit.access: []
+        # AL-1: the backup wake notification (where AlarmKit is refused) must break through the Sleep Focus.
+        com.apple.developer.usernotifications.time-sensitive: true
         com.apple.security.application-groups:
           - $(APP_GROUP_ID)
     settings:

@@ -140,7 +140,7 @@ enum BatteryNotifier {
             post(identifier: "battery-critical",
                  title: String(localized: "Charge your strap now"),
                  body: String(localized: "\(pct)% left. It stops recording near 10%."),
-                 interruptionLevel: .timeSensitive)
+                 interruptionLevel: .active)
         }
     }
 
@@ -171,7 +171,7 @@ enum BatteryNotifier {
             post(identifier: "battery-bedtime",
                  title: String(localized: "Won't last the night"),
                  body: String(localized: "\(BatteryEstimator.label(hours: runway.usableHours)) left. Charge before bed."),
-                 interruptionLevel: .timeSensitive)
+                 interruptionLevel: .active)
         }
     }
 
@@ -186,9 +186,7 @@ enum BatteryNotifier {
             content.title = title
             content.body = body
             content.sound = .default
-            // The two escalation alerts ask for .timeSensitive so they can break through a sleep Focus —
-            // the whole point is reaching the user in the hour before bed. Without the time-sensitive
-            // entitlement the OS silently treats this as .active, so it is safe to request either way.
+            // A charge reminder is not time-critical: only the wake-up backup breaks through a Focus (AL-1).
             content.interruptionLevel = interruptionLevel
             center.add(UNNotificationRequest(identifier: identifier,
                                              content: content, trigger: nil))

@@ -1509,6 +1509,10 @@ final class AppModel: ObservableObject {
     /// Post the local notification mirroring the smart-alarm wake buzz. Called from the
     /// `onSmartAlarmFired` hook. No-op on macOS and when wrist alerts are off.
     static func postSmartAlarm() {
+        #if os(iOS) && canImport(AlarmKit)
+        // The system alarm is the wake-up; a second "Smart alarm" banner on top of it says nothing new (AL-1).
+        if #available(iOS 26.0, *), SystemWakeAlarm.isScheduled { return }
+        #endif
         #if os(iOS)
         postWristAlert(identifier: "smart-alarm-wake", title: String(localized: "Smart alarm"),
                        body: String(localized: "Good morning."))
@@ -1570,7 +1574,30 @@ final class AppModel: ObservableObject {
     /// Android's `SmartAlarmScheduler.arm` which reads `SmartAlarmStore.targetOverrides` per weekday.
     static func scheduleSmartAlarmBackupNotification(minutes: Int, weekdays: Set<Int>,
                                                      overrides: [Int: Int] = [:],
+                                                     mayAsk: Bool = false,
                                                      log: ((String) -> Void)? = nil) {
+        #if os(iOS) && canImport(AlarmKit)
+        // AL-1: on iOS 26 the backup is a system alarm, which rings through Silent and the Sleep Focus.
+        // The notification below stays as the fallback where AlarmKit is refused.
+        if #available(iOS 26.0, *) {
+            Task { @MainActor in
+                let validOverrides = overrides.filter { (1...7).contains($0.key) && (0..<24 * 60).contains($0.value) }
+                if await SystemWakeAlarm.schedule(minutes: minutes, weekdays: weekdays, overrides: validOverrides,
+                                                  mayAsk: mayAsk) {
+                    UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: smartAlarmBackupIds)
+                } else {
+                    log?("Smart alarm: system alarm not authorized, using the backup notification")
+                    scheduleNotificationBackup(minutes: minutes, weekdays: weekdays, overrides: overrides, mayAsk: mayAsk, log: log)
+                }
+            }
+            return
+        }
+        #endif
+        scheduleNotificationBackup(minutes: minutes, weekdays: weekdays, overrides: overrides, mayAsk: mayAsk, log: log)
+    }
+
+    private static func scheduleNotificationBackup(minutes: Int, weekdays: Set<Int>, overrides: [Int: Int],
+                                                   mayAsk: Bool, log: ((String) -> Void)?) {
         #if os(iOS)
         let center = UNUserNotificationCenter.current()
         // Always clear BOTH the single and the per-day ids so switching modes (or editing the weekday set)
@@ -1595,6 +1622,8 @@ final class AppModel: ObservableObject {
             content.title = String(localized: "Smart alarm")
             content.body = String(localized: "Time to wake up.")
             content.sound = .default
+            // A wake-up is exactly what Time Sensitive is for: it breaks through the Sleep Focus (AL-1).
+            content.interruptionLevel = .timeSensitive
             if weekdays.isEmpty {
                 // Every day. When overrides exist, fan out to per-weekday triggers (each at its own time)
                 // so an override on a day the weekday set doesn't restrict still fires at the right time.
@@ -1637,7 +1666,7 @@ final class AppModel: ObservableObject {
             switch settings.authorizationStatus {
             case .authorized:
                 addRequests()
-            case .notDetermined:
+            case .notDetermined where mayAsk:
                 // The user just enabled the alarm but was never asked for notification permission (nothing
                 // else prompted — wrist alerts, which used to, may be off). Ask now, then schedule on grant
                 // so the FIRST night is covered rather than only after some later re-arm.
@@ -1658,6 +1687,9 @@ final class AppModel: ObservableObject {
         UNUserNotificationCenter.current()
             .removePendingNotificationRequests(withIdentifiers: smartAlarmBackupIds)
         #endif
+        #if os(iOS) && canImport(AlarmKit)
+        if #available(iOS 26.0, *) { SystemWakeAlarm.cancelAll() }
+        #endif
     }
 
     /// Arm (or clear) the strap's firmware alarm from the smart-alarm settings. The firmware alarm
@@ -1675,7 +1707,9 @@ final class AppModel: ObservableObject {
     /// alarm backup took a single time plus a day set, so the control on the alarm screen silently moved
     /// only the evening reminder. Mirrors Android's `reconcileStrapAlarm` which passes `dayOverrides`
     /// to `nextSmartAlarmEpochSec`, and `SmartAlarmScheduler.arm` which reads `targetOverrides`.
-    func applySmartAlarm() {
+    /// `userInitiated`: the person just changed the alarm, so the system alarm permission may be asked for;
+    /// the launch and reconnect re-arms never ask (AL-1).
+    func applySmartAlarm(userInitiated: Bool = false) {
         let overrides = WindDownNudge.perDayWakeOverrides
         guard behavior.smartAlarmEnabled else {
             ble.disableStrapAlarm()
@@ -1698,6 +1732,7 @@ final class AppModel: ObservableObject {
         Self.scheduleSmartAlarmBackupNotification(minutes: behavior.smartAlarmMinutes,
                                                   weekdays: behavior.smartAlarmWeekdays,
                                                   overrides: overrides,
+                                                  mayAsk: userInitiated,
                                                   log: { [weak self] line in
                                                       Task { @MainActor in self?.live.append(log: line) }
                                                   })
@@ -2018,7 +2053,7 @@ final class AppModel: ObservableObject {
         var labels: [String: String] = [:]
         if let r = rm({ $0.restingHr.map(Double.init) }), let b = mean(base.compactMap { $0.restingHr.map(Double.init) }), r > b {
             let delta = Int((r - b).rounded())
-            labels["restingHR"] = String(localized: "RHR +\(delta)")
+            labels["restingHR"] = String(localized: "Resting HR +\(delta)")
         }
         if let r = rm({ $0.avgHrv }), let b = mean(base.compactMap { $0.avgHrv }), b > 0, r < b {
             let percent = Int(((1 - r / b) * 100).rounded())
@@ -2042,7 +2077,7 @@ final class AppModel: ObservableObject {
             labels["skinTemp"] = String(localized: "Skin temperature \(temperature)")
         }
         if let r = rm({ $0.respRateBpm }), let b = mean(base.compactMap { $0.respRateBpm }), r > b {
-            labels["respiration"] = String(localized: "Respiration up")
+            labels["respiration"] = String(localized: "respiration up")
         }
 
         let result = IllnessSignalEngine.evaluate(inputs, context: context, firedLabels: labels)

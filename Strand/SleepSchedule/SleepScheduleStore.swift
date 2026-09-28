@@ -27,7 +27,7 @@ enum SleepScheduleStore {
             WindDownNudge.setWakeOverride(weekday: d, minutes: stored.overrides[d])
         }
         if WindDownNudge.sleepNeedMinutes != stored.sleepGoal { WindDownNudge.setSleepNeedMinutes(stored.sleepGoal) }
-        model.applySmartAlarm()
+        model.applySmartAlarm(userInitiated: true)
     }
 
     /// Gives the alarm and the reminder one base wake time when they were stored apart (see

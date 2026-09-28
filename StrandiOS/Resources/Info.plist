@@ -54,6 +54,8 @@
 	<string>public.app-category.healthcare-fitness</string>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
+	<key>NSAlarmKitUsageDescription</key>
+	<string>NOOP sets a system alarm as the phone’s backup to your strap’s silent wake.</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>

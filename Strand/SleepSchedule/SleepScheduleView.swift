@@ -72,7 +72,7 @@ struct SleepScheduleView: View {
                 revision += 1
             }
         }
-        .onChangeCompat(of: behavior.smartAlarmEnabled) { _ in model.applySmartAlarm() }
+        .onChangeCompat(of: behavior.smartAlarmEnabled) { _ in model.applySmartAlarm(userInitiated: true) }
         .alert(String(localized: "Notifications are off"), isPresented: $showNotifDeniedAlert) {
             Button(String(localized: "Open Settings")) { Self.openNotificationSettings() }
             Button(String(localized: "Not now"), role: .cancel) {}
