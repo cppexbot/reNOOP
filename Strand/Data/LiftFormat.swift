@@ -49,17 +49,11 @@ enum LiftFormat {
     /// because the entry field reads its text back through this function, that rounded value then
     /// replaced what they typed. One decimal was silently lossy, not merely terse.
     ///
-    /// Always renders "." regardless of locale — `String(format:)` takes no locale here — which
-    /// matches what the rest of the Lift Log displays.
-    static func trim(_ value: Double) -> String {
+    /// Renders the reader's decimal separator ("7,5" in Russian), never grouping, so a field that reads
+    /// its own text back through `number(_:)` round-trips it (CR-11).
+    static func trim(_ value: Double, locale: Locale = AppLanguage.activeLocale) -> String {
         let rounded = (value * 100).rounded() / 100
-        if rounded == rounded.rounded() && abs(rounded) < 1e9 {
-            return String(Int(rounded.rounded()))
-        }
-        var text = String(format: "%.2f", rounded)
-        while text.hasSuffix("0") { text.removeLast() }
-        if text.hasSuffix(".") { text.removeLast() }
-        return text
+        return rounded.formatted(.number.grouping(.never).precision(.fractionLength(0...2)).locale(locale))
     }
 
     /// Parse a typed number, accepting both "7.5" and the comma decimal separator "7,5" that most of
@@ -75,8 +69,10 @@ enum LiftFormat {
     /// A rest period as "2:00" / "45s" — minutes and seconds, which is how rest is spoken about: a program
     /// line's rest, a finished set's measured rest. A clock that is RUNNING (the bar, the session sheet)
     /// is written `ActiveWorkoutClock.clock` instead, as the Lock Screen writes it.
-    static func duration(_ seconds: Int) -> String {
-        guard seconds >= 60 else { return "\(seconds)s" }
+    static func duration(_ seconds: Int, locale: Locale = AppLanguage.activeLocale) -> String {
+        guard seconds >= 60 else {
+            return Duration.seconds(seconds).formatted(.units(allowed: [.seconds], width: .narrow).locale(locale))
+        }
         return String(format: "%d:%02d", seconds / 60, seconds % 60)
     }
 }

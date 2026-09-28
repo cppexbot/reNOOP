@@ -43,11 +43,18 @@ final class LiftFormatNumberTests: XCTestCase {
         XCTAssertEqual(LiftFormat.trim(1.0 / 3.0), "0.33")
     }
 
-    /// Always a point, never the device's separator: this is what the whole screen displays, and the
-    /// entry fields normalise a typed comma to match it.
-    func testTheSeparatorIsAlwaysAPoint() {
-        XCTAssertFalse(LiftFormat.trim(7.5).contains(","))
-        XCTAssertTrue(LiftFormat.trim(7.5).contains("."))
+    /// The reader's own separator, and never a group separator: "1200" must not come back as "1 200".
+    func testTheSeparatorFollowsTheLocale() {
+        XCTAssertEqual(LiftFormat.trim(7.5, locale: Locale(identifier: "en_US")), "7.5")
+        XCTAssertEqual(LiftFormat.trim(7.5, locale: Locale(identifier: "ru_RU")), "7,5")
+        XCTAssertEqual(LiftFormat.trim(1200.25, locale: Locale(identifier: "ru_RU")), "1200,25")
+        XCTAssertEqual(LiftFormat.number(LiftFormat.trim(61.25, locale: Locale(identifier: "ru_RU"))), 61.25)
+    }
+
+    func testShortRestIsWrittenInTheLocale() {
+        XCTAssertEqual(LiftFormat.duration(45, locale: Locale(identifier: "en_US")), "45s")
+        XCTAssertEqual(LiftFormat.duration(120, locale: Locale(identifier: "ru_RU")), "2:00")
+        XCTAssertNotEqual(LiftFormat.duration(45, locale: Locale(identifier: "ru_RU")), "45s")
     }
 
     // MARK: - number

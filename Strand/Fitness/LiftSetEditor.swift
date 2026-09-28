@@ -24,6 +24,12 @@ struct LiftSetEditor: View {
     @State private var reps: Int
     @State private var rpe: Double?
     @State private var warmup: Bool
+    /// What the set held on open. A wheel left where it opened writes these back untouched, so an edit of
+    /// only RPE or warm-up never re-rounds a stored 61.25 kg or 132.28 lb (CR-11).
+    private let originalKg: Double?
+    private let originalWeight: Double
+    private let originalReps: Int?
+    private let originalRPE: Double?
 
     init(title: String, exercise: String, system: UnitSystem, weightKg: Double?, reps: Int?, rpe: Double?,
          warmup: Bool, lastTime: String?, canStart: Bool, isDone: Bool,
@@ -36,11 +42,14 @@ struct LiftSetEditor: View {
         self.isDone = isDone
         self.onSave = onSave
         self.onStart = onStart
-        let step = Self.step(system)
         let shown = weightKg.map { LiftFormat.display(fromKilograms: $0, system: system) } ?? 0
-        _weight = State(initialValue: min(Self.maxWeight(system), (shown / step).rounded() * step))
-        _reps = State(initialValue: min(Self.maxReps, reps ?? 0))
-        _rpe = State(initialValue: rpe.map { ($0 * 2).rounded() / 2 })
+        originalKg = weightKg
+        originalWeight = shown
+        originalReps = reps
+        _weight = State(initialValue: shown)
+        _reps = State(initialValue: reps ?? 0)
+        originalRPE = rpe
+        _rpe = State(initialValue: rpe)
         _warmup = State(initialValue: warmup)
     }
 
@@ -48,8 +57,22 @@ struct LiftSetEditor: View {
     private static func maxWeight(_ system: UnitSystem) -> Double { system == .imperial ? 660 : 300 }
     private static let maxReps = 100
 
+    /// The wheel's steps, plus the stored value itself when it falls between them or past the end.
     private var weightValues: [Double] {
-        Array(stride(from: 0, through: Self.maxWeight(system), by: Self.step(system)))
+        let steps = Array(stride(from: 0, through: Self.maxWeight(system), by: Self.step(system)))
+        return steps.contains(originalWeight) ? steps : (steps + [originalWeight]).sorted()
+    }
+
+    private var rpeValues: [Double] {
+        let steps = Array(stride(from: 5.0, through: 10.0, by: 0.5))
+        guard let originalRPE, !steps.contains(originalRPE) else { return steps }
+        return (steps + [originalRPE]).sorted()
+    }
+
+    private var repValues: [Int] {
+        let steps = Array(0...Self.maxReps)
+        guard let originalReps, originalReps > Self.maxReps else { return steps }
+        return steps + [originalReps]
     }
 
     private var unitSymbol: String {
@@ -69,7 +92,7 @@ struct LiftSetEditor: View {
                         .wheel()
                         Text(unitSymbol).foregroundStyle(StrandPalette.textSecondary)
                         Picker("Reps", selection: $reps) {
-                            ForEach(0...Self.maxReps, id: \.self) { Text("\($0)").tag($0) }
+                            ForEach(repValues, id: \.self) { Text("\($0)").tag($0) }
                         }
                         .wheel()
                         Text("reps").foregroundStyle(StrandPalette.textSecondary)
@@ -84,7 +107,7 @@ struct LiftSetEditor: View {
                 Section {
                     Picker("RPE", selection: $rpe) {
                         Text(verbatim: "—").tag(Double?.none)
-                        ForEach(Array(stride(from: 5.0, through: 10.0, by: 0.5)), id: \.self) {
+                        ForEach(rpeValues, id: \.self) {
                             Text(LiftFormat.trim($0)).tag(Double?.some($0))
                         }
                     }
@@ -126,8 +149,10 @@ struct LiftSetEditor: View {
     }
 
     private func save() {
-        let kg = weight > 0 ? LiftFormat.kilograms(fromDisplay: weight, system: system) : nil
-        onSave(kg, reps > 0 ? reps : nil, rpe, warmup)
+        let kg = weight == originalWeight ? originalKg
+            : weight > 0 ? LiftFormat.kilograms(fromDisplay: weight, system: system) : nil
+        let setReps = reps == (originalReps ?? 0) ? originalReps : reps > 0 ? reps : nil
+        onSave(kg, setReps, rpe, warmup)
     }
 }
 

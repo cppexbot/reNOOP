@@ -26,6 +26,8 @@ struct LiftProgramImportSheet: View {
     @State private var failure: String?
     @State private var importing = false
     @Environment(\.dynamicTypeSize) private var dts
+    @AppStorage(UnitPrefs.systemKey) private var unitSystemRaw = UnitSystem.metric.rawValue
+    private var unitSystem: UnitSystem { UnitSystem(rawValue: unitSystemRaw) ?? .metric }
 
     var body: some View {
         NavigationStack {
@@ -156,9 +158,9 @@ struct LiftProgramImportSheet: View {
         var parts: [String] = []
         if let sets = line.targetSets, let reps = line.targetReps { parts.append("\(sets) x \(reps)") }
         else if let sets = line.targetSets { parts.append("\(sets) x") }
-        if let kg = line.targetWeightKg { parts.append(LiftFormat.trim(kg) + " kg") }
+        if let kg = line.targetWeightKg { parts.append(LiftFormat.weight(kg, system: unitSystem)) }
         if let rpe = line.targetMaxRpe { parts.append("RPE ≤" + LiftFormat.trim(rpe)) }
-        if let rest = line.restSec { parts.append("\(rest)s") }
+        if let rest = line.restSec { parts.append(LiftFormat.duration(rest)) }
         return parts.joined(separator: " · ")
     }
 

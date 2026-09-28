@@ -91,10 +91,10 @@ struct LiftProgramItemSheet: View {
                 // and, like every other grey number, a set left unrated saves it (Utku, 16 Sep 2026;
                 // RULES 34) — typing a rating always wins.
                 Section {
-                    numberRow("Working sets", text: $setsText, field: .sets)
-                    numberRow("Reps", text: $repsText, field: .reps)
+                    numberRow("Working sets", text: $setsText, integer: true, field: .sets)
+                    numberRow("Reps", text: $repsText, integer: true, field: .reps)
                     numberRow("Weight", text: $weightText, unit: LiftFormat.weightUnit(unitSystem), field: .weight)
-                    numberRow("Rest (seconds)", text: $restText, field: .rest)
+                    numberRow("Rest (seconds)", text: $restText, integer: true, field: .rest)
                     numberRow("Max RPE (1–10)", text: $maxRpeText, field: .maxRpe)
                 } header: {
                     Text("Targets")
@@ -181,12 +181,12 @@ struct LiftProgramItemSheet: View {
 
     /// One target typed in by hand: the label, a trailing number field and, for weight, its unit.
     private func numberRow(_ label: LocalizedStringKey, text: Binding<String>, unit: String? = nil,
-                           field: Field) -> some View {
+                           integer: Bool = false, field: Field) -> some View {
         LabeledContent(label) {
             HStack(spacing: 4) {
                 TextField("", text: text, prompt: Text("Optional"))
                     .multilineTextAlignment(.trailing)
-                    .numericKeyboard()
+                    .numericKeyboard(integer: integer)
                     .focused($focused, equals: field)
                 if let unit {
                     Text(unit).foregroundStyle(StrandPalette.textSecondary)

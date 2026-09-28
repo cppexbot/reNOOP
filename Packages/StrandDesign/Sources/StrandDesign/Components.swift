@@ -101,9 +101,11 @@ public extension View {
     /// (hardware keyboard), so the SAME shared view compiles on both. Pair with
     /// `.keyboardDoneToolbar(...)` on the enclosing view to add a Done button (the decimal
     /// pad has no return key).
-    func numericKeyboard() -> some View {
+    /// `integer` gives whole-number fields (reps, sets, seconds) the number pad, which has no separator
+    /// to type a fraction that would parse to nothing (CR-11).
+    func numericKeyboard(integer: Bool = false) -> some View {
         #if os(iOS)
-        self.keyboardType(.decimalPad).textContentType(nil)
+        self.keyboardType(integer ? .numberPad : .decimalPad).textContentType(nil)
         #else
         self
         #endif
