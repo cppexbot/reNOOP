@@ -509,7 +509,9 @@ struct SleepHealthView: View {
     }
 
     private func logMark(_ type: SleepMarkType) {
-        SleepMark.log(SleepMark(type: type), repo: repo, live: live)
+        let mark = SleepMark(type: type)
+        SleepMark.log(mark, repo: repo, live: live)
+        Confirmation.shared.show(mark.confirmation, systemImage: type == .bedtime ? "moon.zzz.fill" : "sun.max.fill")
     }
 
     // MARK: - Loading

@@ -428,12 +428,7 @@ struct CoachView: View {
         // K8: Copy / Share / Save (a reply).
         .contextMenu {
             Button {
-                #if os(macOS)
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(message.text, forType: .string)
-                #else
-                UIPasteboard.general.string = message.text
-                #endif
+                PlatformPasteboard.copy(message.text)
             } label: {
                 Label("Copy", systemImage: "doc.on.doc")
             }

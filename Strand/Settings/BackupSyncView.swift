@@ -148,10 +148,8 @@ struct BackupSyncView: View {
             switch result {
             case .cancelled:
                 return
-            case .exported(let url):
-                alertTitle = String(localized: "CSV exported")
-                alertMessage = String(localized: "Saved to \(url.lastPathComponent). The zip re-imports into NOOP (Data Sources → WHOOP Export) on any Mac, iPhone, or Android device.")
-                showAlert = true
+            case .exported:
+                Confirmation.shared.show(String(localized: "CSV exported"))
             case .failure(let message):
                 alertTitle = String(localized: "Export problem")
                 alertMessage = message
@@ -166,10 +164,8 @@ struct BackupSyncView: View {
         switch result {
         case .cancelled:
             return
-        case .exported(let url):
-            alertTitle = String(localized: "Backup exported")
-            alertMessage = String(localized: "Saved to \(url.lastPathComponent). Copy this file to your other \(Platform.deviceNoun) and use Import there to restore everything.")
-            showAlert = true
+        case .exported:
+            Confirmation.shared.show(String(localized: "Backup exported"))
         case .exportedOversize(let url, let bytes, let limit):
             // #1807: the file is written and worth keeping — say so, then what restoring it will ask.
             let size = ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
@@ -247,11 +243,13 @@ struct BackupSyncView: View {
             let ok = await FolderBackup.backupNow(checkpoint: { await model.repo.checkpointForBackup() })
             await MainActor.run {
                 lastMs = FolderBackup.lastBackupMs
-                alertTitle = ok ? String(localized: "Backed up") : String(localized: "Backup problem")
-                alertMessage = ok
-                    ? String(localized: "Saved a backup to your folder.")
-                    : String(localized: "Backup failed - re-pick the folder and try again.")
-                showAlert = true
+                if ok {
+                    Confirmation.shared.show(String(localized: "Backed up"))
+                } else {
+                    alertTitle = String(localized: "Backup problem")
+                    alertMessage = String(localized: "Backup failed - re-pick the folder and try again.")
+                    showAlert = true
+                }
             }
         }
     }

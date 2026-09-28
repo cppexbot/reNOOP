@@ -25,9 +25,12 @@ extension Image {
 
 // MARK: - Pasteboard
 
-/// Cross-platform clipboard write. `NSPasteboard` on macOS, `UIPasteboard` on iOS.
+/// Cross-platform clipboard write. `NSPasteboard` on macOS, `UIPasteboard` on iOS. Every copy confirms itself
+/// with the shared "Copied" capsule (`Confirmation`), so no screen draws its own.
 enum PlatformPasteboard {
+    @MainActor
     static func copy(_ string: String) {
+        defer { Confirmation.shared.show(String(localized: "Copied"), systemImage: "doc.on.doc") }
         #if canImport(AppKit)
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(string, forType: .string)
