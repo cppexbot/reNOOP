@@ -717,13 +717,9 @@ final class BreathHub: ObservableObject {
     private var audio = false
     private var hrStart: Int?
 
-    // RMSSD over the latest R-R window.
+    // RMSSD over the latest R-R window, for the live readout only.
     private let rrWindow = 30
     private var rrBuffer: [Int] = []
-    private var baselineRmssd: Double?
-    private var sessionRmssdSum = 0.0
-    private var sessionRmssdCount = 0
-    private var sessionRmssdPeak = 0.0
 
     private var subs: Set<AnyCancellable> = []
     /// Whether the controller has reported a running session since this hub started one — its `stop()`
@@ -802,10 +798,6 @@ final class BreathHub: ObservableObject {
         begin(.paced, title: pace.label)
         stageIndex = 0
         breathCount = 0
-        baselineRmssd = rmssd
-        sessionRmssdSum = 0
-        sessionRmssdCount = 0
-        sessionRmssdPeak = 0
         ScreenIdle.keepAwake(true)
         if guided {
             phase = .textOnly
@@ -892,11 +884,8 @@ final class BreathHub: ObservableObject {
         var lines: [Line] = []
         switch kind {
         case .paced:
-            let outcome = stopPaced()
-            if let outcome {
-                lines.append(Line(title: String(localized: "HRV"),
-                                  value: outcome == "—" ? String(localized: "Not enough R-R data") : outcome))
-            }
+            // As Mindfulness: the time and the heart rate, no HRV verdict from a raw, uncleaned window.
+            stopPaced()
         case .sweep:
             if let result = controller.lastSweep {
                 lines.append(Line(title: String(localized: "Your pace"),
@@ -920,8 +909,7 @@ final class BreathHub: ObservableObject {
     #if DEBUG
     func demoSummary() {
         title = String(localized: "Breathe")
-        summary = Summary(title: title, seconds: 300, hrStart: 74, hrEnd: 66,
-                          lines: [Line(title: String(localized: "HRV"), value: String(localized: "\("+14%") vs start · peak \("58") ms"))])
+        summary = Summary(title: title, seconds: 300, hrStart: 74, hrEnd: 66, lines: [])
         presented = true
     }
     #endif
@@ -1015,10 +1003,8 @@ final class BreathHub: ObservableObject {
         armStage(from: Date(), buzz: true)
     }
 
-    /// Stops the fixed-pace trainer and returns its HRV outcome ("+12% vs start · peak 64 ms", "—" when
-    /// R-R was too thin, nil under two minutes), which is also kept as the last outcome.
-    @discardableResult
-    private func stopPaced() -> String? {
+    /// Stops the fixed-pace trainer: its stage timer, clock, strap pattern and flower.
+    private func stopPaced() {
         stageItem?.cancel()
         stageItem = nil
         secondTimer?.cancel()
@@ -1028,13 +1014,6 @@ final class BreathHub: ObservableObject {
         // #769: halt a pattern the strap may be mid-way through, not only the pulses still queued.
         model.stopHaptics()
         if reduceMotion { progress = 0 } else { withAnimation(.easeInOut(duration: 0.8)) { progress = 0 } }
-        guard seconds >= 120 else { return nil }
-        guard let base = baselineRmssd, base > 0, sessionRmssdCount > 0 else { return "—" }
-        let mean = sessionRmssdSum / Double(sessionRmssdCount)
-        let pct = Int(((mean - base) / base * 100).rounded())
-        let core = String(localized: "\(String(format: "%+d%%", pct)) vs start · peak \(String(format: "%.0f", sessionRmssdPeak)) ms")
-        UserDefaults.standard.set(core, forKey: "breathe.lastOutcome")
-        return core
     }
 
     // MARK: HRV
@@ -1044,12 +1023,6 @@ final class BreathHub: ObservableObject {
         rrBuffer.append(contentsOf: rr)
         if rrBuffer.count > rrWindow { rrBuffer.removeFirst(rrBuffer.count - rrWindow) }
         rmssd = Self.rmssd(rrBuffer)
-        if kind == .paced, let r = rmssd {
-            if baselineRmssd == nil && seconds <= 60 { baselineRmssd = r }
-            sessionRmssdSum += r
-            sessionRmssdCount += 1
-            sessionRmssdPeak = max(sessionRmssdPeak, r)
-        }
     }
 
     static func rmssd(_ intervals: [Int]) -> Double? {

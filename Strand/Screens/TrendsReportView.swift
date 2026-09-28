@@ -152,13 +152,13 @@ enum TrendsReportData {
 
 // MARK: - Metric → category hue
 
-/// Each report metric in its Health category hue: Charge / Effort in the ring colours, sleep in the
-/// sleep blue, the heart metrics in Heart pink, breathing in Respiratory teal, skin temperature in
-/// Body Temperature orange, stress in Mindfulness cyan.
+/// Each report metric in its Health category hue: Charge / Effort in the ring colours, workouts in
+/// Activity orange, sleep in the sleep blue, the heart metrics in Heart pink, breathing in Respiratory
+/// teal, skin temperature in Body Temperature orange, stress in Mindfulness cyan.
 private extension ReportMetric {
     var accent: Color {
         switch self {
-        case .workouts:    return StrandPalette.summaryEffortRing
+        case .workouts:    return StrandPalette.activityTitle
         case .stress:      return StrandPalette.healthMind
         case .recovery:    return StrandPalette.summaryChargeRing
         case .strain:      return StrandPalette.summaryEffortRing

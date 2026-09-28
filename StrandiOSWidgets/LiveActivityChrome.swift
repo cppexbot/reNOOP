@@ -12,9 +12,9 @@ enum ActivityStyle {
     /// The card behind every banner: near-black, as Fitness and Clock draw theirs.
     static let background = Color.black.opacity(0.78)
     /// Hues on that card: the app's tokens, which resolve to their dark values under `activityCard()`.
+    /// Work and rest, everywhere a workout alternates them: work in the Exercise green, rest in the Stand cyan.
     static let exercise = StrandPalette.activityExerciseText
-    static let rest = StrandPalette.fitnessTime
-    static let stand = StrandPalette.activityStandText
+    static let rest = StrandPalette.activityStandText
     static let heart = StrandPalette.healthHeart
     static let ok = StrandPalette.settingsGreen
     static let problem = StrandPalette.settingsRed

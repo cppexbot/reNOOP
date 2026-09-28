@@ -246,14 +246,15 @@ struct SleepMoreDataView: View {
             emptyRow
         } else {
             let average = range != .day
-            SleepMoreRow(dot: StrandPalette.healthSleepRem,
+            // Amounts carry no dot: the stage hues belong to the stage rows above.
+            SleepMoreRow(dot: nil,
                          title: average ? String(localized: "Average Time in Bed") : String(localized: "Time in Bed"),
                          value: s.inBedMin.map { SleepFormat.duration(minutes: $0) } ?? "–")
-            SleepMoreRow(dot: StrandPalette.healthSleepCore,
+            SleepMoreRow(dot: nil,
                          title: average ? String(localized: "Average Time Asleep") : String(localized: "Time Asleep"),
                          value: s.asleepMin.map { SleepFormat.duration(minutes: $0) } ?? "–")
             if let need = sleepNeedMin {
-                SleepMoreRow(dot: StrandPalette.healthSleepDeep, title: String(localized: "Sleep Need"),
+                SleepMoreRow(dot: nil, title: String(localized: "Sleep Need"),
                              value: SleepFormat.duration(minutes: need))
             }
             if let eff = s.efficiency {
@@ -604,8 +605,10 @@ private struct SleepDebtNightsCard: View {
                             ZStack(alignment: .top) {
                                 Rectangle().fill(StrandPalette.hairline).frame(height: 1).offset(y: half)
                                 RoundedRectangle(cornerRadius: 2, style: .continuous)
+                                    // A shortfall in grey, not Awake's coral: the line it hangs below says
+                                    // it fell short, and the stage hue would claim time awake.
                                     .fill(night.deltaMin >= 0 ? StrandPalette.healthSleepCore
-                                                              : StrandPalette.healthSleepAwake)
+                                                              : StrandPalette.textSecondary)
                                     .frame(width: min(geo.size.width, 10), height: h)
                                     .offset(y: night.deltaMin >= 0 ? half - h : half)
                             }

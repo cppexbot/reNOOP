@@ -405,7 +405,7 @@ struct SummaryHighlightCard: View {
         case "hrv": return KeyMetric.hrv.healthTint
         case "rhr": return KeyMetric.restingHr.healthTint
         case "respRate": return KeyMetric.respiratory.healthTint
-        default: return StrandPalette.summaryEffortRing
+        default: return KeyMetric.effort.healthTint
         }
     }
 }

@@ -1,7 +1,7 @@
 //  SleepPageCards.swift
 //  NOOP · Sleep — the night card that heads the Sleep page: the Sleep score ring (iOS 26 Health's Sleep
-//  Score ring) beside its word, then time asleep, time in bed, the bed → wake span and a thumbnail of the
-//  night's stages.
+//  Score ring) beside its word and its parts' points under it, then time asleep, time in bed, the
+//  bed → wake span and a thumbnail of the night's stages.
 //
 //  Presentation only. The score and the night arrive from the caller, resolved as every other surface
 //  resolves them.
@@ -50,6 +50,9 @@ struct SleepNightCard: View {
                         }
                         if !stacked { Spacer(minLength: 0) }
                     }
+                    if !score.parts.isEmpty {
+                        SleepScoreBreakdown(score: score)
+                    }
                     Rectangle().fill(StrandPalette.hairline).frame(height: NoopMetrics.hairlineWidth)
                 }
                 VStack(alignment: .leading, spacing: 4) {
@@ -80,7 +83,8 @@ struct SleepNightCard: View {
 struct SleepHighlightCard: View {
     let highlight: SleepHighlight
 
-    private let averageTint = StrandPalette.sleepScoreRestorative
+    /// The average a night is read against, in grey as Health draws it; the reading itself in the Sleep hue.
+    private let averageTint = StrandPalette.textSecondary
     private let latestTint = StrandPalette.healthSleepDeep
 
     @Environment(\.dynamicTypeSize) private var dts

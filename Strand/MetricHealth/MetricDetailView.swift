@@ -159,10 +159,14 @@ struct MetricDetailView: View {
     /// "AVERAGE" · figure · dates — or, while a mark is held, that mark's figure and date.
     private func header(_ window: MetricHealthWindow) -> some View {
         let picked = selection
-        // A picked day of a level has no aggregate to name; a blank keeps the header from jumping.
-        let caption = picked != nil && range.bucket == .day
-            ? (isTotal ? String(localized: "TOTAL") : " ")
+        // A picked Charge mark also names its state, which its bar's hue alone would not say.
+        let state = picked.flatMap { p in MetricHealthStyle.chart(metric, series: series).stateWord?(p.value) }
+        let aggregate = picked != nil && range.bucket == .day
+            ? (isTotal ? String(localized: "TOTAL") : nil)
             : String(localized: "AVERAGE")
+        // A picked day of a level has no aggregate to name; a blank keeps the header from jumping.
+        let words = [aggregate, state].compactMap { $0 }
+        let caption = words.isEmpty ? " " : words.joined(separator: " · ")
         let value = picked?.value ?? window.average
         let dates = picked.map { MetricHealthSeries.pointLabel($0, range: range, calendar: calendar, locale: locale) }
             ?? MetricHealthSeries.spanLabel(window, calendar: calendar, locale: locale)
@@ -319,11 +323,6 @@ struct MetricDetailView: View {
         }
     }
 
-    /// The average's hue in a highlight, set against the metric's own (Health pairs teal with the category hue).
-    private var averageTint: Color {
-        metric.key == "resp_rate" ? StrandPalette.healthOxygen : StrandPalette.healthRespiratory
-    }
-
     /// Health's highlight on a data type's page: the category line, one sentence, the average and the latest
     /// figure, then the fortnight's readings as grey bars with the latest in the metric's hue and the
     /// average drawn across them.
@@ -334,8 +333,8 @@ struct MetricDetailView: View {
         case .below: sentence = String(localized: "Your latest reading was below your two-week average.")
         case .close: sentence = String(localized: "Your latest reading was close to your two-week average.")
         }
-        // The latest reading in the hue its bar has on the chart above (Charge by its state), so the two agree.
-        let latestTint = MetricHealthStyle.chart(metric, series: series).barTint?(h.latest) ?? tint
+        // As Health's highlights: the latest reading in the metric's hue, the average it is read against in grey.
+        let latestTint = tint
         // Side by side; one under the other at accessibility sizes.
         let figuresLayout = dts.isAccessibilitySize
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
@@ -356,9 +355,9 @@ struct MetricDetailView: View {
                     .fixedSize(horizontal: false, vertical: true)
                 Rectangle().fill(StrandPalette.hairline).frame(height: NoopMetrics.hairlineWidth)
                 figuresLayout {
-                    highlightFigure(String(localized: "Two-Week Average"), h.average, color: averageTint, trailing: false)
+                    highlightFigure(String(localized: "Two-Week Average"), h.average, color: StrandPalette.textSecondary, trailing: false)
                     if !dts.isAccessibilitySize { Spacer(minLength: 8) }
-                    highlightFigure(String(localized: "Latest"), h.latest, color: latestTint,
+                    highlightFigure(String(localized: "Latest"), h.latest, color: StrandPalette.text(for: latestTint),
                                     trailing: !dts.isAccessibilitySize)
                 }
                 highlightBars(h, latestTint: latestTint)
@@ -393,7 +392,7 @@ struct MetricDetailView: View {
         }
     }
 
-    /// Grey bars for the fortnight, the latest in the metric's hue, the average as a line across. The scale
+    /// Grey bars for the fortnight, the latest in the metric's hue, the average as a grey line across. The scale
     /// starts below the lowest reading so day-to-day movement shows, as on Health's highlight charts.
     private func highlightBars(_ h: MetricHealthHighlight, latestTint: Color) -> some View {
         let lo0 = h.values.min() ?? 0, hi = max(h.values.max() ?? 1, h.average)
@@ -410,7 +409,7 @@ struct MetricDetailView: View {
                         .offset(x: slot * CGFloat(i) + (slot - barWidth) / 2)
                 }
                 Capsule()
-                    .fill(averageTint)
+                    .fill(StrandPalette.textSecondary)
                     .frame(height: 3)
                     .offset(y: -geo.size.height * CGFloat((h.average - lo) / span) + 1.5)
             }

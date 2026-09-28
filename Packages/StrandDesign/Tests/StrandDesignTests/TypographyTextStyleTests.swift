@@ -30,4 +30,14 @@ final class PaletteTextToneTests: XCTestCase {
         XCTAssertEqual(StrandPalette.text(for: StrandPalette.activityTitle), StrandPalette.activityTitleText)
         XCTAssertEqual(StrandPalette.text(for: .purple), .purple)
     }
+
+    /// Charge, Effort and Rest are the Summary rings' triad on every screen, and their text follows it.
+    func testScoreHuesAreTheRingTriad() {
+        XCTAssertEqual(StrandPalette.summaryChargeRing, StrandPalette.activityMoveStart)
+        XCTAssertEqual(StrandPalette.summaryEffortRing, StrandPalette.activityExerciseStart)
+        XCTAssertEqual(StrandPalette.summaryRestRing, StrandPalette.activityStandStart)
+        XCTAssertEqual(StrandPalette.text(for: StrandPalette.summaryChargeRing), StrandPalette.activityMoveText)
+        XCTAssertEqual(StrandPalette.text(for: StrandPalette.summaryEffortRing), StrandPalette.activityExerciseText)
+        XCTAssertEqual(StrandPalette.text(for: StrandPalette.summaryRestRing), StrandPalette.activityStandText)
+    }
 }

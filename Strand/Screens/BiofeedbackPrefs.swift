@@ -4,7 +4,7 @@ import StrandAnalytics
 // BiofeedbackPrefs.swift — the small, on-device pref surface for the haptic-biofeedback pillar:
 // the locked resonance pace + its date (L1), and the "stress check-ins (haptic)" master/sub toggles
 // + the replay-safe StressOnsetDetector state (L3). UserDefaults-backed, single-user, no store table —
-// the same lightweight pattern Breathe's `@AppStorage("breathe.lastOutcome")` and `InactivityPrefs` use.
+// the same lightweight pattern `InactivityPrefs` uses.
 //
 // Nothing here leaves the device (the spec's "resonance pace + outcomes are local prefs"). The toggles
 // default OFF / safe (manual-first ethos). A Settings toggle group (Wave 3) writes the same keys; this

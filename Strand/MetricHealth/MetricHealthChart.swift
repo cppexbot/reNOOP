@@ -62,6 +62,12 @@ struct MetricHealthChart: View {
                     .accessibilityLabel(Text("Average"))
                     .accessibilityValue(Text(verbatim: valueText(average)))
             }
+            ForEach(Array(spec.thresholds.enumerated()), id: \.offset) { _, t in
+                RuleMark(y: .value("Threshold", t.value))
+                    .foregroundStyle(StrandPalette.textSecondary.opacity(0.7))
+                    .lineStyle(StrokeStyle(lineWidth: NoopMetrics.hairlineWidth, dash: [4, 3]))
+                    .accessibilityHidden(true)
+            }
             if spec.mark == .diverging {
                 RuleMark(y: .value("Baseline", 0))
                     .foregroundStyle(StrandPalette.textTertiary)
@@ -78,7 +84,8 @@ struct MetricHealthChart: View {
                 let dim = selection != nil && selection != p
                 let hue = spec.barTint?(p.value) ?? tint
                 let axLabel = Text(verbatim: spokenLabel(p))
-                let axValue = Text(verbatim: valueText(p.value))
+                let axValue = Text(verbatim: [valueText(p.value), spec.stateWord?(p.value).localizedCapitalized]
+                    .compactMap { $0 }.joined(separator: ", "))
                 switch spec.mark {
                 case .bars:
                     BarMark(x: .value("Date", p.start, unit: window.range.bucket),
@@ -144,6 +151,10 @@ struct MetricHealthChart: View {
 
     /// Round values across the domain, about four of them.
     private var yTicks: [Double] {
+        // A banded score reads its bands off the axis: the ticks sit on the dashed thresholds (M-4).
+        if !spec.thresholds.isEmpty {
+            return [yDomain.lowerBound] + spec.thresholds.map(\.value).sorted() + [yDomain.upperBound]
+        }
         let d = yDomain
         let raw = (d.upperBound - d.lowerBound) / 4
         guard raw > 0, raw.isFinite else { return [] }

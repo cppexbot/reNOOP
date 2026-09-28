@@ -29,6 +29,8 @@ struct IntervalTimerView: View {
     @ScaledMetric(relativeTo: .body) private var blockGlyphSize: CGFloat = 18
     @ScaledMetric(relativeTo: .body) private var blockGlyphWidth: CGFloat = 28
     @ScaledMetric(relativeTo: .largeTitle) private var stepSize: CGFloat = 44
+    /// The block whose wheel is open, if any.
+    @State private var editing: PhaseBlock?
 
     var body: some View {
         ScrollView {
@@ -93,21 +95,24 @@ struct IntervalTimerView: View {
         .buttonStyle(.plain)
     }
 
-    /// The blocks, one card each, set with − / + like Fitness's goal screen.
+    /// The blocks, one card each: Work and Rest open Clock's countdown wheel in place, Rounds keeps − / +
+    /// like Fitness's goal screen.
     private var blocks: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Workout")
                 .font(StrandFont.pro(22, weight: .bold))
                 .foregroundStyle(StrandPalette.textPrimary)
                 .padding(.horizontal, 4)
-            block("Work", symbol: "chevron.up.2", tint: StrandPalette.activityStandText,
+            block("Work", symbol: "chevron.up.2", tint: StrandPalette.activityExerciseText,
                   value: IntervalTimerRunner.clock(runner.workSeconds),
-                  minus: { runner.workSeconds = max(5, runner.workSeconds - 5) },
-                  plus: { runner.workSeconds = min(600, runner.workSeconds + 5) })
-            block("Rest", symbol: "chevron.down.2", tint: StrandPalette.activityExerciseText,
+                  minus: { runner.workSeconds = max(Self.minPhase, runner.workSeconds - 5) },
+                  plus: { runner.workSeconds = min(Self.maxPhase, runner.workSeconds + 5) },
+                  wheel: .work)
+            block("Rest", symbol: "chevron.down.2", tint: StrandPalette.activityStandText,
                   value: IntervalTimerRunner.clock(runner.restSeconds),
-                  minus: { runner.restSeconds = max(5, runner.restSeconds - 5) },
-                  plus: { runner.restSeconds = min(600, runner.restSeconds + 5) })
+                  minus: { runner.restSeconds = max(Self.minPhase, runner.restSeconds - 5) },
+                  plus: { runner.restSeconds = min(Self.maxPhase, runner.restSeconds + 5) },
+                  wheel: .rest)
             block("Rounds", symbol: "repeat", tint: StrandPalette.textPrimary,
                   value: "\(runner.rounds)",
                   minus: { runner.rounds = max(1, runner.rounds - 1) },
@@ -119,51 +124,122 @@ struct IntervalTimerView: View {
         }
         .disabled(runner.running)
         .opacity(runner.running ? 0.5 : 1)
+        .onChangeCompat(of: runner.running) { if $0 { editing = nil } }
+    }
+
+    /// A phase's shortest and longest length: 0:05, and the wheel's last stop, 59:55.
+    private static let minPhase = 5
+    private static let maxPhase = 59 * 60 + 55
+
+    private func seconds(_ phase: PhaseBlock) -> Binding<Int> {
+        switch phase {
+        case .work: return $runner.workSeconds
+        case .rest: return $runner.restSeconds
+        }
     }
 
     private func block(_ title: LocalizedStringKey, symbol: String, tint: Color, value: String,
-                       minus: @escaping () -> Void, plus: @escaping () -> Void) -> some View {
+                       minus: @escaping () -> Void, plus: @escaping () -> Void,
+                       wheel: PhaseBlock? = nil) -> some View {
+        #if os(iOS)
+        let usesWheel = wheel != nil
+        #else
+        let usesWheel = false
+        #endif
         let layout = dts.isAccessibilitySize
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
             : AnyLayout(HStackLayout(spacing: 14))
-        return layout {
-            HStack(spacing: 14) {
-                Image(systemName: symbol)
-                    .font(.system(size: blockGlyphSize, weight: .semibold))
-                    .foregroundStyle(tint)
-                    .frame(width: blockGlyphWidth)
-                VStack(alignment: .leading, spacing: 0) {
-                    Text(title)
-                        .font(StrandFont.pro(17))
-                        .foregroundStyle(StrandPalette.textPrimary)
-                    Text(value)
-                        .font(StrandFont.pro(28, weight: .semibold))
-                        .monospacedDigit()
+        return VStack(spacing: 0) {
+            layout {
+                HStack(spacing: 14) {
+                    Image(systemName: symbol)
+                        .font(.system(size: blockGlyphSize, weight: .semibold))
                         .foregroundStyle(tint)
+                        .frame(width: blockGlyphWidth)
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(title)
+                            .font(StrandFont.pro(17))
+                            .foregroundStyle(StrandPalette.textPrimary)
+                        Text(value)
+                            .font(StrandFont.pro(28, weight: .semibold))
+                            .monospacedDigit()
+                            .foregroundStyle(tint)
+                    }
+                }
+                if !dts.isAccessibilitySize { Spacer() }
+                if !usesWheel {
+                    HStack(spacing: 14) {
+                        stepButton("minus", tint: tint, action: minus)
+                        stepButton("plus", tint: tint, action: plus)
+                    }
                 }
             }
-            if !dts.isAccessibilitySize { Spacer() }
-            HStack(spacing: 14) {
-                stepButton("minus", tint: tint, action: minus)
-                stepButton("plus", tint: tint, action: plus)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 12)
+            // One adjustable element per block, so VoiceOver reads "Work, 0:30" and swipes change it.
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text(title))
+            .accessibilityValue(Text(value))
+            .accessibilityAdjustableAction { direction in
+                guard !runner.running else { return }
+                switch direction {
+                case .increment: plus()
+                case .decrement: minus()
+                @unknown default: break
+                }
             }
+            .modifier(WheelToggleAction(enabled: usesWheel) { if let wheel { toggle(wheel) } })
+
+            #if os(iOS)
+            if let wheel, editing == wheel {
+                Rectangle().fill(StrandPalette.hairline).frame(height: NoopMetrics.hairlineWidth)
+                durationWheel(seconds(wheel))
+                    .padding(.vertical, 4)
+                    .transition(.opacity)
+                    // The row above is the block's one adjustable element; the wheel would read it twice.
+                    .accessibilityHidden(true)
+            }
+            #endif
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 12)
         .background(StrandPalette.summaryCard, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-        // One adjustable element per block, so VoiceOver reads "Work, 0:30" and swipes change it.
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(title))
-        .accessibilityValue(Text(value))
-        .accessibilityAdjustableAction { direction in
-            guard !runner.running else { return }
-            switch direction {
-            case .increment: plus()
-            case .decrement: minus()
-            @unknown default: break
-            }
-        }
     }
+
+    private func toggle(_ phase: PhaseBlock) {
+        withAnimation(StrandMotion.interactive) { editing = editing == phase ? nil : phase }
+    }
+
+    #if os(iOS)
+    /// Clock's countdown wheel: minutes 0–59 and seconds in 5 s steps, each with its unit beside it.
+    private func durationWheel(_ total: Binding<Int>) -> some View {
+        let minutes = Binding<Int>(
+            get: { min(59, total.wrappedValue / 60) },
+            set: { total.wrappedValue = max(Self.minPhase, $0 * 60 + total.wrappedValue % 60) })
+        let secs = Binding<Int>(
+            get: { total.wrappedValue % 60 / 5 * 5 },
+            set: { total.wrappedValue = max(Self.minPhase, min(59, total.wrappedValue / 60) * 60 + $0) })
+        return HStack(spacing: 0) {
+            wheelColumn(minutes, values: Array(0...59), unit: String(localized: "min"))
+            wheelColumn(secs, values: Array(stride(from: 0, to: 60, by: 5)), unit: String(localized: "sec"))
+        }
+        .frame(height: 180)
+    }
+
+    private func wheelColumn(_ selection: Binding<Int>, values: [Int], unit: String) -> some View {
+        HStack(spacing: 4) {
+            Picker(unit, selection: selection) {
+                ForEach(values, id: \.self) { Text(verbatim: "\($0)").tag($0) }
+            }
+            .pickerStyle(.wheel)
+            .labelsHidden()
+            Text(unit)
+                .font(StrandFont.pro(17))
+                .foregroundStyle(StrandPalette.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+        .clipped()
+    }
+    #endif
 
     private func stepButton(_ symbol: String, tint: Color, action: @escaping () -> Void) -> some View {
         Button(action: action) {
@@ -178,6 +254,27 @@ struct IntervalTimerView: View {
     }
 }
 
+/// The two blocks set on a wheel.
+private enum PhaseBlock { case work, rest }
+
+/// A tap on a wheel block's row opens or closes its wheel, and so does VoiceOver's double-tap.
+private struct WheelToggleAction: ViewModifier {
+    let enabled: Bool
+    let action: () -> Void
+
+    func body(content: Content) -> some View {
+        if enabled {
+            content
+                .contentShape(Rectangle())
+                .onTapGesture(perform: action)
+                .accessibilityAddTraits(.isButton)
+                .accessibilityAction { action() }
+        } else {
+            content
+        }
+    }
+}
+
 // MARK: - Running
 
 /// The interval in progress, on the same dark recording screen a workout uses: the phase and round, the
@@ -189,6 +286,7 @@ struct IntervalRunView: View {
 
     @ScaledMetric(relativeTo: .largeTitle) private var clockSize: CGFloat = 120
     @ScaledMetric(relativeTo: .body) private var glyphSize: CGFloat = 18
+    @State private var confirmingEnd = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -238,8 +336,13 @@ struct IntervalRunView: View {
                 trailing: { EmptyView() },
                 leading: {
                     RecordingButton(symbol: "xmark", label: "End") {
-                        runner.stopAndReset()
-                        onClose()
+                        // A session under way asks first, as the workout's ✕ does; one not started or
+                        // already finished has nothing to lose.
+                        if runner.elapsed > 0 && !runner.isFinished {
+                            confirmingEnd = true
+                        } else {
+                            endIntervals()
+                        }
                     }
                 },
                 center: {
@@ -259,6 +362,10 @@ struct IntervalRunView: View {
         }
         .background(Color.black.ignoresSafeArea())
         .preferredColorScheme(.dark)
+        .confirmationDialog("End Intervals", isPresented: $confirmingEnd, titleVisibility: .hidden) {
+            Button("End Intervals", role: .destructive) { endIntervals() }
+            Button("Cancel", role: .cancel) {}
+        }
         // Keep the screen awake while a session runs (no-op on macOS); onDisappear is the safety net so
         // leaving mid-run never leaves the idle timer disabled app-wide.
         .onChangeCompat(of: runner.running) { ScreenIdle.keepAwake($0) }
@@ -276,6 +383,11 @@ struct IntervalRunView: View {
             }
         }
         #endif
+    }
+
+    private func endIntervals() {
+        runner.stopAndReset()
+        onClose()
     }
 }
 
@@ -356,8 +468,8 @@ final class IntervalTimerRunner: ObservableObject {
 
     var phaseColor: Color {
         switch phase {
-        case .work: return StrandPalette.activityStandText
-        case .rest, .done: return StrandPalette.activityExerciseText
+        case .work, .done: return StrandPalette.activityExerciseText
+        case .rest: return StrandPalette.activityStandText
         }
     }
 

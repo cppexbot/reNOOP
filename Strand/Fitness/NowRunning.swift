@@ -101,7 +101,7 @@ private struct WorkoutAccessoryRow: View {
     }
 }
 
-/// The gym session: the exercise, the set's clock (the rest counting down, in the rest's yellow), "set done".
+/// The gym session: the exercise, the set's clock (the rest counting down, in the rest's cyan), "set done".
 private struct LiftAccessoryRow: View {
     @EnvironmentObject private var now: NowRunning
     @EnvironmentObject private var session: LiftSessionController
@@ -122,7 +122,7 @@ private struct LiftAccessoryRow: View {
                 open: { now.expand(.lift) }
             ) {
                 RunningClock { unix in engine.restRemaining(now: unix) ?? unix - engine.stageStartedAt }
-                    .foregroundStyle(shown.isResting ? StrandPalette.fitnessTime : StrandPalette.activityExerciseText)
+                    .foregroundStyle(shown.isResting ? StrandPalette.activityStandText : StrandPalette.activityExerciseText)
             }
         }
     }

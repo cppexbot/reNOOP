@@ -186,7 +186,7 @@ struct RecordingPanel<Clock: View, Trailing: View, Leading: View, Center: View, 
     }
 }
 
-/// The panel's clock face: large rounded digits in Exercise green (or the rest yellow).
+/// The panel's clock face: large rounded digits in Exercise green (or the rest cyan).
 struct RecordingClockText: View {
     let text: String
     var tint: Color = StrandPalette.activityExerciseText

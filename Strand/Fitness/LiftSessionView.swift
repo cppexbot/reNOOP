@@ -13,7 +13,7 @@ import WhoopStore
 //
 // COLOUR CARRIES STATE, so you can find your place at a glance from arm's length:
 //   green   the set you are working now, and a done set's tick
-//   yellow  the rest that follows it
+//   cyan    the rest that follows it
 //   grey    numbers nobody typed
 //
 // The session itself lives in `LiftSessionController`, ABOVE this view. The top bar's minimize
@@ -157,7 +157,7 @@ struct LiftSessionView: View {
     // MARK: - Now
 
     /// The set in progress as the Fitness recording screen shows a workout: the stage and exercise, the
-    /// running clock (the rest counting down in yellow), the set's weight and reps, the heart rate, and
+    /// running clock (the rest counting down in cyan), the set's weight and reps, the heart rate, and
     /// what comes next.
     private func nowPage(_ engine: LiftSessionEngine) -> some View {
         let slot: LiftSlot? = {
@@ -206,7 +206,7 @@ struct LiftSessionView: View {
             switch engine.stage {
             case .resting:
                 LiveFigure(value: ActiveWorkoutClock.clock(engine.restRemaining(now: now) ?? 0),
-                           label: String(localized: "Remaining"), tint: StrandPalette.fitnessTime)
+                           label: String(localized: "Remaining"), tint: StrandPalette.activityStandText)
             case .working:
                 LiveFigure(value: ActiveWorkoutClock.clock(now - engine.stageStartedAt), label: String(localized: "This set"))
             case .warmup, .finished:
@@ -233,7 +233,7 @@ struct LiftSessionView: View {
     private func stageTint(_ engine: LiftSessionEngine) -> Color {
         switch engine.stage {
         case .working: return StrandPalette.activityExerciseText
-        case .resting: return StrandPalette.fitnessTime
+        case .resting: return StrandPalette.activityStandText
         case .warmup, .finished: return .white.opacity(0.6)
         }
     }

@@ -295,9 +295,11 @@ public enum StrandPalette {
     // MARK: Summary home (Apple-Health-style) — rings, canvas, card, top wash.
     // The three concentric rings need three clearly separate hues at a glance, which the Titanium score
     // family (green / blue / steel-blue) cannot give, so the Summary owns its own trio.
-    public static let summaryChargeRing       = Color(light: "#34C759", dark: "#30D158", lightHC: "#217F39", darkHC: "#6FE08C")
-    public static let summaryEffortRing       = Color(light: "#FF9500", dark: "#FF9F0A", lightHC: "#A25F00", darkHC: "#FFC466")
-    public static let summaryRestRing         = Color(light: "#5E5CE6", dark: "#7D7AFF", lightHC: "#3532E0", darkHC: "#9E9CFF")
+    /// Charge, Effort and Rest in one triad on every screen: the Summary rings' Move red, Exercise green
+    /// and Stand cyan (the `activity*Start` hues below). Text in these hues goes through `text(for:)`.
+    public static let summaryChargeRing       = activityMoveStart
+    public static let summaryEffortRing       = activityExerciseStart
+    public static let summaryRestRing         = activityStandStart
     /// The Activity rings as Apple Watch draws them (sampled from Apple's own ring artwork): each ring
     /// runs from a deeper start hue to a brighter end hue. The rings always sit on a black disc, as they
     /// do in Health, so one set of values serves both appearances.
@@ -445,8 +447,10 @@ public enum StrandPalette {
             (healthOxygen, healthOxygenText), (healthTemperature, healthTemperatureText),
             (healthBody, healthBodyText), (healthMind, healthMindText),
             (healthNutrition, healthNutritionText), (activityTitle, activityTitleText),
-            (sleepSchedule, healthSleepText), (summaryRestRing, healthSleepText),
-            (summaryChargeRing, healthNutritionText), (summaryEffortRing, healthTemperatureText),
+            (sleepSchedule, healthSleepText),
+            (activityMoveStart, activityMoveText), (activityMoveEnd, activityMoveText),
+            (activityExerciseStart, activityExerciseText), (activityExerciseEnd, activityExerciseText),
+            (activityStandStart, activityStandText), (activityStandEnd, activityStandText),
             (healthZoneHigh, healthNutritionText), (fitnessTime, fitnessTime),
         ]
         return (pairs + Array(zip(fitnessGoalHues, fitnessGoalTexts))).first { $0.0 == hue }?.1 ?? hue
@@ -478,13 +482,6 @@ public enum StrandPalette {
     public static let settingsIconDarkBottom = Color(hex: "#2C2C2E")
     public static let settingsIconRim        = Color.white.opacity(0.35)
     public static let settingsIconDarkRim    = Color.white.opacity(0.14)
-    /// Display → Appearance: the two miniature screens, fixed light and dark whatever the app shows.
-    public static let settingsAppearanceLightPage = Color(hex: "#E9E9EE")
-    public static let settingsAppearanceLightCard = Color(hex: "#FFFFFF")
-    public static let settingsAppearanceLightText = Color(hex: "#000000")
-    public static let settingsAppearanceDarkPage  = Color(hex: "#000000")
-    public static let settingsAppearanceDarkCard  = Color(hex: "#2C2C2E")
-    public static let settingsAppearanceDarkText  = Color(hex: "#FFFFFF")
     /// The name field on a pairing card: iOS's tertiary system fill.
     public static let deviceField       = Color(light: "#767680", dark: "#767680").opacity(0.12)
     /// Top wash, leading → trailing: warm → violet → cool (sampled from Health's iOS 26 Summary), faded

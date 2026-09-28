@@ -65,6 +65,51 @@ struct SleepScoreRing: View {
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(String(localized: "Sleep Score")))
-        .accessibilityValue(Text(verbatim: "\(score.value)"))
+        .accessibilityValue(Text(verbatim: Self.spokenValue(score)))
+    }
+
+    /// "72, Duration 38 of 50, Interruptions 17 of 20, …": the score and what each segment holds.
+    static func spokenValue(_ score: SleepScore) -> String {
+        let parts = score.parts.map { part -> String in
+            guard let points = part.points else { return part.part.label }
+            return "\(part.part.label) \(String(localized: "\(points) of \(part.part.maxPoints)"))"
+        }
+        return (["\(score.value)"] + parts).joined(separator: ", ")
+    }
+}
+
+// MARK: - Sleep score breakdown
+
+/// The rows under Health's Sleep Score ring: each part's dot in its segment's hue, its name, and the
+/// points it earned out of its worth, with hairlines between. VoiceOver hears the same from the ring.
+struct SleepScoreBreakdown: View {
+    let score: SleepScore
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(score.parts.enumerated()), id: \.element.id) { index, part in
+                if index > 0 {
+                    Rectangle().fill(StrandPalette.hairline).frame(height: NoopMetrics.hairlineWidth)
+                        .padding(.leading, 20)
+                }
+                HStack(spacing: 10) {
+                    Circle()
+                        .fill(SleepScoreRing.color(part.part))
+                        .frame(width: 10, height: 10)
+                    Text(part.part.label)
+                        .font(StrandFont.pro(17))
+                        .foregroundStyle(StrandPalette.textPrimary)
+                    Spacer(minLength: 8)
+                    if let points = part.points {
+                        Text(verbatim: "\(points)/\(part.part.maxPoints)")
+                            .font(StrandFont.pro(15))
+                            .monospacedDigit()
+                            .foregroundStyle(StrandPalette.textSecondary)
+                    }
+                }
+                .padding(.vertical, 10)
+            }
+        }
+        .accessibilityHidden(true)
     }
 }

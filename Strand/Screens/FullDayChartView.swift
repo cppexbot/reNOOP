@@ -154,7 +154,7 @@ struct FullDayChartView: View {
         case .spo2: return StrandPalette.healthOxygen
         case .skinTemp: return StrandPalette.healthTemperature
         case .respiration: return StrandPalette.healthRespiratory
-        case .motion, .ouraMovement: return StrandPalette.summaryEffortRing
+        case .motion, .ouraMovement: return StrandPalette.activityTitle
         case .bandSleepState: return StrandPalette.healthSleepDeep
         }
     }

@@ -29,6 +29,15 @@ enum MetricHealthStyle {
         var showsAverage = false
         /// A bar's own hue by its value (Charge by its state, skin temperature by its sign); nil = the metric's hue.
         var barTint: ((Double) -> Color)? = nil
+        /// Dashed hairlines where the bars change hue, each named, so the state is not told by colour alone.
+        var thresholds: [Threshold] = []
+        /// The state word a reading carries (Charge's), read out with a picked mark; nil = none.
+        var stateWord: ((Double) -> String)? = nil
+    }
+
+    /// A dashed hairline across the chart where a band ends; the axis carries its value.
+    struct Threshold {
+        var value: Double
     }
 
     // MARK: Identity
@@ -52,12 +61,13 @@ enum MetricHealthStyle {
     }
 
     /// The Health app's category hue: Heart pink-red, Respiratory teal / blue, Activity orange, Sleep
-    /// indigo, Body Measurements purple, Nutrition green, Mind teal. The three rings keep their ring hues.
+    /// indigo, Body Measurements purple, Nutrition green, Mind teal. Charge, Effort and Rest keep their
+    /// Summary rings' hues on every screen: Move red, Exercise green, Stand cyan.
     static func tint(_ metric: MetricDescriptor) -> Color {
         switch metric.key {
-        case "recovery": return StrandPalette.summaryChargeRing
-        case "strain": return StrandPalette.summaryEffortRing
-        case "sleep_performance": return StrandPalette.summaryRestRing
+        case "recovery": return StrandPalette.activityMoveStart
+        case "strain": return StrandPalette.activityExerciseStart
+        case "sleep_performance": return StrandPalette.activityStandStart
         case "resp_rate": return StrandPalette.healthRespiratory
         case "spo2": return StrandPalette.healthOxygen
         case "skin_temp": return StrandPalette.healthTemperature
@@ -67,7 +77,7 @@ enum MetricHealthStyle {
         }
         switch metric.category {
         case "Heart", "Charge": return StrandPalette.healthHeart
-        case "Rest": return StrandPalette.summaryRestRing
+        case "Rest": return StrandPalette.sleepSchedule
         case "Effort": return StrandPalette.activityTitle
         case "Nutrition": return StrandPalette.healthNutrition
         case "Mind": return StrandPalette.healthMind
@@ -78,10 +88,14 @@ enum MetricHealthStyle {
     static func chart(_ metric: MetricDescriptor, series: [(day: String, value: Double)]) -> Chart {
         switch metric.key {
         case "recovery":
-            // Banded on the Charge state words' own thresholds (`StrandPalette.recoveryState`).
+            // Banded on the Charge state words' own thresholds (`StrandPalette.recoveryState`), each
+            // threshold drawn and named on the chart and the state word read out with a picked bar.
             return Chart(mark: .bars, domain: 0...100, barTint: { v in
                 v < 50 ? StrandPalette.healthZoneLow : v < 70 ? StrandPalette.healthZoneMid : StrandPalette.healthZoneHigh
-            })
+            }, thresholds: [
+                Threshold(value: 50),
+                Threshold(value: 70),
+            ], stateWord: { StrandPalette.recoveryState($0) })
         case "strain":
             return Chart(mark: .bars, domain: 0...100)
         case "sleep_performance", "sleep_score", "hours_vs_needed_pct", "sleep_consistency", "restorative_pct",
@@ -237,9 +251,9 @@ extension KeyMetric {
     /// The hue a pinned Summary card shares with the metric page it opens (`MetricHealthStyle.tint`).
     var healthTint: Color {
         switch self {
-        case .charge: return StrandPalette.summaryChargeRing
-        case .effort: return StrandPalette.summaryEffortRing
-        case .rest: return StrandPalette.summaryRestRing
+        case .charge: return StrandPalette.activityMoveStart
+        case .effort: return StrandPalette.activityExerciseStart
+        case .rest: return StrandPalette.activityStandStart
         case .hrv, .restingHr: return StrandPalette.healthHeart
         case .bloodOxygen: return StrandPalette.healthOxygen
         case .respiratory: return StrandPalette.healthRespiratory
