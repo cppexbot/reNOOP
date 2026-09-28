@@ -365,7 +365,10 @@ struct FullDayChartView: View {
             zoomDomain: $zoomDomain,
             zoomBounds: panBounds,   // #986: pan/scroll clamp is the rolling 3-day window, not one day
             valueFormat: { format($0) },
-            dateFormat: { Self.timeFmt.string(from: $0) }
+            dateFormat: { Self.timeFmt.string(from: $0) },
+            axTitle: metric.title,
+            axUnit: axUnit,
+            axLocale: AppLanguage.activeLocale
         )
         #if os(macOS)
         // macOS has no pinch here, so wheel/trackpad scroll zooms about the cursor-agnostic centre.
@@ -538,6 +541,13 @@ struct FullDayChartView: View {
         case .ouraMovement: return " s"
         case .spo2, .bandSleepState: return ""
         }
+    }
+
+    /// The unit VoiceOver reads after a value, in the reader's language.
+    private var axUnit: String {
+        if metric == .hr { return String(localized: "bpm") }
+        let unit = unitSuffix.trimmingCharacters(in: .whitespaces)
+        return unit.isEmpty ? "" : String(localized: String.LocalizationValue(unit))
     }
 
     private func format(_ v: Double) -> String {

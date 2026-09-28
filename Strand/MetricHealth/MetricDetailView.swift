@@ -80,11 +80,7 @@ struct MetricDetailView: View {
         let window = MetricHealthSeries.window(series: series, range: range, today: Date(), calendar: calendar)
         return ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Picker("", selection: $range) {
-                    ForEach(MetricHealthRange.allCases) { Text($0.label).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
+                SpokenSegmentedPicker(selection: $range, options: MetricHealthRange.allCases, label: \.label, spoken: \.spokenName)
                 .padding(.bottom, 4)
                 chartCard(window)
                 if MetricStressDayCard.applies(to: metric) {
@@ -128,6 +124,10 @@ struct MetricDetailView: View {
                                               MetricHealthStyle.axisLabel(metric, v, units: units,
                                                                           span: window.points.map(\.value).max() ?? 0)
                                           },
+                                          axTitle: metric.title,
+                                          axUnit: MetricHealthStyle.tokens(metric, window.average ?? 0, units: units)
+                                              .last(where: \.isUnit)?.text ?? "",
+                                          valueText: { MetricHealthStyle.text(metric, $0, units: units) },
                                           selection: $selection)
                     } else {
                         ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -180,7 +180,7 @@ struct MetricDetailView: View {
                 }
                 Spacer(minLength: 8)
                 if let about = MetricHealthStyle.about(metric) {
-                    InfoButton(style: .circled, label: "About") { Text(about) }
+                    InfoButton(style: .circled, label: "About \(metric.title)") { Text(about) }
                 }
             }
             Text(dates)

@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Charts
+import Accessibility
 import StrandDesign
 
 struct MetricHealthChart: View {
@@ -16,6 +17,11 @@ struct MetricHealthChart: View {
     /// Segment id per point for a line that must break where its method changed (VO₂max estimates).
     var segments: [Date: String] = [:]
     let axisLabel: (Double) -> String
+    /// The chart as VoiceOver names it (the metric's title) and the unit its values are read in.
+    var axTitle: String = ""
+    var axUnit: String = ""
+    /// A value as the header prints it, unit included, for VoiceOver.
+    var valueText: (Double) -> String = { $0.formatted() }
     @Binding var selection: MetricHealthPoint?
 
     @State private var rawSelection: Date?
@@ -36,8 +42,13 @@ struct MetricHealthChart: View {
             .onChangeCompat(of: window) { _ in rawSelection = nil; selection = nil }
             // Axis labels share a fixed plot width: past xxxLarge the weekday letters collide.
             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(Text(window.range.label))
+            .accessibilityChartDescriptor(MetricHealthChartDescriptor(
+                window: window, title: axTitle, unit: axUnit, yDomain: yDomain, yTicks: yTicks,
+                isContinuous: spec.mark == .line, label: { spokenLabel($0) }, valueText: valueText))
+    }
+
+    private func spokenLabel(_ p: MetricHealthPoint) -> String {
+        MetricHealthSeries.spokenPointLabel(p, range: window.range, calendar: calendar, locale: locale)
     }
 
     // MARK: Marks
@@ -48,42 +59,58 @@ struct MetricHealthChart: View {
                 RuleMark(y: .value("Average", average))
                     .foregroundStyle(StrandPalette.textSecondary.opacity(0.7))
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                    .accessibilityLabel(Text("Average"))
+                    .accessibilityValue(Text(verbatim: valueText(average)))
             }
             if spec.mark == .diverging {
                 RuleMark(y: .value("Baseline", 0))
                     .foregroundStyle(StrandPalette.textTertiary)
                     .lineStyle(StrokeStyle(lineWidth: 1))
+                    .accessibilityHidden(true)
             }
             if let selection {
                 RuleMark(x: .value("Picked", selection.start, unit: window.range.bucket))
                     .foregroundStyle(StrandPalette.textTertiary.opacity(0.6))
                     .lineStyle(StrokeStyle(lineWidth: 1))
+                    .accessibilityHidden(true)
             }
             ForEach(window.points) { p in
                 let dim = selection != nil && selection != p
                 let hue = spec.barTint?(p.value) ?? tint
+                let axLabel = Text(verbatim: spokenLabel(p))
+                let axValue = Text(verbatim: valueText(p.value))
                 switch spec.mark {
                 case .bars:
                     BarMark(x: .value("Date", p.start, unit: window.range.bucket),
                             y: .value("Value", p.value), width: .ratio(0.62))
                         .foregroundStyle(hue.opacity(dim ? 0.3 : 1))
                         .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
+                        .accessibilityLabel(axLabel)
+                        .accessibilityValue(axValue)
                 case .diverging:
                     BarMark(x: .value("Date", p.start, unit: window.range.bucket),
                             yStart: .value("Zero", 0), yEnd: .value("Value", p.value), width: .ratio(0.62))
                         .foregroundStyle(hue.opacity(dim ? 0.3 : 1))
                         .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
+                        .accessibilityLabel(axLabel)
+                        .accessibilityValue(axValue)
                 case .dots:
                     PointMark(x: .value("Date", p.start, unit: window.range.bucket), y: .value("Value", p.value))
                         .symbol { ring(dim: dim) }
+                        .accessibilityLabel(axLabel)
+                        .accessibilityValue(axValue)
                 case .line:
                     LineMark(x: .value("Date", p.start, unit: window.range.bucket), y: .value("Value", p.value),
                              series: .value("Segment", segments[p.start] ?? "line"))
                         .foregroundStyle(tint)
                         .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
                         .interpolationMethod(.monotone)
+                        .accessibilityHidden(true)
+                    // The ring carries the reading; the line under it would read every value twice.
                     PointMark(x: .value("Date", p.start, unit: window.range.bucket), y: .value("Value", p.value))
                         .symbol { ring(dim: dim) }
+                        .accessibilityLabel(axLabel)
+                        .accessibilityValue(axValue)
                 }
             }
         }
@@ -199,6 +226,40 @@ struct MetricHealthChart: View {
     private func nearest(_ date: Date) -> MetricHealthPoint? {
         if let hit = window.points.first(where: { date >= $0.start && date < $0.end }) { return hit }
         return window.points.min { abs($0.start.timeIntervalSince(date)) < abs($1.start.timeIntervalSince(date)) }
+    }
+}
+
+/// The Audio Graph and chart summary VoiceOver offers for the page's chart: dates across, the metric's
+/// values up, one series of the plotted marks.
+private struct MetricHealthChartDescriptor: AXChartDescriptorRepresentable {
+    let window: MetricHealthWindow
+    let title: String
+    let unit: String
+    let yDomain: ClosedRange<Double>
+    let yTicks: [Double]
+    let isContinuous: Bool
+    let label: (MetricHealthPoint) -> String
+    let valueText: (Double) -> String
+
+    func makeChartDescriptor() -> AXChartDescriptor {
+        let points = window.points
+        let lo = window.start.timeIntervalSince1970
+        let hi = max(window.end.timeIntervalSince1970, lo + 1)
+        let xAxis = AXNumericDataAxisDescriptor(
+            title: String(localized: "Date"), range: lo...hi, gridlinePositions: []
+        ) { t in
+            let date = Date(timeIntervalSince1970: t)
+            return points.first { date >= $0.start && date < $0.end }.map(label)
+                ?? date.formatted(.dateTime.day().month(.wide).year().locale(AppLanguage.activeLocale))
+        }
+        let yAxis = AXNumericDataAxisDescriptor(
+            title: unit.isEmpty ? title : unit, range: yDomain, gridlinePositions: yTicks, valueDescriptionProvider: valueText)
+        let series = AXDataSeriesDescriptor(
+            name: title, isContinuous: isContinuous,
+            dataPoints: points.map { AXDataPoint(x: $0.start.timeIntervalSince1970, y: $0.value, label: label($0)) })
+        let summary = window.average.map { String(localized: "Average \(valueText($0))") }
+        return AXChartDescriptor(title: title, summary: summary, xAxis: xAxis, yAxis: yAxis,
+                                 additionalAxes: [], series: [series])
     }
 }
 

@@ -57,8 +57,7 @@ struct SleepStagesChart: View {
         }
         // Axis labels sit in fixed gutters: they follow Dynamic Type only as far as the gutters hold them.
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(accessibilitySummary))
+        .modifier(StagesAccessibility(compact: compact, summary: accessibilitySummary) { stageElements })
     }
 
     // MARK: - Layout pieces
@@ -174,12 +173,60 @@ struct SleepStagesChart: View {
         return out
     }
 
+    /// One element per stage row, laid out as the rows are: its total, its share of the night, and when.
+    private var stageElements: some View {
+        let byStage = Dictionary(grouping: intervals, by: \.stage)
+        let whole = intervals.reduce(0) { $0 + $1.duration }
+        let locale = AppLanguage.activeLocale
+        func clock(_ t: TimeInterval) -> String {
+            onset.addingTimeInterval(t).formatted(.dateTime.hour().minute().locale(locale))
+        }
+        return VStack(spacing: 0) {
+            ForEach(Self.rowOrder, id: \.self) { stage in
+                let spans = byStage[stage] ?? []
+                let secs = spans.reduce(0) { $0 + $1.duration }
+                if secs > 0 {
+                    let share = (whole > 0 ? secs / whole : 0)
+                        .formatted(.percent.precision(.fractionLength(0)).locale(locale))
+                    let times = spans.map { "\(clock($0.start))–\(clock($0.end))" }.joined(separator: ", ")
+                    Rectangle()
+                        .accessibilityLabel(Text(stage.label))
+                        .accessibilityValue(Text(verbatim:
+                            "\(SleepFormat.duration(minutes: secs / 60)), \(share). \(times)"))
+                } else {
+                    Color.clear.accessibilityHidden(true)
+                }
+            }
+        }
+        .padding(.bottom, axisHeight)
+    }
+
     private var accessibilitySummary: String {
         let byStage = Dictionary(grouping: intervals, by: \.stage).mapValues { $0.reduce(0) { $0 + $1.duration } }
         return Self.rowOrder.compactMap { stage in
             guard let secs = byStage[stage], secs > 0 else { return nil }
             return "\(stage.label) \(SleepFormat.duration(minutes: secs / 60))"
         }.joined(separator: ", ")
+    }
+}
+
+/// A card's thumbnail reads as one sentence inside its card; the full chart is a container of its rows.
+private struct StagesAccessibility<Rows: View>: ViewModifier {
+    let compact: Bool
+    let summary: String
+    @ViewBuilder let rows: () -> Rows
+
+    func body(content: Content) -> some View {
+        if compact {
+            content
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text(verbatim: summary))
+        } else {
+            content
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel(Text("Stages"))
+                .accessibilityChildren(children: rows)
+        }
     }
 }
 

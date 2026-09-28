@@ -79,6 +79,12 @@ public struct OverviewHRChart: View {
     /// Tint for the workout glyph badges (NOOP's warm strain accent by default).
     public var workoutTint: Color
 
+    /// What VoiceOver calls the track and the unit it reads values in; nil keeps heart rate and bpm.
+    public var axTitle: String?
+    public var axUnit: String?
+    /// The language the visible span is spelled out in ("6 hours 30 minutes").
+    public var axLocale: Locale
+
     private let averageValue: Double
 
     public init(
@@ -97,7 +103,10 @@ public struct OverviewHRChart: View {
         zoomDomain: Binding<ClosedRange<Date>?> = .constant(nil),
         zoomBounds: ClosedRange<Date>? = nil,
         valueFormat: @escaping (Double) -> String = { String(Int($0.rounded())) },
-        dateFormat: @escaping (Date) -> String = { ChartDates.defaultDateString($0) }
+        dateFormat: @escaping (Date) -> String = { ChartDates.defaultDateString($0) },
+        axTitle: String? = nil,
+        axUnit: String? = nil,
+        axLocale: Locale = .autoupdatingCurrent
     ) {
         let sorted = points.sorted { $0.date < $1.date }
         self.points = sorted
@@ -116,6 +125,9 @@ public struct OverviewHRChart: View {
         self.zoomBounds = zoomBounds
         self.valueFormat = valueFormat
         self.dateFormat = dateFormat
+        self.axTitle = axTitle
+        self.axUnit = axUnit
+        self.axLocale = axLocale
         self.averageValue = sorted.isEmpty
             ? valueRange.lowerBound
             : sorted.map(\.value).reduce(0, +) / Double(sorted.count)
@@ -513,8 +525,29 @@ public struct OverviewHRChart: View {
         // (matches the sibling TrendChart). The only datum affordance otherwise is hover, which is
         // dead on touch — so on iPhone this chart spoke no heart rate at all.
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text("Heart rate, 24 hours"))
+        .accessibilityLabel(Text(verbatim: accessibilityTitle))
         .accessibilityValue(Text(accessibilitySummary))
+        // VoiceOver's zoom (the rotor's pinch equivalent) steps the window the way a pinch does.
+        .modifier(AccessibilityZoomModifier(isActive: zoomBounds != nil) { zoomIn in
+            let next = Self.zoomed(xDomain, scale: zoomIn ? 2 : 0.5, anchorFraction: 0.5, bounds: zoomClampBounds)
+            zoomDomain = (next.lowerBound <= zoomClampBounds.lowerBound
+                          && next.upperBound >= zoomClampBounds.upperBound) ? nil : next
+        })
+    }
+
+    /// "Heart rate, 24 hours": the track and the span on screen, which narrows as the chart is zoomed.
+    private var accessibilityTitle: String {
+        let title = axTitle ?? String(localized: "Heart rate", bundle: .module)
+        var calendar = Calendar.current
+        calendar.locale = axLocale
+        let f = DateComponentsFormatter()
+        f.calendar = calendar
+        f.unitsStyle = .full
+        f.allowedUnits = [.hour, .minute]
+        f.maximumUnitCount = 2
+        let span = xDomain.upperBound.timeIntervalSince(xDomain.lowerBound)
+        guard let spoken = f.string(from: span), !spoken.isEmpty else { return title }
+        return "\(title), \(spoken)"
     }
 
     /// One-line VoiceOver summary: the day's HR (count, mean, range) plus the band/marker context the
@@ -525,8 +558,15 @@ public struct OverviewHRChart: View {
         let values = points.map(\.value)
         let lo = values.min() ?? valueRange.lowerBound
         let hi = values.max() ?? valueRange.upperBound
+        let average: String
+        if let axUnit {
+            let figure = axUnit.isEmpty ? valueFormat(averageValue) : "\(valueFormat(averageValue)) \(axUnit)"
+            average = String(localized: "average \(figure)", bundle: .module)
+        } else {
+            average = String(localized: "average \(valueFormat(averageValue)) bpm", bundle: .module)
+        }
         var parts = [String(localized: "\(points.count) readings", bundle: .module),
-                     String(localized: "average \(valueFormat(averageValue)) bpm", bundle: .module),
+                     average,
                      String(localized: "range \(valueFormat(lo)) to \(valueFormat(hi))", bundle: .module)]
         if let sleep {
             parts.append(String(localized: "asleep \(Self.hoursMinutes(sleep.end.timeIntervalSince(sleep.start)))", bundle: .module))
@@ -602,6 +642,21 @@ private struct SleepBandLabel: View {
         .fixedSize()
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .allowsHitTesting(false)
+    }
+}
+
+/// VoiceOver's zoom action, only where the chart can zoom: elsewhere VoiceOver would announce a zoom
+/// that does nothing.
+private struct AccessibilityZoomModifier: ViewModifier {
+    let isActive: Bool
+    let zoom: (_ zoomIn: Bool) -> Void
+
+    func body(content: Content) -> some View {
+        if isActive {
+            content.accessibilityZoomAction { action in zoom(action.direction == .zoomIn) }
+        } else {
+            content
+        }
     }
 }
 

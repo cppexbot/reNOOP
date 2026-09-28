@@ -1,6 +1,17 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "About %@": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "О показателе «%@»"}} } },
+    "Week": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Неделя"}} } },
+    "Month": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Месяц"}} } },
+    "6 Months": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "6 месяцев"}} } },
+    "Year": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Год"}} } },
+    "%@ against need": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "%@ относительно нормы"}} } },
+    "In progress": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Выполняется"}} } },
+    "Not started": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Не начат"}} } },
+    "Turn on breathing haptics": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Включите вибрацию дыхания"}} } },
+    "Today’s Brief": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Бриф на сегодня"}} } },
+    "%@ receives Charge, sleep, HRV and workouts with sport, duration, distance and heart rate when you ask.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "%@ получает Заряд, сон, ВСР и тренировки с видом спорта, длительностью, дистанцией и пульсом, когда вы спрашиваете."}} } },
     "Copied": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Скопировано"}} } },
     "Just Now": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "только что"}} } },
     "Set Up Later": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Настроить позже"}} } },
@@ -62837,7 +62848,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Расстояние должно быть в диапазоне 0–1 000 km."
+            "value": "Расстояние должно быть в диапазоне 0–1 000 км."
           }
         },
         "zh-Hans": {

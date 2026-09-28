@@ -295,6 +295,8 @@ private struct LiveDayCard: View {
                         width: .fixed(6))
                     .foregroundStyle(StrandPalette.healthHeart)
                     .cornerRadius(3)
+                    .accessibilityLabel(Text(verbatim: Self.hourSpan(h.hour)))
+                    .accessibilityValue(Text("\(Int(h.low.rounded()))–\(Int(max(h.high, h.low).rounded())) bpm"))
             }
         }
         .chartXScale(domain: 0...24)
@@ -325,6 +327,13 @@ private struct LiveDayCard: View {
     private static func hourLabel(_ hour: Int) -> String {
         let date = Calendar.current.date(bySettingHour: hour, minute: 0, second: 0, of: Date()) ?? Date()
         return date.formatted(.dateTime.hour())
+    }
+
+    /// "09:00–10:00": the clock hour a bar covers, as VoiceOver reads it.
+    private static func hourSpan(_ hour: Int) -> String {
+        let start = Calendar.current.date(bySettingHour: hour, minute: 0, second: 0, of: Date()) ?? Date()
+        let style = Date.FormatStyle().hour().minute().locale(AppLanguage.activeLocale)
+        return "\(start.formatted(style))–\(start.addingTimeInterval(3600).formatted(style))"
     }
 }
 

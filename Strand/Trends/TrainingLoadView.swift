@@ -40,11 +40,7 @@ struct TrainingLoadView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Picker("", selection: $range) {
-                    ForEach(MetricHealthRange.allCases) { Text($0.label).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
+                SpokenSegmentedPicker(selection: $range, options: MetricHealthRange.allCases, label: \.label, spoken: \.spokenName)
                 .padding(.bottom, 4)
                 if let result {
                     if result.isAvailable {

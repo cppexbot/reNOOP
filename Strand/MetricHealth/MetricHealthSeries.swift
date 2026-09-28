@@ -22,6 +22,16 @@ enum MetricHealthRange: String, CaseIterable, Identifiable {
         }
     }
 
+    /// The segment as VoiceOver reads it: the whole word, not the letter.
+    var spokenName: String {
+        switch self {
+        case .week: return String(localized: "Week")
+        case .month: return String(localized: "Month")
+        case .sixMonths: return String(localized: "6 Months")
+        case .year: return String(localized: "Year")
+        }
+    }
+
     /// What one chart mark stands for.
     var bucket: Calendar.Component {
         switch self {
@@ -195,6 +205,25 @@ enum MetricHealthSeries {
             f.locale = locale
             f.setLocalizedDateFormatFromTemplate("LLLLy")
             return f.string(from: point.start)
+        }
+    }
+
+    /// A mark as VoiceOver names it: the weekday, day and month spelled out; a week's first and last
+    /// days; or a month and its year.
+    static func spokenPointLabel(_ point: MetricHealthPoint, range: MetricHealthRange,
+                                 calendar: Calendar, locale: Locale) -> String {
+        switch range.bucket {
+        case .day:
+            let f = DateFormatter()
+            f.calendar = calendar
+            f.locale = locale
+            f.setLocalizedDateFormatFromTemplate("EEEEdMMMM")
+            return f.string(from: point.start)
+        case .weekOfYear:
+            let last = calendar.date(byAdding: .day, value: -1, to: point.end) ?? point.end
+            return interval(point.start, last, template: "dMMMMy", calendar: calendar, locale: locale)
+        default:
+            return pointLabel(point, range: range, calendar: calendar, locale: locale)
         }
     }
 

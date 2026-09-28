@@ -35,6 +35,16 @@ enum SleepRange: String, CaseIterable, Identifiable {
         case .sixMonths: return String(localized: "sleep.range.sixMonths", defaultValue: "6M")
         }
     }
+
+    /// The segment as VoiceOver reads it: the whole word, not the letter.
+    var spokenName: String {
+        switch self {
+        case .day: return String(localized: "Day")
+        case .week: return String(localized: "Week")
+        case .month: return String(localized: "Month")
+        case .sixMonths: return String(localized: "6 Months")
+        }
+    }
 }
 
 /// One bar of a range chart: a night (week / month) or a week's average (6 months).

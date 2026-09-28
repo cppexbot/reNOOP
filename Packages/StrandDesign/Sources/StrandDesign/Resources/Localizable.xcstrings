@@ -1,6 +1,8 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Heart rate": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Пульс"}} } },
+    "average %@": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "среднее %@"}} } },
     "%lld days ago": {
       "localizations": {
         "de": {

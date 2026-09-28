@@ -47,8 +47,42 @@ struct SleepRangeChart: View {
         }
         // Axis labels sit in fixed gutters: they follow Dynamic Type only as far as the gutters hold them.
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(window.averageAsleepMin.map { SleepFormat.duration(minutes: $0) } ?? ""))
+        .accessibilityElement(children: .contain)
+        .modifier(AccessibilityLabelIfPresent(text: window.averageAsleepMin.map {
+            String(localized: "Average \(SleepFormat.duration(minutes: $0))")
+        }))
+        .accessibilityChildren { barElements }
+    }
+
+    // MARK: - VoiceOver
+
+    /// One element per slot, laid out as the slots are, for the bars VoiceOver steps through.
+    private var barElements: some View {
+        let bySlot = Dictionary(window.bars.map { ($0.slot, $0) }, uniquingKeysWith: { a, _ in a })
+        return HStack(spacing: 0) {
+            ForEach(Array(window.slotStarts.indices), id: \.self) { slot in
+                if let bar = bySlot[slot] {
+                    Rectangle()
+                        .accessibilityLabel(Text(verbatim: barDate(bar)))
+                        .accessibilityValue(Text(verbatim:
+                            "\(clockLabel(bar.onsetMin))–\(clockLabel(bar.wakeMin)), \(SleepFormat.duration(minutes: bar.asleepMin))"))
+                } else {
+                    Color.clear.accessibilityHidden(true)
+                }
+            }
+        }
+    }
+
+    /// A night's weekday, day and month; a 6-month bar's week.
+    private func barDate(_ bar: SleepRangeBar) -> String {
+        let locale = AppLanguage.activeLocale
+        guard window.range == .sixMonths else {
+            return bar.start.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(locale))
+        }
+        let f = DateIntervalFormatter()
+        f.locale = locale
+        f.dateTemplate = "dMMMM"
+        return f.string(from: bar.start, to: Calendar.current.date(byAdding: .day, value: 6, to: bar.start) ?? bar.start)
     }
 
     // MARK: - Drawing
@@ -176,6 +210,19 @@ struct SleepRangeChart: View {
                 : cal.component(.month, from: start) != cal.component(.month, from: window.slotStarts[slot - 1])
             guard opensMonth else { return nil }
             return start.formatted(.dateTime.month(.abbreviated).locale(locale))
+        }
+    }
+}
+
+/// A label only when there is something to say: an empty one would still make VoiceOver stop on it.
+struct AccessibilityLabelIfPresent: ViewModifier {
+    let text: String?
+
+    func body(content: Content) -> some View {
+        if let text, !text.isEmpty {
+            content.accessibilityLabel(Text(verbatim: text))
+        } else {
+            content
         }
     }
 }

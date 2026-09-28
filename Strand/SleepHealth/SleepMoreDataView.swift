@@ -98,11 +98,7 @@ struct SleepMoreDataView: View {
 
     private var chartSection: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Picker("", selection: $range) {
-                ForEach(SleepRange.allCases) { Text($0.label).tag($0) }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
+            SpokenSegmentedPicker(selection: $range, options: SleepRange.allCases, label: \.label, spoken: \.spokenName)
             .padding(.top, NoopMetrics.space2)
             .padding(.bottom, NoopMetrics.space4)
 
@@ -621,10 +617,14 @@ private struct SleepDebtNightsCard: View {
                             .lineLimit(1)
                             .minimumScaleFactor(0.7)
                     }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(Text(verbatim: Self.spokenDay(night.day)))
+                    .accessibilityValue(Text(Self.spokenDelta(night.deltaMin)))
                 }
             }
             .frame(height: 80)
-            .accessibilityHidden(true)
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel(Text("Sleep Debt"))
             Text("Each bar is a night against the \(SleepFormat.duration(minutes: ledger.needMin)) sleep debt is counted from: above the line met it, below fell short.")
                 .font(StrandFont.footnote)
                 .foregroundStyle(StrandPalette.textSecondary)
@@ -639,5 +639,17 @@ private struct SleepDebtNightsCard: View {
     static func dayLabel(_ key: String) -> String {
         guard let d = dayParser.date(from: key) else { return "" }
         return d.formatted(.dateTime.day().locale(AppLanguage.activeLocale))
+    }
+
+    /// The night's weekday, day and month, as VoiceOver reads a bar.
+    static func spokenDay(_ key: String) -> String {
+        guard let d = dayParser.date(from: key) else { return key }
+        return d.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(AppLanguage.activeLocale))
+    }
+
+    /// "+25 min against need" / "−1 h 10 min against need".
+    static func spokenDelta(_ deltaMin: Double) -> String {
+        let signed = (deltaMin < 0 ? "−" : "+") + SleepFormat.duration(minutes: abs(deltaMin))
+        return String(localized: "\(signed) against need")
     }
 }
