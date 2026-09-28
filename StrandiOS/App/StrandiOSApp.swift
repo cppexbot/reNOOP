@@ -1,5 +1,6 @@
 #if os(iOS)
 import SwiftUI
+import ActivityKit
 import StrandDesign
 import UserNotifications
 
@@ -32,6 +33,8 @@ struct StrandiOSApp: App {
     /// activity is suppressed rather than stacked beside it. Built in `init`, where the strap log it
     /// writes to exists.
     @State private var liftActivity: LiftLiveActivityController
+    /// The interval timer's banner, laid out as the Clock app's timer. Follows the app's one timer.
+    @State private var intervalActivity: IntervalLiveActivityController
     /// The live gym session. Owned HERE, at the app root, rather than by the screen that shows it:
     /// swiping the workout sheet away must not stop the clock, silence the strap or drop the
     /// double-tap handler. See `LiftSessionController`.
@@ -107,7 +110,11 @@ struct StrandiOSApp: App {
         // The live heart rate banner makes room only for the Lift Log banner actually on screen, which carries the
         // heart rate itself — not for a sync (`LiveHRBannerLifecycle`).
         let liveActivity = LiveActivityController()
-        liveActivity.follow(model, standsAside: { [weak liftActivity] in liftActivity?.isShowing == true })
+        let intervalActivity = IntervalLiveActivityController()
+        _intervalActivity = State(initialValue: intervalActivity)
+        liveActivity.follow(model, standsAside: { [weak liftActivity, weak intervalActivity] in
+            liftActivity?.isShowing == true || intervalActivity?.isShowing == true
+        })
         _liveActivity = State(initialValue: liveActivity)
         // A gym session keeps ONE banner on the Lock Screen, its own — as the live-HR banner already
         // stands aside for it. A sync started in the foreground mid-session starts no sync banner.
@@ -119,6 +126,14 @@ struct StrandiOSApp: App {
         liftSession.resumeSaved()
         let intervals = IntervalTimerRunner()
         _intervals = StateObject(wrappedValue: intervals)
+        intervalActivity.follow(intervals)
+        // The Lock Screen banners' buttons run here, in the app (`LiveActivityIntents`).
+        LiveActivityActions.handler = { [weak liftSession, weak intervals] action in
+            switch action {
+            case .liftSetDone: liftSession?.advance()
+            case .intervalsToggle: intervals?.toggleRunning()
+            }
+        }
         _nowRunning = StateObject(wrappedValue: NowRunning(model: model, lift: liftSession, intervals: intervals))
         #if DEBUG
         DemoRunning.start(model: model, lift: liftSession, intervals: intervals)
@@ -219,6 +234,9 @@ struct StrandiOSApp: App {
                 .environmentObject(liftSession)
                 .environmentObject(intervals)
                 .environmentObject(nowRunning)
+                #if DEBUG
+                .task { await DemoActivity.start() }
+                #endif
                 // v5 L3: the shared stress check-in nudge surface, so the Breathe screen's passive
                 // card observes the SAME instance the central detector (AppModel.evaluateStress) posts to.
                 .environment(\.stressNudgeCenter, model.stressNudgeCenter)
@@ -578,6 +596,33 @@ enum DemoRunning {
         default:
             if model.activeWorkout != nil { model.discardWorkout() }
             if lift.isActive { lift.discard() }
+        }
+    }
+}
+
+/// DEBUG-only: `--demo-activity hr|sync` puts that banner on the Lock Screen with sample content, since the
+/// simulator has no strap to start either.
+enum DemoActivity {
+    @MainActor
+    static func start() async {
+        let args = CommandLine.arguments
+        guard let i = args.firstIndex(of: "--demo-activity"), i + 1 < args.count else { return }
+        // iOS starts a banner only for the app on screen; give the launch a moment to become active.
+        try? await Task.sleep(for: .seconds(2))
+        switch args[i + 1] {
+        case "hr":
+            _ = try? Activity.request(
+                attributes: NOOPActivityAttributes(title: String(localized: "Live HR")),
+                content: ActivityContent(state: .init(bpm: 72, recovery: 67, bonded: true, effort: 12),
+                                         staleDate: Date().addingTimeInterval(3600)))
+        case "sync":
+            _ = try? Activity.request(
+                attributes: SyncActivityAttributes(title: String(localized: "Strap sync")),
+                content: ActivityContent(state: .init(phase: .syncing, chunks: 12,
+                                                      startedAt: Date().addingTimeInterval(-42),
+                                                      status: String(localized: "Syncing…"),
+                                                      detail: nil), staleDate: nil))
+        default: break
         }
     }
 }

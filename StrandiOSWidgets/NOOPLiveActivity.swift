@@ -3,7 +3,9 @@ import SwiftUI
 import ActivityKit
 import StrandDesign
 
-/// Live Activity for an active live-HR session — shown on the Lock Screen and in the Dynamic Island.
+/// Live Activity for an active live-HR session — shown on the Lock Screen and in the Dynamic Island, on the
+/// same near-black card as the workout banners: the heart on its red disc, the heart rate large, and the day's
+/// Charge and Effort as two small columns.
 struct NOOPLiveActivity: Widget {
     /// The heart rate to draw: none once iOS has marked the banner stale. Each push is fresh for 30 s
     /// (`LiveActivityController.staleAfter`) and NOOP re-pushes a steady number well inside that, so a stale banner
@@ -15,89 +17,74 @@ struct NOOPLiveActivity: Widget {
 
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: NOOPActivityAttributes.self) { context in
-            // Lock Screen / banner presentation.
-            HStack(spacing: 14) {
-                Image(systemName: "waveform.path.ecg")
-                    .font(.title2)
-                    .foregroundStyle(StrandPalette.healthHeart)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(context.attributes.title)
-                        .font(.caption).foregroundStyle(StrandPalette.textSecondary)
-                    Text("\(Self.shownBpm(context).map(String.init) ?? "–") bpm")
-                        .font(.system(size: 26, weight: .bold))
-                        .foregroundStyle(StrandPalette.textPrimary)
+            HStack(spacing: 12) {
+                ActivityDisc(symbol: "heart.fill", tint: ActivityStyle.heart)
+                VStack(alignment: .leading, spacing: 0) {
+                    // The Heart Rate app's own name for it: shorter than the session title, which it stands for.
+                    Text("Heart Rate")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(ActivityStyle.heart)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                    Text(Self.shownBpm(context).map(String.init) ?? "–")
+                        .font(.system(size: 34, weight: .semibold))
+                        .monospacedDigit()
+                        .foregroundStyle(.white)
                 }
-                Spacer()
-                // Charge + Effort (#446) on the banner, mirroring the Dynamic Island expanded stats.
-                HStack(spacing: 12) {
-                    if let r = context.state.recovery {
-                        bannerStat(label: "Charge", value: "\(r)%")
-                    }
-                    if let e = context.state.effort {
-                        bannerStat(label: "Effort", value: "\(e)")
-                    }
-                }
+                Spacer(minLength: 8)
+                stats(context.state, valueSize: 20)
             }
-            .padding()
-            .activityBackgroundTint(nil)
-            .activitySystemActionForegroundColor(StrandPalette.textPrimary)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .activityCard()
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    Label("\(Self.shownBpm(context).map(String.init) ?? "–")", systemImage: "heart.fill")
-                        .foregroundStyle(StrandPalette.healthHeart)
+                    HStack(spacing: 10) {
+                        ActivityDisc(symbol: "heart.fill", tint: ActivityStyle.heart, size: 44)
+                        Text(Self.shownBpm(context).map(String.init) ?? "–")
+                            .font(.system(size: 30, weight: .semibold))
+                            .monospacedDigit()
+                    }
+                    .padding(.leading, 4)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    // Charge + Effort (#446) — one more stat alongside the leading live HR.
-                    HStack(spacing: 10) {
-                        if let r = context.state.recovery {
-                            statColumn(label: "Charge", value: "\(r)%")
-                        }
-                        if let e = context.state.effort {
-                            statColumn(label: "Effort", value: "\(e)")
-                        }
-                    }
-                }
-                DynamicIslandExpandedRegion(.bottom) {
-                    Text(context.attributes.title).font(.caption).foregroundStyle(.secondary)
+                    stats(context.state, valueSize: 17)
+                        .padding(.trailing, 4)
                 }
             } compactLeading: {
-                Image(systemName: "heart.fill").foregroundStyle(StrandPalette.healthHeart)
+                Image(systemName: "heart.fill").foregroundStyle(ActivityStyle.heart)
             } compactTrailing: {
-                Text("\(Self.shownBpm(context).map(String.init) ?? "–")")
+                Text(Self.shownBpm(context).map(String.init) ?? "–")
+                    .font(.system(size: 15, weight: .semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(ActivityStyle.heart)
             } minimal: {
-                Image(systemName: "heart.fill").foregroundStyle(StrandPalette.healthHeart)
+                Image(systemName: "heart.fill").foregroundStyle(ActivityStyle.heart)
             }
+            .keylineTint(ActivityStyle.heart)
         }
     }
-}
 
-/// Lock-Screen banner stat column (label over value). File-scope because the `ActivityConfiguration`
-/// content closure isn't a method of `NOOPLiveActivity`.
-///
-/// #759 - the label and value are CENTRE-aligned so each value sits directly under its own label. The
-/// old `.trailing` alignment right-pinned both to the column's edge: when the value was narrower than
-/// the label (e.g. "12" under "Effort") it drifted to the label's right edge instead of under it, which
-/// read as "the number doesn't line up with its label". `fixedSize` stops either line truncating so the
-/// pairing is never clipped at narrow widths.
-@ViewBuilder
-private func bannerStat(label: String, value: String) -> some View {
-    VStack(alignment: .center, spacing: 2) {
-        Text(label).font(.caption2).foregroundStyle(StrandPalette.textSecondary)
-        Text(value).font(.headline).foregroundStyle(StrandPalette.textPrimary)
+    /// Charge + Effort (#446), each value centred under its own label (#759), `fixedSize` so neither clips.
+    private func stats(_ state: NOOPActivityAttributes.ContentState, valueSize: CGFloat) -> some View {
+        HStack(spacing: 14) {
+            if let r = state.recovery { stat("Charge", "\(r)%", valueSize) }
+            if let e = state.effort { stat("Effort", "\(e)", valueSize) }
+        }
     }
-    .multilineTextAlignment(.center)
-    .fixedSize()
-}
 
-/// Dynamic Island expanded-region stat column (label over value). File-scope for the same reason as
-/// `bannerStat`. #759 - centre-aligned + `fixedSize` for the same value-under-its-label fix as the banner.
-@ViewBuilder
-private func statColumn(label: String, value: String) -> some View {
-    VStack(alignment: .center, spacing: 1) {
-        Text(label).font(.caption2).foregroundStyle(.secondary)
-        Text(value).font(.headline)
+    private func stat(_ label: LocalizedStringKey, _ value: String, _ valueSize: CGFloat) -> some View {
+        VStack(spacing: 1) {
+            Text(label)
+                .font(.system(size: 13))
+                .foregroundStyle(ActivityStyle.secondary)
+            Text(value)
+                .font(.system(size: valueSize, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(.white)
+        }
+        .multilineTextAlignment(.center)
+        .fixedSize()
     }
-    .multilineTextAlignment(.center)
-    .fixedSize()
 }

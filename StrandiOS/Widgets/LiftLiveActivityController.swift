@@ -160,6 +160,7 @@ final class LiftLiveActivityController {
                 lastPush = Date()
             } catch {
                 activity = nil
+                log("Lift Log: iOS refused the Lock Screen banner — \(error.localizedDescription)")
             }
             isStarting = false
             // A banner requested just now carries no alert: there was nothing on the Lock Screen to light.

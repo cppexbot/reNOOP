@@ -371,6 +371,9 @@ targets:
           - "Info.plist"
           - "NOOPWidgets.entitlements"
       - path: StrandiOSShared
+      # The app's string catalog, so the banners' and widgets' own labels ("Charge", "Effort", …) follow the
+      # phone's language instead of staying English.
+      - path: Strand/Resources/Localizable.xcstrings
     info:
       path: StrandiOSWidgets/Info.plist
       properties:
