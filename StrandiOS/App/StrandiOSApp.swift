@@ -59,6 +59,9 @@ struct StrandiOSApp: App {
     @AppStorage(UnitPrefs.systemKey) private var unitSystemRaw = UnitSystem.metric.rawValue
 
     init() {
+        #if DEBUG
+        AccessibilityDump.scheduleIfRequested()
+        #endif
         // #1008: pin the pre-change Overnight-only default for existing installs before
         // anything reads it. Idempotent; a no-op on fresh installs and after the first launch.
         PuffinExperiment.migrateContinuousHrvOvernightDefault()
@@ -486,29 +489,37 @@ private struct iOSRootView: View {
     }
 
     private var shell: some View {
-        ZStack {
+        let termsGate = acceptedTerms != Terms.currentVersion && !demoBypass
+        let onboardingGate = !onboarded && !demoBypass
+        return ZStack {
             RootTabView(homeScreenQuickActionsEnabled:
                 demoBypass || (onboarded && acceptedTerms == Terms.currentVersion
                     && automaticLaunchSheetResolved))
-            if !onboarded && !demoBypass {
+                // CR-7: the gates are modal — VoiceOver, Switch Control and Full Keyboard Access must not
+                // reach the tabs underneath before the terms are accepted.
+                .accessibilityHidden(termsGate || onboardingGate)
+            if onboardingGate {
                 OnboardingWizard(onFinished: {
                     onboarded = true
                     // A brand-new user just saw the expectations in onboarding — don't also pop the
                     // changelog at them; mark them current.
                     lastSeenChangelog = AppChangelog.currentVersion
                 })
+                .accessibilityHidden(termsGate)
+                .accessibilityAddTraits(.isModal)
                 .transition(.opacity)
                 .zIndex(1)
             }
             // Terms acknowledgment gate — over EVERYTHING (before onboarding/pairing/Bluetooth) until
             // the current terms version is accepted; re-appears if the terms materially change.
-            if acceptedTerms != Terms.currentVersion && !demoBypass {
+            if termsGate {
                 TermsGateView(onAccept: {
                     // Keep any external action behind the gate while the accepted-terms change decides
                     // whether What's New must present next. This write must precede acceptedTerms.
                     automaticLaunchSheetResolved = false
                     acceptedTerms = Terms.currentVersion
                 })
+                    .accessibilityAddTraits(.isModal)
                     .transition(.opacity)
                     .zIndex(2)
             }

@@ -12,8 +12,11 @@ struct ContentView: View {
     @State private var showWhatsNew = false
 
     var body: some View {
-        ZStack {
+        let termsGate = acceptedTerms != Terms.currentVersion
+        return ZStack {
             RootView()
+                // CR-7: the gates are modal to assistive technologies too.
+                .accessibilityHidden(termsGate || !onboarded)
             if !onboarded {
                 OnboardingWizard(onFinished: {
                     onboarded = true
@@ -21,16 +24,19 @@ struct ContentView: View {
                     // changelog at them; mark them current.
                     lastSeenChangelog = AppChangelog.currentVersion
                 })
+                .accessibilityHidden(termsGate)
+                .accessibilityAddTraits(.isModal)
                 .transition(.opacity)
                 .zIndex(1)
             }
             // Terms acknowledgment gate — over EVERYTHING (before onboarding/pairing/Bluetooth) until
             // the current terms version is accepted; re-appears if the terms materially change.
-            if acceptedTerms != Terms.currentVersion {
+            if termsGate {
                 TermsGateView(onAccept: {
                     acceptedTermsAt = ISO8601DateFormatter().string(from: Date())
                     acceptedTerms = Terms.currentVersion
                 })
+                    .accessibilityAddTraits(.isModal)
                     .transition(.opacity)
                     .zIndex(2)
             }
