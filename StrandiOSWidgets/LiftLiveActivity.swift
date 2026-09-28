@@ -8,7 +8,7 @@ import StrandDesign
 ///
 /// It carries what the tab bar's mini-player does, resolved by the same `LiftSessionController.presentation`:
 /// the exercise, the set and its numbers, the set coming up, the heart rate and the clock — green while a set is
-/// worked, the rest's yellow through the rest.
+/// worked, the rest's cyan through the rest.
 ///
 /// THE CLOCK TICKS WITHOUT THE APP. Both timers are `Text(timerInterval:)`, driven by dates in the content
 /// state, so the Lock Screen counts on its own between pushes. The app only sends a new state when something
@@ -18,6 +18,8 @@ struct LiftLiveActivity: Widget {
         ActivityConfiguration(for: LiftActivityAttributes.self) { context in
             lockScreen(context.state)
                 .activityCard()
+                // The running session, as tapping the mini-player opens it.
+                .widgetURL(WidgetLink.workout.url)
         } dynamicIsland: { context in
             let state = context.state
             return DynamicIsland {
@@ -44,7 +46,7 @@ struct LiftLiveActivity: Widget {
                         Spacer(minLength: 6)
                         heartRate(state)
                     }
-                    .font(.system(size: 13))
+                    .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(ActivityStyle.secondary)
                     .padding(.horizontal, 8)
                 }
@@ -66,13 +68,14 @@ struct LiftLiveActivity: Widget {
                 Image(systemName: "dumbbell.fill").foregroundStyle(tint(state))
             }
             .keylineTint(tint(state))
+            .widgetURL(WidgetLink.workout.url)
         }
     }
 
     /// The Dynamic Island's compact face, shared by its heart rate and its clock.
     private static let islandFont = Font.system(size: 15, weight: .semibold)
 
-    /// Green while working, yellow through the rest — the sheet's and the mini-player's colour language.
+    /// Green while working, cyan through the rest — the sheet's and the mini-player's colour language.
     private func tint(_ state: LiftActivityAttributes.ContentState) -> Color {
         state.isResting ? ActivityStyle.rest : ActivityStyle.exercise
     }
@@ -106,12 +109,12 @@ struct LiftLiveActivity: Widget {
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(.white)
                 Text(statusLine(state))
-                    .font(.system(size: 15))
+                    .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(ActivityStyle.secondary)
                 // The set coming up, arriving pre-localized from the app. The set number comes before the
                 // exercise, so the tail truncation a long name needs cuts the name and keeps the number.
                 Text(state.next)
-                    .font(.system(size: 13))
+                    .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(ActivityStyle.secondary)
                     .truncationMode(.tail)
             }

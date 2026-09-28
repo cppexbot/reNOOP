@@ -33,6 +33,9 @@ enum IllnessNotifier {
             content.title = title
             content.body = body
             content.sound = .default
+            // Health readings: with previews hidden (iOS's default on a locked phone) the Lock Screen shows the
+            // category's neutral placeholder instead of the numbers.
+            content.categoryIdentifier = NotificationPresenter.healthCategoryId
             center.add(UNNotificationRequest(identifier: "illness-watch",
                                              content: content, trigger: nil))
         }

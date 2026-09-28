@@ -149,6 +149,44 @@ public struct WidgetSnapshot: Codable, Equatable {
                        effortDisplay: "38", effortWhoop: false)
     }
 
+    /// The gallery's stand-in for the TRACE widgets: `placeholder` plus three hours of heart rate and
+    /// today's stress curve, so the heart-rate and stress widgets preview with a chart rather than a dash.
+    /// Preview-only, like `placeholder`: never shown for a real timeline. The trace ends on the headline
+    /// bpm, so the sample cannot show a number that disagrees with its own last point.
+    public static func previewSample(now: Date = Date(), calendar: Calendar = .current) -> WidgetSnapshot {
+        var s = placeholder
+        s.updated = now
+        let lastBucket = Int64(now.timeIntervalSince1970) / HrTrace.bucketSec * HrTrace.bucketSec
+        let minutes = Int(HrTrace.windowSec / HrTrace.bucketSec)
+        s.hrSeries = (0..<minutes).map { i in
+            let wave = Int((6 * sin(Double(i - (minutes - 1)) / 14)).rounded())
+            let walk = (100..<125).contains(i) ? 34 : 0
+            return HrPoint(ts: lastBucket - Int64(minutes - 1 - i) * HrTrace.bucketSec, bpm: 58 + wave + walk)
+        }
+        s.bpm = s.hrSeries?.last?.bpm
+        let dayStart = calendar.startOfDay(for: now)
+        let hour = max(1, calendar.dateComponents([.hour], from: dayStart, to: now).hour ?? 0)
+        let levels: [Double] = [0.6, 0.9, 1.4, 1.8, 2.3, 1.7, 1.2, 1.5, 2.1, 1.3, 0.8]
+        let first = max(0, hour - (levels.count - 1))
+        s.stressSeries = (first...hour).enumerated().map { index, h in
+            StressPoint(ts: Int64(dayStart.timeIntervalSince1970) + Int64(h) * 3_600,
+                        level: levels[index % levels.count])
+        }
+        s.stressDay = localDayNumber(now, calendar: calendar)
+        return s
+    }
+
+    /// The heart rate a widget may print at `now`, age-checked by `HrDisplay`: nil once the newest reading is
+    /// past `HrDisplay.staleCap`, `stale` once it is past the live window. The ONE resolver every widget
+    /// family uses, so the NOOP widget and the heart-rate widget cannot disagree about the same reading.
+    ///
+    /// Anchored on the newest point of the STORED trace, not of a copy pruned to the window: a reading older
+    /// than the window prunes to an empty series, and `HrDisplay` reads an empty series as a first reading,
+    /// which would print an hours-old number as current.
+    public func shownHeartRate(at now: Date) -> (bpm: Int?, stale: Bool) {
+        HrDisplay.resolve(bpm: bpm, newestPointTs: hrSeries?.map(\.ts).max(), now: now)
+    }
+
     /// Honest runtime state when the app has not published a readable snapshot yet. Unlike
     /// `placeholder`, this is user-visible and must never imply that sample data is real.
     static var unavailable: WidgetSnapshot {
@@ -239,5 +277,41 @@ public struct WidgetSnapshot: Codable, Equatable {
                                             calendar: Calendar = .current) -> Bool {
         guard let previous else { return true }
         return !calendar.isDate(previous.updated, inSameDayAs: now)
+    }
+}
+
+/// Where a tap on a widget or a Live Activity opens NOOP (HIG: a widget interaction opens the app at the
+/// right location). Shared by the extension, which stamps each surface with its URL, and the app, whose
+/// `.onOpenURL` resolves the host back to a route — one list, so the two cannot name a route differently.
+///
+/// Same `noop` scheme as the Shortcut import (`noop://import-health`) and the Oura OAuth callback
+/// (`noop://oura/callback`); neither host is a route here, so both keep their own handling.
+public enum WidgetLink: String, CaseIterable {
+    /// The NOOP widget: the Summary tab.
+    case today
+    /// The heart-rate widget and the heart-rate Live Activity: Live Heart Rate.
+    case heartRate = "heart-rate"
+    /// The stress widget: the Day Stress metric page.
+    case stress
+    /// The Coach brief widget: Coach.
+    case coach
+    /// The gym-session Live Activity: the running session, as the mini-player opens it.
+    case workout
+    /// The interval timer's Live Activity: the running timer.
+    case intervals
+    /// The strap-sync Live Activity: Devices, where the strap and its sync live.
+    case devices
+
+    public static let scheme = "noop"
+
+    /// `noop://<route>`. Built from a fixed ASCII scheme and host, so it always parses.
+    public var url: URL {
+        URL(string: "\(WidgetLink.scheme)://\(rawValue)") ?? URL(fileURLWithPath: "/")
+    }
+
+    /// The route a `noop://` URL names, or nil for any other URL (including `import-health` and `oura`).
+    public init?(url: URL) {
+        guard url.scheme?.lowercased() == WidgetLink.scheme, let host = url.host?.lowercased() else { return nil }
+        self.init(rawValue: host)
     }
 }

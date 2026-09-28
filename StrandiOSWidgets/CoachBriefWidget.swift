@@ -8,7 +8,7 @@ import StrandDesign
 /// - The widget reads **stored** brief text from the App Group — it NEVER calls the network.
 ///   The brief is generated on a schedule by `CoachBriefScheduler` (K5) and mirrored into the
 ///   App Group via `publishToWidget`. The widget just displays whatever text is there.
-/// - Tap → opens the Coach tab (via the app's URL scheme / deeplink).
+/// - Tap → opens Coach (`noop://coach`, `WidgetLink.coach`).
 /// - Supported families: `accessoryRectangular` (Lock Screen), `systemSmall` (Home Screen).
 ///   The Lock Screen accessory shows the first line; the Home Screen widget shows more.
 struct CoachBriefEntry: TimelineEntry {
@@ -34,9 +34,9 @@ struct CoachBriefProvider: TimelineProvider {
         )
     }
 
+    /// The gallery shows the sample brief, not "No brief yet" on an install that has not had one.
     func getSnapshot(in context: Context, completion: @escaping (CoachBriefEntry) -> Void) {
-        let entry = loadEntry()
-        completion(entry)
+        completion(context.isPreview ? placeholder(in: context) : loadEntry())
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<CoachBriefEntry>) -> Void) {
@@ -60,7 +60,15 @@ struct CoachBriefProvider: TimelineProvider {
 
 struct CoachBriefWidgetView: View {
     @Environment(\.widgetFamily) private var family
+    /// `.vibrant` on the Lock Screen, where the system desaturates a hue into an arbitrary grey: there the
+    /// header takes the two levels the system maps (`accentStyle`), as the NOOP widget's accessories do.
+    @Environment(\.widgetRenderingMode) private var renderingMode
     let entry: CoachBriefEntry
+
+    /// The Coach hue where colour survives; `.secondary` / `.primary` for the glyph / word where it does not.
+    private func accentStyle(_ level: HierarchicalShapeStyle) -> AnyShapeStyle {
+        renderingMode == .fullColor ? AnyShapeStyle(StrandPalette.healthBody) : AnyShapeStyle(level)
+    }
 
     var body: some View {
         if !entry.coachEnabled {
@@ -92,10 +100,10 @@ struct CoachBriefWidgetView: View {
             HStack(spacing: 4) {
                 Image(systemName: "sparkles")
                     .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(StrandPalette.healthBody)
+                    .foregroundStyle(accentStyle(.secondary))
                 Text("Coach")
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(StrandPalette.healthBody)
+                    .foregroundStyle(accentStyle(.primary))
                 Spacer(minLength: 0)
                 if let date = entry.briefDate {
                     Text(date, style: .time)
@@ -106,7 +114,9 @@ struct CoachBriefWidgetView: View {
             // No scale factor: widget text stays at 11 pt or larger (HIG); a long brief truncates.
             Text(briefDisplay)
                 .font(.caption2)
-                .foregroundStyle(StrandPalette.textPrimary)
+                .foregroundStyle(renderingMode == .fullColor
+                                 ? AnyShapeStyle(StrandPalette.textPrimary)
+                                 : AnyShapeStyle(HierarchicalShapeStyle.primary))
                 .lineLimit(3)
         }
     }
@@ -123,20 +133,19 @@ struct CoachBriefWidgetView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 Image(systemName: "sparkles")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(StrandPalette.healthBody)
+                    .foregroundStyle(accentStyle(.secondary))
                 Text("Coach Brief")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(StrandPalette.healthBody)
+                    .foregroundStyle(accentStyle(.primary))
                 Spacer()
             }
+            .font(.footnote.weight(.semibold))
             if entry.briefText == nil {
                 Text("No brief yet")
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.subheadline.weight(.medium))
                     .foregroundStyle(StrandPalette.textTertiary)
             } else {
                 Text(briefDisplay)
-                    .font(.system(size: 12))
+                    .font(.caption)
                     .foregroundStyle(StrandPalette.textPrimary)
                     .lineLimit(5)
             }
@@ -147,7 +156,9 @@ struct CoachBriefWidgetView: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(12)
+        // No padding of its own: the system's content margins already inset the widget. Type stops at the
+        // largest standard size, so five lines of brief still fit the fixed card.
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }
 
     // MARK: - Text helpers
@@ -174,14 +185,9 @@ struct CoachBriefWidget: Widget {
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: Self.kind, provider: CoachBriefProvider()) { entry in
-            if #available(iOS 17.0, *) {
-                CoachBriefWidgetView(entry: entry)
-                    .containerBackground(.background, for: .widget)
-            } else {
-                CoachBriefWidgetView(entry: entry)
-                    .padding()
-                    .background(.background)
-            }
+            CoachBriefWidgetView(entry: entry)
+                .containerBackground(.background, for: .widget)
+                .widgetURL(WidgetLink.coach.url)
         }
         .configurationDisplayName("Coach Brief")
         .description("Today's coaching brief at a glance. Tap to open Coach.")

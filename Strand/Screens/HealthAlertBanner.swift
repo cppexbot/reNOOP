@@ -18,21 +18,27 @@ struct HealthAlertBanner: View {
 
 /// The one wording of the semantic illness result, shared by the Summary notice and the system
 /// notification so the two cannot say different things. Never the analytics engine's English copy.
+///
+/// Worded as what the numbers did, not as a diagnosis: the signals are outside the wearer's range, which is
+/// what NOOP measured; whether they are unwell is theirs to say. The notification is also kept off the Lock
+/// Screen (`NotificationPresenter.healthCategoryId`), since these are health readings.
 enum HealthAlertCopy {
     static func title(_ alert: AppModel.HealthAlert) -> String {
         switch alert.message {
         case .raised:              return String(localized: "Signs of strain")
-        case .alreadyUnwellAgree:  return String(localized: "Your signals agree you're unwell")
+        case .alreadyUnwellAgree:  return String(localized: "Signals Outside Your Range")
         case .alreadyUnwell:       return String(localized: "You logged feeling unwell")
         default:                   return String(localized: "Nothing notable")
         }
     }
 
+    /// What moved, each with its own sign ("RHR +6, HRV −18%, Respiration up"). No "Up:" in front: HRV moves
+    /// illness-ward by DROPPING, so a lead word naming one direction mislabelled it. A plain comma list rather
+    /// than a ListFormatter "and", because each item is a reading, not a clause.
     static func message(_ alert: AppModel.HealthAlert) -> String {
-        guard alert.message == .raised else { return String(localized: "Take it easy today.") }
-        let formatter = ListFormatter()
-        formatter.locale = AppLanguage.activeLocale
-        let signals = formatter.string(from: alert.firedSignals) ?? alert.firedSignals.joined(separator: ", ")
-        return String(localized: "Up: \(signals). Take it easy today.")
+        guard alert.message == .raised, !alert.firedSignals.isEmpty else {
+            return String(localized: "Take it easy today.")
+        }
+        return alert.firedSignals.joined(separator: ", ")
     }
 }

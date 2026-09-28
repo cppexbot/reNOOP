@@ -3,14 +3,14 @@ import SwiftUI
 import ActivityKit
 import StrandDesign
 
-/// Live Activity for an active live-HR session — shown on the Lock Screen and in the Dynamic Island, on the
-/// same near-black card as the workout banners: the heart on its red disc, the heart rate large, and the day's
-/// Charge and Effort as two small columns.
+/// Live Activity for a recorded workout's heart rate — shown on the Lock Screen and in the Dynamic Island while the
+/// workout runs (`LiveHRBannerLifecycle`), on the same near-black card as the other workout banners: the heart on its
+/// red disc, the heart rate large, and the day's Charge and Effort as two small columns.
 struct NOOPLiveActivity: Widget {
-    /// The heart rate to draw: none once iOS has marked the banner stale. Each push is fresh for 30 s
-    /// (`LiveActivityController.staleAfter`) and NOOP re-pushes a steady number well inside that, so a stale banner
-    /// means the readings stopped — the strap off the wrist, or out of reach — even while NOOP itself is asleep and
-    /// cannot say so: iOS redraws the banner at the stale date on its own.
+    /// The heart rate to draw: none once iOS has marked the banner stale. Each push is fresh for
+    /// `LiveActivityController.staleAfter` (the widget's own `HrDisplay.staleCap`), and NOOP pushes the dash itself the
+    /// moment the strap goes quiet, so a stale banner means NOOP could not say so — asleep, or gone — and iOS redraws
+    /// the banner at the stale date on its own.
     static func shownBpm(_ context: ActivityViewContext<NOOPActivityAttributes>) -> Int? {
         context.isStale ? nil : context.state.bpm
     }
@@ -37,6 +37,7 @@ struct NOOPLiveActivity: Widget {
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
             .activityCard()
+            .widgetURL(WidgetLink.workout.url)
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
@@ -63,13 +64,14 @@ struct NOOPLiveActivity: Widget {
                 Image(systemName: "heart.fill").foregroundStyle(ActivityStyle.heart)
             }
             .keylineTint(ActivityStyle.heart)
+            .widgetURL(WidgetLink.workout.url)
         }
     }
 
     /// Charge + Effort (#446), each value centred under its own label (#759), `fixedSize` so neither clips.
     private func stats(_ state: NOOPActivityAttributes.ContentState, valueSize: CGFloat) -> some View {
         HStack(spacing: 14) {
-            if let r = state.recovery { stat("Charge", "\(r)%", valueSize) }
+            if let r = state.recovery { stat("Charge", r.formatted(.percent), valueSize) }
             if let e = state.effort { stat("Effort", "\(e)", valueSize) }
         }
     }
@@ -77,7 +79,7 @@ struct NOOPLiveActivity: Widget {
     private func stat(_ label: LocalizedStringKey, _ value: String, _ valueSize: CGFloat) -> some View {
         VStack(spacing: 1) {
             Text(label)
-                .font(.system(size: 13))
+                .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(ActivityStyle.secondary)
             Text(value)
                 .font(.system(size: valueSize, weight: .semibold))

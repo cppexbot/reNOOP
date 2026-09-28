@@ -19,7 +19,7 @@ struct SyncLiveActivity: Widget {
                         .foregroundStyle(.white)
                     if let detail = context.state.detail {
                         Text(detail)
-                            .font(.system(size: 15))
+                            .font(.system(size: 15, weight: .medium))
                             .foregroundStyle(ActivityStyle.secondary)
                     }
                 }
@@ -34,6 +34,7 @@ struct SyncLiveActivity: Widget {
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
             .activityCard()
+            .widgetURL(WidgetLink.devices.url)
         } dynamicIsland: { context in
             // ONE line, deliberately. iOS shows the expanded layout for a few seconds whenever an activity
             // starts and offers no way to start compact, so the only lever on that flash is how tall the
@@ -72,6 +73,7 @@ struct SyncLiveActivity: Widget {
                     .foregroundStyle(tint(context.state.phase))
             }
             .keylineTint(tint(context.state.phase))
+            .widgetURL(WidgetLink.devices.url)
         }
     }
 }

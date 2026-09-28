@@ -20,12 +20,14 @@ struct StressEntry: TimelineEntry {
 }
 
 struct StressProvider: TimelineProvider {
+    /// The gallery and the redacted placeholder draw a sample curve, not the honest-blank dash a real
+    /// timeline shows before the first scored hour: the gallery has to show what the widget is.
     func placeholder(in context: Context) -> StressEntry {
-        StressEntry(date: Date(), snap: nil)
+        StressEntry(date: Date(), snap: .previewSample())
     }
 
     func getSnapshot(in context: Context, completion: @escaping (StressEntry) -> Void) {
-        completion(StressEntry(date: Date(), snap: WidgetSnapshot.load()))
+        completion(StressEntry(date: Date(), snap: context.isPreview ? .previewSample() : WidgetSnapshot.load()))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<StressEntry>) -> Void) {
@@ -149,19 +151,18 @@ struct StressWidgetView: View {
             // Health's widget title row: the category glyph and name in its hue.
             HStack(spacing: 6) {
                 Image(systemName: "brain.head.profile")
-                    .font(.system(size: 12))
                 Text("Stress")
-                    .font(.system(size: 13, weight: .semibold))
             }
+            .font(.footnote.weight(.semibold))
             .foregroundStyle(StrandPalette.healthMind)
 
             HStack(alignment: .lastTextBaseline, spacing: 4) {
                 Text(latest.map { StressTrace.formatLevel($0) } ?? "—")
-                    .font(.system(size: 30, weight: .bold))
+                    .font(.title.weight(.bold))
                     .foregroundStyle(StrandPalette.textPrimary)
                 if latest != nil {
                     Text("of 3")
-                        .font(.system(size: 12))
+                        .font(.caption)
                         .foregroundStyle(StrandPalette.textSecondary)
                 }
                 if let stats, let peak = stats.peak.level {
@@ -175,7 +176,7 @@ struct StressWidgetView: View {
                         Text("Peak")
                         Text(verbatim: StressTrace.formatLevel(peak) + " · " + peakTime)
                     }
-                    .font(.system(size: 11))
+                    .font(.caption2)
                     .foregroundStyle(StrandPalette.textPrimary)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
@@ -231,6 +232,8 @@ struct StressWidgetView: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityText)
+        // A card of fixed height: its type stops at the largest standard size, as Health's widgets do.
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }
 
     /// One spoken sentence rather than a run of loose numbers, the same choice the heart-rate widget
@@ -312,14 +315,9 @@ struct StressWidget: Widget {
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: Self.kind, provider: StressProvider()) { entry in
-            if #available(iOS 17.0, *) {
-                StressWidgetView(entry: entry)
-                    .containerBackground(.background, for: .widget)
-            } else {
-                StressWidgetView(entry: entry)
-                    .padding()
-                    .background(.background)
-            }
+            StressWidgetView(entry: entry)
+                .containerBackground(.background, for: .widget)
+                .widgetURL(WidgetLink.stress.url)
         }
         .configurationDisplayName("Stress")
         .description("Today's stress as an hour-by-hour curve.")

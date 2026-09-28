@@ -40,6 +40,10 @@ struct NOOPWidgetView: View {
     let entry: NOOPEntry
 
     private var snap: WidgetSnapshot { entry.snapshot }
+    /// The heart rate this entry may print: age-checked by the same resolver the heart-rate widget uses, so an
+    /// hour-old reading shows "–" here too rather than passing for current. At the entry's date, because
+    /// WidgetKit renders an entry at ITS date.
+    private var bpm: Int? { snap.shownHeartRate(at: entry.date).bpm }
 
     var body: some View {
         switch family {
@@ -82,7 +86,7 @@ struct NOOPWidgetView: View {
     private var inlineText: String {
         var parts: [String] = []
         if let r = snap.recovery { parts.append("Charge \(r)%") }
-        if let b = snap.bpm { parts.append("\(b) bpm") }
+        if let b = bpm { parts.append("\(b) bpm") }
         return parts.isEmpty ? "NOOP" : parts.joined(separator: " · ")
     }
 
@@ -105,7 +109,7 @@ struct NOOPWidgetView: View {
         // the only reason to add it — squeezed underneath. The title is gone and the heart-rate line is
         // now conditional, so with no live HR the scores get the entire area.
         VStack(spacing: 2) {
-            if let bpm = snap.bpm {
+            if let bpm {
                 Text("\(bpm) bpm")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
@@ -172,17 +176,16 @@ struct NOOPWidgetView: View {
 
     // MARK: - Home Screen: systemSmall
 
-    /// Compact three-ring hero. Diameter is capped so three hard-framed circles fit the narrowest
-    /// systemSmall content width (SE ~128pt after padding) without overlapping — see review on #1022.
+    /// Compact three-ring hero. Diameter is capped so three hard-framed circles (40pt × 3 = 120) fit the
+    /// narrowest systemSmall content width without overlapping — see review on #1022. No padding of its own
+    /// and no header: the system's content margins already inset the widget, and padding on top of them
+    /// left 106 pt for those 120 pt of rings.
     private var small: some View {
         VStack(spacing: 6) {
-            headerRow
-            // 40pt × 3 = 120 ≤ 128 (SE) / 138 (15 Pro) content widths after 10pt padding.
             scoreRings(diameter: 40, lineWidth: 4, labelFont: .caption2.weight(.medium))
             Spacer(minLength: 0)
             vitalsFooter(compact: true)
         }
-        .padding(10)
     }
 
     // MARK: - Home Screen: systemMedium
@@ -190,12 +193,10 @@ struct NOOPWidgetView: View {
     /// Wider three-ring row with room for a fuller vitals footer (live HR + strap battery).
     private var medium: some View {
         VStack(spacing: 8) {
-            headerRow
             scoreRings(diameter: 72, lineWidth: 7, labelFont: .caption2)
             Spacer(minLength: 0)
             vitalsFooter(compact: false)
         }
-        .padding(12)
     }
 
     // MARK: - Home Screen: systemLarge
@@ -203,7 +204,6 @@ struct NOOPWidgetView: View {
     /// Rings on top, then the richer stat grid (HRV, RHR, live HR, battery) — "show me more".
     private var large: some View {
         VStack(alignment: .leading, spacing: 12) {
-            headerRow
             scoreRings(diameter: 88, lineWidth: 8, labelFont: .caption)
             Divider()
             HStack(alignment: .top, spacing: 0) {
@@ -213,32 +213,26 @@ struct NOOPWidgetView: View {
                 statCell("Rest HR", value: snap.restingHr.map { "\($0)" }, unit: "bpm",
                          name: "Resting heart rate",
                          spoken: snap.restingHr.map { "\($0) beats per minute" })
-                statCell("HR", value: snap.bpm.map { "\($0)" }, unit: "bpm",
+                statCell("HR", value: bpm.map { "\($0)" }, unit: "bpm",
                          name: "Heart rate",
-                         spoken: snap.bpm.map { "\($0) beats per minute" })
+                         spoken: bpm.map { "\($0) beats per minute" })
                 statCell("Battery", value: snap.batteryPct.map { "\($0)%" },
                          name: "Strap battery",
                          spoken: snap.batteryPct.map { "\($0) percent" })
             }
             Spacer(minLength: 0)
+            // When the numbers above were published, in place of the old connected/disconnected dot, which
+            // turned white in tinted and clear modes and said nothing a stale "–" does not.
+            if snap.updated != .distantPast {
+                Text(snap.updated, style: .time)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
         }
-        .padding(16)
     }
 
     // MARK: - Shared pieces
-
-    private var headerRow: some View {
-        HStack {
-            Text("NOOP")
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(StrandPalette.textSecondary)
-            Spacer()
-            Circle()
-                .fill(snap.bonded ? StrandPalette.settingsGreen : StrandPalette.settingsRed)
-                .frame(width: 8, height: 8)
-                .accessibilityLabel(snap.bonded ? Text("Connected") : Text("Disconnected"))
-        }
-    }
 
     /// The Today hero trio as static score rings (widget-safe: no draw-in animation / onAppear race).
     /// Order matches TodayView: Charge · Effort · Rest. Each cell is honest-null ("–") until scored.
@@ -293,8 +287,8 @@ struct NOOPWidgetView: View {
     /// entire problem: nothing here carries a text label, so the glyph is the only thing naming a number.
     private func vitalsFooter(compact: Bool) -> some View {
         HStack {
-            vital(symbol: "heart.fill", text: snap.bpm.map(String.init),
-                  name: "Heart rate", spoken: snap.bpm.map { "\($0) beats per minute" })
+            vital(symbol: "heart.fill", text: bpm.map(String.init),
+                  name: "Heart rate", spoken: bpm.map { "\($0) beats per minute" })
             Spacer()
             if !compact, let hrv = snap.hrv {
                 vital(symbol: "waveform.path.ecg", text: "\(hrv)",
@@ -391,6 +385,9 @@ private struct WidgetScoreRing: View {
                         .trim(from: 0, to: max(0.0001, clampedFraction))
                         .stroke(color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                         .rotationEffect(.degrees(-90))
+                        // Tinted and clear Home Screens draw the accent group in the tint, so the arc stays
+                        // distinct from its track instead of both turning the same white.
+                        .widgetAccentable()
                 }
                 Text(text ?? "–")
                     .font(StrandFont.pro(diameter * 0.34, weight: .bold))
@@ -419,17 +416,12 @@ struct NOOPWidget: Widget {
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: NOOPProvider()) { entry in
-            if #available(iOS 17.0, *) {
-                NOOPWidgetView(entry: entry)
-                    .containerBackground(.background, for: .widget)
-            } else {
-                NOOPWidgetView(entry: entry)
-                    .padding()
-                    .background(.background)
-            }
+            NOOPWidgetView(entry: entry)
+                .containerBackground(.background, for: .widget)
+                .widgetURL(WidgetLink.today.url)
         }
         .configurationDisplayName("NOOP")
-        .description("Charge, Effort and Rest as score rings, plus live HR and strap battery at a glance.")
+        .description("Charge, Effort and Rest as score rings, plus heart rate and strap battery at a glance.")
         .supportedFamilies([
             .systemSmall, .systemMedium, .systemLarge,
             .accessoryCircular, .accessoryInline, .accessoryRectangular

@@ -18,12 +18,14 @@ struct HeartRateEntry: TimelineEntry {
 }
 
 struct HeartRateProvider: TimelineProvider {
+    /// The gallery and the redacted placeholder draw a sample trace, not the honest-blank dash a real
+    /// timeline shows before the first reading: the gallery has to show what the widget is.
     func placeholder(in context: Context) -> HeartRateEntry {
-        HeartRateEntry(date: Date(), snap: nil)
+        HeartRateEntry(date: Date(), snap: .previewSample())
     }
 
     func getSnapshot(in context: Context, completion: @escaping (HeartRateEntry) -> Void) {
-        completion(HeartRateEntry(date: Date(), snap: WidgetSnapshot.load()))
+        completion(HeartRateEntry(date: Date(), snap: context.isPreview ? .previewSample() : WidgetSnapshot.load()))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<HeartRateEntry>) -> Void) {
@@ -106,9 +108,10 @@ struct HeartRateWidgetView: View {
     }
     private var stats: HrTrace.Stats? { HrTrace.stats(series) }
     /// Age-checked, so an hours-old reading is not printed as current. Without this the prune above made
-    /// the card incoherent: the trace emptied while the headline kept its confident number.
+    /// the card incoherent: the trace emptied while the headline kept its confident number. The snapshot's
+    /// one resolver, shared with the NOOP widget, so the two cannot print different heart rates.
     private var shown: (bpm: Int?, stale: Bool) {
-        HrDisplay.resolve(bpm: entry.snap?.bpm, newestPointTs: series.last?.ts, now: entry.date)
+        entry.snap?.shownHeartRate(at: entry.date) ?? (bpm: nil, stale: false)
     }
     /// The palette's HR zone-5 token, which resolves to exactly the hexes the Android widget carries as
     /// a local mirror (#C84E1E / #E0662F) — so the two widgets are the same colour rather than two
@@ -120,25 +123,23 @@ struct HeartRateWidgetView: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
                 Image(systemName: "heart.fill")
-                    .font(.system(size: 12))
-                    .foregroundStyle(accent)
                 Text("Heart rate")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(accent)
             }
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(accent)
 
             HStack(alignment: .lastTextBaseline, spacing: 4) {
                 Text(shown.bpm.map(String.init) ?? "—")
-                    .font(.system(size: 30, weight: .bold))
+                    .font(.title.weight(.bold))
                     .foregroundStyle(shown.stale ? StrandPalette.textSecondary : StrandPalette.textPrimary)
                 if shown.bpm != nil {
                     Text("bpm")
-                        .font(.system(size: 12))
+                        .font(.caption)
                         .foregroundStyle(StrandPalette.textSecondary)
                 }
                 if let stats {
                     Text("Min \(stats.min) • Max \(stats.max)")
-                        .font(.system(size: 11))
+                        .font(.caption2)
                         .foregroundStyle(StrandPalette.textPrimary)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
@@ -183,6 +184,8 @@ struct HeartRateWidgetView: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityText)
+        // A card of fixed height: its type stops at the largest standard size, as Health's widgets do.
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }
 
     /// One spoken sentence rather than a run of loose numbers. The Android twin had to settle for
@@ -245,14 +248,9 @@ struct HeartRateWidget: Widget {
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: Self.kind, provider: HeartRateProvider()) { entry in
-            if #available(iOS 17.0, *) {
-                HeartRateWidgetView(entry: entry)
-                    .containerBackground(.background, for: .widget)
-            } else {
-                HeartRateWidgetView(entry: entry)
-                    .padding()
-                    .background(.background)
-            }
+            HeartRateWidgetView(entry: entry)
+                .containerBackground(.background, for: .widget)
+                .widgetURL(WidgetLink.heartRate.url)
         }
         .configurationDisplayName("Heart Rate")
         .description("Live heart rate with the last three hours as a trace.")

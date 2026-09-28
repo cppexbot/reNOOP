@@ -20,9 +20,10 @@ struct IntervalLiveActivity: Widget {
                 }
                 .foregroundStyle(tint(context.state))
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 14)
             .padding(.vertical, 12)
             .activityCard()
+            .widgetURL(WidgetLink.intervals.url)
         } dynamicIsland: { context in
             let state = context.state
             return DynamicIsland {
@@ -49,12 +50,13 @@ struct IntervalLiveActivity: Widget {
                 ring(state)
             }
             .keylineTint(tint(state))
+            .widgetURL(WidgetLink.intervals.url)
         }
     }
 
-    /// Work in the stand hue, rest in the exercise green — the running screen's colours.
+    /// Work in the Exercise green, rest in the Stand cyan — the running screen's colours.
     private func tint(_ state: IntervalActivityAttributes.ContentState) -> Color {
-        state.isWork ? ActivityStyle.stand : ActivityStyle.exercise
+        state.isWork ? ActivityStyle.exercise : ActivityStyle.rest
     }
 
     private func control(_ state: IntervalActivityAttributes.ContentState, size: CGFloat) -> some View {
