@@ -100,14 +100,14 @@ struct CoachBriefWidgetView: View {
                 if let date = entry.briefDate {
                     Text(date, style: .time)
                         .font(.caption2)
-                        .foregroundStyle(StrandPalette.textTertiary)
+                        .foregroundStyle(.secondary)
                 }
             }
+            // No scale factor: widget text stays at 11 pt or larger (HIG); a long brief truncates.
             Text(briefDisplay)
-                .font(.system(size: 11))
+                .font(.caption2)
                 .foregroundStyle(StrandPalette.textPrimary)
                 .lineLimit(3)
-                .minimumScaleFactor(0.8)
         }
     }
 
@@ -139,13 +139,12 @@ struct CoachBriefWidgetView: View {
                     .font(.system(size: 12))
                     .foregroundStyle(StrandPalette.textPrimary)
                     .lineLimit(5)
-                    .minimumScaleFactor(0.8)
             }
             Spacer(minLength: 0)
             if let date = entry.briefDate {
                 Text(date, format: .dateTime.hour().minute())
                     .font(.caption2)
-                    .foregroundStyle(StrandPalette.textTertiary)
+                    .foregroundStyle(.secondary)
             }
         }
         .padding(12)

@@ -146,7 +146,6 @@ struct NOOPWidgetView: View {
             Text(text ?? "–")
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(scoreStyle(hasValue: text != nil, tint: tint))
-                .minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity)
         // An icon says nothing to VoiceOver, and the word it replaced was the only thing naming this
@@ -179,7 +178,7 @@ struct NOOPWidgetView: View {
         VStack(spacing: 6) {
             headerRow
             // 40pt × 3 = 120 ≤ 128 (SE) / 138 (15 Pro) content widths after 10pt padding.
-            scoreRings(diameter: 40, lineWidth: 4, labelFont: .system(size: 9, weight: .medium))
+            scoreRings(diameter: 40, lineWidth: 4, labelFont: .caption2.weight(.medium))
             Spacer(minLength: 0)
             vitalsFooter(compact: true)
         }
@@ -346,10 +345,10 @@ struct NOOPWidgetView: View {
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundStyle(value == nil ? StrandPalette.textTertiary : tint)
                 if let unit, value != nil {
-                    Text(unit).font(.caption2).foregroundStyle(StrandPalette.textTertiary)
+                    Text(unit).font(.caption2).foregroundStyle(.secondary)
                 }
             }
-            Text(label).font(.caption2).foregroundStyle(StrandPalette.textTertiary)
+            Text(label).font(.caption2).foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .ignore)
@@ -402,11 +401,11 @@ private struct WidgetScoreRing: View {
                     .padding(.horizontal, lineWidth + 2)
             }
             .frame(width: diameter, height: diameter)
+            // No scale factor: widget text stays at 11 pt or larger (HIG).
             Text(label)
                 .font(labelFont)
-                .foregroundStyle(StrandPalette.textTertiary)
+                .foregroundStyle(.secondary)
                 .lineLimit(1)
-                .minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .ignore)

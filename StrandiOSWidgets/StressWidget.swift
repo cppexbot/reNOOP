@@ -194,7 +194,7 @@ struct StressWidgetView: View {
                     VStack(alignment: .trailing) {
                         ForEach(Array(ticks.enumerated()), id: \.offset) { index, tick in
                             Text("\(tick)")
-                                .font(.system(size: 10))
+                                .font(.caption2)
                                 .foregroundStyle(StrandPalette.textSecondary)
                             if index < ticks.count - 1 { Spacer(minLength: 0) }
                         }
@@ -218,11 +218,11 @@ struct StressWidgetView: View {
                             Text(verbatim: " · ")
                             Text("Updated \(updated, format: .dateTime.hour().minute())")
                         }
-                        .font(.system(size: 10))
+                        .font(.caption2)
                         .foregroundStyle(StrandPalette.textSecondary)
                     } else {
                         Text("Updated \(updated, format: .dateTime.hour().minute())")
-                            .font(.system(size: 10))
+                            .font(.caption2)
                             .foregroundStyle(StrandPalette.textSecondary)
                     }
                     Spacer()
@@ -298,7 +298,7 @@ private struct StressTimeAxis: View {
                 ForEach(Array(ticks.enumerated()), id: \.offset) { i, ts in
                     Text(Date(timeIntervalSince1970: TimeInterval(ts)),
                          format: .dateTime.hour().minute())
-                        .font(.system(size: 9))
+                        .font(.caption2)
                         .foregroundStyle(StrandPalette.textSecondary)
                     if i < ticks.count - 1 { Spacer(minLength: 0) }
                 }
