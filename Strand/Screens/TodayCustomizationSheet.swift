@@ -239,11 +239,11 @@ struct TodayCustomizationSheet: View {
     private func customizationToolbar(showCancel: Bool) -> some ToolbarContent {
         if showCancel {
             ToolbarItem(placement: .cancellationAction) {
-                WorkoutSheetCloseButton(action: cancel)
+                SheetCloseButton(action: cancel)
             }
         }
         ToolbarItem(placement: .confirmationAction) {
-            WorkoutSheetConfirmButton(tint: StrandPalette.settingsBlue, action: save)
+            SheetConfirmButton(tint: StrandPalette.settingsBlue, action: save)
         }
     }
 }

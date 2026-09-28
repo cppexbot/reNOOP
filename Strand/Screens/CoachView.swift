@@ -100,6 +100,7 @@ struct CoachView: View {
                 Button { showSettings = true } label: {
                     Image(systemName: "gearshape")
                 }
+                .barGlyph()
                 .accessibilityLabel(Text("Coach settings"))
             }
         }

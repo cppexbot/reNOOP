@@ -49,7 +49,7 @@ struct WorkoutsHomeView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button { addingManual = true } label: { Image(systemName: "plus") }
-                    .tint(StrandPalette.textPrimary)
+                    .barGlyph()
                     .accessibilityLabel(Text("Add a workout"))
             }
             ToolbarItem(placement: .primaryAction) {
@@ -63,7 +63,7 @@ struct WorkoutsHomeView: View {
                 } label: {
                     Image(systemName: "ellipsis")
                 }
-                .tint(StrandPalette.textPrimary)
+                .barGlyph()
                 .accessibilityLabel(Text("More"))
             }
         }

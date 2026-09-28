@@ -62,7 +62,7 @@ struct CoachSettingsView: View {
             #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    WorkoutSheetCloseButton { dismiss() }
+                    SheetCloseButton { dismiss() }
                 }
             }
             .confirmationDialog("Clear conversation?", isPresented: $showClearConfirm, titleVisibility: .visible) {

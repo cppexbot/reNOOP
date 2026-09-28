@@ -108,9 +108,9 @@ struct LiftSetEditor: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { WorkoutSheetCloseButton { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { SheetCloseButton { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    WorkoutSheetConfirmButton {
+                    SheetConfirmButton {
                         save()
                         dismiss()
                     }

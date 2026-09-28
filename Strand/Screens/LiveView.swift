@@ -76,6 +76,7 @@ private struct LivePage: View {
                 } label: {
                     Image(systemName: "ellipsis")
                 }
+                .barGlyph()
                 .accessibilityLabel(Text("More"))
             }
         }

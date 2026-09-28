@@ -177,14 +177,14 @@ struct SleepTimeEditor: View {
             #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    WorkoutSheetCloseButton { dismiss() }
+                    SheetCloseButton { dismiss() }
                         .disabled(saving)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     if saving {
                         ProgressView().controlSize(.small)
                     } else {
-                        WorkoutSheetConfirmButton(tint: StrandPalette.settingsBlue) { save() }
+                        SheetConfirmButton(tint: StrandPalette.settingsBlue) { save() }
                             .disabled(validatedWindow == nil)
                     }
                 }

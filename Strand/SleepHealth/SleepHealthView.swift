@@ -81,7 +81,7 @@ struct SleepHealthView: View {
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .toolbar {
-            ToolbarItem(placement: .primaryAction) { moreMenu }
+            ToolbarItem(placement: .primaryAction) { moreMenu.barGlyph() }
         }
         .sheet(isPresented: $showMoreData) {
             SleepMoreDataView(navDays: navDays, habitualMidsleepSec: habitualMidsleepSec,

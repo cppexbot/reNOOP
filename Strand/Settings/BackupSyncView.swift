@@ -347,7 +347,7 @@ private struct RestorePickerSheet: View {
             .navigationTitle("Choose a backup")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { onChoose(nil) }
+                    SheetCloseButton { onChoose(nil) }
                 }
             }
         }

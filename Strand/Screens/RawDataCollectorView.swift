@@ -244,9 +244,9 @@ struct RawDataCollectorView: View {
                 }
                 .settingsPage(initial.markerId == nil ? "Add marker" : "Edit marker")
                 .toolbar {
-                    ToolbarItem(placement: .cancellationAction) { WorkoutSheetCloseButton { markerDraft = nil } }
+                    ToolbarItem(placement: .cancellationAction) { SheetCloseButton { markerDraft = nil } }
                     ToolbarItem(placement: .confirmationAction) {
-                        WorkoutSheetConfirmButton(tint: StrandPalette.settingsBlue) { saveMarker(binding.wrappedValue) }
+                        SheetConfirmButton(tint: StrandPalette.settingsBlue) { saveMarker(binding.wrappedValue) }
                     }
                 }
             }

@@ -184,11 +184,12 @@ struct AddDeviceWizard: View {
                     if showBack {
                         ToolbarItem(placement: .cancellationAction) {
                             Button(action: goBack) { Image(systemName: "chevron.left") }
+                                .barGlyph()
                                 .accessibilityLabel(Text("Back"))
                         }
                     }
                     ToolbarItem(placement: .primaryAction) {
-                        WorkoutSheetCloseButton { stopAllScans(); onClose() }
+                        SheetCloseButton { stopAllScans(); onClose() }
                     }
                 }
         }

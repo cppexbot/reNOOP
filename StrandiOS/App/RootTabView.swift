@@ -249,8 +249,7 @@ struct RootTabView: View {
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { routedPillar = nil }
-                        .foregroundStyle(StrandPalette.accent)
+                    SheetConfirmButton(tint: StrandPalette.accent) { routedPillar = nil }
                 }
             }
         }
@@ -288,8 +287,7 @@ struct RootTabView: View {
                 .toolbarBackground(.hidden, for: .navigationBar)
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button("Done") { quickAction = nil }
-                            .foregroundStyle(StrandPalette.accent)
+                        SheetConfirmButton(tint: StrandPalette.accent) { quickAction = nil }
                     }
                 }
         }
@@ -305,7 +303,7 @@ struct RootTabView: View {
                 .toolbar {
                     // The round ✓ the Watch app's "All Watches" sheet closes with.
                     ToolbarItem(placement: .topBarTrailing) {
-                        DevicesDoneButton { showDevices = false }
+                        SheetConfirmButton(tint: StrandPalette.accent) { showDevices = false }
                     }
                 }
         }
@@ -420,25 +418,5 @@ extension View {
         } else {
             self
         }
-    }
-}
-
-/// ✓ that closes the Devices sheet: the iOS 26 confirm role (a tinted glass circle), "Done" before it.
-private struct DevicesDoneButton: View {
-    let action: () -> Void
-
-    var body: some View {
-        Group {
-            #if compiler(>=6.2)
-            if #available(iOS 26.0, *) {
-                Button(role: .confirm, action: action)
-            } else {
-                Button("Done", action: action)
-            }
-            #else
-            Button("Done", action: action)
-            #endif
-        }
-        .tint(StrandPalette.accent)
     }
 }

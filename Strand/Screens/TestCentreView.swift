@@ -1077,7 +1077,7 @@ private struct ReportReviewSheet: View {
             .settingsPage("Review before sharing")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    WorkoutSheetCloseButton { report.cancel(); dismiss() }
+                    SheetCloseButton { report.cancel(); dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button {

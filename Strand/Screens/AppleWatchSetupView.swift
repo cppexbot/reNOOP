@@ -71,7 +71,7 @@ struct AppleWatchSetupView: View {
         #endif
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                WorkoutSheetCloseButton(action: onClose)
+                SheetCloseButton(action: onClose)
             }
         }
         .safeAreaInset(edge: .bottom) {
@@ -113,9 +113,9 @@ struct AppleWatchSetupView: View {
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 if health.auth == .authorized {
-                    WorkoutSheetConfirmButton(tint: StrandPalette.settingsBlue, action: onClose)
+                    SheetConfirmButton(tint: StrandPalette.settingsBlue, action: onClose)
                 } else {
-                    WorkoutSheetCloseButton(action: onClose)
+                    SheetCloseButton(action: onClose)
                 }
             }
         }
@@ -147,7 +147,7 @@ struct AppleWatchSetupView: View {
         .navigationTitle(Text("Connect Apple Health"))
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                WorkoutSheetCloseButton(action: onClose)
+                SheetCloseButton(action: onClose)
             }
         }
         #endif

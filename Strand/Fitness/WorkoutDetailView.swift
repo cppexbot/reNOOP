@@ -62,7 +62,7 @@ struct WorkoutDetailView: View {
             if route.count >= 2 {
                 ToolbarItem(placement: .primaryAction) {
                     Button { showRouteExport = true } label: { Image(systemName: "square.and.arrow.up") }
-                        .tint(StrandPalette.textPrimary)
+                        .barGlyph()
                         .accessibilityLabel(Text("Export route"))
                 }
             }

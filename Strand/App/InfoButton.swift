@@ -23,7 +23,7 @@ struct InfoButton<Content: View>: View {
             if style == .circled {
                 Button { shown = true } label: { glyph }.buttonStyle(.plain)
             } else {
-                Button { shown = true } label: { glyph }
+                Button { shown = true } label: { glyph }.barGlyph()
             }
         }
         .accessibilityLabel(Text(label))

@@ -198,7 +198,7 @@ struct DeviceWarning: View {
                     #endif
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
-                            WorkoutSheetCloseButton { showFix = false }
+                            SheetCloseButton { showFix = false }
                         }
                     }
                 }

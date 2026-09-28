@@ -183,7 +183,7 @@ struct DiagnosticsSheet: View {
                         .disabled(lines.isEmpty)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done", action: onClose)
+                    SheetConfirmButton(tint: StrandPalette.accent, action: onClose)
                 }
             }
         }

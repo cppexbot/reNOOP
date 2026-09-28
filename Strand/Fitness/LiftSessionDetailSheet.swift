@@ -73,10 +73,10 @@ struct LiftSessionDetailSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { WorkoutSheetCloseButton { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { SheetCloseButton { dismiss() } }
                 ToolbarItem(placement: .primaryAction) {
                     Button { editing = true } label: { Image(systemName: "pencil") }
-                        .tint(StrandPalette.textPrimary)
+                        .barGlyph()
                         .disabled(!loaded)
                         .accessibilityLabel(Text("Edit sets"))
                 }

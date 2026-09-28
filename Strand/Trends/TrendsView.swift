@@ -57,7 +57,7 @@ struct TrendsView: View {
         .toolbarTitleDisplayMode(.large)
         #endif
         .toolbar {
-            ToolbarItem(placement: .primaryAction) { TrendsReportMenu(days: repo.days) }
+            ToolbarItem(placement: .primaryAction) { TrendsReportMenu(days: repo.days).barGlyph() }
         }
         .refreshable { await repo.refresh() }
         .task(id: "\(repo.refreshSeq)|\(skinTempDisplayRaw)") {

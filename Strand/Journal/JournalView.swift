@@ -78,7 +78,7 @@ struct JournalView: View {
         #endif
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                addMenu { Image(systemName: "plus") }
+                addMenu { Image(systemName: "plus") }.barGlyph()
             }
         }
         .sheet(isPresented: $showHabits, onDismiss: { Task { await load() } }) {
@@ -437,7 +437,7 @@ struct JournalHabitsSheet: View {
             #endif
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    WorkoutSheetConfirmButton(tint: StrandPalette.settingsBlue) { dismiss() }
+                    SheetConfirmButton(tint: StrandPalette.settingsBlue) { dismiss() }
                 }
             }
             .alert("Rename…", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {

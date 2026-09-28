@@ -36,7 +36,9 @@ struct StrapLogPage: View {
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 Button("Copy", systemImage: "doc.on.doc") { PlatformPasteboard.copy(live.exportableLogText()) }
+                    .barGlyph()
                 Button("Save…", systemImage: "square.and.arrow.down") { save() }
+                    .barGlyph()
             }
         }
     }

@@ -71,10 +71,10 @@ struct MarkerEditorView: View {
             #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    WorkoutSheetCloseButton { dismiss() }
+                    SheetCloseButton { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    WorkoutSheetConfirmButton(tint: StrandPalette.settingsBlue) { save() }
+                    SheetConfirmButton(tint: StrandPalette.settingsBlue) { save() }
                         .disabled(drafts.isEmpty || saving)
                 }
             }

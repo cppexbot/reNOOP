@@ -116,9 +116,9 @@ struct LiftProgramEditorSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { WorkoutSheetCloseButton { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { SheetCloseButton { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    WorkoutSheetConfirmButton { Task { await save() } }
+                    SheetConfirmButton { Task { await save() } }
                         .disabled(!canSave)
                 }
             }

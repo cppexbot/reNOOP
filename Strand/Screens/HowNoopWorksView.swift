@@ -121,7 +121,7 @@ struct HowNoopWorksView: View {
             #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    WorkoutSheetCloseButton(action: onClose)
+                    SheetCloseButton(action: onClose)
                 }
             }
         }

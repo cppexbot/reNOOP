@@ -1036,7 +1036,7 @@ private struct BreathEduSheet: View {
             #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(String(localized: "Done"), action: onClose)
+                    SheetCloseButton(action: onClose)
                 }
             }
         }

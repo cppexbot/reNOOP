@@ -78,9 +78,9 @@ struct SleepScheduleEditor: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { WorkoutSheetCloseButton { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { SheetCloseButton { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    SleepScheduleConfirmButton {
+                    SheetConfirmButton(tint: StrandPalette.accent) {
                         if let result { onSave(result) }
                         dismiss()
                     }

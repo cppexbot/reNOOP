@@ -52,9 +52,9 @@ struct LiftProgramImportSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { WorkoutSheetCloseButton { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { SheetCloseButton { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    WorkoutSheetConfirmButton {
+                    SheetConfirmButton {
                         if let parsed { Task { await performImport(parsed) } }
                     }
                     .disabled(importing || (parsed?.programs.isEmpty ?? true))

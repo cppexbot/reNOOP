@@ -44,7 +44,7 @@ struct LiftSessionExerciseSheet: View {
                 .navigationBarTitleDisplayMode(.inline)
                 #endif
                 .toolbar {
-                    ToolbarItem(placement: .cancellationAction) { WorkoutSheetCloseButton { dismiss() } }
+                    ToolbarItem(placement: .cancellationAction) { SheetCloseButton { dismiss() } }
                 }
                 .navigationDestination(isPresented: $confirming) { musclesPage }
         }
@@ -85,7 +85,7 @@ struct LiftSessionExerciseSheet: View {
         #endif
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                WorkoutSheetConfirmButton { Task { await add() } }
+                SheetConfirmButton { Task { await add() } }
                     .disabled(!canAdd)
                     .accessibilityLabel(Text("Add to session"))
             }

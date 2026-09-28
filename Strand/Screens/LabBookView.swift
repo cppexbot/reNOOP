@@ -89,6 +89,7 @@ struct LabBookView: View {
                 } label: {
                     Image(systemName: "plus")
                 }
+                .barGlyph()
                 .accessibilityLabel(Text("Add"))
             }
         }

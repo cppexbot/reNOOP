@@ -205,28 +205,3 @@ struct SleepScheduleDayCircles: View {
                     in: RoundedRectangle(cornerRadius: SummaryCard<EmptyView>.radius, style: .continuous))
     }
 }
-
-/// ✓ in the trailing toolbar slot, as Health's schedule sheets: the iOS 26 confirm role, tinted accent.
-struct SleepScheduleConfirmButton: View {
-    let action: () -> Void
-
-    var body: some View {
-        Group {
-            #if compiler(>=6.2)
-            if #available(iOS 26.0, macOS 26.0, *) {
-                Button(role: .confirm, action: action)
-            } else {
-                fallback
-            }
-            #else
-            fallback
-            #endif
-        }
-        .tint(StrandPalette.accent)
-    }
-
-    private var fallback: some View {
-        Button(action: action) { Image(systemName: "checkmark") }
-            .accessibilityLabel(Text("Save"))
-    }
-}

@@ -105,7 +105,7 @@ struct StartWorkoutSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { WorkoutSheetCloseButton { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { SheetCloseButton { dismiss() } }
             }
         }
         #if os(macOS)
@@ -119,59 +119,5 @@ extension View {
     func workoutSelectionCover(isPresented: Binding<Bool>,
                                @ViewBuilder content: @escaping () -> StartWorkoutSheet) -> some View {
         sheet(isPresented: isPresented, content: content)
-    }
-}
-
-// MARK: - Sheet toolbar buttons
-
-/// ✕ in the leading toolbar slot: the iOS 26 close role (a glass circle), a plain xmark before it.
-struct WorkoutSheetCloseButton: View {
-    let action: () -> Void
-
-    var body: some View {
-        Group {
-            #if compiler(>=6.2)
-            if #available(iOS 26.0, macOS 26.0, *) {
-                Button(role: .close, action: action)
-            } else {
-                fallback
-            }
-            #else
-            fallback
-            #endif
-        }
-        .tint(StrandPalette.textPrimary)
-    }
-
-    private var fallback: some View {
-        Button(action: action) { Image(systemName: "xmark") }
-            .accessibilityLabel(Text("Close"))
-    }
-}
-
-/// ✓ in the trailing toolbar slot, tinted Exercise green: the iOS 26 confirm role, a checkmark before it.
-struct WorkoutSheetConfirmButton: View {
-    /// Fitness's green by default; Health's sheets confirm in blue.
-    var tint: Color = StrandPalette.activityExerciseText
-    let action: () -> Void
-
-    var body: some View {
-        Group {
-            #if compiler(>=6.2)
-            if #available(iOS 26.0, macOS 26.0, *) {
-                Button(role: .confirm, action: action)
-            } else {
-                fallback
-            }
-            #else
-            fallback
-            #endif
-        }
-        .tint(tint)
-    }
-
-    private var fallback: some View {
-        Button(action: action) { Image(systemName: "checkmark") }
-            .accessibilityLabel(Text("Save"))
     }
 }

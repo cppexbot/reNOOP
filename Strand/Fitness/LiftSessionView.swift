@@ -506,10 +506,10 @@ struct LiftSessionView: View {
             #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    WorkoutSheetCloseButton { showingFinish = false }
+                    SheetCloseButton { showingFinish = false }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    WorkoutSheetConfirmButton { Task { await save() } }
+                    SheetConfirmButton { Task { await save() } }
                         .disabled(saving || !answered)
                 }
             }

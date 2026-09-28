@@ -53,7 +53,7 @@ struct LiftLogView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button { editing = ProgramEditTarget(id: "new", program: nil) } label: { Image(systemName: "plus") }
-                    .tint(StrandPalette.textPrimary)
+                    .barGlyph()
                     .accessibilityLabel(Text("New Program"))
             }
             ToolbarItem(placement: .primaryAction) {
@@ -66,7 +66,7 @@ struct LiftLogView: View {
                 } label: {
                     Image(systemName: "ellipsis")
                 }
-                .tint(StrandPalette.textPrimary)
+                .barGlyph()
                 .accessibilityLabel(Text("More"))
             }
         }

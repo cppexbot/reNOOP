@@ -95,7 +95,7 @@ struct HRVSnapshotView: View {
             .toolbar {
                 if let close = onClose {
                     ToolbarItem(placement: .cancellationAction) {
-                        WorkoutSheetCloseButton { close() }
+                        SheetCloseButton { close() }
                     }
                 }
                 ToolbarItem(placement: .primaryAction) { aboutButton }

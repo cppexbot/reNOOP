@@ -81,7 +81,7 @@ struct SleepMoreDataView: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) { doneButton }
+                ToolbarItem(placement: .confirmationAction) { SheetConfirmButton(tint: StrandPalette.accent) { dismiss() } }
             }
         }
         #if os(macOS)
@@ -91,18 +91,6 @@ struct SleepMoreDataView: View {
         .task(id: hrKey) { await loadHeartRate() }
         .onChangeCompat(of: nightOffset) { _ in updateDayNight() }
         .onChangeCompat(of: range) { _ in selectedStage = nil; comparisonPicked = false; pickedComparison = nil }
-    }
-
-    @ViewBuilder private var doneButton: some View {
-        #if compiler(>=6.2)
-        if #available(iOS 26.0, macOS 26.0, *) {
-            Button(role: .confirm) { dismiss() }
-        } else {
-            Button("Done") { dismiss() }.fontWeight(.semibold)
-        }
-        #else
-        Button("Done") { dismiss() }.fontWeight(.semibold)
-        #endif
     }
 
     // MARK: - Chart (plain page)
