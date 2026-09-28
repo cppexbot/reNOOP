@@ -418,7 +418,7 @@ controller.$calmBeat.dropFirst().sink { [weak self] _ in self?.pulse() }   // 0.
 
 ### CR-9. Текст виджетов мельче 11 pt с контрастом 3,9:1 — Critical (по коду)
 
-Статус: исправлено, c375b167 (кадр виджета — вместе с WG-2).
+Статус: исправлено, c375b167, 5448e31a; проверено стендом виджетов на AX5.
 
 **What.**
 - Подписи колец — 9 pt (`StrandiOSWidgets/NOOPWidget.swift:182`), `minimumScaleFactor(0.7)` → 10,5 pt (`:149`).
@@ -617,6 +617,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Fix:** удалить строку: обновление уже есть в `.refreshable` и при возврате в приложение.
 
 **K-10. Граббер у шторок с одной высотой — Craft · Low**
+- **Статус:** исправлено, ddc56855.
 - **What:** `StrandDesign/Components.swift:71–75`. WhatsNew, ScoringGuide и ещё 3 шторки показывают граббер, хотя детент у них один — `.large`.
 - **Why:** `sheets.md › Mobile (iOS, iPadOS)`: "A grabber shows people that they can drag the sheet to resize it".
 - **Fix:** `.presentationDragIndicator(largeFirst ? .hidden : .visible)`.
@@ -1465,6 +1466,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 ### 18. Тексты и терминология (сквозное)
 
 **X-1. Английские строки в русском интерфейсе; каталог переведён на 1 язык из 10 — Improvement · High**
+- **Статус:** исправлено: все ключи каталога на 10 языках, ab4f7b0a.
 - **What:**
   - По-английски показаны: вопросы журнала (WM-1), «Что нового» (UI-2), «resting HR, HRV» в уведомлениях, «61 bpm», единицы анализов, «Custom (OpenAI-compatible)», тестовые домены, системные запросы разрешений (ON-3), VoiceOver-строки «Что читает NOOP» (CR-5), ошибки Коуча (CO-4).
   - «Categories», «Mindfulness», «All Metrics», «Copied», «Open Devices», «How to Fix» переведены только на русский.
@@ -1517,6 +1519,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Fix:** текст везде SF Pro; Rounded оставить только цифрам колец и экрана записи.
 
 **Craft-3. Одна анатомия, четыре реализации — Craft · Low.**
+- **Статус:** исправлено (заголовок секции, карточка «Подборки», фон карточки — по одному; графики на Canvas не переписаны), ddc56855.
 - Заголовок секции сделан 4 способами: `SummarySectionHeader` (rounded 22), `SleepScheduleHeader` (pro 22 bold), `MetricDetailView.sectionHeader`, инлайн в `MetricStressDay`.
 - Карточка «Подборки» — 3 копии с разными параметрами: столбцы 64/44/96, цифры 22/22/30.
 - Графики на Canvas стоят рядом со Swift Charts.
@@ -1525,6 +1528,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Fix:** один `SectionHeader`, один `HighlightCard`, один `SummaryCard`. Графики — только Swift Charts: они дают и доступность (CR-3).
 
 **Craft-4. Убрать один аксессуар — Craft · Low.** Кандидаты, в порядке пользы:
+- **Статус:** исправлено (ручной отступ под таб-бар убран), ddc56855.
 - ручной `tabBarClearance = 76` (`Components.swift:14`, 13 мест): даёт пустой хвост 108 pt в шторках без таб-бара;
 - шапка «NOOP» в виджете;
 - строка `next` в Live Activity зала;
