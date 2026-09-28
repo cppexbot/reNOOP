@@ -20,6 +20,8 @@ struct StrandApp: App {
     }
 
     @StateObject private var model = AppModel()
+    /// The interval timer, owned here so it keeps running after its page is left (see `IntervalTimerRunner`).
+    @StateObject private var intervals = IntervalTimerRunner()
     /// Shared cross-screen navigation hook (e.g. Live → Devices). The macOS shell (`RootView`)
     /// observes it and drives the sidebar selection.
     @StateObject private var router: NavRouter
@@ -47,6 +49,7 @@ struct StrandApp: App {
                 .environmentObject(model.coach)
                 .environmentObject(router)
                 .environmentObject(UpdateStore.shared)
+                .environmentObject(intervals)
                 // v5 L3: the shared stress check-in nudge surface, so the Breathe screen's passive
                 // card observes the SAME instance the central detector (AppModel.evaluateStress) posts to.
                 .environment(\.stressNudgeCenter, model.stressNudgeCenter)

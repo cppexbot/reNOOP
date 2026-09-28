@@ -14,7 +14,7 @@ import StrandDesign
 /// redraws this one text each second, aligned to the whole second, and SwiftUI runs a timeline only for a view
 /// on screen. `seconds` turns the current unix second into what the clock reads; the format is NOOP's
 /// `ActiveWorkoutClock.clock`, the one the Lock Screen's clock also reads as.
-struct LiftRunningClock: View {
+struct RunningClock: View {
     let seconds: (Int) -> Int
 
     var body: some View {

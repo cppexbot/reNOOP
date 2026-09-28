@@ -673,7 +673,7 @@ final class LiftSessionController: ObservableObject {
     // tab shell, the session sheet, the bar, the Lift Log hub — so all of them were redrawn every second, on
     // screen or not. iOS killed NOOP four times in one gym session for background CPU (Utku's crash reports,
     // 21 Sep 2026: over 80% for 60 s, busy redrawing SwiftUI views), and every kill cost a Lock Screen banner
-    // and the log before it. The clocks on screen tick by themselves, and only while shown (`LiftRunningClock`).
+    // and the log before it. The clocks on screen tick by themselves, and only while shown (`RunningClock`).
 
     /// Re-arm the rest's timers when the rest changed — a new rest, a rest undone or cut short, no rest.
     private func scheduleRestTimers() {

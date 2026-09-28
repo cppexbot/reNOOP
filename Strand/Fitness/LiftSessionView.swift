@@ -528,7 +528,7 @@ struct LiftSessionView: View {
         VStack(spacing: 0) {
             HStack(alignment: .top, spacing: 16) {
                 figureCell("Workout Time", tint: StrandPalette.fitnessTime) {
-                    LiftRunningClock { $0 - engine.startTs }
+                    RunningClock { $0 - engine.startTs }
                 }
                 figureCell("Sets", tint: StrandPalette.activityExerciseText) {
                     Text(verbatim: "\(engine.completedWorkingSets)/\(engine.plannedWorkingSets)")

@@ -25,6 +25,8 @@ struct RootTabView: View {
 
     /// The live gym session, owned at the app root — see `LiftSessionController`.
     @EnvironmentObject private var liftSession: LiftSessionController
+    /// Whatever is running (gym session, intervals, workout), for the mini-player under every tab.
+    @EnvironmentObject private var nowRunning: NowRunning
     /// External entry points must wait until the mandatory first-run gates have completed. The root owns
     /// that state; keeping it explicit here prevents this shell's window-level sheet from covering a gate.
     let homeScreenQuickActionsEnabled: Bool
@@ -92,6 +94,8 @@ struct RootTabView: View {
         // Glass and its scroll interaction; older releases get the matching system material. Tags are
         // stable indices into `tabPaths` / `scrollTop` (3 was the retired Coach tab).
         tabView
+            // The running workout / gym session / intervals as the Music mini-player, on every tab.
+            .nowRunningAccessory(isActive: nowRunning.kind != nil)
             .tint(StrandPalette.accent)
             // #1841: the same "Hide bar when scrolling" preference Android drives its own bar with. Here
             // the system owns the behaviour — iOS 26's tab bar MINIMISES to a pill on scroll down.
@@ -152,10 +156,9 @@ struct RootTabView: View {
                 tabPaths[0] = NavigationPath([TabRoute.trends])
                 router.requestedDestination = nil
             case .activeWorkout:
-                // The Today active-workout indicator opens Live through the quick-action Live sheet; once
-                // it's up, LiveView consumes the one-shot `presentActiveWorkout` flag and presents the
-                // in-exercise screen. Calm sheet easing, matching the other quick-action presents.
-                withAnimation(Self.sheetEase) { quickAction = .live }
+                // The running workout opens the same recording screen as the mini-player does.
+                router.presentActiveWorkout = false
+                nowRunning.expand(.workout)
                 router.requestedDestination = nil
             case .journal:
                 // The #627 Today journal widget opens the journal through the quick-action Journal sheet
@@ -177,20 +180,14 @@ struct RootTabView: View {
         .onChange(of: homeScreenQuickActionsEnabled) { _, _ in
             presentPendingHomeScreenQuickActionIfPossible()
         }
-        // The running gym session, reachable from ANY tab. It sits above the tab bar rather than
-        // inside the Lift Log screen, because a workout outlives whichever screen you wandered to —
-        // and because the screen's own minimize button must leave the session running, not end it.
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            if liftSession.isActive {
-                LiftSessionBar()
-                    .padding(.horizontal, 14)
-                    // Clear the floating tab bar with the same constant every screen uses, or the
-                    // session bar sits on top of the tab labels.
-                    .padding(.bottom, NoopMetrics.tabBarClearance)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+        // The recording screens the mini-player opens. The gym session keeps its own sheet below.
+        .fullScreenCover(item: $nowRunning.expanded) { kind in
+            switch kind {
+            case .workout: LiveWorkoutView(onClose: { nowRunning.expanded = nil })
+            case .intervals: IntervalRunHost { nowRunning.expanded = nil }
+            case .lift: EmptyView()
             }
         }
-        .animation(.easeInOut(duration: 0.25), value: liftSession.isActive)
         // A session left running by a previous launch is back before this view exists
         // (`LiftSessionController.resumeSaved`, from `StrandiOSApp.init`), as the BAR — not as a sheet
         // thrown in the user's face; they open it when they want it.
@@ -385,6 +382,14 @@ struct RootTabView: View {
     }
 }
 
+
+/// The interval recording screen, observing the app's one timer.
+private struct IntervalRunHost: View {
+    @EnvironmentObject private var runner: IntervalTimerRunner
+    let onClose: () -> Void
+
+    var body: some View { IntervalRunView(runner: runner, onClose: onClose) }
+}
 
 // MARK: - Quick actions (Home Screen icon menu)
 

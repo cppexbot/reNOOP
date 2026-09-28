@@ -36,6 +36,10 @@ struct StrandiOSApp: App {
     /// swiping the workout sheet away must not stop the clock, silence the strap or drop the
     /// double-tap handler. See `LiftSessionController`.
     @StateObject private var liftSession: LiftSessionController
+    /// The interval timer, owned here for the same reason as the gym session: leaving its page must not stop it.
+    @StateObject private var intervals: IntervalTimerRunner
+    /// Which of the three is running, for the one mini-player under the tab bar (`NowRunningAccessory`).
+    @StateObject private var nowRunning: NowRunning
     @Environment(\.scenePhase) private var scenePhase
     /// Appearance preference (System/Light/Dark). Default follows the OS; the Settings picker writes it.
     @AppStorage(AppearanceMode.storageKey) private var appearanceRaw = AppearanceMode.system.rawValue
@@ -113,6 +117,12 @@ struct StrandiOSApp: App {
         // Before any view or publisher exists: the first push to the Lock Screen banner must find the
         // session already running, or it ends the banner iOS kept alive across the restart.
         liftSession.resumeSaved()
+        let intervals = IntervalTimerRunner()
+        _intervals = StateObject(wrappedValue: intervals)
+        _nowRunning = StateObject(wrappedValue: NowRunning(model: model, lift: liftSession, intervals: intervals))
+        #if DEBUG
+        DemoRunning.start(model: model, lift: liftSession, intervals: intervals)
+        #endif
         // #1538: a strap offload completes while the app is BACKGROUNDED — it stays alive as a
         // bluetooth-central to receive it — and the re-score it triggers took nearly eight minutes on the
         // reporter's install, far longer than that wake survives. The pass is all-or-nothing, so being
@@ -207,6 +217,8 @@ struct StrandiOSApp: App {
                 .environmentObject(router)
                 .environmentObject(UpdateStore.shared)
                 .environmentObject(liftSession)
+                .environmentObject(intervals)
+                .environmentObject(nowRunning)
                 // v5 L3: the shared stress check-in nudge surface, so the Breathe screen's passive
                 // card observes the SAME instance the central detector (AppModel.evaluateStress) posts to.
                 .environment(\.stressNudgeCenter, model.stressNudgeCenter)
@@ -542,6 +554,34 @@ private struct iOSRootView: View {
 }
 
 #if DEBUG
+/// DEBUG-only: `--demo-running workout|lift|intervals` starts one so the tab bar's mini-player and the Lock Screen
+/// banners can be captured; `--demo-running none` ends whatever a previous demo left running.
+enum DemoRunning {
+    @MainActor
+    static func start(model: AppModel, lift: LiftSessionController, intervals: IntervalTimerRunner) {
+        let args = CommandLine.arguments
+        guard let i = args.firstIndex(of: "--demo-running"), i + 1 < args.count else { return }
+        switch args[i + 1] {
+        case "workout":
+            if model.activeWorkout == nil { model.startWorkout(sport: "Strength") }
+        case "lift":
+            if !lift.isActive {
+                lift.start(plan: [LiftPlanItem(exercise: "Bench Press", targetSets: 4, restSec: 90,
+                                               targetRepsLow: 8, targetRepsHigh: 8, targetWeightKg: 60),
+                                  LiftPlanItem(exercise: "Overhead Press", targetSets: 3, restSec: 90,
+                                               targetRepsLow: 10, targetRepsHigh: 10, targetWeightKg: 35)],
+                           programId: nil, programName: "Push")
+                lift.isPresented = false
+            }
+        case "intervals":
+            intervals.start()
+        default:
+            if model.activeWorkout != nil { model.discardWorkout() }
+            if lift.isActive { lift.discard() }
+        }
+    }
+}
+
 /// DEBUG-only screenshot harness. Maps `--demo-screen <name>` to a single screen so a seeded
 /// simulator build can be captured deterministically (verification + marketing). Stripped from Release.
 enum DemoScreens {

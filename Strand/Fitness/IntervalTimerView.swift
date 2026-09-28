@@ -14,8 +14,14 @@ import StrandDesign
 struct IntervalTimerView: View {
     @EnvironmentObject private var model: AppModel
     @EnvironmentObject private var live: LiveState
-    @StateObject private var runner = IntervalTimerRunner()
+    /// Owned at the app root, like the gym session, so the timer keeps running — and shows under the tab bar
+    /// (`NowRunningAccessory`) — after this page is left.
+    @EnvironmentObject private var runner: IntervalTimerRunner
+    #if os(iOS)
+    @EnvironmentObject private var nowRunning: NowRunning
+    #else
     @State private var showRun = false
+    #endif
 
     var body: some View {
         ScrollView {
@@ -36,9 +42,7 @@ struct IntervalTimerView: View {
                 model?.buzz(loops: loops, gate: HapticPrefs.intervals)
             }
         }
-        #if os(iOS)
-        .fullScreenCover(isPresented: $showRun) { IntervalRunView(runner: runner) { showRun = false } }
-        #else
+        #if os(macOS)
         .sheet(isPresented: $showRun) { IntervalRunView(runner: runner) { showRun = false } }
         #endif
     }
@@ -47,7 +51,11 @@ struct IntervalTimerView: View {
     private var startCard: some View {
         Button {
             if !runner.inProgress { runner.start() }
+            #if os(iOS)
+            nowRunning.expand(.intervals)
+            #else
             showRun = true
+            #endif
         } label: {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(alignment: .top) {
@@ -242,7 +250,8 @@ struct IntervalRunView: View {
 
 // MARK: - Runner
 
-/// The timer's state and rules, owned by the setup page so the running screen and the page share one clock.
+/// The timer's state and rules, owned at the app root so the running screen, the page and the tab bar's
+/// accessory share one clock.
 @MainActor
 final class IntervalTimerRunner: ObservableObject {
     enum Phase {

@@ -56,10 +56,13 @@ struct SummaryView: View {
                     #if os(macOS)
                     header
                     #endif
-                    // Raised health alerts and a running workout stay pinned above everything else, as on
-                    // every earlier home: neither may be scrolled or reordered out of sight.
+                    // Raised health alerts stay pinned above everything else. A running workout is the tab
+                    // bar's mini-player on iPhone (`NowRunningAccessory`); the Mac has no tab bar, so it keeps
+                    // the card here.
                     HealthAlertBanner()
+                    #if os(macOS)
                     ActiveWorkoutIndicatorSection()
+                    #endif
                     DayPager(title: dayTitle,
                              canGoBack: dayOffset < SummaryDay.maxOffset(repo: repo), canGoForward: dayOffset > 0,
                              onBack: { dayOffset += 1 }, onForward: { dayOffset -= 1 },

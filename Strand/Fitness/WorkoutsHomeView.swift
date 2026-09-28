@@ -27,7 +27,10 @@ struct WorkoutsHomeView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
+                #if os(macOS)
+                // On iPhone the running workout is the tab bar's mini-player instead.
                 ActiveWorkoutCard()
+                #endif
                 ForEach(quickSports, id: \.self) { sport in
                     WorkoutStartCard(sport: sport)
                 }
@@ -216,6 +219,7 @@ private struct WorkoutStartCard: View {
     }
 }
 
+#if os(macOS)
 /// The session in progress, pinned above the start cards while one runs. Observes `AppModel` on its own so
 /// the ~1 Hz heart-rate tick re-renders only this card.
 private struct ActiveWorkoutCard: View {
@@ -272,3 +276,4 @@ private struct ActiveWorkoutCard: View {
             : String(format: "%d:%02d", s / 60, s % 60)
     }
 }
+#endif
