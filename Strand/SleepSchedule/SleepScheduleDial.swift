@@ -1,7 +1,8 @@
 //  SleepScheduleDial.swift
 //  NOOP · Sleep schedule — the Health app's bedtime / wake dial: a 24-hour face (0 at the top, a moon
 //  under it, a sun over 12), a track ring around it, and the bedtime → wake arc on the track with a bed
-//  at one end and an alarm clock at the other. Drag an end to move it, the arc to move both.
+//  at one end and an alarm clock at the other. Drag an end to move it, the arc to move both; assistive
+//  technologies get a time picker per end instead.
 
 import SwiftUI
 import StrandDesign
@@ -12,6 +13,9 @@ struct SleepScheduleDial: View {
 
     private enum Grab { case bed, wake, arc(offset: Int) }
     @State private var grab: Grab?
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    enum End { case bed, wake }
 
     /// Five-minute steps, as Health's dial snaps.
     private static let step = 5
@@ -32,14 +36,26 @@ struct SleepScheduleDial: View {
             .gesture(drag(m, origin: CGPoint(x: geo.size.width / 2, y: geo.size.height / 2)))
         }
         .aspectRatio(1, contentMode: .fit)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(String(localized: "Bedtime and Wake Up")))
-        .accessibilityValue(Text(verbatim: "\(SleepSchedule.clock(bed, locale: AppLanguage.activeLocale)) – \(SleepSchedule.clock(wake, locale: AppLanguage.activeLocale))"))
-        .accessibilityAdjustableAction { direction in
-            let delta = direction == .increment ? 15 : -15
-            wake = SleepSchedule.wrap(wake + delta)
-            bed = SleepSchedule.wrap(bed + delta)
+        // The drag has no assistive equivalent, so VoiceOver and Switch Control get one picker per end.
+        .accessibilityRepresentation {
+            VStack {
+                DatePicker(String(localized: "schedule.bedtime", defaultValue: "Bedtime"),
+                           selection: dateBinding(.bed), displayedComponents: .hourAndMinute)
+                DatePicker(String(localized: "schedule.wake", defaultValue: "Wake Up"),
+                           selection: dateBinding(.wake), displayedComponents: .hourAndMinute)
+            }
         }
+    }
+
+    private func dateBinding(_ end: End) -> Binding<Date> {
+        Binding(
+            get: { Self.date(end == .bed ? bed : wake) },
+            set: { new in
+                let current = end == .bed ? bed : wake
+                let moved = Self.moving(end, to: Self.snapped(Self.minutes(of: new), from: current), bed: bed, wake: wake)
+                bed = moved.bed
+                wake = moved.wake
+            })
     }
 
     private struct Metrics {
@@ -104,6 +120,11 @@ struct SleepScheduleDial: View {
                 var p = Path()
                 p.addArc(center: m.center, radius: m.arcR, startAngle: .radians(m.angle(bed)),
                          endAngle: .radians(m.angle(bed + span)), clockwise: false)
+                // White on the light track is 1.28:1; Increase Contrast rims the arc so its range reads.
+                if contrast == .increased {
+                    ctx.stroke(p, with: .color(StrandPalette.textSecondary),
+                               style: StrokeStyle(lineWidth: m.arcWidth + 3, lineCap: .round))
+                }
                 ctx.stroke(p, with: .color(StrandPalette.sleepDialArc),
                            style: StrokeStyle(lineWidth: m.arcWidth, lineCap: .round))
                 // Health's ribbed arc: a short radial tick every five minutes between the two ends.
@@ -138,8 +159,36 @@ struct SleepScheduleDial: View {
         return SleepSchedule.wrap(raw)
     }
 
-    private static func snapped(_ minutes: Int) -> Int {
+    static func snapped(_ minutes: Int) -> Int {
         SleepSchedule.wrap(Int((Double(minutes) / Double(step)).rounded()) * step)
+    }
+
+    /// Snaps a picker's one-minute nudge to the next step in its direction, so it cannot round back.
+    private static func snapped(_ raw: Int, from current: Int) -> Int {
+        let s = snapped(raw)
+        guard s == SleepSchedule.wrap(current), SleepSchedule.wrap(raw) != s else { return s }
+        var delta = SleepSchedule.wrap(raw - current)
+        if delta > SleepSchedule.day / 2 { delta -= SleepSchedule.day }
+        return snapped(current + (delta > 0 ? step : -step))
+    }
+
+    /// Moves one end and holds the other, keeping the span inside the sleep goal's range.
+    static func moving(_ end: End, to minutes: Int, bed: Int, wake: Int) -> (bed: Int, wake: Int) {
+        switch end {
+        case .bed: return (SleepSchedule.wrap(wake - clampedSpan(SleepSchedule.wrap(wake - minutes))), wake)
+        case .wake: return (bed, SleepSchedule.wrap(bed + clampedSpan(SleepSchedule.wrap(minutes - bed))))
+        }
+    }
+
+    /// Today at a minute of the day, for a time picker.
+    static func date(_ minutes: Int, calendar: Calendar = .current) -> Date {
+        let m = SleepSchedule.wrap(minutes)
+        return calendar.date(bySettingHour: m / 60, minute: m % 60, second: 0, of: Date()) ?? Date()
+    }
+
+    static func minutes(of date: Date, calendar: Calendar = .current) -> Int {
+        let c = calendar.dateComponents([.hour, .minute], from: date)
+        return SleepSchedule.wrap((c.hour ?? 0) * 60 + (c.minute ?? 0))
     }
 
     /// Keeps the bedtime → wake span inside the sleep goal's range by holding the end that is not moving.
@@ -160,11 +209,9 @@ struct SleepScheduleDial: View {
                 }
                 switch grab {
                 case .bed:
-                    let newBed = Self.snapped(at)
-                    bed = SleepSchedule.wrap(wake - Self.clampedSpan(SleepSchedule.wrap(wake - newBed)))
+                    bed = Self.moving(.bed, to: Self.snapped(at), bed: bed, wake: wake).bed
                 case .wake:
-                    let newWake = Self.snapped(at)
-                    wake = SleepSchedule.wrap(bed + Self.clampedSpan(SleepSchedule.wrap(newWake - bed)))
+                    wake = Self.moving(.wake, to: Self.snapped(at), bed: bed, wake: wake).wake
                 case .arc(let offset):
                     let span = SleepSchedule.wrap(wake - bed)
                     let newBed = Self.snapped(at - offset)

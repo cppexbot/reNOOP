@@ -206,7 +206,7 @@ struct SleepScheduleDayCircles: View {
                         .foregroundStyle(on ? Color.white : StrandPalette.textPrimary)
                         .frame(width: 38, height: 38)
                         .background(on ? StrandPalette.accent : Color.clear, in: Circle())
-                        .frame(maxWidth: .infinity)
+                        .frame(maxWidth: .infinity, minHeight: 44)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -214,7 +214,8 @@ struct SleepScheduleDayCircles: View {
                 .accessibilityAddTraits(on ? .isSelected : [])
             }
         }
-        .padding(.vertical, 12)
+        // 9 + 44 + 9: the card keeps its height with the 44 pt targets round the 38 pt circles.
+        .padding(.vertical, 9)
         .padding(.horizontal, 6)
         // Seven fixed circles across the row: the letters follow Dynamic Type only as far as a circle holds one.
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)

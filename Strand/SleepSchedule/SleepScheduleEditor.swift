@@ -12,6 +12,7 @@ struct SleepScheduleEditor: View {
     @Environment(\.dynamicTypeSize) private var dts
 
     @State private var edit: SleepScheduleEdit
+    @State private var picking: SleepScheduleDial.End?
 
     init(edit: SleepScheduleEdit, inputs: SleepScheduleInputs, onSave: @escaping (SleepScheduleStored) -> Void) {
         self.inputs = inputs
@@ -88,6 +89,16 @@ struct SleepScheduleEditor: View {
                     .disabled(result == nil || edit.days.isEmpty)
                 }
             }
+            .sheet(item: $picking) { end in
+                SleepScheduleTimeSheet(label: end == .bed ? String(localized: "schedule.bedtime", defaultValue: "Bedtime")
+                                                        : String(localized: "schedule.wake", defaultValue: "Wake Up"),
+                                       minutes: end == .bed ? edit.bed : edit.wake) { minutes in
+                    let moved = SleepScheduleDial.moving(end, to: SleepScheduleDial.snapped(minutes),
+                                                         bed: edit.bed, wake: edit.wake)
+                    edit.bed = moved.bed
+                    edit.wake = moved.wake
+                }
+            }
         }
     }
 
@@ -99,8 +110,17 @@ struct SleepScheduleEditor: View {
             : AnyLayout(HStackLayout(alignment: .top, spacing: 8))
         return VStack(spacing: 18) {
             pair {
-                SleepScheduleTime(kind: .bed, time: SleepSchedule.clock(edit.bed, locale: locale), centered: true)
-                SleepScheduleTime(kind: .wake(alarm: alarm), time: SleepSchedule.clock(edit.wake, locale: locale), centered: true)
+                // Each time opens a wheel for that end alone, as Clock and Health do.
+                Button { picking = .bed } label: {
+                    SleepScheduleTime(kind: .bed, time: SleepSchedule.clock(edit.bed, locale: locale), centered: true)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                Button { picking = .wake } label: {
+                    SleepScheduleTime(kind: .wake(alarm: alarm), time: SleepSchedule.clock(edit.wake, locale: locale), centered: true)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
             }
             SleepScheduleDial(bed: $edit.bed, wake: $edit.wake)
                 .padding(.horizontal, 8)
@@ -113,5 +133,47 @@ struct SleepScheduleEditor: View {
         .frame(maxWidth: .infinity)
         .background(StrandPalette.sleepDialCard,
                     in: RoundedRectangle(cornerRadius: SummaryCard<EmptyView>.radius, style: .continuous))
+    }
+}
+
+extension SleepScheduleDial.End: Identifiable {
+    var id: Self { self }
+}
+
+/// One end's time on a wheel, confirmed with ✓; swiping the sheet away keeps the old time.
+private struct SleepScheduleTimeSheet: View {
+    let label: String
+    let onDone: (Int) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var date: Date
+
+    init(label: String, minutes: Int, onDone: @escaping (Int) -> Void) {
+        self.label = label
+        self.onDone = onDone
+        _date = State(initialValue: SleepScheduleDial.date(minutes))
+    }
+
+    var body: some View {
+        NavigationStack {
+            DatePicker(label, selection: $date, displayedComponents: .hourAndMinute)
+                .labelsHidden()
+                #if os(iOS)
+                .datePickerStyle(.wheel)
+                #endif
+                .environment(\.locale, AppLanguage.activeLocale)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                #if os(iOS)
+                .navigationBarTitleDisplayMode(.inline)
+                #endif
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        SheetConfirmButton(tint: StrandPalette.accent) {
+                            onDone(SleepScheduleDial.minutes(of: date))
+                            dismiss()
+                        }
+                    }
+                }
+        }
+        .presentationDetents([.height(300)])
     }
 }
