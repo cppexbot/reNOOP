@@ -65,7 +65,6 @@ struct HRVSnapshotView: View {
     @State private var saved = false
 
     /// Whether the ⓘ methodology popover is showing.
-    @State private var showAbout = false
 
     private let secondTimer = Timer.publish(every: 1.0, on: .main, in: .common).autoconnect()
 
@@ -353,22 +352,10 @@ struct HRVSnapshotView: View {
     /// `SpotHrvReading.caveatFor` adds the honest limits — including the noisier optical-PPG note on a
     /// WHOOP 5/MG. Single-sourced with Android via the shared helper.
     private var aboutButton: some View {
-        Button { showAbout = true } label: {
-            Image(systemName: "info.circle")
-        }
-        .accessibilityLabel(Text("How this is measured"))
-        .popover(isPresented: $showAbout, arrowEdge: .top) {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("A 60-second snapshot of your beat-to-beat (R-R) intervals from the strap, cleaned (range and ectopic-beat filtering) before computing RMSSD the same way your overnight HRV is computed.")
-                Text(SpotHrvReading.caveatFor(source))
-                    .foregroundStyle(StrandPalette.textSecondary)
-            }
-            .font(StrandFont.pro(15))
-            .foregroundStyle(StrandPalette.textPrimary)
-            .fixedSize(horizontal: false, vertical: true)
-            .padding(NoopMetrics.space4)
-            .frame(width: 320)
-            .modifier(PopoverOnPhone())
+        InfoButton(label: "How this is measured") {
+            Text("A 60-second snapshot of your beat-to-beat (R-R) intervals from the strap, cleaned (range and ectopic-beat filtering) before computing RMSSD the same way your overnight HRV is computed.")
+            Text(SpotHrvReading.caveatFor(source))
+                .foregroundStyle(StrandPalette.textSecondary)
         }
     }
 
@@ -536,13 +523,3 @@ private struct CapsuleButtonShape: ViewModifier {
     }
 }
 
-/// A popover on iPhone too, not a sheet (iOS 16.4 / macOS 13.3 and later).
-private struct PopoverOnPhone: ViewModifier {
-    func body(content: Content) -> some View {
-        if #available(iOS 16.4, macOS 13.3, *) {
-            content.presentationCompactAdaptation(.popover)
-        } else {
-            content
-        }
-    }
-}

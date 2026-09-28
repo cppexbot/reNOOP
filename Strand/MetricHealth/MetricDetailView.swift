@@ -36,7 +36,6 @@ struct MetricDetailView: View {
     /// #1848: why the skin-temp series leads with what it does, when that needs saying.
     @State private var skinTempNote: String?
     @State private var refreshing = false
-    @State private var showAbout = false
 
     // MARK: Derived
 
@@ -174,16 +173,7 @@ struct MetricDetailView: View {
                 }
                 Spacer(minLength: 8)
                 if let about = MetricHealthStyle.about(metric) {
-                    Button { showAbout = true } label: {
-                        Image(systemName: "info")
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundStyle(StrandPalette.textPrimary)
-                            .frame(width: 30, height: 30)
-                            .background(StrandPalette.summaryCanvas, in: Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(Text("About"))
-                    .popover(isPresented: $showAbout, arrowEdge: .top) { aboutPopover(about) }
+                    InfoButton(style: .circled, label: "About") { Text(about) }
                 }
             }
             Text(dates)
@@ -192,17 +182,6 @@ struct MetricDetailView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
         }
-    }
-
-    /// What the number is, one tap away instead of a section of its own (Health's ⓘ).
-    private func aboutPopover(_ text: String) -> some View {
-        Text(text)
-            .font(StrandFont.pro(15))
-            .foregroundStyle(StrandPalette.textPrimary)
-            .fixedSize(horizontal: false, vertical: true)
-            .padding(NoopMetrics.space4)
-            .frame(width: 320)
-            .modifier(PopoverOnPhone())
     }
 
     /// Numbers large and primary, units smaller and secondary, on one baseline.
@@ -527,17 +506,6 @@ struct MetricDetailView: View {
         sourceByDay = result.sourceByDay
         skinTempNote = result.skinTempNote
         loaded = true
-    }
-}
-
-/// A real popover (not a sheet) on iPhone as well, where the OS allows it.
-private struct PopoverOnPhone: ViewModifier {
-    func body(content: Content) -> some View {
-        if #available(iOS 16.4, macOS 13.3, *) {
-            content.presentationCompactAdaptation(.popover)
-        } else {
-            content
-        }
     }
 }
 

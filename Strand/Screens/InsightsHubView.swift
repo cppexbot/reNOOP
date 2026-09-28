@@ -26,7 +26,6 @@ struct InsightsHubView: View {
 
     /// The outcome the habit feed is ranked against (Charge / HRV / Rest / RHR).
     @State private var outcome: InsightsHubViewModel.Outcome = .recovery
-    @State private var showMethod = false
 
     var body: some View {
         ScrollView {
@@ -61,9 +60,7 @@ struct InsightsHubView: View {
         #endif
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button { showMethod = true } label: { Image(systemName: "info.circle") }
-                    .accessibilityLabel(Text("How to read this"))
-                    .popover(isPresented: $showMethod) { methodNote }
+                InfoButton(label: "How to read this") { methodNote }
             }
         }
         .navigationDestination(for: InsightRoute.self) { route in
@@ -166,18 +163,11 @@ struct InsightsHubView: View {
     }
 
     /// ⓘ: how to read every card on this page.
-    private var methodNote: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Association, not cause")
-                .font(StrandFont.headline)
-            Text("Everything here is a pattern in your own logged days: an association with an effect size and confidence, never a cause or a diagnosis. Population patterns are shown as \u{201C}typical\u{201D} and are always overridden by your own data once you have enough of it. Approximations, not WHOOP\u{2019}s scores; not a medical device.")
-                .font(StrandFont.pro(15))
-                .foregroundStyle(StrandPalette.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(16)
-        .frame(width: 320)
-        .modifier(CompactPopover())
+    @ViewBuilder private var methodNote: some View {
+        Text("Association, not cause")
+            .font(StrandFont.headline)
+        Text("Everything here is a pattern in your own logged days: an association with an effect size and confidence, never a cause or a diagnosis. Population patterns are shown as \u{201C}typical\u{201D} and are always overridden by your own data once you have enough of it. Approximations, not WHOOP\u{2019}s scores; not a medical device.")
+            .foregroundStyle(StrandPalette.textSecondary)
     }
 }
 
@@ -187,16 +177,6 @@ enum InsightRoute: Hashable {
     case dose(String)
 }
 
-/// Keeps the ⓘ note a popover on iPhone too, as Health's own ⓘ notes are.
-private struct CompactPopover: ViewModifier {
-    func body(content: Content) -> some View {
-        if #available(iOS 16.4, macOS 13.3, *) {
-            content.presentationCompactAdaptation(.popover)
-        } else {
-            content
-        }
-    }
-}
 
 // MARK: - Copy
 
