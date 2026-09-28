@@ -565,6 +565,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Скриншот:** `shell/coach-from-browse`.
 
 **K-4. Мини-плеер: неясное двойное касание VoiceOver, нет компактного вида, полный экран не смахивается — Improvement · Medium**
+- **Статус:** исправлено, 7a9ae81e.
 - **What:**
   - `NowRunning.swift:196–200`: `onTapGesture` плюс `.combine` с вложенной кнопкой «Пауза». Двойное касание VoiceOver может нажать паузу вместо того, чтобы открыть тренировку.
   - `:115`: ✓ подписана «Next», а на экране сессии то же действие называется «Set done».
@@ -582,24 +583,28 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Скриншоты:** `shell/summary-running`, `shell/recording`.
 
 **K-5. Стекло в контенте: «Начать тренировку» на экране «Пульс» — Improvement · Medium**
+- **Статус:** исправлено, 719ad15a.
 - **What:** `Strand/Screens/LiveView.swift:411,421` — `.glassProminent` на кнопке внутри прокрутки. Других случаев стекла в контенте поиск не нашёл.
 - **Why:** `liquid-glass.md › Review checklist`: "Glass on app backgrounds, cards, list rows, or content containers is a defect."
 - **Fix:** `.buttonStyle(.borderedProminent).buttonBorderShape(.capsule)`.
 - **Скриншот:** `light/live` (низ экрана).
 
 **K-6. «Уменьшить прозрачность»: градиент шапки Сводки срезан белой полосой — Improvement · Medium**
+- **Статус:** исправлено, 4133912f.
 - **What:** при включённом режиме верхние ~110 pt (статус-бар и зона навигационной панели) становятся непрозрачно-белыми, и тёплый градиент Сводки начинается с жёсткого края под ними. Без режима градиент доходит до верха экрана.
 - **Why:** `liquid-glass.md › Which variant`: "Both variants change appearance when people choose a preferred look for Liquid Glass in system settings, or turn on Reduce Transparency or Increase Contrast. Design so those states still read well instead of fighting them."
 - **Fix:** продлить фон-градиент под safe area (`.ignoresSafeArea(edges: .top)` у фона в `SummaryGlass.swift`) и не ставить свой `toolbarBackground`. Сверить с Сводкой «Здоровья» при том же режиме.
 - **Скриншоты:** `rt/shell-running` против `shell/summary-running`.
 
 **K-7. Системные фоны зашиты hex-значениями, шторки в тёмной теме не приподнимаются — Improvement · Medium**
+- **Статус:** исправлено, f70a026f, 6f27c1c6.
 - **What:** `summaryCanvas`/`summaryCard` = `#F2F2F7/#000000` и `#FFFFFF/#1C1C1E` (`Palette.swift:332–334`), `settingsForm` (`SettingsView.swift:171–176`). В шторках тёмной темы холст остаётся `#000` вместо elevated, поэтому лист профиля сливается с подложкой. `PairingCard` заливает стекло шторки непрозрачным `#1C1C1E` (`AddDeviceWizard.swift:880`). Рядом живёт второй нейтральный набор `surfaceBase` `#F3F4F6/#1D1E23` (`RootTabView.swift:238, 273, 310, 330`).
 - **Why:** `dark-mode.md › Mobile (iOS, iPadOS)`: "Prefer the system background colors. Dark Mode is dynamic, which means that the background color automatically changes from base to elevated when an interface is in the foreground, such as a popover or modal sheet."
 - **Fix:** `Color(uiColor: .systemGroupedBackground)` / `.secondarySystemGroupedBackground`. `settingsForm()` свести к `formStyle(.grouped)`. `surfaceBase` удалить.
 - **Скриншоты:** `dark/profile`, `dark/addwizard-confirm`.
 
 **K-8. Шторки только для чтения закрываются подтверждающей ✓ — Improvement · Medium**
+- **Статус:** исправлено, 4133912f, f67a8186.
 - **What:** «Больше данных о сне» (`SleepMoreDataView.swift:83–85`) и лист профиля закрываются синей ✓. Сохранять там нечего.
 - **Why:** `sheets.md › Anatomy`: "The Cancel (or Close) button dismisses a sheet without saving any changes." / "The Done button dismisses a sheet after completing a task or explicitly saving changes."
 - **Fix:** `ToolbarItem(placement: .cancellationAction) { SheetCloseButton { dismiss() } }`.
@@ -649,11 +654,13 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Скриншоты:** `light/summary`, `ax/summary`.
 
 **S-3. VoiceOver читает декоративные иконки и шевроны карточек — Improvement · Medium (по коду)**
+- **Статус:** исправлено, 1a85ade7, 4133912f.
 - **What:** `SummaryCards.swift:65,80,112`: иконка категории и шеврон внутри `.combine` (218) озвучиваются именами символов. В проекте 20 `chevron.right`, и ни у одного нет `accessibilityHidden`.
 - **Why:** `voiceover.md › Descriptions`: "Exclude purely decorative images from VoiceOver."
 - **Fix:** `.accessibilityHidden(true)` на иконку и шеврон в `SummaryCardTitleRow`, `SleepMetricCards.swift:98`, `BreathingView.swift:365`.
 
 **S-4. Мелочи Сводки — Craft · Low**
+- **Статус:** исправлено, 4133912f.
 - **What:**
   - Усилие «0,0» без единицы, а в «Все показатели» — «0,0 /100».
   - Один глиф пламени обозначает Активность, Калории и Усилие.
@@ -688,22 +695,26 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Скриншот:** `light/sleepmore` → «Количество».
 
 **SL-3. Подписи оси часов наезжают друг на друга — Improvement · Medium**
+- **Статус:** исправлено, 4133912f.
 - **What:** на стандартном кегле последние метки сливаются в «09:0011:00» (`light/sleepmore`), на AX1 — все («17192021…», `ax/sleepmore`). Колонка часов фиксирована 40 pt со смещением −7 при масштабируемом `caption` (`SleepRangeChart.swift:20, 133, 152`), подписи рядов «Бодрствование/REM/Лёгкий/Глубокий» лежат прямо на графике.
 - **Why:** `typography.md › Supporting Dynamic Type`: "Keep text truncation to a minimum as font size increases."
 - **Fix:** оси на Swift Charts (`AxisMarks(values: .stride(by: .hour, count: dts.isAccessibilitySize ? 6 : 2))`); ширину колонки — через `@ScaledMetric`; подписи рядов — в `chartYAxis`.
 - **Скриншоты:** `light/sleepmore`, `ax/sleepmore`.
 
 **SL-4. «Выключенные» ряды отключены через `allowsHitTesting` — Improvement · Medium (по коду)**
+- **Статус:** исправлено, 4133912f.
 - **What:** `SleepMoreDataView.swift:237` (стадии на «6М»), `:296` (сравнения, которые нельзя построить). Ряды не приглушены, и для VoiceOver остаются кнопками.
 - **Why:** `lists-and-tables.md › Best practices`: "Provide appropriate feedback when people select a list item."
 - **Fix:** `.disabled(range == .sixMonths)`, `.disabled(!row.plottable)`.
 
 **SL-5. Стадии и пункты меню: «REM» без перевода, пункты меню не глаголы — Craft · Low**
+- **Статус:** исправлено, 4133912f.
 - **What:** `Palette.swift:696–698` — `"REM"` захардкожен, хотя в каталоге есть «Быстрый сон». «Лёгкий» вместо Health-овского «Основной» даёт «Лёгкий, в среднем». Пункты меню ••• — «Отход ко сну» и «Я не сплю» (`SleepHealthView.swift:503–504`).
 - **Why:** `menus.md › Labels`: "label a menu item that initiates an action using a verb or verb phrase that describes the action".
 - **Fix:** `String(localized: "REM", bundle: .module)` → «Быстрый сон»; `.light` → «Основной»; меню — «Отметить отход ко сну» / «Отметить пробуждение».
 
 **SL-6. Поясняющая проза на листе — Craft · Low**
+- **Статус:** исправлено, 4133912f.
 - **What:** `SleepMoreDataView.swift:299–305, 612–615` — пояснения под сравнениями и недосыпом.
 - **Why:** `writing.md › Getting started`: "Check each word to be sure it needs to be there."
 - **Fix:** удалить оба `Text`.
@@ -711,7 +722,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 ### 4. Страница показателя, «Все показатели», Тренды
 
 **M-1. ⓘ озвучивается «О приложении»; поповеры принудительно в компактной ширине — Improvement · Medium**
-- **Статус:** ⓘ исправлено, a645ef78; поповеры — этап 4.
+- **Статус:** исправлено, a645ef78, 4133912f.
 - **What:**
   - `MetricDetailView.swift:176`: `InfoButton(label: "About")` в ru озвучивается «О приложении».
   - `SummaryView.swift:303`, `SleepHealthView.swift:136`: `.presentationCompactAdaptation(.popover)` с фиксированной рамкой 320×360; календарь дня — самодельный поповер.
@@ -720,11 +731,13 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Скриншот:** `light/metric-hrv`.
 
 **M-2. Подписи осей третичным серым 3,94:1 — Improvement · Medium**
+- **Статус:** исправлено, f70a026f.
 - **What:** `MetricHealthChart.swift:140–142`, `MetricStressDay.swift:104–106`, `SleepPageCards.swift:40–42`: `#7D808A` на `#FFFFFF`, 12 pt, фиксированный кегль.
 - **Why:** `accessibility.md › Vision`: "Strive to meet color contrast minimum standards."
 - **Fix:** `AxisValueLabel().foregroundStyle(StrandPalette.textSecondary)` (7,11:1).
 
 **M-3. Пустое состояние — абзац без действия — Improvement · Medium**
+- **Статус:** исправлено, 4133912f.
 - **What:** на «Шагах» без данных — «Нет данных» и 4 строки «Сначала импортируйте историю. Данные WHOOP из раздела «Источники данных»…» (`MetricDetailView.swift:301–306`), без кнопки. Путь описан словами.
 - **Why:** `writing.md › Best practices`: "Provide clear next steps on any blank screens." и "If you need to direct someone to a setting, provide a direct link or button, rather than trying to describe its location."
 - **Fix:** абзац удалить; в пустом состоянии одна кнопка:
@@ -743,17 +756,20 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Скриншот:** `light/metric-charge`.
 
 **M-5. Тренировочная нагрузка: линии различаются только цветом — Improvement · Medium**
+- **Статус:** исправлено, 4133912f.
 - **What:** `TrainingLoadView.swift:125–155`: «Тренированность» и «Усталость» — две сплошные линии разного цвета. Легенда — цветные точки. Подпись для VoiceOver («хроническая против острой») не совпадает со словами на экране.
 - **Why:** `charts.md › Color`: "One way to supplement color is to use different shapes or patterns to depict different parts of data."
 - **Fix:** у «Усталости» `.lineStyle(StrokeStyle(lineWidth: 2.5, dash: [5, 3]))`; `.accessibilityLabel("Fitness and Fatigue")`.
 - **Скриншот:** `light/trainingload`.
 
 **M-6. «Показатели без данных»: раскрытие без состояния — Improvement · Medium (по коду)**
+- **Статус:** исправлено, 4133912f.
 - **What:** `AllMetricsView.swift:262–281` — кнопка-раскрывашка без `accessibilityValue`.
 - **Why:** `voiceover.md › Navigation`: "Inform VoiceOver when visible content or layout changes occur."
 - **Fix:** `DisclosureGroup(isExpanded: $showsEmpty)` или `.accessibilityValue(expanded ? "Expanded" : "Collapsed")`.
 
 **M-7. Мелочи страниц показателей — Craft · Low**
+- **Статус:** исправлено, 4133912f (диапазон «Д» не добавлен: у показателей нет внутридневных данных).
 - **What:**
   - Диапазон без «Д»: у Apple Д·Н·М·6М·Г.
   - Длинное тире в диапазоне дат «22—28 сент.»: у Apple короткое «22–28».
@@ -800,6 +816,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Fix:** `.confirmationDialog` с кнопкой «Завершить интервалы» (`.destructive`), когда `runner.elapsed > 0 && !runner.isFinished`.
 
 **W-4. RPE вводится четырьмя разными способами, два без проверки — Improvement · Medium**
+- **Статус:** исправлено, 7a9ae81e.
 - **What:**
   - текстовое поле с плейсхолдером «7», который выглядит как введённое значение (`LiftSessionView.swift:465–470`, `:674`);
   - поле в правке (`LiftSessionEditSheet.swift:72–78`);
@@ -817,22 +834,26 @@ voiceInput.stopTranscribing { _ in }                          // не допис
   В Fitness есть готовый образец: шкала «Лёгкая / Умеренная / Тяжёлая / На пределе».
 
 **W-5. Состояние записи видно только по глифу; «Завершить» выглядит как «закрыть» — Improvement · Medium**
+- **Статус:** исправлено, 7a9ae81e.
 - **What:** на паузе меняется только центральная кнопка ‖→▶. Часы остаются зелёными, слова «Пауза» нет. «Завершить» — серый ✕, тот же глиф, что закрытие шторки (`RecordingChrome.swift:87–90, 144`). Заливка кнопки `white 0.2` на панели `white 0.11` даёт 1,35:1.
 - **Why:** `feedback.md › Best practices`: "Consider integrating status feedback into your interface." `buttons.md › Role`: "a destructive button uses the system red color."
 - **Fix:** на паузе `RecordingClockText(…, tint: paused ? StrandPalette.fitnessTime : StrandPalette.activityExerciseText)` + подпись «Пауза»; у «Завершить» — `tint: .red`, заливка `tint.opacity(0.25)`, как на Apple Watch.
 - **Скриншот:** `shell/recording`.
 
 **W-6. Undo в зале: непонятно, что отменится; работает только на одной странице — Improvement · Medium**
+- **Статус:** исправлено, 7a9ae81e.
 - **What:** кнопка подписана просто «Undo» (`LiftSessionView.swift:169–171`). Подход удаляется свайпом на странице 1 (`:245–251`), а кнопки Undo там нет. `UndoManager` не подключён, поэтому встряхивание не работает.
 - **Why:** `undo-and-redo.md › Mobile (iOS, iPadOS)`: "Briefly and precisely describe the operation to be undone or redone."
 - **Fix:** после каждой правки — `undoManager?.registerUndo(withTarget: session) { $0.undo() }` и `setActionName("Delete Set")`. Подпись кнопки брать из этого имени.
 
 **W-7. Контекстные меню есть только в одном списке — Improvement · Medium**
+- **Статус:** исправлено, 7a9ae81e.
 - **What:** меню есть в «Все тренировки» (`WorkoutHistoryView.swift:138–158`). Их нет у недавних на вкладке (`WorkoutsHomeView.swift:101–113`), у карточек программ (`LiftLogView.swift:118–145`) и у истории сессий (`:324–336`). На детали тренировки в тулбаре только «Экспорт» (`WorkoutDetailView.swift:61–69`). У пункта «Label as…» нет иконки, хотя у соседних пунктов есть (`:140`).
 - **Why:** `context-menus.md › Best practices`: "Support context menus consistently throughout your app." и "Always make context menu items available in the main interface, too." `menus.md › Icons`: "provide icons for all menu items in a group, or none of them."
 - **Fix:** вынести `WorkoutRowMenu(row:)` и подключать через `.contextMenu { WorkoutRowMenu(row: row) }` везде. На детали — `Menu { WorkoutRowMenu(row: row) } label: { Image(systemName: "ellipsis") }.barGlyph()`.
 
 **W-8. VoiceOver не слышит состояний и выбранного фильтра — Improvement · Medium (по коду)**
+- **Статус:** исправлено, 7a9ae81e.
 - **What:**
   - Подпись кнопки переключения страниц всегда «Sets» (`LiftSessionView.swift:423`).
   - У чипов фильтра нет `.isSelected`, их высота около 34 pt (`WorkoutHistoryView.swift:126–136`).
@@ -840,6 +861,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Fix:** `.accessibilityValue(recorded ? "Done" : isWorking ? "In progress" : "")`, `.accessibilityAddTraits(selected ? .isSelected : [])`, `.frame(minHeight: 44)`.
 
 **W-9. Reduce Motion не учитывается на экранах тренировок — Improvement · Medium (по коду)**
+- **Статус:** исправлено, 7a9ae81e.
 - **What:**
   - `numericText` каждую секунду и линейная полоса (`IntervalTimerView.swift:179, 187`);
   - сотые доли секунды обновляются 20 раз в секунду (`LiveWorkoutView.swift:146,164`, `LiftSessionView.swift:141,424`);
@@ -848,16 +870,19 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Fix:** `.contentTransition(reduceMotion ? .identity : .numericText())`, `.animation(reduceMotion ? nil : .linear(duration: 1), value: …)`, для отсчёта `.impact(weight: .light)`.
 
 **W-10. Экран гаснет по-разному на трёх экранах записи — Improvement · Medium**
+- **Статус:** исправлено, 7a9ae81e.
 - **What:** запись тренировки — по настройке, выключено по умолчанию (`LiveWorkoutView.swift:26,63`); интервалы — всегда (`IntervalTimerView.swift:233–235`); зал — никогда, и таймер отдыха гаснет вместе с экраном.
 - **Why:** `accessibility.md` (вступление): "Your interface uses familiar and consistent interactions that make tasks straightforward to perform."
 - **Fix:** один ключ `workoutKeepScreenOn` для всех трёх: `.onAppear { ScreenIdle.keepAwake(keepScreenOn) }` в `LiftSessionView` и `IntervalRunView`.
 
 **W-11. Ошибки сохранения проглатываются, шторка закрывается как при успехе — Improvement · Medium (по коду)**
+- **Статус:** исправлено, 7a9ae81e.
 - **What:** `LiftSessionView.swift:676,694`, `LiftProgramEditorSheet.swift:236,255`, `LiftSessionEditSheet.swift:273–278`, `LiftSessionDetailSheet.swift:169` — `try?` без реакции.
 - **Why:** `feedback.md › Best practices`: "Show people when a command can’t be carried out and help them understand why."
 - **Fix:** `do { try await … } catch { saveFailed = true; return }` + `.alert("Couldn’t Save Session", isPresented: $saveFailed) { Button("OK") {} }`. При ошибке шторку не закрывать.
 
 **W-12. Один глагол — одно действие; регистр — Improvement · Medium**
+- **Статус:** исправлено, 7a9ae81e.
 - **What:**
   - Для одного действия разные глаголы: «End Workout» / «Delete Workout», «Finish Session» / «Discard Session» / «Discard session», просто «End» (`LiveWorkoutView.swift:72,76`, `LiftSessionView.swift:407,413,489,503`, `IntervalTimerView.swift:209`).
   - Регистр смешан: «Add exercise», «Choose a workout», «Import a program»; «Sets per Muscle» рядом с «How hard it felt».
@@ -869,6 +894,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Fix:** словарь из трёх глаголов: Завершить — остановить запись; Отменить — выбросить несохранённое; Удалить — удалить сохранённое. Кнопки и заголовки в Title Case (en). Ошибка — «Выберите вид тренировки.». Прочерк один: «—».
 
 **W-13. Проза, информационный алерт, пустые состояния без действия — Craft · Low**
+- **Статус:** исправлено, 7a9ae81e.
 - **What:**
   - Проза в подвалах: `LiftSessionExerciseSheet.swift:78`, `LiftExercisePicking.swift:128,206`, `LiftProgramItemSheet.swift:105`, `LiftLogView.swift:246`, `WorkoutDetailView.swift:309,335`, `LiftSessionDetailSheet.swift:288,504`, `LiftProgramImportSheet.swift:38,141`.
   - Информационный алерт с «OK» в роли cancel (`LiftSessionExerciseSheet.swift:63–69`).
@@ -877,6 +903,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Fix:** подвалы удалить. Алерт → «Список упражнений заполнен» с кнопкой «Управлять упражнениями». Пустое состояние → `EmptyStateView(title: Text("No Workouts"), systemImage: "figure.run") { Button("Show All") { sportFilter = nil } }`.
 
 **W-14. Карта маршрута — Craft · Low**
+- **Статус:** исправлено, 7a9ae81e.
 - **What:**
   - Интерактивная `MKMapView` стоит внутри `ScrollView`, и её жесты конфликтуют с прокруткой.
   - Обе метки — стандартные красные, хотя в шапке файла обещан зелёный старт (`WorkoutRouteMap.swift:12` против `:56–58`).
@@ -897,12 +924,14 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Fix:** на iOS 26 — AlarmKit: `AlarmManager.shared.schedule(id:configuration:)` с еженедельным расписанием плюс `NSAlarmKitUsageDescription`. Это системный будильник, как в «Часах», со «Стоп/Отложить» поверх Silent и Focus. Фолбэк — `content.interruptionLevel = .timeSensitive` плюс entitlement в `project.yml` у NOOPiOS. Второе уведомление не отправлять, если резервное уже ушло. Первичный будильник — вибрация браслета, поэтому это High, а не Critical.
 
 **AL-2. «Изменить» у нескольких расписаний неразличимы; удаление без роли — Improvement · Medium**
+- **Статус:** исправлено, 4133912f.
 - **What:** у каждой карточки подпись просто «Изменить» (`SleepScheduleComponents.swift:109–117`). «Удалить расписание» — обычная кнопка с красным текстом, без `role: .destructive` (`SleepScheduleEditor.swift:54–70`).
 - **Why:** `voiceover.md › Descriptions`: "System-provided controls have generic labels by default, but you should provide more descriptive labels that convey your app’s functionality." `buttons.md › Role`: "Destructive. The button performs an action that can result in data destruction."
 - **Fix:** `.accessibilityLabel("Edit \(SleepSchedule.weekdaySummary(Set(entry.days)))")`; `Button(role: .destructive) { … }`.
 - **Скриншот:** `light/schedule`.
 
 **AL-3. Заголовки редактора мельче, чем у Apple — Craft · Low**
+- **Статус:** исправлено, 4133912f.
 - **What:** у Apple («Настройка первого расписания») «Активно по дням» и «Отход ко сну и пробуждение» — жирные заголовки секций. У нас второй — серый 15 pt, псевдозаголовок без `.isHeader` (`SleepScheduleEditor.swift:38–42`). Кружки дней по высоте 38 pt.
 - **Why:** `layout.md › Visual hierarchy`: "Group related items to clearly express related information or functions."
 - **Fix:** `SleepScheduleHeader` для обеих секций плюс `.accessibilityAddTraits(.isHeader)`; кружкам — `.frame(minHeight: 44)`.
@@ -911,11 +940,13 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 ### 7. Live / Пульс
 
 **LV-1. Технические фразы в карточке проблемы — Improvement · Medium**
+- **Статус:** исправлено, 719ad15a.
 - **What:** `LiveView.swift:480–489`: «Connected, waiting for a streaming state.», «Standard HR mode (low bandwidth)».
 - **Why:** `writing.md › Getting started`: "Choose simple, plain language and write with accessibility and localization in mind, avoiding jargon and gendered terminology."
 - **Fix:** оставить одну фразу на состояние («Подключение…», «Пульс обновляется реже») без режимов протокола.
 
 **LV-2. «Весь день по секундам»: английские форматы, «bpm», жесты без альтернативы — Improvement · Medium**
+- **Статус:** исправлено, 719ad15a.
 - **What:**
   - Даты «EEE d MMM» и «HH:mm» с `en_US_POSIX` (`FullDayChartView.swift:268–270, 588–590`), поэтому русский пользователь видит «Mon 27 Sep».
   - Единица — «61 bpm».
@@ -926,12 +957,14 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Скриншот:** `light/sheet-fullday`.
 
 **LV-3. Замер ВСР заканчивается молча — Improvement · Medium (по коду)**
+- **Статус:** исправлено, 719ad15a.
 - **What:** через 60 с — ни хаптика, ни объявления VoiceOver (`HRVSnapshotView.swift:401–440`). Ошибка сохранения тихо возвращает «Сохранено» → «Сохранить» (`:458–475`). Карточка «Браслет не передаёт данные — подключите его на экране «Пульс»» описывает путь словами, без ссылки.
 - **Why:** `feedback.md › Best practices`: "When it makes sense, confirm that a significant action or task has completed."
 - **Fix:** `.sensoryFeedback(.success, trigger: phase) { _, n in n == .done }`, `AccessibilityNotification.Announcement(…)`, при ошибке — «Повторить»; в карточке — кнопка «Открыть устройства».
 - **Скриншот:** `light/sheet-hrv`.
 
 **LV-4. Сердце бьётся 60 раз в минуту при любом пульсе; цвет в обход токенов — Craft · Low**
+- **Статус:** исправлено, 719ad15a.
 - **What:** `LiveView.swift:230` (ритм анимации) и `:218` (`Color(red:…)`).
 - **Why:** `motion.md › Best practices`: "Add motion purposefully, supporting the experience without overshadowing it."
 - **Fix:** длительность удара `60 / bpm` (при Reduce Motion — статично, как сейчас); цвет — токен `healthHeart`.
@@ -946,18 +979,21 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Скриншот:** `light/breathe-summary`.
 
 **BR-2. Недоступный режим: причина набрана тем же приглушённым цветом — Improvement · Medium**
+- **Статус:** исправлено, 719ad15a.
 - **What:** ряд «Спокойствие — Нужен подключённый браслет» целиком приглушён. Причина, то есть единственная полезная строка, нечитаема.
 - **Why:** `feedback.md › Best practices`: "Show people when a command can’t be carried out and help them understand why."
 - **Fix:** приглушать только название и ▶, причину набирать `textSecondary`; по тапу открывать «Устройства».
 - **Скриншот:** `light/breathe`.
 
 **BR-3. Проверка стресса: три действия и два акцента — Improvement · Medium**
+- **Статус:** исправлено, 719ad15a.
 - **What:** в шторке «Дышать сейчас» (бирюзовая капсула), «Выключить» (серый текст, выглядит неактивным) и «Не сейчас» (синий).
 - **Why:** `liquid-glass.md › Color on glass`: "Refrain from adding color to the background of multiple controls." `alerts.md › Buttons`: "Always use “Cancel” to title a button that cancels the alert’s action."
 - **Fix:** одна основная кнопка «Дышать» (`.glassProminent`) и одна вторичная «Не сейчас». «Выключить проверки» — пункт в Настройках → Уведомления, не здесь.
 - **Скриншот:** `light/breathe-stress`.
 
 **BR-4. Полноэкранная сессия — Craft · Low**
+- **Статус:** исправлено, 719ad15a, 7a9ae81e.
 - **What:** статус-бар и индикатор Home видны. Фраза «Вдох/Выдох» меняется без `.updatesFrequently`. ⌄ и ✕ — тёмно-серые круги, а не стекло (`RecordingChrome.swift:90`). «Готово» в итогах — самодельная капсула (`BreathingView.swift:532–541`). Тумблер «Звуковые подсказки» синий, в остальных местах тумблеры зелёные.
 - **Why:** `going-full-screen.md › Best practices`: "Prioritize content by temporarily hiding toolbars and navigation controls."
 - **Fix:** `.statusBarHidden(true).persistentSystemOverlays(.hidden)`; кнопки — `.buttonStyle(.glass)`, «Готово» — `.glassProminent`; тумблер — без `tint`.
@@ -1002,6 +1038,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Скриншот:** `light/coach-error`.
 
 **CO-5. Настройки Коуча: жаргон и кнопка, похожая на поле — Improvement · Medium**
+- **Статус:** исправлено, 719ad15a.
 - **What:** «Провайдер — Custom (OpenAI-compatible)», «Заголовок ключа — Bearer». «Сохранить ключ» — серый текст в белой капсуле, выглядит как неактивное поле ввода.
 - **Why:** `writing.md › Getting started`: "Choose simple, plain language and write with accessibility and localization in mind, avoiding jargon and gendered terminology." `buttons.md › Content`: "Ensure that each button clearly communicates its purpose."
 - **Fix:** «Свой сервер»; «Заголовок ключа» спрятать в «Дополнительно»; «Сохранить ключ» — ряд-кнопка, серым только когда поле пустое, либо сохранять при `onSubmit` без кнопки.
@@ -1139,6 +1176,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Скриншот:** `light/set-backup`.
 
 **ST-4. Копии системных настроек: язык, «Уменьшить движение», 24-часовой формат, «Скрывать панель» — Improvement · Medium**
+- **Статус:** исправлено, f67a8186, 6f27c1c6.
 - **What:**
   - «Язык» (`AppLanguage.swift:10–19`, `SettingsGeneralPages.swift:28–39`) дублирует системное «Настройки → NOOP → Язык». В списке нет русского и zh-Hant, хотя переводы есть, и нужен перезапуск.
   - «Уменьшить движение» (`:170`) звучит как системная настройка, но действует только внутри NOOP (с системной складывается через `NoopMotion.swift:233`).
@@ -1149,6 +1187,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Скриншоты:** `light/set-general`, `light/set-display`.
 
 **ST-5. «Заряд» — одновременно показатель и батарея; другие расхождения терминов — Improvement · Medium**
+- **Статус:** исправлено, 6f27c1c6, e2c164fb.
 - **What:**
   - В «Уведомлениях» стоят «Заряд браслета» (батарея) и «Прогноз заряда» (показатель Заряд).
   - Ряд браслета в корне пишет «Подключено · 82%», а «Устройства» — «Подключено · без пары» или «Переподключение…»; «82%» против «82 %» (`SettingsView.swift:91–107` против `DeviceReadout.swift:44–66`).
@@ -1164,12 +1203,14 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Скриншоты:** `light/set-notifications`, `light/set-applehealth`, `light/set-units`.
 
 **ST-6. Информационные алерты и неверные имена кнопок — Improvement · Medium**
+- **Статус:** исправлено, 6f27c1c6.
 - **What:** алерт велит нажать «Use NOOP's own folder», а кнопка называется «NOOP folder» (`BackupSyncView.swift:42` против `:220`). «Используется папка NOOP» и «Восстановлено» — алерты с одной кнопкой OK (`:233–235, 281–282`). У одного действия три имени: «Сбросить норму» → диалог «Перекалибровать…» → «recalibrating» (`SettingsFeaturePages.swift:114, 126–137`).
 - **Why:** `alerts.md › Content`: "refer to a button using its exact title without quotes." `alerts.md › Best practices`: "Avoid using an alert merely to provide information."
 - **Fix:** одно имя действия; итог — `Confirmation.shared.show(String(localized: "Baseline reset"))`, как уже сделано для «Backed up».
 - **Скриншот:** `light/set-scores`.
 
 **ST-7. Запрещённое разрешение описано текстом, а не ссылкой — Improvement · Medium**
+- **Статус:** исправлено (уведомления; Здоровье и Watch — нет), 6f27c1c6.
 - **What:**
   - При запрещённых в iOS уведомлениях тумблеры включаются и молча ничего не делают (`NotificationsSettingsPage.swift:33–57`, `BatteryNotifier.swift:184`).
   - При `.denied` кнопка «Включить Apple Health» снова вызывает HealthKit, и шторка не появляется (`AppleHealthView.swift:69–81, 138–139`).
@@ -1179,6 +1220,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Скриншоты:** `light/set-notifications`, `light/sheet-watch`.
 
 **ST-8. Текстовые поля: клавиатура, автокоррекция, пустые значения — Improvement · Medium**
+- **Статус:** исправлено, 05d4df50, 6f27c1c6.
 - **What:**
   - Имя быстрой команды портится автокоррекцией (`ShortcutsSettingsPage.swift:49–53`).
   - У имени устройства нет кнопки очистки, и сохраняется пустая строка (`DeviceDetailView.swift:424–438`).
@@ -1188,12 +1230,14 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Fix:** `.autocorrectionDisabled().textInputAutocapitalization(.never)`; `.keyboardType(.asciiCapable)` плюс ошибка «Введите 32 символа: 0–9, a–f.»; `guard !draft.trimmingCharacters(in: .whitespaces).isEmpty`; у «Переименовать» — `.buttonStyle(.borderless)` и алерт «Переименовать и перезапустить браслет?».
 
 **ST-9. Раздел «Разработчик» виден всем; внутри английский — Craft · Low**
+- **Статус:** исправлено, 6f27c1c6.
 - **What:** «Тестовые режимы: Sleep & Rest, Connection & Sync…» набраны verbatim-строками, хотя в каталоге есть «Сон и отдых». В корне настроек около 1000 строк переключателей протокола.
 - **Why:** `settings.md › Best practices`: "too many settings can make the experience feel less approachable, while also making it hard to find a particular setting."
 - **Fix:** раздел показывать после 7 касаний по версии в «О NOOP» (или под `#if DEBUG`); названия доменов — `String(localized:)`.
 - **Скриншот:** `light/set-developer`.
 
 **ST-10. Проза и повторы — Craft · Low**
+- **Статус:** исправлено, 6f27c1c6.
 - **What:**
   - Остались футеры: `SettingsGeneralPages.swift:38`, `StepsCalibrationSheet.swift:252`, `BackupSyncView.swift:75`.
   - Длинные алерты: `BackupSyncView.swift:174, 178, 220, 234`.
@@ -1309,23 +1353,27 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 (NoticeCard и HUD — CR-6; свайпы и меню Тренировок — W-1, W-7.)
 
 **UI-1. Уведомления внутри приложения: английские термины и первое лицо — Improvement · Medium**
+- **Статус:** исправлено, 719ad15a.
 - **What:** «Признаки перегрузки — Выше нормы: resting HR, HRV.»; «Синхронизирую историю браслета» — приложение говорит от первого лица; «Как исправить» ведёт в справку, а не к действию.
 - **Why:** `writing.md › Best practices`: "Use possessive pronouns sparingly." … "Avoid using we altogether because it may be unclear who the “we” in question refers to." Первое лицо от имени приложения — та же проблема (суждение).
 - **Fix:** «Выше нормы: пульс покоя, ВСР.»; «Синхронизация истории браслета…»; действие — «Выполнить сопряжение».
 - **Скриншот:** `light/notices`.
 
 **UI-2. «Что нового» целиком на английском, пункты пронумерованы — Improvement · Medium**
+- **Статус:** исправлено, 719ad15a.
 - **What:** все 8 пунктов («A lift log you advance from the strap»…) английские в русском интерфейсе (`WhatsNewView.swift:15`). Маркеры `"\(index+1).circle.fill"` (`:91`) на пунктах, которые не последовательность. Кнопка «Продолжить» лежит поверх 8-го пункта.
 - **Why:** `writing.md › Getting started`: "Choose simple, plain language and write with accessibility and localization in mind". Шаблон «01/02/03» на непоследовательном контенте — craft-линза скилла.
 - **Fix:** строки в каталог; у каждого пункта свой SF Symbol, как в «Что нового» Apple; кнопка в `safeAreaInset(edge: .bottom)`.
 - **Скриншот:** `light/sheet-whatsnew`.
 
 **UI-3. Пустые состояния без следующего шага — Improvement · Medium**
+- **Статус:** исправлено (пустые состояния с одной кнопкой), 4133912f, 7a9ae81e, 686fe2f9, ba8f53d7.
 - **What:** показатель без данных (M-3), «Все тренировки» с фильтром (W-13), «Пока нет закономерностей» (WM-4), пустой Коуч с одним заголовком.
 - **Why:** `writing.md › Best practices`: "Provide clear next steps on any blank screens."
 - **Fix:** везде `ContentUnavailableView { … } actions: { Button(…) }` с одной кнопкой. Для Коуча — ряд подсказок и первый чип «Бриф на сегодня».
 
 **UI-4. `Haptics.swift` не используется и сам себе противоречит — Craft · Low**
+- **Статус:** исправлено (неиспользуемое удалено; StrandHaptic нужен часам), 719ad15a.
 - **What:** 0 вызовов; `.commit` = `.rigid` в UIKit-ветке (`:43`) и `.heavy` в SwiftUI-ветке (`:83`). Остальные хаптики в приложении — системные `sensoryFeedback`, их 8.
 - **Why:** `playing-haptics.md › Best practices`: "Use haptics consistently throughout your app or game."
 - **Fix:** файл удалить.
@@ -1376,6 +1424,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Скриншоты:** `shell/lock-hr`, `shell/island-expanded`.
 
 **LA-2. Компактный и минимальный вид Dynamic Island — Improvement · Medium**
+- **Статус:** исправлено, 6f27c1c6.
 - **What:**
   - В минимальном виде HR, Lift и Sync показывают статичную иконку (`NOOPLiveActivity.swift:62–63`, `LiftLiveActivity.swift:65–66`, `SyncLiveActivity.swift:70–72`).
   - Время «0:45» прижато вправо внутри ширины «00:00», и у камеры остаётся около 9 pt пустоты (`LiveActivityChrome.swift:74, 83`).
@@ -1386,6 +1435,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Скриншот:** `shell/island-compact`.
 
 **LA-3. Мелочи баннеров — Craft · Low**
+- **Статус:** исправлено частично (отступ, вес, проценты; итоговый экран у Lift/Interval не добавлен), 5448e31a, 6f27c1c6.
 - **What:**
   - Отступ у интервалов 16 pt, у остальных 14 (`IntervalLiveActivity.swift:23`).
   - Цифры `.light` (46/36 pt), вторичные строки `.regular`.
@@ -1402,6 +1452,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Fix:** `UNNotificationCategory(identifier: "health", actions: [], intentIdentifiers: [], hiddenPreviewsBodyPlaceholder: String(localized: "Health notice"))` плюс `content.categoryIdentifier = "health"`; тело — список без «Up:»; заголовок — «Показатели вне нормы».
 
 **NT-2. Одно событие — несколько уведомлений; регистр и имена — Improvement · Medium**
+- **Статус:** исправлено, 6f27c1c6.
 - **What:**
   - На один цикл разряда батарея присылает 4 разных id (`BatteryNotifier.swift:84, 116, 140, 171`), `threadIdentifier` нет.
   - Заголовки уведомлений в sentence case.
@@ -1421,6 +1472,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Fix:** все пользовательские строки — через `String(localized:)`; данные-ключи отображать через каталог; в CI — `Tools/i18n_audit.py`.
 
 **X-2. Один термин на одно понятие — Improvement · Medium**
+- **Статус:** исправлено, e2c164fb.
 - **What:**
   - Устройство: «Браслет» (корень, Пульс) и «Ремешок» («Будильник ремешка», «Журнал ремешка»).
   - «Заряд»: показатель и батарея.
@@ -1436,6 +1488,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Fix:** глоссарий в `docs/` — «Браслет», «Батарея браслета», «ВСР», «Отход ко сну», «Основные показатели» (Vitals), «Осознанность», «Пульс», «Журнал», «Тренировки»; быстрым действиям — имена рядов «Обзора».
 
 **X-3. Числа, даты, единицы — Improvement · Medium**
+- **Статус:** исправлено (FormatStyle, уд/мин, короткое тире, без en_US_POSIX), 141afac2, 719ad15a, 4133912f.
 - **What:**
   - Точка вместо запятой в Lab Book, Дневнике и импорте (CR-11, LB-1).
   - «46%» против «46 %».
@@ -1459,6 +1512,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Статус:** исправлено, 51ea6e5e.
 
 **Craft-2. Два шрифта «Здоровья» — Improvement · Medium.** Сводка и карточки сна набраны SF Rounded (`StrandFont.headline/body/number`, заголовок секции `rounded(22)`). Страница показателя, расписание, тренды и настройки — SF Pro (`StrandFont.pro`). `Typography.swift:111–112` сам признаёт, что «Здоровье» использует SF Pro. У Apple в «Здоровье» SF Rounded только в цифрах колец, а в «Фитнесе» — в цифрах метрик.
+- **Статус:** исправлено, 1845cda3.
 - **Why:** `typography.md › Conveying hierarchy`: "Minimize the number of typefaces you use, even in a highly customized interface."
 - **Fix:** текст везде SF Pro; Rounded оставить только цифрам колец и экрана записи.
 
