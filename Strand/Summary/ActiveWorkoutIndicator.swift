@@ -94,7 +94,6 @@ struct ActiveWorkoutIndicatorSection: View {
     var body: some View {
         if let model = ActiveWorkoutIndicatorModel.make(from: app.activeWorkout) {
             ActiveWorkoutIndicatorCard(model: model) {
-                StrandHaptic.selection.play()
                 router.openActiveWorkout()
             }
             .transition(.opacity)

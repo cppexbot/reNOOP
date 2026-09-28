@@ -32,6 +32,8 @@ struct CoachView: View {
     /// sheet behaves the same in all three places CoachView appears (macOS route, Browse push, pillar
     /// sheet), which a push would not.
     @State private var showSettings = false
+    /// Bumped when a reply lands; the system's light impact follows it (`sensoryFeedback`).
+    @State private var replyArrived = 0
     /// The "Try Again" menu of a failed question, opened from its red "!".
     @State private var showFailure = false
 
@@ -139,8 +141,11 @@ struct CoachView: View {
         }
         // K14: haptic feedback when a reply arrives (sending goes true → false).
         .onChangeCompat(of: coach.sending) { isSending in
-            if !isSending && !coach.messages.isEmpty { triggerReplyHaptic() }
+            if !isSending && !coach.messages.isEmpty { replyArrived += 1 }
         }
+        #if os(iOS)
+        .sensoryFeedback(.impact(weight: .light), trigger: replyArrived)
+        #endif
         // A consent toggle after the initial load re-checks the brief; `startBriefIfNeeded` is a no-op
         // once a conversation exists.
         .onChangeCompat(of: coach.dataConsent) { _ in
@@ -766,13 +771,6 @@ struct CoachView: View {
         guard !coach.sending, let failed = coach.messages.last, failed.role == .user else { return }
         coach.messages.removeLast()
         Task { await coach.send(failed.text) }
-    }
-
-    /// K14: a light impact when the reply arrives (iOS); no simple equivalent on macOS.
-    private func triggerReplyHaptic() {
-        #if os(iOS)
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        #endif
     }
 
     /// K8: save a reply to the journal as a note, under a fixed question ("Coach advice").

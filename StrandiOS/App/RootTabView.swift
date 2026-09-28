@@ -45,8 +45,7 @@ struct RootTabView: View {
     /// A routed v5 pillar screen (Insights hub / Lab Book / fused record / Rhythm) presented as a sheet
     /// when a hub row deep-links to it via NavRouter. nil = closed.
     @State private var routedPillar: NavRouter.Destination?
-    /// Selected tab — bound so tab switches can crossfade (README §Motion: ~240ms opacity swap
-    /// between tab roots, calm easing). Defaults to Today.
+    /// Selected tab, bound so a re-tap can pop / scroll its root. Defaults to Today.
     @State private var selectedTab: Int = 0
     /// One `NavigationPath` per tab, indexed by tab tag. Re-tapping the already-active tab pops
     /// that tab's stack to its root (#135) by clearing its path — an animated pop that leaves the
@@ -100,9 +99,6 @@ struct RootTabView: View {
             // #1841: the same "Hide bar when scrolling" preference Android drives its own bar with. Here
             // the system owns the behaviour — iOS 26's tab bar MINIMISES to a pill on scroll down.
             .noopTabBarAutoHide(bottomBarAutoHide)
-            // Tab crossfade — README §Motion: ~240ms opacity swap between tab roots, global calm
-            // easing cubic-bezier(0.22,1,0.36,1).
-            .animation(.timingCurve(0.22, 1, 0.36, 1, duration: 0.24), value: selectedTab)
         .task {
             await repo.refresh()
             // Backup & Sync: on-launch catch-up (see RootView). Detached + utility priority so a
@@ -112,9 +108,7 @@ struct RootTabView: View {
                 await FolderBackup.catchUpIfDue(checkpoint: { await backupRepo.checkpointForBackup() })
             }
         }
-        // Quick-action sheet presents with the calm easing (~0.42s) per the README sheet spec —
-        // the easing is applied where `quickAction` is set (see `presentQuickAction`), keeping the
-        // animation scoped to the sheet rather than the whole shell.
+        // Quick-action sheet: the system's own presentation, as every other sheet.
         .sheet(item: $quickAction) { action in
             quickActionDestination(action)
         }
@@ -162,8 +156,8 @@ struct RootTabView: View {
                 router.requestedDestination = nil
             case .journal:
                 // The #627 Today journal widget opens the journal through the quick-action Journal sheet
-                // (InsightsView), matching the FAB's "Log journal" action. Calm sheet easing.
-                withAnimation(Self.sheetEase) { quickAction = .journal }
+                // (InsightsView), matching the FAB's "Log journal" action.
+                quickAction = .journal
                 router.requestedDestination = nil
             case nil:
                 break
@@ -210,11 +204,9 @@ struct RootTabView: View {
         case .breathe: .breathe
         }
         homeScreenQuickActions.consume(action)
-        withAnimation(Self.sheetEase) {
-            showDevices = false
-            routedPillar = nil
-            quickAction = destination
-        }
+        showDevices = false
+        routedPillar = nil
+        quickAction = destination
     }
 
     /// A routed v5 pillar screen wrapped in its own nav stack + Done button (mirrors `quickScreen`).
@@ -254,9 +246,6 @@ struct RootTabView: View {
             }
         }
     }
-
-    /// Calm-easing curve (cubic-bezier(0.22,1,0.36,1)) at the README sheet-present duration.
-    private static let sheetEase = Animation.timingCurve(0.22, 1, 0.36, 1, duration: 0.42)
 
     // MARK: - Quick-action sheet
 
