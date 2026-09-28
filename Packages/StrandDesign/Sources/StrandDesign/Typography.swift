@@ -16,8 +16,28 @@ public enum StrandFont {
 
     // MARK: Family
 
+    /// The system text style whose Large-size default is `size` points, so a literal size taken from an
+    /// Apple spec keeps its exact look at the default setting and still follows Dynamic Type (CR-1).
+    /// Sizes that match no style stay fixed; views scale those with `@ScaledMetric`.
+    static func textStyle(for size: CGFloat) -> Font.TextStyle? {
+        switch size {
+        case 11: .caption2
+        case 12: .caption
+        case 13: .footnote
+        case 15: .subheadline
+        case 16: .callout
+        case 17: .body
+        case 20: .title3
+        case 22: .title2
+        case 28: .title
+        case 34: .largeTitle
+        default: nil
+        }
+    }
+
     private static func roundedSystem(_ size: CGFloat, weight: Font.Weight) -> Font {
-        .system(size: size, weight: weight, design: .rounded)
+        textStyle(for: size).map { .system($0, design: .rounded, weight: weight) }
+            ?? .system(size: size, weight: weight, design: .rounded)
     }
 
     // MARK: Scale (§9.2)
@@ -111,7 +131,7 @@ public enum StrandFont {
     /// SF Pro (the default design, not Rounded) at an arbitrary size/weight — the Health-style pages,
     /// which Apple sets in SF Pro. Digits stay proportional, as Health's figures are.
     public static func pro(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
-        Font.system(size: size, weight: weight)
+        textStyle(for: size).map { .system($0, weight: weight) } ?? .system(size: size, weight: weight)
     }
 
     /// Mono at an arbitrary size.
