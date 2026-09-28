@@ -45,6 +45,8 @@ struct SleepRangeChart: View {
                     .offset(y: plotHeight + 4)
             }
         }
+        // Axis labels sit in fixed gutters: they follow Dynamic Type only as far as the gutters hold them.
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(window.averageAsleepMin.map { SleepFormat.duration(minutes: $0) } ?? ""))
     }

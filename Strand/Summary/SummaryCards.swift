@@ -32,12 +32,17 @@ struct SummarySectionHeader: View {
     var actionTitle: LocalizedStringKey? = nil
     var action: (() -> Void)? = nil
 
+    @Environment(\.dynamicTypeSize) private var dts
+
     var body: some View {
-        HStack(alignment: .firstTextBaseline) {
+        let layout = dts.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
+            : AnyLayout(HStackLayout(alignment: .firstTextBaseline))
+        layout {
             Text(title)
                 .font(StrandFont.rounded(22))
                 .foregroundStyle(StrandPalette.textPrimary)
-            Spacer()
+            if !dts.isAccessibilitySize { Spacer() }
             if let actionTitle, let action {
                 Button(actionTitle, action: action)
                     .font(StrandFont.body)
@@ -45,6 +50,7 @@ struct SummarySectionHeader: View {
                     .buttonStyle(.plain)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 4)
         .padding(.top, NoopMetrics.space4)
         .accessibilityAddTraits(.isHeader)
@@ -60,27 +66,57 @@ struct SummaryCardTitleRow: View {
     /// Off for a card that opens nothing.
     var chevron = true
 
+    @Environment(\.dynamicTypeSize) private var dts
+
     var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(tint)
-            Text(title)
-                .font(StrandFont.headline)
-                .foregroundStyle(tint)
-                .lineLimit(1)
-            Spacer(minLength: 8)
-            if let trailing {
-                Text(trailing)
-                    .font(StrandFont.footnote)
-                    .foregroundStyle(StrandPalette.textSecondary)
-                    .lineLimit(1)
+        if dts.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    glyph
+                    titleText
+                    Spacer(minLength: 8)
+                    chevronGlyph
+                }
+                if let trailing { trailingText(trailing) }
             }
-            if chevron {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(StrandPalette.textTertiary)
+        } else {
+            HStack(spacing: 6) {
+                glyph
+                titleText
+                Spacer(minLength: 8)
+                if let trailing { trailingText(trailing) }
+                chevronGlyph
             }
+        }
+    }
+
+    private var glyph: some View {
+        Image(systemName: icon)
+            .font(StrandFont.pro(13, weight: .semibold))
+            .foregroundStyle(tint)
+            .accessibilityHidden(true)
+    }
+
+    private var titleText: some View {
+        Text(title)
+            .font(StrandFont.headline)
+            .foregroundStyle(tint)
+            .lineLimit(dts.isAccessibilitySize ? nil : 1)
+    }
+
+    private func trailingText(_ text: String) -> some View {
+        Text(text)
+            .font(StrandFont.footnote)
+            .foregroundStyle(StrandPalette.textSecondary)
+            .lineLimit(dts.isAccessibilitySize ? nil : 1)
+    }
+
+    @ViewBuilder private var chevronGlyph: some View {
+        if chevron {
+            Image(systemName: "chevron.right")
+                .font(StrandFont.pro(12, weight: .semibold))
+                .foregroundStyle(StrandPalette.textTertiary)
+                .accessibilityHidden(true)
         }
     }
 }
@@ -105,39 +141,54 @@ struct SummaryRingsCard: View {
     let rows: [SummaryRingRow]
     var stamp: String? = nil
 
+    @Environment(\.dynamicTypeSize) private var dts
+    @ScaledMetric(relativeTo: .title2) private var valueSize: CGFloat = 24
+    @ScaledMetric(relativeTo: .title2) private var dividerHeight: CGFloat = 40
+
     var body: some View {
         SummaryCard {
             VStack(alignment: .leading, spacing: 16) {
-                HStack(spacing: 6) {
-                    Image(systemName: "flame.fill")
-                        .font(.system(size: 13, weight: .semibold))
-                    Text("Activity")
-                        .font(StrandFont.headline)
-                    Spacer(minLength: 8)
-                    if let stamp {
-                        Text(stamp)
-                            .font(StrandFont.footnote)
-                            .foregroundStyle(StrandPalette.textSecondary)
-                            .lineLimit(1)
-                    }
-                }
-                .foregroundStyle(StrandPalette.activityTitle)
-                .accessibilityAddTraits(.isHeader)
+                SummaryCardTitleRow(icon: "flame.fill", title: String(localized: "Activity"),
+                                    tint: StrandPalette.activityTitle, trailing: stamp, chevron: false)
+                    .accessibilityAddTraits(.isHeader)
 
-                HStack(alignment: .center, spacing: 0) {
-                    ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
-                        if index > 0 {
-                            Rectangle()
-                                .fill(StrandPalette.hairline)
-                                .frame(width: NoopMetrics.hairlineWidth, height: 40)
-                                .padding(.horizontal, 12)
-                        }
-                        NavigationLink(value: row.route) { column(row) }
-                            .buttonStyle(.plain)
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .center, spacing: 0) {
+                        columns
+                        Spacer(minLength: 10)
+                        ringsBadge
                     }
-                    Spacer(minLength: 10)
-                    ActivityRingsView(rings: rings, diameter: 64)
+                    VStack(alignment: .leading, spacing: 12) {
+                        ringsBadge
+                        columns
+                    }
                 }
+            }
+        }
+    }
+
+    /// The rings grow a little with the text, then hold: they carry no text of their own.
+    private var ringsBadge: some View {
+        SummaryRingsBadge(rings: rings)
+            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+    }
+
+    /// Side by side split by hairlines; one under another at accessibility sizes.
+    private var columns: some View {
+        let stacked = dts.isAccessibilitySize
+        let layout = stacked
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+            : AnyLayout(HStackLayout(alignment: .center, spacing: 0))
+        return layout {
+            ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
+                if index > 0 && !stacked {
+                    Rectangle()
+                        .fill(StrandPalette.hairline)
+                        .frame(width: NoopMetrics.hairlineWidth, height: dividerHeight)
+                        .padding(.horizontal, 12)
+                }
+                NavigationLink(value: row.route) { column(row) }
+                    .buttonStyle(.plain)
             }
         }
     }
@@ -147,10 +198,10 @@ struct SummaryRingsCard: View {
             Text(row.title)
                 .font(StrandFont.subhead.weight(.semibold))
                 .foregroundStyle(row.color)
-                .lineLimit(1)
+                .lineLimit(2)
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text(verbatim: row.value)
-                    .font(StrandFont.number(24, weight: .bold))
+                    .font(StrandFont.number(valueSize, weight: .bold))
                     .foregroundStyle(StrandPalette.textPrimary)
                 if !row.unit.isEmpty {
                     Text(verbatim: row.unit)
@@ -164,12 +215,21 @@ struct SummaryRingsCard: View {
                 Text(caption)
                     .font(StrandFont.caption)
                     .foregroundStyle(StrandPalette.textSecondary)
-                    .lineLimit(1)
+                    .lineLimit(2)
             }
         }
-        .fixedSize()
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// The card's small rings, sized with the text (capped by the caller).
+private struct SummaryRingsBadge: View {
+    let rings: [ActivityRing]
+    @ScaledMetric(relativeTo: .title) private var diameter: CGFloat = 64
+
+    var body: some View {
+        ActivityRingsView(rings: rings, diameter: diameter)
     }
 }
 
@@ -182,6 +242,9 @@ struct SummaryMetricCard: View {
     /// "Today" / "Yesterday" / a date: when the value was measured (`SummaryStamp`).
     var stamp: String? = nil
 
+    @Environment(\.dynamicTypeSize) private var dts
+    @ScaledMetric(relativeTo: .title2) private var valueSize: CGFloat = 24
+
     var body: some View {
         NavigationLink(value: reading.route) {
             SummaryCard {
@@ -192,7 +255,7 @@ struct SummaryMetricCard: View {
                         VStack(alignment: .leading, spacing: 2) {
                             HStack(alignment: .firstTextBaseline, spacing: 3) {
                                 Text(verbatim: reading.value)
-                                    .font(StrandFont.number(24, weight: .bold))
+                                    .font(StrandFont.number(valueSize, weight: .bold))
                                     .foregroundStyle(StrandPalette.textPrimary)
                                 if !reading.unit.isEmpty {
                                     Text(verbatim: reading.unit)
@@ -204,7 +267,7 @@ struct SummaryMetricCard: View {
                                 Text(caption)
                                     .font(StrandFont.footnote)
                                     .foregroundStyle(StrandPalette.textSecondary)
-                                    .lineLimit(1)
+                                    .lineLimit(dts.isAccessibilitySize ? 3 : 1)
                             }
                         }
                         Spacer(minLength: 8)
@@ -514,9 +577,9 @@ struct DayPager<Picker: View>: View {
             withAnimation(StrandMotion.interactive) { action() }
         } label: {
             Image(systemName: symbol)
-                .font(.system(size: 15, weight: .semibold))
+                .font(StrandFont.pro(15, weight: .semibold))
                 .foregroundStyle(enabled ? StrandPalette.accent : StrandPalette.textTertiary)
-                .frame(width: 44, height: 36)
+                .frame(minWidth: 44, minHeight: 36)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

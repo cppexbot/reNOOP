@@ -12,6 +12,7 @@ struct WorkoutsHomeView: View {
 
     @State private var rows: [WorkoutRow] = []
     @State private var addingManual = false
+    @Environment(\.dynamicTypeSize) private var dts
 
     /// Trailing days read for the start-card order and Recent, so first paint never sorts a
     /// multi-thousand-workout import (#797). The full history is read by All Workouts.
@@ -85,11 +86,14 @@ struct WorkoutsHomeView: View {
 
     private var recentSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .firstTextBaseline) {
+            let header = dts.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
+                : AnyLayout(HStackLayout(alignment: .firstTextBaseline))
+            header {
                 Text("Recent")
                     .font(StrandFont.pro(22, weight: .bold))
                     .foregroundStyle(StrandPalette.textPrimary)
-                Spacer()
+                if !dts.isAccessibilitySize { Spacer() }
                 NavigationLink(value: TabRoute.workoutHistory) {
                     Text("Show All")
                         .font(StrandFont.pro(17))
@@ -155,6 +159,10 @@ private struct WorkoutStartCard: View {
     @EnvironmentObject private var model: AppModel
     @State private var showLive = false
     @State private var showPicker = false
+    @ScaledMetric(relativeTo: .largeTitle) private var iconSize: CGFloat = 34
+    @ScaledMetric(relativeTo: .largeTitle) private var otherGlyphSize: CGFloat = 32
+    @ScaledMetric(relativeTo: .largeTitle) private var iconFrame: CGFloat = 44
+    @ScaledMetric(relativeTo: .largeTitle) private var playSize: CGFloat = 50
 
     var body: some View {
         Button(action: start) {
@@ -162,20 +170,20 @@ private struct WorkoutStartCard: View {
                 HStack(alignment: .top) {
                     Group {
                         if let sport {
-                            WorkoutTypeIcon(workoutType: sport, size: 34, weight: .semibold,
+                            WorkoutTypeIcon(workoutType: sport, size: iconSize, weight: .semibold,
                                             color: StrandPalette.activityExerciseText)
                         } else {
                             Image(systemName: "ellipsis.circle.fill")
-                                .font(.system(size: 32, weight: .semibold))
+                                .font(.system(size: otherGlyphSize, weight: .semibold))
                                 .foregroundStyle(StrandPalette.activityExerciseText)
                         }
                     }
-                    .frame(width: 44, height: 44, alignment: .topLeading)
+                    .frame(width: iconFrame, height: iconFrame, alignment: .topLeading)
                     Spacer()
                     Image(systemName: "play.fill")
-                        .font(.system(size: 20, weight: .bold))
+                        .font(StrandFont.pro(20, weight: .bold))
                         .foregroundStyle(StrandPalette.fitnessOnAccent)
-                        .frame(width: 50, height: 50)
+                        .frame(width: playSize, height: playSize)
                         .background(Circle().fill(StrandPalette.activityExerciseText))
                 }
                 Text(sport.map(WorkoutSource.localizedSport) ?? String(localized: "Other Workout"))
@@ -245,7 +253,7 @@ private struct ActiveWorkoutCard: View {
                     }
                     Spacer()
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(StrandFont.pro(15, weight: .semibold))
                         .foregroundStyle(StrandPalette.textTertiary)
                 }
                 .padding(20)

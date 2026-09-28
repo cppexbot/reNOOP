@@ -210,6 +210,8 @@ struct TrendsReportPage: View {
         .frame(width: Self.pageWidth, alignment: .leading)
         .background(StrandPalette.plainPage)
         .environment(\.colorScheme, .light)
+        // A printed page at a fixed width: its type is set at the default size, whatever the phone's.
+        .dynamicTypeSize(.large)
     }
 
     // MARK: Header

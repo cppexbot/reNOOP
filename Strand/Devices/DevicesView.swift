@@ -126,6 +126,7 @@ private struct DevicesList: View {
 struct DeviceRow: View {
     let device: PairedDevice
     let readout: DeviceReadout
+    @Environment(\.dynamicTypeSize) private var dts
 
     var body: some View {
         ZStack {
@@ -143,11 +144,11 @@ struct DeviceRow: View {
                     Text(verbatim: device.displayName)
                         .font(StrandFont.pro(17))
                         .foregroundStyle(StrandPalette.textPrimary)
-                        .lineLimit(1)
+                        .lineLimit(dts.isAccessibilitySize ? nil : 1)
                     Text(verbatim: readout.statusLine)
                         .font(StrandFont.pro(15))
                         .foregroundStyle(StrandPalette.textSecondary)
-                        .lineLimit(1)
+                        .lineLimit(dts.isAccessibilitySize ? nil : 1)
                 }
                 Spacer(minLength: 8)
                 Image(systemName: "info.circle")

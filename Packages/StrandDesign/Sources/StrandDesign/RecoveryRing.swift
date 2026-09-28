@@ -111,6 +111,7 @@ public struct RecoveryRing: View {
             }
         }
         .frame(width: diameter, height: diameter)
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         // Collapse the loose center Text fragments (and the otherwise-unlabeled
         // standalone ring) into one coherent VoiceOver element.
         .accessibilityElement(children: .ignore)

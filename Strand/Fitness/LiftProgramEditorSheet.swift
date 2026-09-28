@@ -30,6 +30,7 @@ struct LiftProgramEditorSheet: View {
     /// The line being added or edited (nil = that sheet is closed).
     @State private var editingItem: ItemEditTarget?
     @State private var confirmingDelete = false
+    @Environment(\.dynamicTypeSize) private var dts
 
     @AppStorage(UnitPrefs.systemKey) private var unitSystemRaw = UnitSystem.metric.rawValue
     private var unitSystem: UnitSystem { UnitSystem(rawValue: unitSystemRaw) ?? .metric }
@@ -160,7 +161,7 @@ struct LiftProgramEditorSheet: View {
                     Text(note)
                         .font(StrandFont.pro(13))
                         .foregroundStyle(StrandPalette.textSecondary)
-                        .lineLimit(2)
+                        .lineLimit(dts.isAccessibilitySize ? nil : 2)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

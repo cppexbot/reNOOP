@@ -197,7 +197,7 @@ struct DisplaySettingsPage: View {
                     .font(StrandFont.pro(15))
                     .foregroundStyle(StrandPalette.textPrimary)
                 Image(systemName: selected ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 22))
+                    .font(StrandFont.pro(22))
                     .foregroundStyle(selected ? StrandPalette.settingsBlue : StrandPalette.textTertiary)
             }
             .frame(maxWidth: .infinity)
@@ -252,5 +252,7 @@ private struct AppearanceThumbnail: View {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .strokeBorder(StrandPalette.hairline, lineWidth: 1)
             )
+            // A fixed miniature: its clock follows Dynamic Type only as far as the screen holds it.
+            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }
 }

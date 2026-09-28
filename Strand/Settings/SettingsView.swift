@@ -21,6 +21,8 @@ struct SettingsView: View {
     /// Hydration tracker (opt-in). Off hides the hydration card + detail.
     @AppStorage(HydrationStore.enabledKey) private var hydrationEnabled = false
 
+    @Environment(\.dynamicTypeSize) private var dts
+
     var body: some View {
         Form {
             Section {
@@ -92,15 +94,16 @@ struct SettingsView: View {
         let name = model.deviceRegistry?.devices.first { $0.status == .active }?.displayName
         var value = String(localized: live.connected ? "Connected" : "Not connected")
         if live.connected, let pct = live.batteryPct { value += " · \(Int(pct.rounded()))%" }
+        let stacked = dts.isAccessibilitySize
         return NavigationLink(value: SettingsPage.devices) {
-            HStack {
+            SettingsValueLayout.make(stacked).callAsFunction {
                 Label {
                     Text(verbatim: name ?? String(localized: "Devices"))
                         .foregroundStyle(StrandPalette.textPrimary)
                 } icon: {
                     SettingsIcon(systemName: "dot.radiowaves.left.and.right", color: StrandPalette.settingsBlue)
                 }
-                Spacer()
+                if !stacked { Spacer() }
                 Text(value).foregroundStyle(StrandPalette.textSecondary)
             }
         }
@@ -113,12 +116,12 @@ struct SettingsView: View {
             Text(profile.displayName.isEmpty ? String(localized: "Profile") : profile.displayName)
                 .font(StrandFont.pro(28, weight: .bold))
                 .foregroundStyle(StrandPalette.textPrimary)
-                .lineLimit(1)
+                .lineLimit(dts.isAccessibilitySize ? 2 : 1)
                 .minimumScaleFactor(0.7)
         }
         // A whole-point height keeps every card below on the pixel grid; a fractional one leaves a seam
-        // between two rows' backgrounds.
-        .frame(height: 142)
+        // between two rows' backgrounds. A minimum, so a larger text size can still grow it.
+        .frame(minHeight: 142)
     }
 }
 
@@ -258,6 +261,8 @@ struct SettingsLink: View {
     let color: Color
     var value: String?
 
+    @Environment(\.dynamicTypeSize) private var dts
+
     init(_ page: SettingsPage, _ title: LocalizedStringKey, icon: String, color: Color, value: String? = nil) {
         self.page = page
         self.title = title
@@ -267,15 +272,24 @@ struct SettingsLink: View {
     }
 
     var body: some View {
+        let stacked = dts.isAccessibilitySize
         NavigationLink(value: page) {
-            HStack {
+            SettingsValueLayout.make(stacked).callAsFunction {
                 SettingsRowLabel(title: title, icon: icon, color: color)
                 if let value {
-                    Spacer()
+                    if !stacked { Spacer() }
                     Text(value).foregroundStyle(StrandPalette.textSecondary)
                 }
             }
         }
+    }
+}
+
+/// A row's label with its grey value beside it; the value under the label at accessibility sizes, where
+/// the two no longer share a line.
+enum SettingsValueLayout {
+    static func make(_ stacked: Bool) -> AnyLayout {
+        stacked ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4)) : AnyLayout(HStackLayout())
     }
 }
 

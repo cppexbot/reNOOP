@@ -44,6 +44,7 @@ struct StressCheckInSheetHost: View {
     @ObservedObject var center: StressNudgeCenter
     /// Start a one-minute breathing cue (the host runs it at the resonance / 5.5 pace).
     var onBreatheNow: () -> Void
+    @Environment(\.dynamicTypeSize) private var dts
 
     var body: some View {
         Color.clear.frame(width: 0, height: 0)
@@ -59,7 +60,7 @@ struct StressCheckInSheetHost: View {
                         BiofeedbackPrefs.checkInEnabled = false
                         center.dismiss()
                     })
-                .presentationDetents([.height(300)])
+                .presentationDetents(dts.isAccessibilitySize ? [.large] : [.height(300)])
                 #if os(macOS)
                 .frame(width: 420)
                 #endif
@@ -71,11 +72,25 @@ private struct StressCheckInSheet: View {
     let onBreatheNow: () -> Void
     let onNotNow: () -> Void
     let onTurnOff: () -> Void
+    @Environment(\.dynamicTypeSize) private var dts
+    @ScaledMetric(relativeTo: .title) private var glyphSize: CGFloat = 30
 
     var body: some View {
+        if dts.isAccessibilitySize {
+            ScrollView { content }
+        } else {
+            content
+        }
+    }
+
+    private var footerLayout: AnyLayout {
+        dts.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 14)) : AnyLayout(HStackLayout())
+    }
+
+    private var content: some View {
         VStack(spacing: 0) {
             Image(systemName: "wind")
-                .font(.system(size: 30, weight: .semibold))
+                .font(.system(size: glyphSize, weight: .semibold))
                 .foregroundStyle(StrandPalette.healthRespiratory)
                 .padding(.top, 28)
             Text("Your HRV dipped while you were still. Want a minute to breathe?")
@@ -96,10 +111,10 @@ private struct StressCheckInSheet: View {
             }
             .buttonStyle(.plain)
             .padding(.horizontal, 20)
-            HStack {
+            footerLayout {
                 Button("Turn off", action: onTurnOff)
                     .foregroundStyle(StrandPalette.textSecondary)
-                Spacer()
+                if !dts.isAccessibilitySize { Spacer() }
                 Button("Not now", action: onNotNow)
                     .foregroundStyle(StrandPalette.accent)
             }

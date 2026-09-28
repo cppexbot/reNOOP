@@ -20,6 +20,7 @@ import OuraProtocol
 struct AddDeviceWizard: View {
     @EnvironmentObject var model: AppModel
     @EnvironmentObject var live: LiveState
+    @Environment(\.dynamicTypeSize) private var dts
     let onClose: () -> Void
 
     // MARK: Flow
@@ -194,7 +195,7 @@ struct AddDeviceWizard: View {
                 }
         }
         #if os(iOS)
-        .presentationDetents(isList ? [.large] : [.height(Self.cardHeight), .large])
+        .presentationDetents(isList || dts.isAccessibilitySize ? [.large] : [.height(Self.cardHeight), .large])
         .presentationCornerRadius(40)
         #else
         .frame(minWidth: 440, minHeight: 620)
@@ -325,7 +326,7 @@ struct AddDeviceWizard: View {
                 .foregroundStyle(StrandPalette.textPrimary)
             Spacer()
             Image(systemName: "chevron.right")
-                .font(.system(size: 13, weight: .semibold))
+                .font(StrandFont.pro(13, weight: .semibold))
                 .foregroundStyle(StrandPalette.textTertiary)
         }
         .contentShape(Rectangle())
@@ -479,6 +480,11 @@ struct AddDeviceWizard: View {
 
     /// The honest gate: what taking the ring over costs, a consent toggle, then Continue. The two
     /// non-destructive lanes (file import, the user's own key) stay one tap away.
+    /// The two lanes side by side, one under the other at accessibility sizes.
+    private var laneLayout: AnyLayout {
+        dts.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 14)) : AnyLayout(HStackLayout(spacing: 20))
+    }
+
     private var ouraGateStep: some View {
         PairingCard(title: typeTitle(.oura), detail: "NOOP installs its own key on the ring. The Oura app stops working with it.",
                     art: .ring, beta: true) {
@@ -491,7 +497,7 @@ struct AddDeviceWizard: View {
             .padding(.horizontal, 4)
             PairingButton(title: "Continue") { ouraStep = .prep }
                 .disabled(!ouraConsented)
-            HStack(spacing: 20) {
+            laneLayout {
                 // Keep the Oura app and import a file instead.
                 Button("Import a File") { stopAllScans(); onClose() }
                 Button("I Have a Key") { ouraAdvancedKeyMode = true }
@@ -865,8 +871,19 @@ private struct PairingCard<Actions: View>: View {
     let art: DeviceArtworkKind
     var beta = false
     @ViewBuilder var actions: Actions
+    @Environment(\.dynamicTypeSize) private var dts
 
     var body: some View {
+        // The card's detent is a fixed height; at accessibility sizes it scrolls instead of clipping.
+        if dts.isAccessibilitySize {
+            ScrollView { card }
+                .background(StrandPalette.summaryCard.ignoresSafeArea())
+        } else {
+            card
+        }
+    }
+
+    private var card: some View {
         VStack(spacing: 0) {
             PairingTitle(title: title, detail: detail, beta: beta)
             Spacer(minLength: 16)

@@ -64,7 +64,14 @@ struct CoachView: View {
     // K4: on-device voice input for the composer (iOS only).
     #if os(iOS)
     @StateObject private var voiceInput = CoachVoiceInput()
+    @ScaledMetric(relativeTo: .body) private var micWidth: CGFloat = 37
     #endif
+    @ScaledMetric(relativeTo: .caption2) private var lockSize: CGFloat = 8
+    @ScaledMetric(relativeTo: .body) private var plusSize: CGFloat = 19
+    @ScaledMetric(relativeTo: .body) private var plusDisc: CGFloat = 40
+    @ScaledMetric(relativeTo: .title2) private var failureSide: CGFloat = 24
+    @ScaledMetric(relativeTo: .callout) private var sendWidth: CGFloat = 38
+    @ScaledMetric(relativeTo: .callout) private var sendHeight: CGFloat = 28
 
     var body: some View {
         Group {
@@ -283,7 +290,7 @@ struct CoachView: View {
                 Text(verbatim: coach.provider.displayName).fontWeight(.medium)
             }
             HStack(spacing: 3) {
-                Image(systemName: "lock.fill").font(StrandFont.pro(8, weight: .semibold))
+                Image(systemName: "lock.fill").font(.system(size: lockSize, weight: .semibold))
                 Text("Only when you ask")
             }
         }
@@ -459,7 +466,7 @@ struct CoachView: View {
             Image(systemName: "exclamationmark.circle")
                 .font(StrandFont.pro(22))
                 .foregroundStyle(StrandPalette.messageFailure)
-                .frame(width: 24, height: 24)
+                .frame(width: failureSide, height: failureSide)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text("Not Delivered"))
@@ -547,9 +554,9 @@ struct CoachView: View {
             }
         } label: {
             Image(systemName: "plus")
-                .font(StrandFont.pro(19))
+                .font(.system(size: plusSize))
                 .foregroundStyle(StrandPalette.messageIncomingText)
-                .frame(width: 40, height: 40)
+                .frame(width: plusDisc, height: plusDisc)
                 .messageGlass(Circle())
         }
         .buttonStyle(.plain)
@@ -604,7 +611,7 @@ struct CoachView: View {
                                                                  StrandPalette.messageSuggestionEnd],
                                                         startPoint: .leading, endPoint: .trailing))
                         .padding(.horizontal, 14)
-                        .frame(height: 36)
+                        .frame(minHeight: 36)
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(Text("Suggested prompt: \(Self.localized(prompt))"))
@@ -628,7 +635,7 @@ struct CoachView: View {
                 Image(systemName: "arrow.up")
                     .font(StrandFont.pro(16, weight: .bold))
                     .foregroundStyle(StrandPalette.messageOutgoingText)
-                    .frame(width: 38, height: 28)
+                    .frame(width: sendWidth, height: sendHeight)
                     .background(StrandPalette.messageSend, in: Capsule())
                     .opacity(coach.sending ? 0.4 : 1)
             }
@@ -654,7 +661,8 @@ struct CoachView: View {
             Image(systemName: voiceInput.isRecording ? "stop.circle.fill" : "mic")
                 .font(StrandFont.pro(17))
                 .foregroundStyle(voiceInput.isRecording ? StrandPalette.messageFailure : StrandPalette.messageFieldGlyph)
-                .frame(width: 37, height: MessageBubbleShape.minSide)
+                .frame(width: micWidth)
+                .frame(minHeight: MessageBubbleShape.minSide)
         }
         .buttonStyle(.plain)
         .disabled(!micButtonEnabled)

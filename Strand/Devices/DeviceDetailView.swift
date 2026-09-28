@@ -19,6 +19,7 @@ struct DeviceDetailView: View {
     @EnvironmentObject private var model: AppModel
     @EnvironmentObject private var live: LiveState
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dts
 
     /// The WHOOP family a scan targets — the same key Live's strap picker wrote.
     @AppStorage("selectedWhoopModel") private var selectedModelRaw = WhoopModel.whoop4.rawValue
@@ -175,9 +176,9 @@ struct DeviceDetailView: View {
 
     @ViewBuilder private func syncRow(_ sync: SyncChipState) -> some View {
         if sync != .hidden {
-            HStack {
+            rowLayout {
                 Text("Sync").foregroundStyle(StrandPalette.textPrimary)
-                Spacer()
+                if !dts.isAccessibilitySize { Spacer() }
                 StrapSyncStatusText(style: .value)
             }
             .accessibilityElement(children: .combine)
@@ -324,13 +325,19 @@ struct DeviceDetailView: View {
     }
 
     private func valueRow(_ title: LocalizedStringKey, _ value: String) -> some View {
-        HStack {
+        rowLayout {
             Text(title).foregroundStyle(StrandPalette.textPrimary)
-            Spacer()
+            if !dts.isAccessibilitySize { Spacer() }
             Text(verbatim: value)
                 .foregroundStyle(StrandPalette.textSecondary)
-                .lineLimit(1)
+                .lineLimit(dts.isAccessibilitySize ? nil : 1)
         }
+    }
+
+    /// Title and value side by side, the value under the title at accessibility sizes.
+    private var rowLayout: AnyLayout {
+        dts.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
+                                : AnyLayout(HStackLayout())
     }
 }
 

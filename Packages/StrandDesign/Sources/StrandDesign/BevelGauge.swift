@@ -89,6 +89,7 @@ public struct BevelGauge: View {
             if showsLabel { centerLabel }
         }
         .frame(width: diameter, height: diameter)
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }
 
     /// The non-animating backdrop: frosted disc behind the arc + the faint full-span track "well".

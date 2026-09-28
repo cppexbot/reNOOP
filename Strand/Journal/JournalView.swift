@@ -31,6 +31,10 @@ struct JournalView: View {
     @State private var moods: [String: Int] = [:]
     @State private var showHabits = false
 
+    @Environment(\.dynamicTypeSize) private var dts
+    @ScaledMetric(relativeTo: .body) private var iconColumn: CGFloat = 26
+    @ScaledMetric(relativeTo: .body) private var loggedIconSize: CGFloat = 18
+
     private static let offsets: [Int] = Array((-1...6).reversed())
     private let tint = StrandPalette.healthMind
 
@@ -117,6 +121,8 @@ struct JournalView: View {
                     .frame(maxWidth: .infinity)
             }
         }
+        // Eight fixed circles across the row: the letters follow Dynamic Type only as far as a circle holds one.
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }
 
     private func dayColumn(_ off: Int) -> some View {
@@ -178,9 +184,9 @@ struct JournalView: View {
                                          @ViewBuilder trailing: () -> Trailing) -> some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
-                .font(.system(size: 17, weight: .semibold))
+                .font(StrandFont.pro(17, weight: .semibold))
                 .foregroundStyle(tint)
-                .frame(width: 26)
+                .frame(width: iconColumn)
             Text(verbatim: title)
                 .font(StrandFont.pro(17))
                 .foregroundStyle(StrandPalette.textPrimary)
@@ -194,9 +200,9 @@ struct JournalView: View {
 
     private var plusGlyph: some View {
         Image(systemName: "plus")
-            .font(.system(size: 20, weight: .medium))
+            .font(StrandFont.pro(20, weight: .medium))
             .foregroundStyle(tint)
-            .frame(width: 32, height: 32)
+            .frame(minWidth: 32, minHeight: 32)
             .contentShape(Rectangle())
     }
 
@@ -321,19 +327,26 @@ struct JournalView: View {
                 .accessibilityAddTraits(.isHeader)
             Rectangle().fill(StrandPalette.hairline).frame(height: NoopMetrics.hairlineWidth)
             ForEach(Array(rows.enumerated()), id: \.element.id) { i, row in
-                HStack(spacing: 10) {
-                    Image(systemName: row.done ? "checkmark.circle.fill" : "minus.circle.fill")
-                        .font(.system(size: 18))
-                        .foregroundStyle(row.done ? tint : StrandPalette.textTertiary)
-                    Text(verbatim: row.title)
-                        .font(StrandFont.pro(17))
-                        .foregroundStyle(StrandPalette.textPrimary)
-                        .lineLimit(1)
-                    Spacer(minLength: 8)
+                // The value moves under the title at accessibility sizes.
+                let stacked = dts.isAccessibilitySize
+                let layout = stacked
+                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
+                    : AnyLayout(HStackLayout(spacing: 10))
+                layout {
+                    HStack(spacing: 10) {
+                        Image(systemName: row.done ? "checkmark.circle.fill" : "minus.circle.fill")
+                            .font(.system(size: loggedIconSize))
+                            .foregroundStyle(row.done ? tint : StrandPalette.textTertiary)
+                        Text(verbatim: row.title)
+                            .font(StrandFont.pro(17))
+                            .foregroundStyle(StrandPalette.textPrimary)
+                            .lineLimit(stacked ? nil : 1)
+                    }
+                    if !stacked { Spacer(minLength: 8) }
                     Text(verbatim: row.value)
                         .font(StrandFont.pro(17))
                         .foregroundStyle(StrandPalette.textSecondary)
-                        .lineLimit(1)
+                        .lineLimit(stacked ? nil : 1)
                 }
                 .padding(.vertical, 10)
                 .contentShape(Rectangle())
@@ -404,6 +417,7 @@ struct JournalHabitsSheet: View {
     @Binding var numeric: [String: Double]
 
     @State private var draft = ""
+    @ScaledMetric(relativeTo: .body) private var fieldWidth: CGFloat = 72
     @State private var draftNumeric = false
     @State private var renaming: JournalCatalogItem?
     @State private var renameDraft = ""
@@ -521,7 +535,7 @@ struct JournalHabitsSheet: View {
         return HStack(spacing: 4) {
             TextField("—", value: binding, format: .number)
                 .multilineTextAlignment(.trailing)
-                .frame(width: 72)
+                .frame(width: fieldWidth)
                 #if os(iOS)
                 .keyboardType(.decimalPad)
                 #endif

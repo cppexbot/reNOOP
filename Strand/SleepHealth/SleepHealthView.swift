@@ -21,6 +21,7 @@ struct SleepHealthView: View {
     @AppStorage(UnitPrefs.temperatureKey) private var temperatureRaw = ""
     @AppStorage(UnitPrefs.skinTempDisplayKey) private var skinTempDisplayRaw = ""
     @Environment(\.scrollToTopSignal) private var scrollToTopSignal
+    @ScaledMetric(relativeTo: .subheadline) private var chevronSize: CGFloat = 14
 
     @State private var range: SleepRange = Self.initialRange
     /// 0 = the newest night, 1 = the one before, … (days in `navDays`).
@@ -453,7 +454,7 @@ struct SleepHealthView: View {
                     .foregroundStyle(StrandPalette.textPrimary)
                 Spacer()
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(StrandFont.pro(chevronSize, weight: .semibold))
                     .foregroundStyle(StrandPalette.textTertiary)
             }
         }

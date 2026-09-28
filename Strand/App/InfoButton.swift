@@ -16,6 +16,7 @@ struct InfoButton<Content: View>: View {
     @ViewBuilder let content: () -> Content
 
     @State private var shown = false
+    @ScaledMetric(relativeTo: .subheadline) private var discSize: CGFloat = 30
 
     var body: some View {
         // A bar button keeps the bar's own button style (its glass on iOS 26); the disc draws itself.
@@ -44,9 +45,9 @@ struct InfoButton<Content: View>: View {
             Image(systemName: "info.circle")
         case .circled:
             Image(systemName: "info")
-                .font(.system(size: 15, weight: .bold))
+                .font(StrandFont.pro(15, weight: .bold))
                 .foregroundStyle(StrandPalette.textPrimary)
-                .frame(width: 30, height: 30)
+                .frame(width: discSize, height: discSize)
                 .background(StrandPalette.summaryCanvas, in: Circle())
         }
     }

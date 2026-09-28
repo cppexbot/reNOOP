@@ -20,11 +20,17 @@ struct SleepNightCard: View {
     /// The night's hypnogram, seconds from `bedtime`; the card draws it as a thumbnail when present.
     var intervals: [SleepInterval] = []
 
+    @Environment(\.dynamicTypeSize) private var dts
+
     var body: some View {
+        let stacked = dts.isAccessibilitySize
+        let scoreLayout = stacked
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+            : AnyLayout(HStackLayout(spacing: 18))
         SummaryCard {
             VStack(alignment: .leading, spacing: 14) {
                 if let score {
-                    HStack(spacing: 18) {
+                    scoreLayout {
                         SleepScoreRing(score: score, lineWidth: 12)
                             .frame(width: 104, height: 104)
                         VStack(alignment: .leading, spacing: 3) {
@@ -34,7 +40,7 @@ struct SleepNightCard: View {
                             Text(SleepScore.word(score.value))
                                 .font(StrandFont.rounded(28, weight: .bold))
                                 .foregroundStyle(StrandPalette.textPrimary)
-                                .lineLimit(1)
+                                .lineLimit(stacked ? 2 : 1)
                                 .minimumScaleFactor(0.7)
                             if let source {
                                 Text(source)
@@ -42,7 +48,7 @@ struct SleepNightCard: View {
                                     .foregroundStyle(StrandPalette.textTertiary)
                             }
                         }
-                        Spacer(minLength: 0)
+                        if !stacked { Spacer(minLength: 0) }
                     }
                     Rectangle().fill(StrandPalette.hairline).frame(height: NoopMetrics.hairlineWidth)
                 }
@@ -77,6 +83,8 @@ struct SleepHighlightCard: View {
     private let averageTint = StrandPalette.sleepScoreRestorative
     private let latestTint = StrandPalette.healthSleepDeep
 
+    @Environment(\.dynamicTypeSize) private var dts
+
     var body: some View {
         SummaryCard {
             VStack(alignment: .leading, spacing: 10) {
@@ -101,22 +109,27 @@ struct SleepHighlightCard: View {
         .accessibilityElement(children: .combine)
     }
 
+    /// Side by side; one under the other at accessibility sizes.
     @ViewBuilder private func figures(_ detail: SleepHighlight.Detail) -> some View {
+        let stacked = dts.isAccessibilitySize
+        let layout = stacked
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
+            : AnyLayout(HStackLayout(alignment: .top))
         switch detail {
         case .bedtime(let usual, let last, _):
-            HStack(alignment: .top) {
+            layout {
                 figure(String(localized: "sleep.hl.avgBedtime", defaultValue: "Average Bedtime"), .text(SleepMoreDataView.clock(minutesOfNight: usual)),
                        tint: averageTint)
-                Spacer()
+                if !stacked { Spacer() }
                 figure(String(localized: "Last Night's Bedtime"), .text(SleepMoreDataView.clock(minutesOfNight: last)),
-                       tint: latestTint, trailing: true)
+                       tint: latestTint, trailing: !stacked)
             }
         case .duration(let average, let prior, _):
-            HStack(alignment: .top) {
+            layout {
                 figure(String(localized: "sleep.hl.avgAsleep", defaultValue: "Average Time Asleep"), .duration(average), tint: averageTint)
-                Spacer()
+                if !stacked { Spacer() }
                 figure(String(localized: "Week Before"), .duration(prior), tint: StrandPalette.textSecondary,
-                       trailing: true)
+                       trailing: !stacked)
             }
         }
     }
@@ -126,7 +139,7 @@ struct SleepHighlightCard: View {
             Text(title)
                 .font(StrandFont.footnote.weight(.semibold))
                 .foregroundStyle(StrandPalette.textSecondary)
-                .lineLimit(1)
+                .lineLimit(dts.isAccessibilitySize ? 2 : 1)
             SleepCardValueText(value: value, size: 22, tint: tint)
         }
     }

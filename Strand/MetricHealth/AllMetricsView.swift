@@ -143,6 +143,7 @@ struct AllMetricsView: View {
     @State private var loaded = false
     @State private var query = ""
     @State private var showsEmpty = false
+    @ScaledMetric(relativeTo: .title2) private var valueSize: CGFloat = 24
 
     private var units: MetricHealthStyle.Units {
         let system = UnitSystem(rawValue: unitSystemRaw) ?? .metric
@@ -239,7 +240,7 @@ struct AllMetricsView: View {
                         ForEach(Array(tokens.enumerated()), id: \.offset) { _, token in
                             Text(verbatim: token.text)
                                 .font(token.isUnit ? StrandFont.subhead.weight(.semibold)
-                                                   : StrandFont.number(24, weight: .bold))
+                                                   : StrandFont.number(valueSize, weight: .bold))
                                 .foregroundStyle(token.isUnit ? StrandPalette.textSecondary : StrandPalette.textPrimary)
                         }
                     }
@@ -271,7 +272,7 @@ struct AllMetricsView: View {
                         .font(StrandFont.body)
                         .foregroundStyle(StrandPalette.textSecondary)
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(StrandFont.pro(13, weight: .semibold))
                         .foregroundStyle(StrandPalette.textTertiary)
                         .rotationEffect(.degrees(expanded ? 90 : 0))
                 }
@@ -289,7 +290,7 @@ struct AllMetricsView: View {
                                 .foregroundStyle(StrandPalette.textPrimary)
                             Spacer()
                             Image(systemName: "chevron.right")
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(StrandFont.pro(13, weight: .semibold))
                                 .foregroundStyle(StrandPalette.textTertiary)
                         }
                         .padding(.vertical, 13)

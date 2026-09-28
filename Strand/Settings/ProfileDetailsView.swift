@@ -259,6 +259,8 @@ struct ProfileDetailsView: View {
 /// Automatic zones from max heart rate, or five personalised lower bounds (#531).
 struct HeartRateZonesPage: View {
     @EnvironmentObject private var profile: ProfileStore
+    @Environment(\.dynamicTypeSize) private var dts
+    @ScaledMetric(relativeTo: .body) private var dotSize: CGFloat = 10
 
     var body: some View {
         Form {
@@ -287,22 +289,31 @@ struct HeartRateZonesPage: View {
 
     @ViewBuilder private func zoneRow(_ zone: HRZone) -> some View {
         let index = zone.number - 1
-        HStack(spacing: 12) {
-            Circle()
-                .fill(StrandPalette.fitnessZone(zone.number))
-                .frame(width: 10, height: 10)
-            Text("Zone \(zone.number)")
-            Spacer(minLength: 8)
-            Text(verbatim: rangeText(zone))
-                .monospacedDigit()
-                .foregroundStyle(StrandPalette.textSecondary)
-            if profile.hasCustomHRZones, profile.hrZoneThresholds.indices.contains(index) {
-                Stepper("",
-                        onIncrement: { profile.stepHRZoneThreshold(at: index, up: true) },
-                        onDecrement: { profile.stepHRZoneThreshold(at: index, up: false) })
-                    .labelsHidden()
-                    .fixedSize()
-                    .accessibilityLabel("Zone \(zone.number) starts at \(Int(zone.lower)) beats per minute")
+        // The range and its stepper move under the zone's name at accessibility sizes.
+        let stacked = dts.isAccessibilitySize
+        let layout = stacked
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6))
+            : AnyLayout(HStackLayout(spacing: 12))
+        layout {
+            HStack(spacing: 12) {
+                Circle()
+                    .fill(StrandPalette.fitnessZone(zone.number))
+                    .frame(width: dotSize, height: dotSize)
+                Text("Zone \(zone.number)")
+            }
+            if !stacked { Spacer(minLength: 8) }
+            HStack(spacing: 12) {
+                Text(verbatim: rangeText(zone))
+                    .monospacedDigit()
+                    .foregroundStyle(StrandPalette.textSecondary)
+                if profile.hasCustomHRZones, profile.hrZoneThresholds.indices.contains(index) {
+                    Stepper("",
+                            onIncrement: { profile.stepHRZoneThreshold(at: index, up: true) },
+                            onDecrement: { profile.stepHRZoneThreshold(at: index, up: false) })
+                        .labelsHidden()
+                        .fixedSize()
+                        .accessibilityLabel("Zone \(zone.number) starts at \(Int(zone.lower)) beats per minute")
+                }
             }
         }
     }

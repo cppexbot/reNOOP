@@ -387,7 +387,7 @@ struct CoachConversationHeader: View {
                         .foregroundStyle(StrandPalette.messagePlaceholder)
                 }
                 .padding(.horizontal, 13)
-                .frame(height: 30.33)
+                .frame(minHeight: 30.33)
                 .messageGlass(Capsule())
             }
         }

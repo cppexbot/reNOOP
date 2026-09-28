@@ -22,6 +22,7 @@ struct SleepMoreDataView: View {
 
     @EnvironmentObject private var repo: Repository
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dts
     @AppStorage(UnitPrefs.systemKey) private var unitSystemRaw = UnitSystem.metric.rawValue
     @AppStorage(UnitPrefs.temperatureKey) private var temperatureRaw = ""
     @AppStorage(UnitPrefs.skinTempDisplayKey) private var skinTempDisplayRaw = ""
@@ -130,8 +131,11 @@ struct SleepMoreDataView: View {
     private var header: some View {
         let s = summary
         let average = range != .day
+        let figures = dts.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: NoopMetrics.space2))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: NoopMetrics.space6))
         return VStack(alignment: .leading, spacing: 2) {
-            HStack(alignment: .top, spacing: NoopMetrics.space6) {
+            figures {
                 headerFigure(average ? String(localized: "AVG. TIME IN BED") : String(localized: "TIME IN BED"),
                              minutes: s.inBedMin)
                 headerFigure(average ? String(localized: "AVG. TIME ASLEEP") : String(localized: "TIME ASLEEP"),
@@ -148,7 +152,7 @@ struct SleepMoreDataView: View {
             Text(title)
                 .font(StrandFont.footnote.weight(.semibold))
                 .foregroundStyle(StrandPalette.textSecondary)
-                .lineLimit(1)
+                .lineLimit(dts.isAccessibilitySize ? 2 : 1)
                 .minimumScaleFactor(0.8)
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 if let minutes, minutes > 0 {
@@ -509,42 +513,54 @@ private struct SleepMoreRow: View {
     let value: String
     var selected = false
 
+    @Environment(\.dynamicTypeSize) private var dts
+    @ScaledMetric(relativeTo: .body) private var dotSize: CGFloat = 10
+
     var body: some View {
-        HStack(spacing: 10) {
-            if let dot {
-                Circle()
-                    .fill(dot)
-                    .frame(width: 10, height: 10)
-            }
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(StrandFont.body)
-                    .foregroundStyle(StrandPalette.textPrimary)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.85)
-                if let subtitle {
-                    Text(subtitle)
-                        .font(StrandFont.footnote)
-                        .foregroundStyle(StrandPalette.textSecondary)
+        // The figures move under the title at accessibility sizes.
+        let stacked = dts.isAccessibilitySize
+        let layout = stacked
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6))
+            : AnyLayout(HStackLayout(spacing: 10))
+        layout {
+            HStack(spacing: 10) {
+                if let dot {
+                    Circle()
+                        .fill(dot)
+                        .frame(width: dotSize, height: dotSize)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(StrandFont.body)
+                        .foregroundStyle(StrandPalette.textPrimary)
+                        .lineLimit(stacked ? nil : 2)
+                        .minimumScaleFactor(0.85)
+                    if let subtitle {
+                        Text(subtitle)
+                            .font(StrandFont.footnote)
+                            .foregroundStyle(StrandPalette.textSecondary)
+                    }
                 }
             }
-            Spacer(minLength: 8)
-            if let detail {
-                Text(detail)
-                    .font(StrandFont.subhead)
-                    .foregroundStyle(StrandPalette.textSecondary)
+            if !stacked { Spacer(minLength: 8) }
+            HStack(spacing: 10) {
+                if let detail {
+                    Text(detail)
+                        .font(StrandFont.subhead)
+                        .foregroundStyle(StrandPalette.textSecondary)
+                        .monospacedDigit()
+                }
+                Text(value)
+                    .font(StrandFont.body.weight(.semibold))
+                    .foregroundStyle(StrandPalette.textPrimary)
                     .monospacedDigit()
-            }
-            Text(value)
-                .font(StrandFont.body.weight(.semibold))
-                .foregroundStyle(StrandPalette.textPrimary)
-                .monospacedDigit()
-                .lineLimit(1)
-                .fixedSize()
-            if selected {
-                Image(systemName: "checkmark")
-                    .font(StrandFont.subhead.weight(.semibold))
-                    .foregroundStyle(StrandPalette.accent)
+                    .lineLimit(1)
+                    .fixedSize()
+                if selected {
+                    Image(systemName: "checkmark")
+                        .font(StrandFont.subhead.weight(.semibold))
+                        .foregroundStyle(StrandPalette.accent)
+                }
             }
         }
         .padding(.horizontal, 16)

@@ -18,6 +18,7 @@ struct SummaryView: View {
     @EnvironmentObject private var profile: ProfileStore
     @EnvironmentObject private var ble: BLEManager
     @Environment(\.scrollToTopSignal) private var scrollToTopSignal
+    @ScaledMetric(relativeTo: .body) private var trendsGlyphSize: CGFloat = 20
 
     /// 0 = today's logical day (rolls at 04:00), 1 = yesterday, …
     @State private var dayOffset = 0
@@ -349,7 +350,7 @@ struct SummaryView: View {
                             .foregroundStyle(StrandPalette.textPrimary)
                         Spacer()
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(StrandFont.pro(12, weight: .semibold))
                             .foregroundStyle(StrandPalette.textTertiary)
                     }
                 }
@@ -389,14 +390,14 @@ struct SummaryView: View {
                 NavigationLink(value: TabRoute.trends) {
                     SummaryCard {
                         HStack(spacing: 10) {
-                            HealthTrendsGlyph(size: 20)
+                            HealthTrendsGlyph(size: trendsGlyphSize)
                                 .foregroundStyle(StrandPalette.accent)
                             Text("Show All Trends")
                                 .font(StrandFont.body)
                                 .foregroundStyle(StrandPalette.textPrimary)
                             Spacer()
                             Image(systemName: "chevron.right")
-                                .font(.system(size: 12, weight: .semibold))
+                                .font(StrandFont.pro(12, weight: .semibold))
                                 .foregroundStyle(StrandPalette.textTertiary)
                         }
                     }

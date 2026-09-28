@@ -8,7 +8,7 @@ import StrandDesign
 
 /// One live figure: a large rounded numeral with its small-caps label beside it, as Fitness stacks them.
 struct LiveFigure: View {
-    static let numeral = Font.system(size: 88, weight: .regular, design: .rounded)
+    static func numeral(_ size: CGFloat) -> Font { .system(size: size, weight: .regular, design: .rounded) }
 
     let value: String
     var unit: String = ""
@@ -16,19 +16,26 @@ struct LiveFigure: View {
     let label: String
     var tint: Color = .white
 
+    @Environment(\.dynamicTypeSize) private var dts
+    @ScaledMetric(relativeTo: .largeTitle) private var numeralSize: CGFloat = 88
+    @ScaledMetric(relativeTo: .largeTitle) private var unitSize: CGFloat = 40
+
     var body: some View {
-        HStack(alignment: .center, spacing: 8) {
-            (Text(value).font(Self.numeral)
-             + Text(unit.uppercased()).font(.system(size: 40, weight: .medium, design: .rounded)))
+        let layout = dts.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 0))
+            : AnyLayout(HStackLayout(alignment: .center, spacing: 8))
+        layout {
+            (Text(value).font(Self.numeral(numeralSize))
+             + Text(unit.uppercased()).font(.system(size: unitSize, weight: .medium, design: .rounded)))
                 .monospacedDigit()
                 .foregroundStyle(tint)
                 .lineLimit(1)
-                .minimumScaleFactor(0.5)
+                .minimumScaleFactor(0.4)
             Text(label.uppercased())
-                .font(.system(size: 13, weight: .semibold))
+                .font(StrandFont.pro(13, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.6))
-                .lineLimit(2)
-                .padding(.top, 14)
+                .lineLimit(dts.isAccessibilitySize ? nil : 2)
+                .padding(.top, dts.isAccessibilitySize ? 0 : 14)
         }
         .accessibilityElement(children: .combine)
     }
@@ -40,20 +47,38 @@ struct RecordingHeading: View {
     var tint: Color = .white.opacity(0.6)
     let title: String
 
+    @Environment(\.dynamicTypeSize) private var dts
+    @ScaledMetric(relativeTo: .title) private var titleSize: CGFloat = 30
+
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(caption)
-                .font(.system(size: 15, weight: .semibold))
+                .font(StrandFont.pro(15, weight: .semibold))
                 .textCase(.uppercase)
                 .foregroundStyle(tint)
             Text(title)
-                .font(.system(size: 30, weight: .semibold))
+                .font(.system(size: titleSize, weight: .semibold))
                 .foregroundStyle(.white)
-                .lineLimit(2)
+                .lineLimit(dts.isAccessibilitySize ? nil : 2)
                 .minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// A recording page's figures, laid out as they are; at accessibility sizes the large figures outgrow the
+/// screen, so there the page scrolls.
+struct RecordingFigures<Content: View>: View {
+    @ViewBuilder let content: () -> Content
+    @Environment(\.dynamicTypeSize) private var dts
+
+    var body: some View {
+        if dts.isAccessibilitySize {
+            ScrollView { content() }
+        } else {
+            content()
+        }
     }
 }
 
@@ -83,15 +108,36 @@ struct RecordingButton: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: symbol)
-                .font(.system(size: size >= 100 ? 40 : 24, weight: .semibold))
-                .foregroundStyle(prominent ? StrandPalette.fitnessOnAccent : tint)
-                .frame(width: size, height: size)
-                .background(Circle().fill(prominent ? StrandPalette.activityExerciseText : Color(white: 0.2)))
-                .contentShape(Circle())
+            RecordingButtonFace(symbol: symbol, size: size, prominent: prominent, tint: tint)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text(label))
+        .accessibilityShowsLargeContentViewer { Label(label, systemImage: symbol) }
+        // Capped so the three-button row still fits the screen width.
+        .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+    }
+}
+
+private struct RecordingButtonFace: View {
+    let symbol: String
+    let size: CGFloat
+    let prominent: Bool
+    let tint: Color
+
+    @ScaledMetric(relativeTo: .title2) private var smallGlyph: CGFloat = 24
+    @ScaledMetric(relativeTo: .largeTitle) private var largeGlyph: CGFloat = 40
+
+    var body: some View {
+        let large = size >= 100
+        let glyph = large ? largeGlyph : smallGlyph
+        // The circle grows with the glyph, keeping the ring around it the same width.
+        let diameter = size + glyph - (large ? 40 : 24)
+        Image(systemName: symbol)
+            .font(.system(size: glyph, weight: .semibold))
+            .foregroundStyle(prominent ? StrandPalette.fitnessOnAccent : tint)
+            .frame(width: diameter, height: diameter)
+            .background(Circle().fill(prominent ? StrandPalette.activityExerciseText : Color(white: 0.2)))
+            .contentShape(Circle())
     }
 }
 
@@ -105,6 +151,8 @@ struct RecordingPanel<Clock: View, Trailing: View, Leading: View, Center: View, 
     @ViewBuilder let center: () -> Center
     @ViewBuilder let right: () -> Right
 
+    @ScaledMetric(relativeTo: .largeTitle) private var badgeSize: CGFloat = 44
+
     var body: some View {
         VStack(spacing: 18) {
             Capsule()
@@ -113,12 +161,12 @@ struct RecordingPanel<Clock: View, Trailing: View, Leading: View, Center: View, 
                 .padding(.top, 8)
             HStack {
                 glyph
-                    .frame(width: 44, height: 44)
+                    .frame(width: badgeSize, height: badgeSize)
                     .background(Circle().fill(StrandPalette.fitnessCard))
                 Spacer()
                 clock()
                 Spacer()
-                trailing().frame(width: 44, height: 44)
+                trailing().frame(minWidth: badgeSize, minHeight: badgeSize)
             }
             HStack {
                 leading()
@@ -143,13 +191,15 @@ struct RecordingClockText: View {
     let text: String
     var tint: Color = StrandPalette.activityExerciseText
 
+    @ScaledMetric(relativeTo: .largeTitle) private var clockSize: CGFloat = 42
+
     var body: some View {
         Text(text)
-            .font(.system(size: 42, weight: .medium, design: .rounded))
+            .font(.system(size: clockSize, weight: .medium, design: .rounded))
             .monospacedDigit()
             .foregroundStyle(tint)
             .lineLimit(1)
-            .minimumScaleFactor(0.6)
+            .minimumScaleFactor(0.4)
     }
 }
 

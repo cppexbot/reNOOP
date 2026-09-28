@@ -44,6 +44,9 @@ struct StepsCalibrationSheet: View {
 
     /// Recent days that have BOTH an estimate and a real phone step count, newest first — the accuracy table.
     @State private var comparison: [StepsComparisonRow] = []
+    @Environment(\.dynamicTypeSize) private var dts
+    @ScaledMetric(relativeTo: .subheadline) private var countColumn: CGFloat = 64
+    @ScaledMetric(relativeTo: .subheadline) private var deltaColumn: CGFloat = 52
     /// A representative recent motion volume (median of recent days' motion), used so the manual-coefficient
     /// preview reflects a TYPICAL day. nil until loaded / no recent estimated day with a known motion.
     @State private var sampleMotion: Double?
@@ -176,12 +179,32 @@ struct StepsCalibrationSheet: View {
             if comparison.isEmpty {
                 Text("No matching days yet")
                     .foregroundStyle(StrandPalette.textSecondary)
+            } else if dts.isAccessibilitySize {
+                // Four columns no longer fit a line: each day lists its figures under it.
+                ForEach(comparison) { row in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(verbatim: Self.shortDay(row.day))
+                            .foregroundStyle(StrandPalette.textPrimary)
+                        LabeledContent("Est.") { Text(verbatim: Self.grouped(row.estimated)) }
+                        LabeledContent("Phone") { Text(verbatim: Self.grouped(row.actual)) }
+                        LabeledContent {
+                            Text(verbatim: String(format: "%+.0f%%", row.errorPct))
+                                .foregroundStyle(abs(row.errorPct) <= 15
+                                                 ? StrandPalette.settingsGreen : StrandPalette.settingsOrange)
+                        } label: {
+                            Text(verbatim: "Δ")
+                        }
+                    }
+                    .font(StrandFont.pro(15).monospacedDigit())
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("\(Self.shortDay(row.day)): estimated \(row.estimated) steps, phone \(row.actual) steps, \(Int(row.errorPct.rounded())) percent difference")
+                }
             } else {
                 HStack {
                     Text("Day").frame(maxWidth: .infinity, alignment: .leading)
-                    Text("Est.").frame(width: 64, alignment: .trailing)
-                    Text("Phone").frame(width: 64, alignment: .trailing)
-                    Text(verbatim: "Δ").frame(width: 52, alignment: .trailing)
+                    Text("Est.").frame(width: countColumn, alignment: .trailing)
+                    Text("Phone").frame(width: countColumn, alignment: .trailing)
+                    Text(verbatim: "Δ").frame(width: deltaColumn, alignment: .trailing)
                 }
                 .font(StrandFont.pro(13))
                 .foregroundStyle(StrandPalette.textSecondary)
@@ -193,14 +216,14 @@ struct StepsCalibrationSheet: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                         Text(verbatim: Self.grouped(row.estimated))
                             .foregroundStyle(StrandPalette.textSecondary)
-                            .frame(width: 64, alignment: .trailing)
+                            .frame(width: countColumn, alignment: .trailing)
                         Text(verbatim: Self.grouped(row.actual))
                             .foregroundStyle(StrandPalette.textSecondary)
-                            .frame(width: 64, alignment: .trailing)
+                            .frame(width: countColumn, alignment: .trailing)
                         Text(verbatim: String(format: "%+.0f%%", row.errorPct))
                             .foregroundStyle(abs(row.errorPct) <= 15
                                              ? StrandPalette.settingsGreen : StrandPalette.settingsOrange)
-                            .frame(width: 52, alignment: .trailing)
+                            .frame(width: deltaColumn, alignment: .trailing)
                     }
                     .font(StrandFont.pro(15).monospacedDigit())
                     .accessibilityElement(children: .combine)

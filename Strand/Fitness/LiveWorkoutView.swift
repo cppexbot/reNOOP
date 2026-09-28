@@ -34,6 +34,10 @@ struct LiveWorkoutView: View {
     /// Today's Charge / Effort / Rest, drawn as the small rings beside the clock.
     @State private var rings: [ActivityRing] = []
 
+    @ScaledMetric(relativeTo: .largeTitle) private var numeralSize: CGFloat = 88
+    @ScaledMetric(relativeTo: .title2) private var heartSize: CGFloat = 26
+    @ScaledMetric(relativeTo: .title3) private var panelGlyphSize: CGFloat = 20
+
     private var zoneSet: HRZoneSet { model.profile.hrZoneSet }
     private var zone: Int { model.bpm.map { zoneSet.zoneNumber(forBPM: Double($0)) } ?? 0 }
 
@@ -85,49 +89,53 @@ struct LiveWorkoutView: View {
 
     /// The figures, spread down the screen as Fitness spaces them.
     private var figuresPage: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Spacer(minLength: 8)
-            LiveFigure(value: "\(Int(model.activeWorkoutCalories.rounded()))", label: String(localized: "ACTIVE\nKCAL"))
-            Spacer(minLength: 8)
-            heartRateFigure
-            Spacer(minLength: 8)
-            DistancePaceFigures(recorder: model.gpsRecorder, spacer: true) {
-                effortFigure
+        RecordingFigures {
+            VStack(alignment: .leading, spacing: 0) {
                 Spacer(minLength: 8)
-                LiveFigure(value: (model.activeWorkout?.avgHr ?? 0) > 0 ? "\(model.activeWorkout!.avgHr)" : "--",
-                           label: String(localized: "AVERAGE\nHEART RATE"))
+                LiveFigure(value: "\(Int(model.activeWorkoutCalories.rounded()))", label: String(localized: "ACTIVE\nKCAL"))
+                Spacer(minLength: 8)
+                heartRateFigure
+                Spacer(minLength: 8)
+                DistancePaceFigures(recorder: model.gpsRecorder, spacer: true) {
+                    effortFigure
+                    Spacer(minLength: 8)
+                    LiveFigure(value: (model.activeWorkout?.avgHr ?? 0) > 0 ? "\(model.activeWorkout!.avgHr)" : "--",
+                               label: String(localized: "AVERAGE\nHEART RATE"))
+                }
+                SensorFigures()
+                Spacer(minLength: 8)
             }
-            SensorFigures()
-            Spacer(minLength: 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 28)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 28)
     }
 
     /// Heart-rate zones: the current zone named in its hue over five segments, as the Workout app shows it.
     private var zonesPage: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Spacer()
-            Text(zone >= 1 ? String(localized: "Zone \(zone)") : String(localized: "Below Zone 1"))
-                .font(.system(size: 34, weight: .semibold, design: .rounded))
-                .foregroundStyle(zone >= 1 ? StrandPalette.fitnessZone(zone) : .white.opacity(0.6))
-            HStack(spacing: 6) {
-                ForEach(1...5, id: \.self) { z in
-                    Capsule()
-                        .fill(StrandPalette.fitnessZone(z).opacity(z == zone ? 1 : 0.25))
-                        .frame(height: z == zone ? 14 : 8)
+        RecordingFigures {
+            VStack(alignment: .leading, spacing: 18) {
+                Spacer()
+                Text(zone >= 1 ? String(localized: "Zone \(zone)") : String(localized: "Below Zone 1"))
+                    .font(.system(.largeTitle, design: .rounded, weight: .semibold))
+                    .foregroundStyle(zone >= 1 ? StrandPalette.fitnessZone(zone) : .white.opacity(0.6))
+                HStack(spacing: 6) {
+                    ForEach(1...5, id: \.self) { z in
+                        Capsule()
+                            .fill(StrandPalette.fitnessZone(z).opacity(z == zone ? 1 : 0.25))
+                            .frame(height: z == zone ? 14 : 8)
+                    }
                 }
+                heartRateFigure
+                if let band = zoneSet.zones.first(where: { $0.number == zone }) {
+                    Text("\(Int(band.lower))–\(Int(band.upper)) \(String(localized: "bpm"))")
+                        .font(.system(.title3, design: .rounded, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+                Spacer()
             }
-            heartRateFigure
-            if let band = zoneSet.zones.first(where: { $0.number == zone }) {
-                Text("\(Int(band.lower))–\(Int(band.upper)) \(String(localized: "bpm"))")
-                    .font(.system(size: 20, weight: .medium, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.6))
-            }
-            Spacer()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 28)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 28)
     }
 
     private var effortFigure: some View {
@@ -140,12 +148,14 @@ struct LiveWorkoutView: View {
     private var heartRateFigure: some View {
         HStack(alignment: .lastTextBaseline, spacing: 4) {
             Text(model.bpm.map { "\($0)" } ?? "--")
-                .font(LiveFigure.numeral)
+                .font(LiveFigure.numeral(numeralSize))
                 .monospacedDigit()
                 .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.4)
                 .contentTransition(.numericText())
             Image(systemName: "heart.fill")
-                .font(.system(size: 26, weight: .bold))
+                .font(.system(size: heartSize, weight: .bold))
                 .foregroundStyle(StrandPalette.healthHeart)
         }
         .accessibilityElement(children: .ignore)
@@ -159,7 +169,7 @@ struct LiveWorkoutView: View {
         let paused = model.activeWorkout?.isPaused == true
         return RecordingPanel(
             glyph: AnyView(WorkoutTypeIcon(workoutType: model.activeWorkout?.sport ?? WorkoutCatalog.defaultSportName,
-                                           size: 20, weight: .semibold, color: StrandPalette.activityExerciseText)),
+                                           size: panelGlyphSize, weight: .semibold, color: StrandPalette.activityExerciseText)),
             clock: {
                 TimelineView(.animation(minimumInterval: 0.05)) { ctx in
                     RecordingClockText(text: Self.stopwatch(model.activeWorkout?.elapsed(at: ctx.date) ?? 0))

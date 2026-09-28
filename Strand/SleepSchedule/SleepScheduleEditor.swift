@@ -9,6 +9,7 @@ struct SleepScheduleEditor: View {
     let inputs: SleepScheduleInputs
     let onSave: (SleepScheduleStored) -> Void
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dts
 
     @State private var edit: SleepScheduleEdit
 
@@ -93,8 +94,11 @@ struct SleepScheduleEditor: View {
     private var dialCard: some View {
         let locale = AppLanguage.activeLocale
         let alarm = edit.isBase ? inputs.alarmOn && inputs.alarmWillArm : inputs.alarmOn && inputs.alarmWillArm && edit.alarm
+        let pair = dts.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: 12))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: 8))
         return VStack(spacing: 18) {
-            HStack(alignment: .top, spacing: 8) {
+            pair {
                 SleepScheduleTime(kind: .bed, time: SleepSchedule.clock(edit.bed, locale: locale), centered: true)
                 SleepScheduleTime(kind: .wake(alarm: alarm), time: SleepSchedule.clock(edit.wake, locale: locale), centered: true)
             }

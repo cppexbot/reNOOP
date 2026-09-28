@@ -55,6 +55,9 @@ struct LiftSessionView: View {
     @AppStorage(UnitPrefs.systemKey) private var unitSystemRaw = UnitSystem.metric.rawValue
     private var unitSystem: UnitSystem { UnitSystem(rawValue: unitSystemRaw) ?? .metric }
 
+    @Environment(\.dynamicTypeSize) private var dts
+    @ScaledMetric(relativeTo: .body) private var panelGlyphSize: CGFloat = 18
+
     @FocusState private var focused: FocusTarget?
     private enum FocusTarget: Hashable {
         case sessionRpe
@@ -86,7 +89,7 @@ struct LiftSessionView: View {
             } else {
                 VStack(spacing: 10) {
                     Image(systemName: "dumbbell")
-                        .font(.system(size: 34, weight: .semibold))
+                        .font(StrandFont.pro(34, weight: .semibold))
                         .foregroundStyle(StrandPalette.textTertiary)
                     Text("No session running")
                         .font(StrandFont.pro(17))
@@ -162,36 +165,38 @@ struct LiftSessionView: View {
             return engine.currentSlot ?? engine.nextPendingSlot
         }()
         let item = slot.flatMap { engine.planItem(for: $0) }
-        return VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .top) {
-                RecordingHeading(caption: stageCaption(engine), tint: stageTint(engine),
-                                 title: item?.exercise ?? session.programName ?? String(localized: "Session"))
-                if engine.canUndo {
-                    RecordingButton(symbol: "arrow.uturn.backward", size: 44, label: "Undo") { session.undo() }
+        return RecordingFigures {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(alignment: .top) {
+                    RecordingHeading(caption: stageCaption(engine), tint: stageTint(engine),
+                                     title: item?.exercise ?? session.programName ?? String(localized: "Session"))
+                    if engine.canUndo {
+                        RecordingButton(symbol: "arrow.uturn.backward", size: 44, label: "Undo") { session.undo() }
+                    }
                 }
-            }
-            .padding(.top, 8)
-            Spacer(minLength: 8)
-            stageFigure(engine)
-            Spacer(minLength: 8)
-            if let slot {
-                let v = session.values(of: slot)
-                LiveFigure(value: v.weightKg.map { LiftFormat.trim(LiftFormat.display(fromKilograms: $0, system: unitSystem)) } ?? "--",
-                           unit: v.weightKg == nil ? "" : weightSymbol, label: "")
+                .padding(.top, 8)
                 Spacer(minLength: 8)
-                LiveFigure(value: v.reps.map(String.init) ?? "--", label: String(localized: "REPS"))
+                stageFigure(engine)
+                Spacer(minLength: 8)
+                if let slot {
+                    let v = session.values(of: slot)
+                    LiveFigure(value: v.weightKg.map { LiftFormat.trim(LiftFormat.display(fromKilograms: $0, system: unitSystem)) } ?? "--",
+                               unit: v.weightKg == nil ? "" : weightSymbol, label: "")
+                    Spacer(minLength: 8)
+                    LiveFigure(value: v.reps.map(String.init) ?? "--", label: String(localized: "REPS"))
+                    Spacer(minLength: 8)
+                }
+                LiftHeartRateFigure()
+                Spacer(minLength: 8)
+                Text(LiftSessionController.nextLine(engine))
+                    .font(StrandFont.pro(17, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.6))
+                    .lineLimit(dts.isAccessibilitySize ? nil : 1)
                 Spacer(minLength: 8)
             }
-            LiftHeartRateFigure()
-            Spacer(minLength: 8)
-            Text(LiftSessionController.nextLine(engine))
-                .font(.system(size: 17, weight: .medium))
-                .foregroundStyle(.white.opacity(0.6))
-                .lineLimit(1)
-            Spacer(minLength: 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 28)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 28)
     }
 
     /// The stage's own clock as a large figure: this set counting up, or the rest counting down.
@@ -262,7 +267,7 @@ struct LiftSessionView: View {
                 .textCase(nil)
         } footer: {
             if let note = item.note, !note.isEmpty {
-                Text(note).lineLimit(3)
+                Text(note).lineLimit(dts.isAccessibilitySize ? nil : 3)
             }
         }
     }
@@ -281,21 +286,26 @@ struct LiftSessionView: View {
         let entered = session.enteredValues(for: slot)
         let typed = entered.weightKg != nil || entered.reps != nil
 
+        let layout = dts.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
+            : AnyLayout(HStackLayout(spacing: 12))
         return Button { editingSet = SetEditTarget(slot: slot) } label: {
-            HStack(spacing: 12) {
-                Group {
-                    if recorded {
-                        Image(systemName: "checkmark.circle.fill").foregroundStyle(StrandPalette.activityExerciseText)
-                    } else if isWorking {
-                        Image(systemName: "record.circle").foregroundStyle(StrandPalette.activityExerciseText)
-                    } else {
-                        Image(systemName: "circle").foregroundStyle(StrandPalette.textTertiary)
+            layout {
+                HStack(spacing: 12) {
+                    Group {
+                        if recorded {
+                            Image(systemName: "checkmark.circle.fill").foregroundStyle(StrandPalette.activityExerciseText)
+                        } else if isWorking {
+                            Image(systemName: "record.circle").foregroundStyle(StrandPalette.activityExerciseText)
+                        } else {
+                            Image(systemName: "circle").foregroundStyle(StrandPalette.textTertiary)
+                        }
                     }
+                    .font(StrandFont.pro(22))
+                    Text(warmup ? String(localized: "Warm-up") : String(localized: "Set \(slot.setIndex)"))
+                        .foregroundStyle(warmup ? StrandPalette.fitnessTime : StrandPalette.textPrimary)
                 }
-                .font(.system(size: 22))
-                Text(warmup ? String(localized: "Warm-up") : String(localized: "Set \(slot.setIndex)"))
-                    .foregroundStyle(warmup ? StrandPalette.fitnessTime : StrandPalette.textPrimary)
-                Spacer()
+                if !dts.isAccessibilitySize { Spacer() }
                 Text(numbers(slot))
                     .monospacedDigit()
                     .foregroundStyle(typed || recorded ? StrandPalette.textPrimary : StrandPalette.textTertiary)
@@ -392,7 +402,7 @@ struct LiftSessionView: View {
     private func controlPanel(_ engine: LiftSessionEngine) -> some View {
         RecordingPanel(
             glyph: AnyView(Image(systemName: "dumbbell.fill")
-                .font(.system(size: 18, weight: .semibold))
+                .font(.system(size: panelGlyphSize, weight: .semibold))
                 .foregroundStyle(StrandPalette.activityExerciseText)),
             clock: {
                 TimelineView(.periodic(from: Date(timeIntervalSince1970: floor(Date().timeIntervalSince1970)), by: 1)) { ctx in
@@ -525,8 +535,11 @@ struct LiftSessionView: View {
 
     /// The session so far, as the Fitness app's Workout Details grid: time, sets and exercises.
     private func summaryGrid(_ engine: LiftSessionEngine) -> some View {
-        VStack(spacing: 0) {
-            HStack(alignment: .top, spacing: 16) {
+        let row = dts.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: 16))
+        return VStack(spacing: 0) {
+            row {
                 figureCell("Workout Time", tint: StrandPalette.fitnessTime) {
                     RunningClock { $0 - engine.startTs }
                 }
@@ -537,11 +550,11 @@ struct LiftSessionView: View {
             }
             .padding(.vertical, 12)
             Divider()
-            HStack(alignment: .top, spacing: 16) {
+            row {
                 figureCell("Exercises", tint: StrandPalette.activityStandText) {
                     Text(verbatim: "\(engine.plan.count)")
                 }
-                Spacer().frame(maxWidth: .infinity)
+                if !dts.isAccessibilitySize { Spacer().frame(maxWidth: .infinity) }
             }
             .padding(.vertical, 12)
         }

@@ -39,6 +39,21 @@ struct LiftSessionDetailSheet: View {
     @AppStorage(UnitPrefs.systemKey) private var unitSystemRaw = UnitSystem.metric.rawValue
     private var unitSystem: UnitSystem { UnitSystem(rawValue: unitSystemRaw) ?? .metric }
 
+    @Environment(\.dynamicTypeSize) private var dts
+    @ScaledMetric(relativeTo: .largeTitle) private var headerIconSize: CGFloat = 42
+    @ScaledMetric(relativeTo: .largeTitle) private var headerCircle: CGFloat = 88
+    @ScaledMetric(relativeTo: .footnote) private var setBadgeSize: CGFloat = 26
+    @ScaledMetric(relativeTo: .body) private var muscleCountWidth: CGFloat = 28
+
+    /// Side by side, or stacked at accessibility sizes where two columns would not fit.
+    private func columns<Content: View>(spacing: CGFloat = 16, alignment: VerticalAlignment = .top,
+                                        @ViewBuilder _ content: () -> Content) -> some View {
+        let layout = dts.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+            : AnyLayout(HStackLayout(alignment: alignment, spacing: spacing))
+        return layout(content)
+    }
+
     private var durationSec: Int {
         guard let end = session.endTs else { return 0 }
         return max(0, end - session.startTs)
@@ -99,10 +114,10 @@ struct LiftSessionDetailSheet: View {
     // MARK: - Header
 
     private var header: some View {
-        HStack(spacing: 16) {
-            WorkoutTypeIcon(workoutType: session.sport, size: 42, weight: .semibold,
+        columns(alignment: .center) {
+            WorkoutTypeIcon(workoutType: session.sport, size: headerIconSize, weight: .semibold,
                             color: StrandPalette.activityExerciseText)
-                .frame(width: 88, height: 88)
+                .frame(width: headerCircle, height: headerCircle)
                 .background(Circle().fill(StrandPalette.fitnessCard))
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 3) {
@@ -113,7 +128,7 @@ struct LiftSessionDetailSheet: View {
                     .font(StrandFont.pro(17))
                     .foregroundStyle(StrandPalette.textSecondary)
             }
-            Spacer(minLength: 0)
+            if !dts.isAccessibilitySize { Spacer(minLength: 0) }
         }
         .accessibilityElement(children: .combine)
     }
@@ -211,9 +226,9 @@ struct LiftSessionDetailSheet: View {
             let rows = stride(from: 0, to: figures.count, by: 2).map { Array(figures[$0..<min($0 + 2, figures.count)]) }
             VStack(spacing: 0) {
                 ForEach(Array(rows.enumerated()), id: \.offset) { index, pair in
-                    HStack(alignment: .top, spacing: 16) {
+                    columns {
                         ForEach(Array(pair.enumerated()), id: \.offset) { figureCell($0.element) }
-                        if pair.count == 1 { Spacer().frame(maxWidth: .infinity) }
+                        if pair.count == 1, !dts.isAccessibilitySize { Spacer().frame(maxWidth: .infinity) }
                     }
                     .padding(.vertical, 12)
                     if index < rows.count - 1 { Divider() }
@@ -239,7 +254,7 @@ struct LiftSessionDetailSheet: View {
                 Text(caption)
                     .font(StrandFont.pro(13))
                     .foregroundStyle(StrandPalette.textSecondary)
-                    .lineLimit(2)
+                    .lineLimit(dts.isAccessibilitySize ? nil : 2)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -320,7 +335,7 @@ struct LiftSessionDetailSheet: View {
 
             Divider()
 
-            HStack(alignment: .top, spacing: 16) {
+            columns {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Best set")
                         .font(StrandFont.pro(15))
@@ -359,29 +374,33 @@ struct LiftSessionDetailSheet: View {
     }
 
     private func setLine(_ row: LiftSetRow) -> some View {
-        HStack(spacing: 12) {
-            Text(row.isWarmup ? String(localized: "W") : "\(row.setIndex)")
-                .font(StrandFont.pro(13, weight: .semibold).monospacedDigit())
-                .foregroundStyle(row.isWarmup ? StrandPalette.textSecondary : StrandPalette.activityExerciseText)
-                .frame(width: 26, height: 26)
-                .background(Circle().fill(row.isWarmup ? StrandPalette.textPrimary.opacity(0.08)
-                                                       : StrandPalette.fitnessCard))
+        columns(spacing: 12, alignment: .center) {
+            HStack(spacing: 12) {
+                Text(row.isWarmup ? String(localized: "W") : "\(row.setIndex)")
+                    .font(StrandFont.pro(13, weight: .semibold).monospacedDigit())
+                    .foregroundStyle(row.isWarmup ? StrandPalette.textSecondary : StrandPalette.activityExerciseText)
+                    .frame(width: setBadgeSize, height: setBadgeSize)
+                    .background(Circle().fill(row.isWarmup ? StrandPalette.textPrimary.opacity(0.08)
+                                                           : StrandPalette.fitnessCard))
 
-            Text(setValueText(row))
-                .font(StrandFont.pro(17).monospacedDigit())
-                .foregroundStyle(row.isWarmup ? StrandPalette.textSecondary : StrandPalette.textPrimary)
-
-            Spacer(minLength: 0)
-
-            if let rpe = row.rpe {
-                Text(String(localized: "RPE \(LiftFormat.trim(rpe))"))
-                    .font(StrandFont.pro(15))
-                    .foregroundStyle(StrandPalette.textSecondary)
+                Text(setValueText(row))
+                    .font(StrandFont.pro(17).monospacedDigit())
+                    .foregroundStyle(row.isWarmup ? StrandPalette.textSecondary : StrandPalette.textPrimary)
             }
-            if let rest = row.restSec {
-                Text(LiftFormat.duration(rest))
-                    .font(StrandFont.pro(15).monospacedDigit())
-                    .foregroundStyle(StrandPalette.fitnessTime)
+
+            if !dts.isAccessibilitySize { Spacer(minLength: 0) }
+
+            HStack(spacing: 12) {
+                if let rpe = row.rpe {
+                    Text(String(localized: "RPE \(LiftFormat.trim(rpe))"))
+                        .font(StrandFont.pro(15))
+                        .foregroundStyle(StrandPalette.textSecondary)
+                }
+                if let rest = row.restSec {
+                    Text(LiftFormat.duration(rest))
+                        .font(StrandFont.pro(15).monospacedDigit())
+                        .foregroundStyle(StrandPalette.fitnessTime)
+                }
             }
         }
         .accessibilityElement(children: .combine)
@@ -433,18 +452,20 @@ struct LiftSessionDetailSheet: View {
                 sectionTitle("Sets per Muscle")
                 VStack(spacing: 0) {
                     ForEach(Array(ordered.enumerated()), id: \.element) { index, muscle in
-                        HStack(spacing: 12) {
+                        columns(spacing: 12, alignment: .center) {
                             Text(muscle.displayName)
                                 .font(StrandFont.pro(17))
                                 .foregroundStyle(StrandPalette.textPrimary)
-                            Spacer(minLength: 0)
-                            Text(componentText(counts, muscle))
-                                .font(StrandFont.pro(13))
-                                .foregroundStyle(StrandPalette.textSecondary)
-                            Text(LiftFormat.trim(counts.fractional[muscle] ?? 0))
-                                .font(StrandFont.pro(17, weight: .semibold).monospacedDigit())
-                                .foregroundStyle(StrandPalette.textPrimary)
-                                .frame(minWidth: 28, alignment: .trailing)
+                            if !dts.isAccessibilitySize { Spacer(minLength: 0) }
+                            HStack(spacing: 12) {
+                                Text(componentText(counts, muscle))
+                                    .font(StrandFont.pro(13))
+                                    .foregroundStyle(StrandPalette.textSecondary)
+                                Text(LiftFormat.trim(counts.fractional[muscle] ?? 0))
+                                    .font(StrandFont.pro(17, weight: .semibold).monospacedDigit())
+                                    .foregroundStyle(StrandPalette.textPrimary)
+                                    .frame(minWidth: muscleCountWidth, alignment: .trailing)
+                            }
                         }
                         .padding(.vertical, 11)
                         .accessibilityElement(children: .combine)
@@ -474,7 +495,7 @@ struct LiftSessionDetailSheet: View {
         return VStack(alignment: .leading, spacing: 10) {
             sectionTitle("How hard it felt")
             VStack(alignment: .leading, spacing: 0) {
-                HStack(alignment: .top, spacing: 16) {
+                columns {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Mean RPE")
                             .font(StrandFont.pro(17))
@@ -489,7 +510,7 @@ struct LiftSessionDetailSheet: View {
                         Text(String(localized: "Sets at RPE \(LiftFormat.trim(p.threshold)) or above"))
                             .font(StrandFont.pro(17))
                             .foregroundStyle(StrandPalette.textPrimary)
-                            .lineLimit(2)
+                            .lineLimit(dts.isAccessibilitySize ? nil : 2)
                             .minimumScaleFactor(0.8)
                         Text("\(p.setsAtOrAboveThreshold)")
                             .font(StrandFont.pro(28, weight: .semibold))

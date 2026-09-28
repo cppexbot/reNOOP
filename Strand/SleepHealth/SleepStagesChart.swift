@@ -55,6 +55,8 @@ struct SleepStagesChart: View {
                 }
             }
         }
+        // Axis labels sit in fixed gutters: they follow Dynamic Type only as far as the gutters hold them.
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(accessibilitySummary))
     }

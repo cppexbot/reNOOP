@@ -117,7 +117,7 @@ struct ManualWorkoutSheet: View {
                             HStack(spacing: 6) {
                                 Text(sport.isEmpty ? String(localized: "Choose") : WorkoutSource.localizedSport(sport))
                                 Image(systemName: "chevron.right")
-                                    .font(.system(size: 13, weight: .semibold))
+                                    .font(StrandFont.pro(13, weight: .semibold))
                                     .foregroundStyle(StrandPalette.textTertiary)
                             }
                         }

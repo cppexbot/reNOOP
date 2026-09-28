@@ -49,6 +49,7 @@ struct LiftProgramItemSheet: View {
 
     /// Drives the pushed exercise list; a pick sets the exercise and pops back.
     @State private var pickingExercise = false
+    @Environment(\.dynamicTypeSize) private var dts
 
     @FocusState private var focused: Field?
     private enum Field: Hashable { case sets, reps, weight, rest, maxRpe, note }
@@ -73,9 +74,9 @@ struct LiftProgramItemSheet: View {
                         LabeledContent("Exercise") {
                             HStack(spacing: 6) {
                                 Text(trimmedExercise.isEmpty ? String(localized: "Choose") : trimmedExercise)
-                                    .lineLimit(1)
+                                    .lineLimit(dts.isAccessibilitySize ? nil : 1)
                                 Image(systemName: "chevron.right")
-                                    .font(.system(size: 13, weight: .semibold))
+                                    .font(StrandFont.pro(13, weight: .semibold))
                                     .foregroundStyle(StrandPalette.textTertiary)
                             }
                         }

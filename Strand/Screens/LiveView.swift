@@ -162,6 +162,7 @@ private struct LiveHeartFigure: View {
     @EnvironmentObject private var model: AppModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ObservedObject private var motion = NoopMotionState.shared
+    @ScaledMetric(relativeTo: .largeTitle) private var figureSize: CGFloat = 64
     let lastReading: LiveDay.Reading?
 
     var body: some View {
@@ -181,8 +182,10 @@ private struct LiveHeartFigure: View {
             .foregroundStyle(StrandPalette.textPrimary)
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(verbatim: (bpm ?? lastReading?.bpm).map(String.init) ?? "--")
-                    .font(.system(size: 64, weight: .medium, design: .rounded))
+                    .font(.system(size: figureSize, weight: .medium, design: .rounded))
                     .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
                     .foregroundStyle(StrandPalette.textPrimary)
                     .contentTransition(.numericText())
                 Text("BPM")
@@ -240,6 +243,7 @@ private struct LiveHeartGlow: View {
 /// and the resting rate under a hairline.
 private struct LiveDayCard: View {
     let day: LiveDay
+    @Environment(\.dynamicTypeSize) private var dts
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -261,17 +265,21 @@ private struct LiveDayCard: View {
                 .padding(.top, 14)
             if let rhr = day.resting {
                 Divider().padding(.top, 14).padding(.bottom, 12)
-                HStack {
+                let layout = dts.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
+                                                     : AnyLayout(HStackLayout())
+                layout {
                     Text("Resting Heart Rate")
                         .font(StrandFont.pro(17))
                         .foregroundStyle(StrandPalette.textPrimary)
-                    Spacer()
-                    Text(verbatim: "\(rhr)")
-                        .font(StrandFont.pro(17, weight: .semibold))
-                        .foregroundStyle(StrandPalette.textPrimary)
-                    Text("BPM")
-                        .font(StrandFont.pro(15))
-                        .foregroundStyle(StrandPalette.textSecondary)
+                    if !dts.isAccessibilitySize { Spacer() }
+                    HStack {
+                        Text(verbatim: "\(rhr)")
+                            .font(StrandFont.pro(17, weight: .semibold))
+                            .foregroundStyle(StrandPalette.textPrimary)
+                        Text("BPM")
+                            .font(StrandFont.pro(15))
+                            .foregroundStyle(StrandPalette.textSecondary)
+                    }
                 }
                 .accessibilityElement(children: .combine)
             }
@@ -372,6 +380,7 @@ private struct LiveWorkoutRow: View {
     @EnvironmentObject private var model: AppModel
     let onOpen: () -> Void
     let onStart: () -> Void
+    @ScaledMetric(relativeTo: .subheadline) private var chevronSize: CGFloat = 14
 
     var body: some View {
         if let w = model.activeWorkout {
@@ -388,11 +397,13 @@ private struct LiveWorkoutRow: View {
                             Text(ActiveWorkoutClock.clock(Int(w.elapsed(at: ctx.date))))
                                 .font(StrandFont.pro(22, weight: .semibold).monospacedDigit())
                                 .foregroundStyle(StrandPalette.activityExerciseText)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.5)
                         }
                     }
                     Spacer()
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: chevronSize, weight: .semibold))
                         .foregroundStyle(StrandPalette.textTertiary)
                 }
                 .padding(16)

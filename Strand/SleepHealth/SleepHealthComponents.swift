@@ -61,6 +61,8 @@ struct SleepScoreRing: View {
                 .minimumScaleFactor(0.6)
                 .padding(lineWidth + 4)
         }
+        // The score sits in a fixed ring: it follows Dynamic Type only as far as the ring holds it.
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(String(localized: "Sleep Score")))
         .accessibilityValue(Text(verbatim: "\(score.value)"))

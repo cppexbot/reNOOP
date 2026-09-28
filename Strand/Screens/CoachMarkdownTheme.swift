@@ -32,13 +32,14 @@ extension Theme {
             ForegroundColor(StrandPalette.messageLink)
         }
         // Headings: h1/h2 land at headline (17 / semibold), h3 just above body,
-        // h4–h6 as overline-ish small caps labels.
+        // h4–h6 as overline-ish small caps labels. Sizes are relative to the body size, which Markdown
+        // scales with Dynamic Type; a point size here would pin the heading at Large.
         .heading1 { configuration in
             configuration.label
                 .markdownMargin(top: 14, bottom: 6)
                 .markdownTextStyle {
                     FontWeight(.semibold)
-                    FontSize(17)
+                    FontSize(.rem(1))
                     ForegroundColor(StrandPalette.messageIncomingText)
                 }
         }
@@ -47,7 +48,7 @@ extension Theme {
                 .markdownMargin(top: 14, bottom: 6)
                 .markdownTextStyle {
                     FontWeight(.semibold)
-                    FontSize(17)
+                    FontSize(.rem(1))
                     ForegroundColor(StrandPalette.messageIncomingText)
                 }
         }
@@ -56,7 +57,7 @@ extension Theme {
                 .markdownMargin(top: 12, bottom: 4)
                 .markdownTextStyle {
                     FontWeight(.semibold)
-                    FontSize(17)
+                    FontSize(.rem(1))
                     ForegroundColor(StrandPalette.messageIncomingText)
                 }
         }
@@ -65,7 +66,7 @@ extension Theme {
                 .markdownMargin(top: 10, bottom: 4)
                 .markdownTextStyle {
                     FontWeight(.semibold)
-                    FontSize(17)
+                    FontSize(.rem(1))
                     ForegroundColor(StrandPalette.messageIncomingText)
                 }
         }
@@ -74,7 +75,7 @@ extension Theme {
                 .markdownMargin(top: 10, bottom: 4)
                 .markdownTextStyle {
                     FontWeight(.semibold)
-                    FontSize(13)
+                    FontSize(.rem(13.0 / 17))
                     ForegroundColor(StrandPalette.textSecondary)
                 }
         }
@@ -83,7 +84,7 @@ extension Theme {
                 .markdownMargin(top: 10, bottom: 4)
                 .markdownTextStyle {
                     FontWeight(.semibold)
-                    FontSize(12)
+                    FontSize(.rem(12.0 / 17))
                     ForegroundColor(StrandPalette.textSecondary)
                 }
         }

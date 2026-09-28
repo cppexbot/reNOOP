@@ -60,12 +60,17 @@ struct NowRunningAccessory: View {
     @EnvironmentObject private var now: NowRunning
 
     var body: some View {
-        switch now.kind {
-        case .lift: LiftAccessoryRow()
-        case .intervals: IntervalsAccessoryRow()
-        case .workout: WorkoutAccessoryRow()
-        case nil: EmptyView()
+        Group {
+            switch now.kind {
+            case .lift: LiftAccessoryRow()
+            case .intervals: IntervalsAccessoryRow()
+            case .workout: WorkoutAccessoryRow()
+            case nil: EmptyView()
+            }
         }
+        // A bar of fixed height, as Music's mini-player: its type stops at the largest standard size, and
+        // the large content viewer shows it bigger.
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }
 }
 
@@ -157,12 +162,16 @@ private struct RunningAccessoryRow<Clock: View>: View {
     let open: () -> Void
     @ViewBuilder let clock: () -> Clock
 
+    @ScaledMetric(relativeTo: .subheadline) private var glyphSize: CGFloat = 14
+    @ScaledMetric(relativeTo: .subheadline) private var glyphCircle: CGFloat = 32
+    @ScaledMetric(relativeTo: .largeTitle) private var controlSize: CGFloat = 44
+
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: glyph)
-                .font(.system(size: 14, weight: .semibold))
+                .font(.system(size: glyphSize, weight: .semibold))
                 .foregroundStyle(StrandPalette.activityExerciseText)
-                .frame(width: 32, height: 32)
+                .frame(width: glyphCircle, height: glyphCircle)
                 .background(Circle().fill(StrandPalette.fitnessCard))
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 0) {
@@ -182,10 +191,10 @@ private struct RunningAccessoryRow<Clock: View>: View {
             Spacer(minLength: 8)
             Button(action: action) {
                 Image(systemName: control)
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(StrandFont.pro(20, weight: .semibold))
                     .foregroundStyle(StrandPalette.textPrimary)
                     .contentTransition(.symbolEffect(.replace))
-                    .frame(width: 44, height: 44)
+                    .frame(width: controlSize, height: controlSize)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -198,6 +207,7 @@ private struct RunningAccessoryRow<Clock: View>: View {
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
         .accessibilityAction(named: Text(controlLabel), action)
+        .accessibilityShowsLargeContentViewer { Label(title, systemImage: glyph) }
     }
 }
 

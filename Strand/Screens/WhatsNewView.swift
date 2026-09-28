@@ -33,7 +33,7 @@ struct WhatsNewView: View {
                         } label: {
                             HStack(spacing: 4) {
                                 Text("Earlier releases")
-                                Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold))
+                                Image(systemName: "chevron.right").font(StrandFont.pro(13, weight: .semibold))
                             }
                             .font(StrandFont.pro(15, weight: .semibold))
                             .foregroundStyle(StrandPalette.settingsBlue)
@@ -82,6 +82,9 @@ struct WhatsNewView: View {
 /// first sentence the grey line; issue references and credits stay in the full changelog.
 private struct WhatsNewRows: View {
     let release: AppChangelog.Release
+    @Environment(\.dynamicTypeSize) private var dts
+    @ScaledMetric(relativeTo: .title2) private var glyphSize: CGFloat = 26
+    @ScaledMetric(relativeTo: .title2) private var glyphWidth: CGFloat = 34
 
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
@@ -89,9 +92,9 @@ private struct WhatsNewRows: View {
                 let item = WhatsNewItem(raw)
                 HStack(alignment: .top, spacing: 16) {
                     Image(systemName: index < 50 ? "\(index + 1).circle.fill" : "circle.fill")
-                        .font(.system(size: 26))
+                        .font(.system(size: glyphSize))
                         .foregroundStyle(StrandPalette.settingsBlue)
-                        .frame(width: 34)
+                        .frame(width: glyphWidth)
                         .accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(verbatim: item.title)
@@ -101,7 +104,7 @@ private struct WhatsNewRows: View {
                             Text(verbatim: line)
                                 .font(StrandFont.pro(15))
                                 .foregroundStyle(StrandPalette.textSecondary)
-                                .lineLimit(2)
+                                .lineLimit(dts.isAccessibilitySize ? nil : 2)
                         }
                     }
                     .fixedSize(horizontal: false, vertical: true)

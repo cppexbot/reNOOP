@@ -23,6 +23,13 @@ struct IntervalTimerView: View {
     @State private var showRun = false
     #endif
 
+    @Environment(\.dynamicTypeSize) private var dts
+    @ScaledMetric(relativeTo: .title) private var timerGlyphSize: CGFloat = 30
+    @ScaledMetric(relativeTo: .largeTitle) private var playSize: CGFloat = 50
+    @ScaledMetric(relativeTo: .body) private var blockGlyphSize: CGFloat = 18
+    @ScaledMetric(relativeTo: .body) private var blockGlyphWidth: CGFloat = 28
+    @ScaledMetric(relativeTo: .largeTitle) private var stepSize: CGFloat = 44
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
@@ -60,13 +67,13 @@ struct IntervalTimerView: View {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(alignment: .top) {
                     Image(systemName: "timer")
-                        .font(.system(size: 30, weight: .semibold))
+                        .font(.system(size: timerGlyphSize, weight: .semibold))
                         .foregroundStyle(StrandPalette.activityExerciseText)
                     Spacer()
                     Image(systemName: "play.fill")
-                        .font(.system(size: 20, weight: .bold))
+                        .font(StrandFont.pro(20, weight: .bold))
                         .foregroundStyle(StrandPalette.fitnessOnAccent)
-                        .frame(width: 50, height: 50)
+                        .frame(width: playSize, height: playSize)
                         .background(Circle().fill(StrandPalette.activityExerciseText))
                 }
                 VStack(alignment: .leading, spacing: 2) {
@@ -116,23 +123,30 @@ struct IntervalTimerView: View {
 
     private func block(_ title: LocalizedStringKey, symbol: String, tint: Color, value: String,
                        minus: @escaping () -> Void, plus: @escaping () -> Void) -> some View {
-        HStack(spacing: 14) {
-            Image(systemName: symbol)
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(tint)
-                .frame(width: 28)
-            VStack(alignment: .leading, spacing: 0) {
-                Text(title)
-                    .font(StrandFont.pro(17))
-                    .foregroundStyle(StrandPalette.textPrimary)
-                Text(value)
-                    .font(StrandFont.pro(28, weight: .semibold))
-                    .monospacedDigit()
+        let layout = dts.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+            : AnyLayout(HStackLayout(spacing: 14))
+        return layout {
+            HStack(spacing: 14) {
+                Image(systemName: symbol)
+                    .font(.system(size: blockGlyphSize, weight: .semibold))
                     .foregroundStyle(tint)
+                    .frame(width: blockGlyphWidth)
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(title)
+                        .font(StrandFont.pro(17))
+                        .foregroundStyle(StrandPalette.textPrimary)
+                    Text(value)
+                        .font(StrandFont.pro(28, weight: .semibold))
+                        .monospacedDigit()
+                        .foregroundStyle(tint)
+                }
             }
-            Spacer()
-            stepButton("minus", tint: tint, action: minus)
-            stepButton("plus", tint: tint, action: plus)
+            if !dts.isAccessibilitySize { Spacer() }
+            HStack(spacing: 14) {
+                stepButton("minus", tint: tint, action: minus)
+                stepButton("plus", tint: tint, action: plus)
+            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
@@ -142,9 +156,9 @@ struct IntervalTimerView: View {
     private func stepButton(_ symbol: String, tint: Color, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: 17, weight: .bold))
+                .font(StrandFont.pro(17, weight: .bold))
                 .foregroundStyle(tint)
-                .frame(width: 44, height: 44)
+                .frame(width: stepSize, height: stepSize)
                 .background(Circle().fill(tint.opacity(0.18)))
                 .contentShape(Circle())
         }
@@ -161,47 +175,52 @@ struct IntervalRunView: View {
     @ObservedObject var runner: IntervalTimerRunner
     let onClose: () -> Void
 
+    @ScaledMetric(relativeTo: .largeTitle) private var clockSize: CGFloat = 120
+    @ScaledMetric(relativeTo: .body) private var glyphSize: CGFloat = 18
+
     var body: some View {
         VStack(spacing: 0) {
             // Minimising leaves the timer running; the setup page offers to resume it.
             RecordingTopBar(onMinimize: onClose)
-            VStack(alignment: .leading, spacing: 0) {
-                RecordingHeading(caption: runner.isFinished
-                                    ? String(localized: "\(runner.rounds) rounds")
-                                    : String(localized: "Round \(min(runner.currentRound, runner.rounds)) of \(runner.rounds)"),
-                                 tint: runner.phaseColor, title: runner.phase.label)
-                    .padding(.top, 8)
-                Spacer(minLength: 8)
-                Text(IntervalTimerRunner.clock(runner.isFinished ? runner.elapsed : runner.remaining))
-                    .font(.system(size: 120, weight: .regular, design: .rounded))
-                    .monospacedDigit()
-                    .foregroundStyle(runner.phaseColor)
-                    .contentTransition(.numericText())
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        Capsule().fill(.white.opacity(0.15))
-                        Capsule().fill(runner.phaseColor)
-                            .frame(width: geo.size.width * (runner.isFinished ? 1 : runner.phaseProgress))
-                            .animation(.linear(duration: 1), value: runner.phaseProgress)
+            RecordingFigures {
+                VStack(alignment: .leading, spacing: 0) {
+                    RecordingHeading(caption: runner.isFinished
+                                        ? String(localized: "\(runner.rounds) rounds")
+                                        : String(localized: "Round \(min(runner.currentRound, runner.rounds)) of \(runner.rounds)"),
+                                     tint: runner.phaseColor, title: runner.phase.label)
+                        .padding(.top, 8)
+                    Spacer(minLength: 8)
+                    Text(IntervalTimerRunner.clock(runner.isFinished ? runner.elapsed : runner.remaining))
+                        .font(.system(size: clockSize, weight: .regular, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundStyle(runner.phaseColor)
+                        .contentTransition(.numericText())
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.4)
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(.white.opacity(0.15))
+                            Capsule().fill(runner.phaseColor)
+                                .frame(width: geo.size.width * (runner.isFinished ? 1 : runner.phaseProgress))
+                                .animation(.linear(duration: 1), value: runner.phaseProgress)
+                        }
                     }
+                    .frame(height: 8)
+                    Spacer(minLength: 8)
+                    LiftHeartRateFigure()
+                    Spacer(minLength: 8)
+                    LiveFigure(value: IntervalTimerRunner.clock(max(0, runner.totalPlanned - runner.elapsed)),
+                               label: String(localized: "TOTAL\nLEFT"))
+                    Spacer(minLength: 8)
                 }
-                .frame(height: 8)
-                Spacer(minLength: 8)
-                LiftHeartRateFigure()
-                Spacer(minLength: 8)
-                LiveFigure(value: IntervalTimerRunner.clock(max(0, runner.totalPlanned - runner.elapsed)),
-                           label: String(localized: "TOTAL\nLEFT"))
-                Spacer(minLength: 8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 28)
+                .padding(.bottom, 12)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 28)
-            .padding(.bottom, 12)
 
             RecordingPanel(
                 glyph: AnyView(Image(systemName: "timer")
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.system(size: glyphSize, weight: .semibold))
                     .foregroundStyle(StrandPalette.activityExerciseText)),
                 clock: { RecordingClockText(text: IntervalTimerRunner.clock(runner.elapsed)) },
                 trailing: { EmptyView() },

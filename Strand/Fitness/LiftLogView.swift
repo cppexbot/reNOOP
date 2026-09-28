@@ -37,6 +37,13 @@ struct LiftLogView: View {
     /// Exercise lines per program id, for the card subtitle.
     @State private var exerciseCounts: [String: Int] = [:]
 
+    @Environment(\.dynamicTypeSize) private var dts
+    @ScaledMetric(relativeTo: .largeTitle) private var playSize: CGFloat = 50
+    @ScaledMetric(relativeTo: .title2) private var goalGlyphSize: CGFloat = 24
+    @ScaledMetric(relativeTo: .title2) private var goalGlyphWidth: CGFloat = 32
+    @ScaledMetric(relativeTo: .body) private var muscleNameWidth: CGFloat = 118
+    @ScaledMetric(relativeTo: .body) private var setCountWidth: CGFloat = 32
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
@@ -129,9 +136,9 @@ struct LiftLogView: View {
         .overlay(alignment: .trailing) {
             Button { Task { await start(program) } } label: {
                 Image(systemName: "play.fill")
-                    .font(.system(size: 20, weight: .bold))
+                    .font(StrandFont.pro(20, weight: .bold))
                     .foregroundStyle(StrandPalette.fitnessOnAccent)
-                    .frame(width: 50, height: 50)
+                    .frame(width: playSize, height: playSize)
                     .background(Circle().fill(tint))
                     .contentShape(Circle())
             }
@@ -148,14 +155,14 @@ struct LiftLogView: View {
     private func goalCard(title: String, subtitle: String?, tint: Color, symbol: String?) -> some View {
         HStack(spacing: 14) {
             Image(systemName: "dumbbell.fill")
-                .font(.system(size: 24, weight: .semibold))
+                .font(.system(size: goalGlyphSize, weight: .semibold))
                 .foregroundStyle(tint)
-                .frame(width: 32)
+                .frame(width: goalGlyphWidth)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(StrandFont.pro(20, weight: .semibold))
                     .foregroundStyle(StrandPalette.textPrimary)
-                    .lineLimit(2)
+                    .lineLimit(dts.isAccessibilitySize ? nil : 2)
                     .multilineTextAlignment(.leading)
                 if let subtitle {
                     Text(subtitle)
@@ -163,12 +170,12 @@ struct LiftLogView: View {
                         .foregroundStyle(tint)
                 }
             }
-            Spacer(minLength: 64)
+            Spacer(minLength: playSize + 14)
             if let symbol {
                 Image(systemName: symbol)
-                    .font(.system(size: 20, weight: .bold))
+                    .font(StrandFont.pro(20, weight: .bold))
                     .foregroundStyle(StrandPalette.fitnessOnAccent)
-                    .frame(width: 50, height: 50)
+                    .frame(width: playSize, height: playSize)
                     .background(Circle().fill(tint))
             }
         }
@@ -222,9 +229,12 @@ struct LiftLogView: View {
     @ViewBuilder private var weekSection: some View {
         let ordered = LiftMuscle.ordered.filter { (weekCounts[$0] ?? 0) > 0 }
         if !ordered.isEmpty {
-            HStack(alignment: .firstTextBaseline) {
+            let header = dts.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
+                : AnyLayout(HStackLayout(alignment: .firstTextBaseline))
+            header {
                 sectionTitle("Sets per Muscle")
-                Spacer()
+                if !dts.isAccessibilitySize { Spacer() }
                 Text("Last 7 days")
                     .font(StrandFont.pro(15))
                     .foregroundStyle(StrandPalette.textSecondary)
@@ -276,38 +286,43 @@ struct LiftLogView: View {
         let fill = min(1.0, sets / Self.weeklySetsBarSpan)
         let tick = min(1.0, floor / Self.weeklySetsBarSpan)
 
-        return HStack(spacing: 12) {
+        let layout = dts.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6))
+            : AnyLayout(HStackLayout(spacing: 12))
+        return layout {
             Text(muscle.displayName)
                 .font(StrandFont.pro(17))
                 .foregroundStyle(StrandPalette.textPrimary)
-                .lineLimit(1)
+                .lineLimit(dts.isAccessibilitySize ? nil : 1)
                 .minimumScaleFactor(0.8)
-                .frame(width: 118, alignment: .leading)
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(StrandPalette.textPrimary.opacity(0.08))
-                    Capsule()
-                        // Muted below the floor — below it growth is not reliably detectable, which is
-                        // worth showing — and the ordinary blue above it. Never a "done" colour.
-                        .fill(StrandPalette.fitnessEffort.opacity(atOrAboveFloor ? 1.0 : 0.45))
-                        .frame(width: max(6, geo.size.width * fill))
-                    // The floor, marked where it actually falls.
-                    Capsule()
-                        .fill(StrandPalette.textPrimary.opacity(0.45))
-                        .frame(width: 2)
-                        .offset(x: max(0, geo.size.width * tick - 1))
-                        .accessibilityHidden(true)
+                .frame(width: dts.isAccessibilitySize ? nil : muscleNameWidth, alignment: .leading)
+            HStack(spacing: 12) {
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(StrandPalette.textPrimary.opacity(0.08))
+                        Capsule()
+                            // Muted below the floor — below it growth is not reliably detectable, which is
+                            // worth showing — and the ordinary blue above it. Never a "done" colour.
+                            .fill(StrandPalette.fitnessEffort.opacity(atOrAboveFloor ? 1.0 : 0.45))
+                            .frame(width: max(6, geo.size.width * fill))
+                        // The floor, marked where it actually falls.
+                        Capsule()
+                            .fill(StrandPalette.textPrimary.opacity(0.45))
+                            .frame(width: 2)
+                            .offset(x: max(0, geo.size.width * tick - 1))
+                            .accessibilityHidden(true)
+                    }
+                    .frame(height: 6)
+                    .frame(maxHeight: .infinity, alignment: .center)
                 }
-                .frame(height: 6)
-                .frame(maxHeight: .infinity, alignment: .center)
+                .frame(height: 20)
+                // Deliberately NOT a success colour. There is no success point to signal, and a green
+                // number is exactly what made four sets read as an achievement.
+                Text(LiftFormat.trim(sets))
+                    .font(StrandFont.pro(17, weight: .semibold).monospacedDigit())
+                    .foregroundStyle(StrandPalette.textPrimary)
+                    .frame(minWidth: setCountWidth, alignment: .trailing)
             }
-            .frame(height: 20)
-            // Deliberately NOT a success colour. There is no success point to signal, and a green
-            // number is exactly what made four sets read as an achievement.
-            Text(LiftFormat.trim(sets))
-                .font(StrandFont.pro(17, weight: .semibold).monospacedDigit())
-                .foregroundStyle(StrandPalette.textPrimary)
-                .frame(minWidth: 32, alignment: .trailing)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(atOrAboveFloor
@@ -374,28 +389,35 @@ struct LiftLogView: View {
 private struct LiftSessionHistoryRow: View {
     let session: LiftSessionRow
 
+    @Environment(\.dynamicTypeSize) private var dts
+    @ScaledMetric(relativeTo: .title2) private var iconSize: CGFloat = 22
+    @ScaledMetric(relativeTo: .largeTitle) private var iconCircle: CGFloat = 44
+
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
-            WorkoutTypeIcon(workoutType: session.sport, size: 22, weight: .semibold,
+        let layout = dts.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+            : AnyLayout(HStackLayout(alignment: .center, spacing: 12))
+        layout {
+            WorkoutTypeIcon(workoutType: session.sport, size: iconSize, weight: .semibold,
                             color: StrandPalette.activityExerciseText)
-                .frame(width: 44, height: 44)
+                .frame(width: iconCircle, height: iconCircle)
                 .background(Circle().fill(StrandPalette.fitnessCard))
             VStack(alignment: .leading, spacing: 0) {
                 Text(session.programName.flatMap { $0.isEmpty ? nil : $0 } ?? String(localized: "Session"))
                     .font(StrandFont.pro(17))
                     .foregroundStyle(StrandPalette.textPrimary)
-                    .lineLimit(1)
+                    .lineLimit(dts.isAccessibilitySize ? nil : 1)
                 Text(headline)
                     .font(StrandFont.pro(28, weight: .semibold))
                     .foregroundStyle(StrandPalette.activityExerciseText)
-                    .lineLimit(1)
+                    .lineLimit(dts.isAccessibilitySize ? nil : 1)
                     .minimumScaleFactor(0.7)
             }
-            Spacer(minLength: 8)
+            if !dts.isAccessibilitySize { Spacer(minLength: 8) }
             Text(dateLabel)
                 .font(StrandFont.pro(13))
                 .foregroundStyle(StrandPalette.textSecondary)
-                .frame(maxHeight: .infinity, alignment: .bottom)
+                .frame(maxHeight: dts.isAccessibilitySize ? nil : CGFloat.infinity, alignment: .bottom)
         }
         .padding(.vertical, 4)
         .accessibilityElement(children: .combine)

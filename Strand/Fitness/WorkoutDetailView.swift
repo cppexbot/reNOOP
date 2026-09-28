@@ -40,6 +40,23 @@ struct WorkoutDetailView: View {
     private struct StepReadout { let count: Int; let fromStrap: Bool }
     @State private var steps: StepReadout?
 
+    @Environment(\.dynamicTypeSize) private var dts
+    @ScaledMetric(relativeTo: .largeTitle) private var headerIconSize: CGFloat = 42
+    @ScaledMetric(relativeTo: .largeTitle) private var headerCircle: CGFloat = 88
+    @ScaledMetric(relativeTo: .subheadline) private var effortBadgeSize: CGFloat = 32
+    @ScaledMetric(relativeTo: .subheadline) private var zoneLabelWidth: CGFloat = 64
+    @ScaledMetric(relativeTo: .subheadline) private var zoneTimeWidth: CGFloat = 58
+    @ScaledMetric(relativeTo: .footnote) private var zoneRangeWidth: CGFloat = 88
+
+    /// Side by side, or stacked at accessibility sizes where the columns would not fit.
+    private func columns<Content: View>(spacing: CGFloat = 16, alignment: VerticalAlignment = .top,
+                                        @ViewBuilder _ content: () -> Content) -> some View {
+        let layout = dts.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+            : AnyLayout(HStackLayout(alignment: alignment, spacing: spacing))
+        return layout(content)
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
@@ -81,10 +98,10 @@ struct WorkoutDetailView: View {
     // MARK: - Header
 
     private var header: some View {
-        HStack(spacing: 16) {
-            WorkoutTypeIcon(workoutType: row.sport, size: 42, weight: .semibold,
+        columns(alignment: .center) {
+            WorkoutTypeIcon(workoutType: row.sport, size: headerIconSize, weight: .semibold,
                             color: StrandPalette.activityExerciseText)
-                .frame(width: 88, height: 88)
+                .frame(width: headerCircle, height: headerCircle)
                 .background(Circle().fill(StrandPalette.fitnessCard))
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 3) {
@@ -98,7 +115,7 @@ struct WorkoutDetailView: View {
                     .font(StrandFont.pro(17))
                     .foregroundStyle(StrandPalette.textSecondary)
             }
-            Spacer(minLength: 0)
+            if !dts.isAccessibilitySize { Spacer(minLength: 0) }
         }
         .accessibilityElement(children: .combine)
     }
@@ -167,9 +184,9 @@ struct WorkoutDetailView: View {
             let rows = stride(from: 0, to: figures.count, by: 2).map { Array(figures[$0..<min($0 + 2, figures.count)]) }
             VStack(spacing: 0) {
                 ForEach(Array(rows.enumerated()), id: \.offset) { index, pair in
-                    HStack(alignment: .top, spacing: 16) {
+                    columns {
                         ForEach(Array(pair.enumerated()), id: \.offset) { figureCell($0.element) }
-                        if pair.count == 1 { Spacer().frame(maxWidth: .infinity) }
+                        if pair.count == 1, !dts.isAccessibilitySize { Spacer().frame(maxWidth: .infinity) }
                     }
                     .padding(.vertical, 12)
                     if index < rows.count - 1 { Divider() }
@@ -205,12 +222,12 @@ struct WorkoutDetailView: View {
             Text("Effort")
                 .font(StrandFont.pro(17))
                 .foregroundStyle(StrandPalette.textPrimary)
-            HStack(spacing: 10) {
+            columns(spacing: 10, alignment: .center) {
                 Text(effortScale == .whoop ? String(format: "%.1f", shown) : "\(Int(shown.rounded()))")
                     .font(StrandFont.pro(15, weight: .bold))
                     .foregroundStyle(StrandPalette.fitnessEffort)
                     .padding(.horizontal, 8)
-                    .frame(minWidth: 32, minHeight: 32)
+                    .frame(minWidth: effortBadgeSize, minHeight: effortBadgeSize)
                     .background(Capsule().fill(StrandPalette.fitnessEffort.opacity(0.2)))
                 Text(StrainLoadLabel.forFraction(fraction).lowercased().localizedCapitalized)
                     .font(StrandFont.pro(28, weight: .semibold))
@@ -282,26 +299,29 @@ struct WorkoutDetailView: View {
             ForEach(Array(minutes.prefix(5).enumerated()), id: \.offset) { index, m in
                 let zone = index + 1
                 let color = StrandPalette.fitnessZone(zone)
-                HStack(spacing: 10) {
+                let stacked = dts.isAccessibilitySize
+                columns(spacing: 10, alignment: .center) {
                     Text("Zone \(zone)")
                         .font(StrandFont.pro(15, weight: .semibold))
                         .foregroundStyle(color)
-                        .frame(width: 64, alignment: .leading)
+                        .frame(width: stacked ? nil : zoneLabelWidth, alignment: .leading)
                     GeometryReader { geo in
                         Capsule().fill(color)
                             .frame(width: max(6, geo.size.width * m / longest), height: 6)
                             .frame(maxHeight: .infinity, alignment: .center)
                     }
                     .frame(height: 20)
-                    Text(Self.clock(m * 60))
-                        .font(StrandFont.pro(15, weight: .semibold).monospacedDigit())
-                        .foregroundStyle(StrandPalette.textPrimary)
-                        .frame(width: 58, alignment: .trailing)
-                    if !zonesFromImport, index < bands.count {
-                        Text(zoneRange(bands, index))
-                            .font(StrandFont.pro(13))
-                            .foregroundStyle(StrandPalette.textSecondary)
-                            .frame(width: 88, alignment: .trailing)
+                    HStack(spacing: 10) {
+                        Text(Self.clock(m * 60))
+                            .font(StrandFont.pro(15, weight: .semibold).monospacedDigit())
+                            .foregroundStyle(StrandPalette.textPrimary)
+                            .frame(width: stacked ? nil : zoneTimeWidth, alignment: .trailing)
+                        if !zonesFromImport, index < bands.count {
+                            Text(zoneRange(bands, index))
+                                .font(StrandFont.pro(13))
+                                .foregroundStyle(StrandPalette.textSecondary)
+                                .frame(width: stacked ? nil : zoneRangeWidth, alignment: .trailing)
+                        }
                     }
                 }
                 .accessibilityElement(children: .combine)
@@ -327,7 +347,7 @@ struct WorkoutDetailView: View {
             VStack(alignment: .leading, spacing: 10) {
                 sectionTitle("Heart Rate Recovery")
                 VStack(alignment: .leading, spacing: 12) {
-                    HStack(alignment: .top, spacing: 16) {
+                    columns {
                         recoveryCell("1 min", r.after1Minute)
                         recoveryCell("2 min", r.after2Minutes)
                         recoveryCell("5 min", r.after5Minutes)

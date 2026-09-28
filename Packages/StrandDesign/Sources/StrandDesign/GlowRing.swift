@@ -69,6 +69,7 @@ public struct GlowRing: View {
                 .animation(reduceMotion ? nil : .easeOut(duration: 0.85), value: shown)
         }
         .frame(width: diameter, height: diameter)
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .animation(reduceMotion ? nil : drawSpring, value: filled)
         .onAppear { appeared = true }
     }

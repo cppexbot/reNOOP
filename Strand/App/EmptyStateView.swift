@@ -10,6 +10,7 @@ struct EmptyStateView<Actions: View>: View {
     let systemImage: String
     var description: Text?
     @ViewBuilder var actions: () -> Actions
+    @ScaledMetric(relativeTo: .largeTitle) private var glyphSize: CGFloat = 44
 
     var body: some View {
         if #available(macOS 14.0, iOS 17.0, *) {
@@ -23,7 +24,7 @@ struct EmptyStateView<Actions: View>: View {
         } else {
             VStack(spacing: 8) {
                 Image(systemName: systemImage)
-                    .font(.system(size: 44))
+                    .font(.system(size: glyphSize))
                     .foregroundStyle(StrandPalette.textSecondary)
                     .padding(.bottom, 4)
                 title

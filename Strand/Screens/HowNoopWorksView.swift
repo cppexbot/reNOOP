@@ -141,13 +141,14 @@ struct GuideGlyphRow: View {
     let title: Text
     var detail: Text? = nil
     var value: Text? = nil
+    @ScaledMetric(relativeTo: .title3) private var glyphWidth: CGFloat = 28
 
     var body: some View {
         HStack(alignment: .center, spacing: 14) {
             Image(systemName: icon)
-                .font(.system(size: 20, weight: .semibold))
+                .font(StrandFont.pro(20, weight: .semibold))
                 .foregroundStyle(tint)
-                .frame(width: 28)
+                .frame(width: glyphWidth)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 title

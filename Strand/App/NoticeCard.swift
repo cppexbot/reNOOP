@@ -32,17 +32,22 @@ struct NoticeCard: View {
     var onDismiss: (() -> Void)?
 
     @State private var dragX: CGFloat = 0
+    @Environment(\.dynamicTypeSize) private var dts
+    @ScaledMetric(relativeTo: .body) private var glyphSize: CGFloat = 18
+    @ScaledMetric(relativeTo: .body) private var glyphWidth: CGFloat = 24
+    @ScaledMetric(relativeTo: .body) private var glyphHeight: CGFloat = 22
+    @ScaledMetric(relativeTo: .caption) private var closeSize: CGFloat = 24
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             glyph
-                .frame(width: 24, height: 22)
+                .frame(width: glyphWidth, height: glyphHeight)
             VStack(alignment: .leading, spacing: 3) {
                 title
                     .font(StrandFont.pro(15, weight: .semibold))
                     .foregroundStyle(StrandPalette.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
+                    .lineLimit(dts.isAccessibilitySize ? nil : 1)
+                    .minimumScaleFactor(dts.isAccessibilitySize ? 1 : 0.85)
                 if let message {
                     message
                         .font(StrandFont.pro(15))
@@ -61,9 +66,9 @@ struct NoticeCard: View {
             if let onDismiss {
                 Button(action: onDismiss) {
                     Image(systemName: "xmark")
-                        .font(.system(size: 12, weight: .bold))
+                        .font(StrandFont.pro(12, weight: .bold))
                         .foregroundStyle(StrandPalette.textSecondary)
-                        .frame(width: 24, height: 24)
+                        .frame(width: closeSize, height: closeSize)
                         .background(StrandPalette.textTertiary.opacity(0.18), in: Circle())
                 }
                 .buttonStyle(.plain)
@@ -86,7 +91,7 @@ struct NoticeCard: View {
             ProgressView().controlSize(.small)
         } else {
             Image(systemName: systemImage)
-                .font(.system(size: 18, weight: .semibold))
+                .font(.system(size: glyphSize, weight: .semibold))
                 .foregroundStyle(tone.color)
                 .accessibilityHidden(true)
         }

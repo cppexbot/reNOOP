@@ -163,12 +163,14 @@ private struct EditableLayoutRow: View {
     let canHide: Bool
     let onConfigure: () -> Void
     let onVisibilityChange: () -> Void
+    @ScaledMetric(relativeTo: .subheadline) private var iconWidth: CGFloat = 24
+    @Environment(\.dynamicTypeSize) private var dts
 
     var body: some View {
         HStack(spacing: 12) {
             Button(action: onVisibilityChange) {
                 Image(systemName: isVisible ? "minus.circle.fill" : "plus.circle.fill")
-                    .font(.system(size: 20))
+                    .font(StrandFont.pro(20))
                     .foregroundStyle(isVisible ? StrandPalette.settingsRed : StrandPalette.settingsGreen)
             }
             .buttonStyle(.plain)
@@ -177,9 +179,9 @@ private struct EditableLayoutRow: View {
             .accessibilityLabel(visibilityLabel)
 
             Image(systemName: icon)
-                .font(.system(size: 15, weight: .semibold))
+                .font(StrandFont.pro(15, weight: .semibold))
                 .foregroundStyle(tint)
-                .frame(width: 24)
+                .frame(width: iconWidth)
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 1) {
@@ -190,7 +192,7 @@ private struct EditableLayoutRow: View {
                     Text(subtitle)
                         .font(StrandFont.footnote)
                         .foregroundStyle(StrandPalette.textSecondary)
-                        .lineLimit(1)
+                        .lineLimit(dts.isAccessibilitySize ? nil : 1)
                 }
             }
 

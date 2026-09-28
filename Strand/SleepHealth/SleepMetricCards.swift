@@ -21,6 +21,12 @@ struct SleepCardValueText: View {
     /// The figure's colour; units stay grey.
     var tint: Color = StrandPalette.textPrimary
 
+    /// Dynamic Type multipliers: a hero figure follows the large title, a card figure the title 2.
+    @ScaledMetric(relativeTo: .title2) private var cardScale: CGFloat = 1
+    @ScaledMetric(relativeTo: .largeTitle) private var heroScale: CGFloat = 1
+
+    private var scaled: CGFloat { size * (size >= 30 ? heroScale : cardScale) }
+
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 2) {
             switch value {
@@ -39,7 +45,7 @@ struct SleepCardValueText: View {
                 if let u { unit(u) }
             case .text(let t):
                 Text(t)
-                    .font(StrandFont.rounded(size * 0.8, weight: .bold))
+                    .font(StrandFont.rounded(scaled * 0.8, weight: .bold))
                     .foregroundStyle(tint)
             }
         }
@@ -49,13 +55,13 @@ struct SleepCardValueText: View {
 
     private func number(_ s: String) -> some View {
         Text(verbatim: s)
-            .font(StrandFont.rounded(size, weight: .bold))
+            .font(StrandFont.rounded(scaled, weight: .bold))
             .foregroundStyle(tint)
     }
 
     private func unit(_ s: String) -> some View {
         Text(verbatim: s)
-            .font(StrandFont.rounded(size * 0.6, weight: .semibold))
+            .font(StrandFont.rounded(scaled * 0.6, weight: .semibold))
             .foregroundStyle(StrandPalette.textSecondary)
             .padding(.trailing, 3)
     }
@@ -74,15 +80,23 @@ struct SleepMetricTile: Identifiable {
 struct SleepTileGrid: View {
     let tiles: [SleepMetricTile]
 
+    @Environment(\.dynamicTypeSize) private var dts
+    @ScaledMetric(relativeTo: .footnote) private var iconSlot: CGFloat = 16
+
+    /// Two to a row; one at accessibility sizes, where two would not fit their figures.
+    private var perRow: Int { dts.isAccessibilitySize ? 1 : 2 }
+
     var body: some View {
         Grid(horizontalSpacing: 12, verticalSpacing: 12) {
-            ForEach(Array(stride(from: 0, to: tiles.count, by: 2)), id: \.self) { i in
+            ForEach(Array(stride(from: 0, to: tiles.count, by: perRow)), id: \.self) { i in
                 GridRow {
                     tile(tiles[i])
-                    if i + 1 < tiles.count {
-                        tile(tiles[i + 1])
-                    } else {
-                        Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
+                    if perRow == 2 {
+                        if i + 1 < tiles.count {
+                            tile(tiles[i + 1])
+                        } else {
+                            Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
+                        }
                     }
                 }
             }
@@ -96,11 +110,11 @@ struct SleepTileGrid: View {
                 // sit on the same lines as its neighbour's.
                 HStack(spacing: 6) {
                     Image(systemName: t.icon)
-                        .font(.system(size: 13, weight: .semibold))
-                        .frame(width: 16, alignment: .center)
+                        .font(StrandFont.pro(13, weight: .semibold))
+                        .frame(width: iconSlot, alignment: .center)
                     Text(t.title)
                         .font(StrandFont.subhead.weight(.semibold))
-                        .lineLimit(1)
+                        .lineLimit(perRow == 1 ? 2 : 1)
                         .minimumScaleFactor(0.9)
                 }
                 .foregroundStyle(t.tint)

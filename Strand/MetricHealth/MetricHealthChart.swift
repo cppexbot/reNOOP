@@ -34,6 +34,8 @@ struct MetricHealthChart: View {
                 selection = picked.flatMap(nearest)
             }
             .onChangeCompat(of: window) { _ in rawSelection = nil; selection = nil }
+            // Axis labels share a fixed plot width: past xxxLarge the weekday letters collide.
+            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Text(window.range.label))
     }

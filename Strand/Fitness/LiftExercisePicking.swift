@@ -81,6 +81,8 @@ struct LiftExerciseList: View {
     var onForget: ((LiftExerciseRow) -> Void)?
 
     @State private var query = ""
+    @ScaledMetric(relativeTo: .subheadline) private var glyphSize: CGFloat = 14
+    @ScaledMetric(relativeTo: .subheadline) private var glyphCircle: CGFloat = 32
 
     private var trimmed: String { query.trimmingCharacters(in: .whitespacesAndNewlines) }
     private var matches: [LiftExerciseRow] {
@@ -136,15 +138,15 @@ struct LiftExerciseList: View {
         let isSelected = selected.map { $0 == row.name } ?? false
         return HStack(spacing: 14) {
             Image(systemName: "dumbbell.fill")
-                .font(.system(size: 14, weight: .semibold))
+                .font(.system(size: glyphSize, weight: .semibold))
                 .foregroundStyle(StrandPalette.activityExerciseText)
-                .frame(width: 32, height: 32)
+                .frame(width: glyphCircle, height: glyphCircle)
                 .background(Circle().fill(StrandPalette.fitnessCard))
                 .accessibilityHidden(true)
             LiftExerciseSuggestionLabel(row: row)
             if isSelected {
                 Image(systemName: "checkmark")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(StrandFont.pro(15, weight: .semibold))
                     .foregroundStyle(StrandPalette.activityExerciseText)
             }
         }
@@ -163,6 +165,9 @@ struct LiftMusclePicker: View {
     @Binding var primary: LiftMuscle?
     @Binding var secondaries: Set<LiftMuscle>
 
+    @Environment(\.dynamicTypeSize) private var dts
+    @ScaledMetric(relativeTo: .subheadline) private var chipMinWidth: CGFloat = 100
+
     var body: some View {
         Section {
             LabeledContent("Primary") {
@@ -179,7 +184,7 @@ struct LiftMusclePicker: View {
                     HStack(spacing: 4) {
                         Text(primary?.displayName ?? String(localized: "Not classified"))
                         Image(systemName: "chevron.up.chevron.down")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(StrandFont.pro(12, weight: .semibold))
                     }
                     .foregroundStyle(StrandPalette.textSecondary)
                 }
@@ -193,7 +198,7 @@ struct LiftMusclePicker: View {
         }
 
         Section {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 8)],
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: chipMinWidth), spacing: 8)],
                       alignment: .leading, spacing: 8) {
                 ForEach(LiftMuscle.allCases, id: \.self) { muscle in
                     if muscle != primary {
@@ -215,7 +220,7 @@ struct LiftMusclePicker: View {
             Text(muscle.displayName)
                 .font(StrandFont.pro(15, weight: on ? .semibold : .regular))
                 .foregroundStyle(on ? StrandPalette.fitnessOnAccent : StrandPalette.textPrimary)
-                .lineLimit(1)
+                .lineLimit(dts.isAccessibilitySize ? nil : 1)
                 .minimumScaleFactor(0.8)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)

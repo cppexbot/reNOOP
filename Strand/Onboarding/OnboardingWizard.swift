@@ -253,19 +253,26 @@ private struct SetupDivider: View {
 
 /// A row in a setup card: the label left, its value or a chevron right.
 private struct SetupRow<Leading: View, Trailing: View>: View {
+    /// Puts the trailing value under the title at accessibility sizes, as Settings does.
+    var stacks = true
     @ViewBuilder var leading: () -> Leading
     @ViewBuilder var trailing: () -> Trailing
+    @Environment(\.dynamicTypeSize) private var dts
 
     var body: some View {
-        HStack(spacing: 12) {
-            leading()
-            Spacer(minLength: 8)
+        let stacked = stacks && dts.isAccessibilitySize
+        let layout = stacked ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+                             : AnyLayout(HStackLayout(spacing: 12))
+        layout {
+            HStack(spacing: 12) { leading() }
+            if !stacked { Spacer(minLength: 8) }
             trailing()
         }
         .font(StrandFont.pro(17))
         .foregroundStyle(StrandPalette.textPrimary)
         .padding(.horizontal, 16)
-        .frame(minHeight: 52)
+        .padding(.vertical, stacked ? 10 : 0)
+        .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
         .contentShape(Rectangle())
     }
 }
@@ -331,7 +338,7 @@ private struct ScanStep: View {
                         ForEach(Array(WhoopModel.allCases.enumerated()), id: \.element) { i, strap in
                             if i > 0 { SetupDivider() }
                             Button { restartScan(for: strap) } label: {
-                                SetupRow {
+                                SetupRow(stacks: false) {
                                     Text(verbatim: strap.displayName)
                                 } trailing: {
                                     Image(systemName: "checkmark")
@@ -552,6 +559,7 @@ private struct ImportStep: View {
     @EnvironmentObject private var model: AppModel
     @State private var showingImporter = false
     @State private var importTarget: ImportTarget = .whoop
+    @ScaledMetric(relativeTo: .title3) private var glyphWidth: CGFloat = 26
 
     var body: some View {
         SetupPage(title: String(localized: "Bring Your History"),
@@ -585,18 +593,18 @@ private struct ImportStep: View {
 
     private func importRow(_ target: ImportTarget, title: String) -> some View {
         Button { presentImporter(target) } label: {
-            SetupRow {
+            SetupRow(stacks: false) {
                 Image(systemName: target.systemImage)
-                    .font(.system(size: 20))
+                    .font(StrandFont.pro(20))
                     .foregroundStyle(StrandPalette.settingsBlue)
-                    .frame(width: 26)
+                    .frame(width: glyphWidth)
                 Text(verbatim: title)
             } trailing: {
                 if model.hasActiveImport && importTarget == target {
                     ProgressView()
                 } else {
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(StrandFont.pro(15, weight: .semibold))
                         .foregroundStyle(StrandPalette.textTertiary)
                 }
             }

@@ -44,6 +44,8 @@ struct SleepScheduleTime: View {
     var caption: String? = nil
     var centered = false
 
+    @ScaledMetric(relativeTo: .title2) private var timeSize: CGFloat = 24
+
     var body: some View {
         VStack(alignment: centered ? .center : .leading, spacing: 1) {
             HStack(alignment: .firstTextBaseline, spacing: 4) {
@@ -56,7 +58,7 @@ struct SleepScheduleTime: View {
             .font(StrandFont.pro(13, weight: .semibold))
             .textCase(.uppercase)
             Text(verbatim: time)
-                .font(StrandFont.pro(centered ? 28 : 24, weight: .bold))
+                .font(StrandFont.pro(centered ? 28 : timeSize, weight: .bold))
                 .foregroundStyle(muted ? StrandPalette.textSecondary : StrandPalette.textPrimary)
                 .monospacedDigit()
             if let caption {
@@ -70,6 +72,13 @@ struct SleepScheduleTime: View {
     }
 
     private var muted: Bool { if case .wake(let alarm) = kind { return !alarm } else { return false } }
+
+    /// Bedtime beside wake; one under the other at accessibility sizes.
+    static func pairLayout(_ size: DynamicTypeSize) -> AnyLayout {
+        size.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: 12))
+    }
 
     private var symbol: String {
         switch kind {
@@ -93,15 +102,18 @@ struct SleepScheduleEntryCard: View {
     let entry: SleepScheduleEntry
     let onEdit: () -> Void
 
+    @Environment(\.dynamicTypeSize) private var dts
+
     var body: some View {
         let locale = AppLanguage.activeLocale
+        let pair = SleepScheduleTime.pairLayout(dts)
         SleepScheduleCard {
             VStack(alignment: .leading, spacing: 8) {
                 Text(entry.days.isEmpty ? String(localized: "schedule.noDays", defaultValue: "No Days")
                      : SleepSchedule.weekdaySummary(Set(entry.days)))
                     .font(StrandFont.pro(17, weight: .semibold))
                     .foregroundStyle(StrandPalette.sleepSchedule)
-                HStack(alignment: .top, spacing: 12) {
+                pair {
                     SleepScheduleTime(kind: .bed, time: SleepSchedule.clock(entry.bed, locale: locale))
                     SleepScheduleTime(kind: .wake(alarm: entry.alarm), time: SleepSchedule.clock(entry.wake, locale: locale))
                 }
@@ -127,14 +139,17 @@ struct SleepNextWakeCard: View {
     let inputs: SleepScheduleInputs
     var trailing: AnyView? = nil
 
+    @Environment(\.dynamicTypeSize) private var dts
+
     var body: some View {
+        let pair = SleepScheduleTime.pairLayout(dts)
         TimelineView(.periodic(from: .now, by: 60)) { tick in
             let now = tick.date
             let next = SleepSchedule.nextWake(inputs, from: now)
             SleepScheduleCard {
                 VStack(alignment: .leading, spacing: 10) {
                     if let next {
-                        HStack(alignment: .top, spacing: 12) {
+                        pair {
                             SleepScheduleTime(kind: .bed, time: Self.clock(next.bed),
                                               caption: Self.dayCaption(next.bed, now: now, evening: true))
                             SleepScheduleTime(kind: .wake(alarm: next.armed), time: Self.clock(next.wake),
@@ -201,6 +216,8 @@ struct SleepScheduleDayCircles: View {
         }
         .padding(.vertical, 12)
         .padding(.horizontal, 6)
+        // Seven fixed circles across the row: the letters follow Dynamic Type only as far as a circle holds one.
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .background(StrandPalette.sleepDialCard,
                     in: RoundedRectangle(cornerRadius: SummaryCard<EmptyView>.radius, style: .continuous))
     }

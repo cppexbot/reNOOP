@@ -246,10 +246,6 @@ struct StrandiOSApp: App {
                 .environment(\.locale, AppLanguage.activeLocale)
                 .chartStyle(chartStyleRaw)
                 .noopAccent(accentRaw, customHex: accentCustomHex)
-                // Dynamic Type now scales the prose/label roles (StrandFont). Cap the upper end so the
-                // fixed-geometry tiles/gauges stay legible at the largest accessibility sizes rather than
-                // clipping; the common Larger-Text range still scales fully.
-                .dynamicTypeSize(...DynamicTypeSize.accessibility1)
                 // One loading indicator everywhere: the system spinner in grey (`SystemProgressStyle`).
                 .systemProgressStyle()
                 // `hr` is the value being written: this runs in willSet, when `live.heartRate` still holds the old one.

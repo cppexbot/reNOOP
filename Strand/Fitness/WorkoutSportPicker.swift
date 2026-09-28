@@ -12,6 +12,8 @@ struct WorkoutSportList: View {
     let onPick: (_ sport: String) -> Void
 
     @State private var query = ""
+    @ScaledMetric(relativeTo: .title3) private var iconSize: CGFloat = 20
+    @ScaledMetric(relativeTo: .title3) private var iconCircle: CGFloat = 32
 
     private var trimmed: String { query.trimmingCharacters(in: .whitespaces) }
     private var recent: [WorkoutCatalog.Sport] {
@@ -59,9 +61,9 @@ struct WorkoutSportList: View {
     private func row(_ name: String) -> some View {
         Button { onPick(name) } label: {
             HStack(spacing: 14) {
-                WorkoutTypeIcon(workoutType: name, size: 20, weight: .semibold,
+                WorkoutTypeIcon(workoutType: name, size: iconSize, weight: .semibold,
                                 color: StrandPalette.activityExerciseText)
-                    .frame(width: 32, height: 32)
+                    .frame(width: iconCircle, height: iconCircle)
                     .background(Circle().fill(StrandPalette.fitnessCard))
                 Text(WorkoutSource.localizedSport(name))
                     .font(StrandFont.pro(17))
@@ -69,7 +71,7 @@ struct WorkoutSportList: View {
                 Spacer()
                 if let selected, selected.caseInsensitiveCompare(name) == .orderedSame {
                     Image(systemName: "checkmark")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(StrandFont.pro(15, weight: .semibold))
                         .foregroundStyle(StrandPalette.activityExerciseText)
                 }
             }

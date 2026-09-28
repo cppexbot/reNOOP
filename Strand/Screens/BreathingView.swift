@@ -96,6 +96,9 @@ private struct BreathingPage: View {
     @State private var length: BreathLength = .ten
     @State private var showEdu = false
     @State private var askSweep = false
+    @Environment(\.dynamicTypeSize) private var dts
+    @ScaledMetric(relativeTo: .title2) private var modeGlyphSize: CGFloat = 24
+    @ScaledMetric(relativeTo: .title2) private var flowerGlyphSize: CGFloat = 34
 
     private var hub: BreathHub { box.hub(model: model, live: live) }
     private var nudgeCenter: StressNudgeCenter { injectedNudge ?? fallbackNudge }
@@ -107,7 +110,7 @@ private struct BreathingPage: View {
                 BreathRunningRow(hub: hub)
                 modeCard(title: "Breathe", detail: "\(pace.label) · \(length.label)",
                          tint: StrandPalette.healthRespiratory,
-                         glyph: AnyView(BreathFlower(progress: 1, tint: StrandPalette.healthRespiratory).frame(width: 34, height: 34))) {
+                         glyph: AnyView(BreathFlower(progress: 1, tint: StrandPalette.healthRespiratory).frame(width: flowerGlyphSize, height: flowerGlyphSize))) {
                     hub.startPaced(pace: pace, targetSeconds: length.targetSeconds, lockedBpm: lockedBpm,
                                    reduceMotion: reduceMotion, audio: audioCues)
                 }
@@ -115,7 +118,7 @@ private struct BreathingPage: View {
                          detail: lockedBpm.map { String(localized: "Your pace · \(Self.bpmText($0)) br/min") }
                              ?? String(localized: "Find your pace"),
                          tint: StrandPalette.healthMind,
-                         glyph: AnyView(Image(systemName: "waveform.path").font(.system(size: 24, weight: .semibold))
+                         glyph: AnyView(Image(systemName: "waveform.path").font(.system(size: modeGlyphSize, weight: .semibold))
                              .foregroundStyle(StrandPalette.healthMind))) {
                     askSweep = true
                 }
@@ -262,19 +265,24 @@ private struct BreathingPage: View {
     }
 
     private func optionRow(_ title: LocalizedStringKey, value: String) -> some View {
-        HStack {
+        let layout = dts.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
+                                             : AnyLayout(HStackLayout())
+        return layout {
             Text(title)
                 .font(StrandFont.pro(17))
                 .foregroundStyle(StrandPalette.textPrimary)
-            Spacer()
-            Text(value)
-                .font(StrandFont.pro(17))
-                .foregroundStyle(StrandPalette.textSecondary)
-                .lineLimit(1)
-            Image(systemName: "chevron.up.chevron.down")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(StrandPalette.textTertiary)
+            if !dts.isAccessibilitySize { Spacer() }
+            HStack {
+                Text(value)
+                    .font(StrandFont.pro(17))
+                    .foregroundStyle(StrandPalette.textSecondary)
+                    .lineLimit(dts.isAccessibilitySize ? nil : 1)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(StrandFont.pro(12, weight: .semibold))
+                    .foregroundStyle(StrandPalette.textTertiary)
+            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 12)
         .contentShape(Rectangle())
     }
@@ -287,26 +295,30 @@ private struct BreathModeRow: View {
     let tint: Color
     let glyph: AnyView
     let enabled: Bool
+    @Environment(\.dynamicTypeSize) private var dts
+    @ScaledMetric(relativeTo: .title3) private var glyphBox: CGFloat = 40
+    @ScaledMetric(relativeTo: .body) private var playSize: CGFloat = 44
 
     var body: some View {
-        HStack(spacing: 14) {
-            glyph.frame(width: 40, height: 40)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(StrandFont.pro(20, weight: .bold))
-                    .foregroundStyle(StrandPalette.textPrimary)
-                Text(detail)
-                    .font(StrandFont.pro(15))
-                    .foregroundStyle(StrandPalette.textSecondary)
-                    .lineLimit(2)
+        Group {
+            // At accessibility sizes the text takes the full width under the glyph and ▶.
+            if dts.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        glyphView
+                        Spacer(minLength: 8)
+                        playButton
+                    }
+                    labels
+                }
+            } else {
+                HStack(spacing: 14) {
+                    glyphView
+                    labels
+                    Spacer(minLength: 8)
+                    playButton
+                }
             }
-            Spacer(minLength: 8)
-            Image(systemName: "play.fill")
-                .font(.system(size: 17, weight: .bold))
-                .foregroundStyle(.white)
-                .frame(width: 44, height: 44)
-                .background(Circle().fill(enabled ? tint : StrandPalette.textTertiary))
-                .accessibilityHidden(true)
         }
         .padding(16)
         .background(StrandPalette.summaryCard, in: RoundedRectangle(cornerRadius: SummaryCard<EmptyView>.radius, style: .continuous))
@@ -314,6 +326,31 @@ private struct BreathModeRow: View {
         .opacity(enabled ? 1 : 0.6)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
+    }
+
+    private var glyphView: some View {
+        glyph.frame(width: glyphBox, height: glyphBox)
+    }
+
+    private var labels: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(StrandFont.pro(20, weight: .bold))
+                .foregroundStyle(StrandPalette.textPrimary)
+            Text(detail)
+                .font(StrandFont.pro(15))
+                .foregroundStyle(StrandPalette.textSecondary)
+                .lineLimit(dts.isAccessibilitySize ? nil : 2)
+        }
+    }
+
+    private var playButton: some View {
+        Image(systemName: "play.fill")
+            .font(StrandFont.pro(17, weight: .bold))
+            .foregroundStyle(.white)
+            .frame(width: playSize, height: playSize)
+            .background(Circle().fill(enabled ? tint : StrandPalette.textTertiary))
+            .accessibilityHidden(true)
     }
 }
 
@@ -324,6 +361,7 @@ private struct BreathCalmCard: View {
     let reduceMotion: Bool
     @EnvironmentObject private var model: AppModel
     @EnvironmentObject private var live: LiveState
+    @ScaledMetric(relativeTo: .title2) private var glyphSize: CGFloat = 24
 
     private var restingBand: Bool { model.bpm.map { $0 >= 55 && $0 <= 120 } ?? false }
     private var canRun: Bool { hub.controller.canBuzz && restingBand }
@@ -331,7 +369,7 @@ private struct BreathCalmCard: View {
     var body: some View {
         Button { hub.startCalm(reduceMotion: reduceMotion) } label: {
             BreathModeRow(title: "Calm", detail: detail, tint: StrandPalette.healthBody,
-                          glyph: AnyView(Image(systemName: "heart.fill").font(.system(size: 24, weight: .semibold))
+                          glyph: AnyView(Image(systemName: "heart.fill").font(.system(size: glyphSize, weight: .semibold))
                               .foregroundStyle(StrandPalette.healthBody)),
                           enabled: canRun)
         }
@@ -362,8 +400,10 @@ private struct BreathRunningRow: View {
                     Text(BreathHub.clock(hub.seconds))
                         .font(StrandFont.pro(17, weight: .semibold).monospacedDigit())
                         .foregroundStyle(StrandPalette.healthRespiratory)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(StrandFont.pro(13, weight: .semibold))
                         .foregroundStyle(StrandPalette.textTertiary)
                 }
                 .padding(16)
@@ -446,6 +486,8 @@ private struct BreathSessionView: View {
                     .padding(.bottom, 24)
             }
         }
+        // The flower's diameter is fixed; its words stop growing where the page still fits one screen.
+        .dynamicTypeSize(...(hub.summary == nil ? DynamicTypeSize.xxxLarge : .accessibility5))
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.black.ignoresSafeArea())
         .preferredColorScheme(.dark)
@@ -476,7 +518,7 @@ private struct BreathReadouts: View {
                     Image(systemName: "heart.fill").foregroundStyle(StrandPalette.healthHeart)
                     Text(model.bpm.map(String.init) ?? "--")
                     if hub.kind == .calm, let target = controller.calmTargetBpm {
-                        Image(systemName: "arrow.right").font(.system(size: 12, weight: .semibold))
+                        Image(systemName: "arrow.right").font(StrandFont.pro(12, weight: .semibold))
                             .foregroundStyle(.white.opacity(0.5))
                         Text(verbatim: "\(Int(target.rounded()))")
                     }
@@ -503,8 +545,17 @@ private struct BreathReadouts: View {
 private struct BreathSummaryView: View {
     let summary: BreathHub.Summary
     let onDone: () -> Void
+    @Environment(\.dynamicTypeSize) private var dts
 
     var body: some View {
+        if dts.isAccessibilitySize {
+            ScrollView { card.padding(.top, 24) }
+        } else {
+            card
+        }
+    }
+
+    private var card: some View {
         VStack(spacing: 0) {
             Spacer()
             BreathFlower(progress: 1, tint: StrandPalette.healthRespiratory)
@@ -544,11 +595,15 @@ private struct BreathSummaryView: View {
     }
 
     private func row(_ title: String, _ value: String) -> some View {
-        HStack(alignment: .firstTextBaseline) {
+        let layout = dts.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
+                                             : AnyLayout(HStackLayout(alignment: .firstTextBaseline))
+        return layout {
             Text(title).foregroundStyle(.white.opacity(0.6))
-            Spacer(minLength: 12)
-            Text(value).foregroundStyle(.white).multilineTextAlignment(.trailing)
+            if !dts.isAccessibilitySize { Spacer(minLength: 12) }
+            Text(value).foregroundStyle(.white)
+                .multilineTextAlignment(dts.isAccessibilitySize ? .leading : .trailing)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .font(StrandFont.pro(17))
         .padding(.vertical, 13)
     }

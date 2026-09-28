@@ -104,7 +104,7 @@ struct TrainingLoadView: View {
                         Text(interval(first, last))
                             .font(StrandFont.pro(17, weight: .semibold))
                             .foregroundStyle(StrandPalette.textSecondary)
-                            .lineLimit(1)
+                            .lineLimit(2)
                     }
                 }
                 chart(rows)

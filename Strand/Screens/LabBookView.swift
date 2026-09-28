@@ -34,6 +34,7 @@ struct LabBookView: View {
     @State private var csvImporting = false
     @State private var csvSummary: String?
     @State private var csvFailed = false
+    @Environment(\.dynamicTypeSize) private var dts
 
     var body: some View {
         ScrollView {
@@ -151,29 +152,36 @@ struct LabBookView: View {
     /// Health's lab-result row: the marker and when it was taken; the latest value and the report's range.
     private func markerRow(_ key: String) -> some View {
         let latest = readings(for: key).last
+        let stacked = dts.isAccessibilitySize
+        // At accessibility sizes the value moves under the marker's name.
+        let columns = stacked ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6))
+                              : AnyLayout(HStackLayout(spacing: 10))
         return HStack(spacing: 10) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(verbatim: LabBookFormat.name(key))
-                    .font(StrandFont.pro(17, weight: .semibold))
-                    .foregroundStyle(StrandPalette.textPrimary)
-                    .lineLimit(1)
-                if let latest {
-                    Text(verbatim: LabBookFormat.dayFromKey(latest.day))
-                        .font(StrandFont.pro(15))
-                        .foregroundStyle(StrandPalette.textSecondary)
+            columns {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(verbatim: LabBookFormat.name(key))
+                        .font(StrandFont.pro(17, weight: .semibold))
+                        .foregroundStyle(StrandPalette.textPrimary)
+                        .lineLimit(stacked ? nil : 1)
+                    if let latest {
+                        Text(verbatim: LabBookFormat.dayFromKey(latest.day))
+                            .font(StrandFont.pro(15))
+                            .foregroundStyle(StrandPalette.textSecondary)
+                    }
+                }
+                if !stacked { Spacer(minLength: 8) }
+                VStack(alignment: stacked ? .leading : .trailing, spacing: 3) {
+                    LabValueText(row: latest, key: key, size: 20)
+                    if let ref = latest?.referenceText, !ref.isEmpty {
+                        Text("Range \(ref)")
+                            .font(StrandFont.pro(13))
+                            .foregroundStyle(StrandPalette.textSecondary)
+                    }
                 }
             }
-            Spacer(minLength: 8)
-            VStack(alignment: .trailing, spacing: 3) {
-                LabValueText(row: latest, key: key, size: 20)
-                if let ref = latest?.referenceText, !ref.isEmpty {
-                    Text("Range \(ref)")
-                        .font(StrandFont.pro(13))
-                        .foregroundStyle(StrandPalette.textSecondary)
-                }
-            }
+            if stacked { Spacer(minLength: 8) }
             Image(systemName: "chevron.right")
-                .font(.system(size: 13, weight: .semibold))
+                .font(StrandFont.pro(13, weight: .semibold))
                 .foregroundStyle(StrandPalette.textTertiary)
         }
         .padding(.vertical, 10)
@@ -336,20 +344,23 @@ private struct LabValueText: View {
     let row: LabMarkerRow?
     let key: String
     var size: CGFloat = 17
+    /// Dynamic Type factor for `size`, which callers pass as any point size.
+    @ScaledMetric(relativeTo: .body) private var scale: CGFloat = 1
 
     var body: some View {
+        let scaled = size * scale
         if let row, let v = row.value {
             HStack(alignment: .firstTextBaseline, spacing: 3) {
                 Text(verbatim: LabBookFormat.value(v, key: key))
-                    .font(StrandFont.number(size, weight: .semibold))
+                    .font(.system(size: scaled, weight: .semibold, design: .rounded).monospacedDigit())
                     .foregroundStyle(StrandPalette.textPrimary)
                 Text(verbatim: row.unit)
-                    .font(StrandFont.pro(size * 0.75))
+                    .font(.system(size: scaled * 0.75))
                     .foregroundStyle(StrandPalette.textSecondary)
             }
         } else {
             Text(verbatim: row?.valueText ?? "—")
-                .font(StrandFont.pro(size, weight: .semibold))
+                .font(.system(size: scaled, weight: .semibold))
                 .foregroundStyle(StrandPalette.textPrimary)
         }
     }
@@ -371,6 +382,7 @@ private struct MarkerDetailView: View {
     @State private var pairs: [WindowedPair] = []
     @State private var correlation: Correlation?
     @State private var computing = false
+    @Environment(\.dynamicTypeSize) private var dts
 
     private var signal: MetricDescriptor? { LabBookSignals.options.first { $0.key == signalKey } }
     private var numericReadings: [LabMarkerRow] { readings.filter { $0.value != nil } }
@@ -404,7 +416,9 @@ private struct MarkerDetailView: View {
             if !numericReadings.isEmpty { compareSection }
             Section("All Readings") {
                 ForEach(readings.reversed(), id: \.id) { row in
-                    HStack(alignment: .firstTextBaseline) {
+                    let layout = dts.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
+                                                         : AnyLayout(HStackLayout(alignment: .firstTextBaseline))
+                    layout {
                         VStack(alignment: .leading, spacing: 2) {
                             LabValueText(row: row, key: markerKey)
                             if let note = row.note, !note.isEmpty {
@@ -413,7 +427,7 @@ private struct MarkerDetailView: View {
                                     .foregroundStyle(StrandPalette.textSecondary)
                             }
                         }
-                        Spacer()
+                        if !dts.isAccessibilitySize { Spacer() }
                         Text(verbatim: LabBookFormat.dayFromKey(row.day))
                             .font(StrandFont.pro(15))
                             .foregroundStyle(StrandPalette.textSecondary)

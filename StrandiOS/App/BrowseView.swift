@@ -98,12 +98,12 @@ struct BrowseView: View {
                         .foregroundStyle(StrandPalette.textPrimary)
                 } icon: {
                     Image(systemName: entry.icon)
-                        .font(.system(size: 20, weight: .medium))
+                        .font(StrandFont.pro(20, weight: .medium))
                         .foregroundStyle(entry.tint)
                 }
             }
             // Health's rows are 51 pt tall; the default insets on top of the label ran taller.
-            .frame(height: 51)
+            .frame(minHeight: 51)
             .listRowInsets(EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20))
         }
     }

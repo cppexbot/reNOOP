@@ -21,6 +21,7 @@ struct BodyClockDialCard: View {
     /// The night's own bed/wake clock hours (0..<24, fractional), from the scored session.
     let actualBedHour: Double
     let actualWakeHour: Double
+    @Environment(\.dynamicTypeSize) private var dts
 
     // One hue for both arcs, told apart by dash and weight rather than by a second colour. Two blues
     // competed with the background image; a single legible one plus a dashed, lighter reference does not.
@@ -144,6 +145,7 @@ struct BodyClockDialCard: View {
             drawOnset(ctx, g)
         }
         .frame(height: 200)
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }
 
     /// A full-circle TRACK under the night arc, the same idiom `RecoveryRing` uses: a faint
@@ -266,11 +268,13 @@ struct BodyClockDialCard: View {
     /// "outer means ideal" is an arbitrary choice, not something a reader can infer. The swatches are
     /// drawn with the SAME stroke style as the arcs so the mapping cannot drift apart from the drawing.
     private var legend: some View {
-        HStack(spacing: 14) {
+        let layout = dts.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6))
+                                             : AnyLayout(HStackLayout(spacing: 14))
+        return layout {
             legendItem(colour: hue, dashed: false, label: String(localized: "Last night"))
             legendItem(colour: hue.opacity(0.55), dashed: true,
                        label: String(localized: "Your clock"))
-            Spacer()
+            if !dts.isAccessibilitySize { Spacer() }
         }
         .accessibilityHidden(true)   // the verdict above already states the comparison in words
     }

@@ -553,11 +553,12 @@ public struct OverviewHRChart: View {
 private struct WorkoutBadge: View {
     let symbol: String
     let tint: Color
+    @ScaledMetric(relativeTo: .caption2) private var side: CGFloat = 22
     var body: some View {
         Image(systemName: symbol)
-            .font(.system(size: 11, weight: .bold))
+            .font(StrandFont.pro(11, weight: .bold))
             .foregroundStyle(StrandPalette.textPrimary)
-            .frame(width: 22, height: 22)
+            .frame(width: side, height: side)
             .background(
                 RoundedRectangle(cornerRadius: 6, style: .continuous)
                     .fill(tint)
@@ -580,6 +581,7 @@ private struct MarkerLabel: View {
             .padding(.vertical, 3)
             .background(NoopPanelSurface(cornerRadius: 6, elevated: true, surfaceOpacity: 0.92))
             .fixedSize()
+            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
             .allowsHitTesting(false)
     }
 }
@@ -587,9 +589,10 @@ private struct MarkerLabel: View {
 /// Moon glyph + sleep duration, shown at the leading corner of the sleep band.
 private struct SleepBandLabel: View {
     let text: String
+    @ScaledMetric(relativeTo: .caption2) private var moonSize: CGFloat = 9
     var body: some View {
         HStack(spacing: 4) {
-            Image(systemName: "moon.fill").font(.system(size: 9))
+            Image(systemName: "moon.fill").font(.system(size: moonSize))
             Text(text).font(StrandFont.footnote).fontWeight(.semibold)
         }
         .foregroundStyle(StrandPalette.sleepLight)
@@ -597,6 +600,7 @@ private struct SleepBandLabel: View {
         .padding(.vertical, 3)
         .background(NoopPanelSurface(cornerRadius: 6, elevated: true, surfaceOpacity: 0.92))
         .fixedSize()
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .allowsHitTesting(false)
     }
 }

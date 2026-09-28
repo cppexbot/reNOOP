@@ -63,6 +63,9 @@ struct HRVSnapshotView: View {
 
     /// Whether the just-finished snapshot has been saved (drives the Save button → "Saved").
     @State private var saved = false
+    @Environment(\.dynamicTypeSize) private var dts
+    @ScaledMetric(relativeTo: .largeTitle) private var glyphSize: CGFloat = 56
+    @ScaledMetric(relativeTo: .title2) private var figureSize: CGFloat = 24
 
     /// Whether the ⓘ methodology popover is showing.
 
@@ -126,7 +129,7 @@ struct HRVSnapshotView: View {
         case .idle:
             VStack(spacing: 14) {
                 Image(systemName: "waveform.path.ecg")
-                    .font(.system(size: 56, weight: .semibold))
+                    .font(.system(size: glyphSize, weight: .semibold))
                     .foregroundStyle(tint)
                     .accessibilityHidden(true)
                 Text("Take an HRV reading")
@@ -142,6 +145,7 @@ struct HRVSnapshotView: View {
             VStack(spacing: 16) {
                 captureDial
                     .frame(width: 240, height: 240)
+                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                     .frame(maxWidth: .infinity)
                 if let line = statusLine {
                     Text(line)
@@ -168,12 +172,7 @@ struct HRVSnapshotView: View {
                 .animation(.easeInOut(duration: 0.4), value: captureFraction)
 
             VStack(spacing: 2) {
-                Text(verbatim: dialValue)
-                    .font(StrandFont.pro(64, weight: .bold))
-                    .foregroundStyle(StrandPalette.textPrimary)
-                    .monospacedDigit()
-                    .contentTransition(.numericText())
-                    .animation(.snappy, value: dialValue)
+                DialFigure(value: dialValue)
                 Text(verbatim: "\(String(localized: "ms")) RMSSD")
                     .font(StrandFont.pro(15, weight: .semibold))
                     .foregroundStyle(StrandPalette.textSecondary)
@@ -303,12 +302,14 @@ struct HRVSnapshotView: View {
     /// The rest of the reading as Health figures: SDNN, mean heart rate and the beats it rests on.
     private func resultCard(_ result: HRVAnalyzer.HRVResult) -> some View {
         SummaryCard {
-            HStack(alignment: .top, spacing: 0) {
+            let layout = dts.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+                                                 : AnyLayout(HStackLayout(alignment: .top, spacing: 0))
+            layout {
                 figure("SDNN", Self.format(result.sdnn, "%.0f"), unit: String(localized: "ms"))
-                divider
+                if !dts.isAccessibilitySize { divider }
                 figure(String(localized: "Mean HR"), Self.format(Self.meanHR(meanNN: result.meanNN), "%.0f"),
                        unit: String(localized: "bpm"))
-                divider
+                if !dts.isAccessibilitySize { divider }
                 figure(String(localized: "Beats"), "\(result.nClean)", unit: "")
             }
             .padding(.top, 2)
@@ -327,10 +328,10 @@ struct HRVSnapshotView: View {
             Text(verbatim: title)
                 .font(StrandFont.pro(13, weight: .semibold))
                 .foregroundStyle(StrandPalette.textSecondary)
-                .lineLimit(1)
+                .lineLimit(dts.isAccessibilitySize ? nil : 1)
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text(verbatim: value)
-                    .font(StrandFont.pro(24, weight: .bold))
+                    .font(.system(size: figureSize, weight: .bold))
                     .foregroundStyle(StrandPalette.textPrimary)
                 if !unit.isEmpty {
                     Text(verbatim: unit)
@@ -513,6 +514,23 @@ enum HRVSnapshot {
 }
 
 /// The iOS capsule button of Health's sheets; macOS keeps its native bezel (`.capsule` there is macOS 14).
+/// The RMSSD in the middle of the capture ring, scaled within the ring's own Dynamic Type cap.
+private struct DialFigure: View {
+    let value: String
+    @ScaledMetric(relativeTo: .largeTitle) private var size: CGFloat = 64
+
+    var body: some View {
+        Text(verbatim: value)
+            .font(.system(size: size, weight: .bold))
+            .foregroundStyle(StrandPalette.textPrimary)
+            .monospacedDigit()
+            .lineLimit(1)
+            .minimumScaleFactor(0.5)
+            .contentTransition(.numericText())
+            .animation(.snappy, value: value)
+    }
+}
+
 private struct CapsuleButtonShape: ViewModifier {
     func body(content: Content) -> some View {
         #if os(iOS)

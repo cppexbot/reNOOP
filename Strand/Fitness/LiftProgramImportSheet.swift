@@ -25,6 +25,7 @@ struct LiftProgramImportSheet: View {
     @State private var parsed: LiftProgramImportResult?
     @State private var failure: String?
     @State private var importing = false
+    @Environment(\.dynamicTypeSize) private var dts
 
     var body: some View {
         NavigationStack {
@@ -98,11 +99,14 @@ struct LiftProgramImportSheet: View {
         ForEach(Array(result.programs.enumerated()), id: \.offset) { _, program in
             Section {
                 ForEach(Array(program.lines.enumerated()), id: \.offset) { _, line in
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    let layout = dts.isAccessibilitySize
+                        ? AnyLayout(VStackLayout(alignment: .leading, spacing: 2))
+                        : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: 8))
+                    layout {
                         Text(line.exercise)
                             .font(StrandFont.pro(17))
                             .foregroundStyle(StrandPalette.textPrimary)
-                        Spacer(minLength: 8)
+                        if !dts.isAccessibilitySize { Spacer(minLength: 8) }
                         Text(summary(line))
                             .font(StrandFont.pro(15).monospacedDigit())
                             .foregroundStyle(StrandPalette.textSecondary)

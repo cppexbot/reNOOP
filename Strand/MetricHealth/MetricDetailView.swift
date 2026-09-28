@@ -37,6 +37,13 @@ struct MetricDetailView: View {
     @State private var skinTempNote: String?
     @State private var refreshing = false
 
+    @Environment(\.dynamicTypeSize) private var dts
+    /// Dynamic Type multipliers for a figure's numbers and units: the hero follows the large title, a row the body.
+    @ScaledMetric(relativeTo: .largeTitle) private var heroScale: CGFloat = 1
+    @ScaledMetric(relativeTo: .body) private var rowScale: CGFloat = 1
+    @ScaledMetric(relativeTo: .title) private var highlightValueSize: CGFloat = 30
+    @ScaledMetric(relativeTo: .subheadline) private var highlightIconSize: CGFloat = 14
+
     // MARK: Derived
 
     private var units: MetricHealthStyle.Units {
@@ -179,14 +186,15 @@ struct MetricDetailView: View {
             Text(dates)
                 .font(StrandFont.pro(17, weight: .semibold))
                 .foregroundStyle(StrandPalette.textSecondary)
-                .lineLimit(1)
+                .lineLimit(dts.isAccessibilitySize ? 2 : 1)
                 .minimumScaleFactor(0.8)
         }
     }
 
     /// Numbers large and primary, units smaller and secondary, on one baseline.
-    private func figure(_ tokens: [MetricHealthStyle.Token], size: CGFloat) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 3) {
+    private func figure(_ tokens: [MetricHealthStyle.Token], size base: CGFloat) -> some View {
+        let size = base * (base >= 30 ? heroScale : rowScale)
+        return HStack(alignment: .firstTextBaseline, spacing: 3) {
             ForEach(Array(tokens.enumerated()), id: \.offset) { _, t in
                 if t.isUnit {
                     Text(verbatim: t.text)
@@ -206,12 +214,16 @@ struct MetricDetailView: View {
     /// "Latest: Yesterday ······ 52 bpm" — the last line of the chart card.
     private func latestRow(_ latest: (day: String, value: Double)) -> some View {
         let stamp = SummaryStamp.text(dayKey: latest.day, todayKey: todayKey) ?? latest.day
-        return HStack(alignment: .firstTextBaseline) {
+        let stacked = dts.isAccessibilitySize
+        let layout = stacked
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 2))
+            : AnyLayout(HStackLayout(alignment: .firstTextBaseline))
+        return layout {
             Text("Latest: \(stamp)")
                 .font(StrandFont.pro(15))
                 .foregroundStyle(StrandPalette.textSecondary)
-                .lineLimit(1)
-            Spacer(minLength: 8)
+                .lineLimit(stacked ? nil : 1)
+            if !stacked { Spacer(minLength: 8) }
             figure(MetricHealthStyle.tokens(metric, latest.value, units: units), size: 17)
         }
         .accessibilityElement(children: .combine)
@@ -324,14 +336,18 @@ struct MetricDetailView: View {
         }
         // The latest reading in the hue its bar has on the chart above (Charge by its state), so the two agree.
         let latestTint = MetricHealthStyle.chart(metric, series: series).barTint?(h.latest) ?? tint
+        // Side by side; one under the other at accessibility sizes.
+        let figuresLayout = dts.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
+            : AnyLayout(HStackLayout(alignment: .top))
         return SummaryCard {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 6) {
                     Image(systemName: metric.icon)
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: highlightIconSize, weight: .semibold))
                     Text(metric.title)
                         .font(StrandFont.pro(17, weight: .semibold))
-                        .lineLimit(1)
+                        .lineLimit(dts.isAccessibilitySize ? 3 : 1)
                 }
                 .foregroundStyle(tint)
                 Text(sentence)
@@ -339,10 +355,11 @@ struct MetricDetailView: View {
                     .foregroundStyle(StrandPalette.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
                 Rectangle().fill(StrandPalette.hairline).frame(height: NoopMetrics.hairlineWidth)
-                HStack(alignment: .top) {
+                figuresLayout {
                     highlightFigure(String(localized: "Two-Week Average"), h.average, color: averageTint, trailing: false)
-                    Spacer(minLength: 8)
-                    highlightFigure(String(localized: "Latest"), h.latest, color: latestTint, trailing: true)
+                    if !dts.isAccessibilitySize { Spacer(minLength: 8) }
+                    highlightFigure(String(localized: "Latest"), h.latest, color: latestTint,
+                                    trailing: !dts.isAccessibilitySize)
                 }
                 highlightBars(h, latestTint: latestTint)
                     .frame(height: 96)
@@ -367,7 +384,7 @@ struct MetricDetailView: View {
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 ForEach(Array(MetricHealthStyle.tokens(metric, value, units: units).enumerated()), id: \.offset) { _, t in
                     Text(verbatim: t.text)
-                        .font(t.isUnit ? StrandFont.pro(17, weight: .semibold) : StrandFont.pro(30, weight: .semibold))
+                        .font(t.isUnit ? StrandFont.pro(17, weight: .semibold) : StrandFont.pro(highlightValueSize, weight: .semibold))
                         .foregroundStyle(t.isUnit ? StrandPalette.textSecondary : color)
                 }
             }
@@ -470,7 +487,7 @@ struct MetricDetailView: View {
             Spacer()
             if chevron {
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(StrandFont.pro(13, weight: .semibold))
                     .foregroundStyle(StrandPalette.textTertiary)
             }
         }

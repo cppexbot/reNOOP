@@ -66,6 +66,7 @@ struct FullDayChartView: View {
     /// The visible window the chart's gestures mutate. nil → full day (the chart falls back to `dayBounds`).
     @State private var zoomDomain: ClosedRange<Date>? = nil
     @State private var loading = true
+    @Environment(\.dynamicTypeSize) private var dts
 
     /// The full clamp the zoom window can never escape — the selected calendar day.
     private var dayBounds: ClosedRange<Date> {
@@ -172,7 +173,7 @@ struct FullDayChartView: View {
                 Text(verbatim: metric.title)
                     .font(StrandFont.headline)
                 Image(systemName: "chevron.up.chevron.down")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(StrandFont.pro(11, weight: .semibold))
             }
             .foregroundStyle(tint)
         }
@@ -188,17 +189,21 @@ struct FullDayChartView: View {
     /// "All" reveals the honest disclosure that other sources' raw per-second streams aren't offloaded.
     private var sourceCard: some View {
         SummaryCard {
-            HStack(spacing: 10) {
-                Image(systemName: "dot.radiowaves.left.and.right")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(StrandPalette.textSecondary)
-                Group {
-                    if let sourceName { Text(verbatim: sourceName) } else { Text("My WHOOP") }
+            let layout = dts.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
+                                                 : AnyLayout(HStackLayout(spacing: 10))
+            layout {
+                HStack(spacing: 10) {
+                    Image(systemName: "dot.radiowaves.left.and.right")
+                        .font(StrandFont.pro(13, weight: .semibold))
+                        .foregroundStyle(StrandPalette.textSecondary)
+                    Group {
+                        if let sourceName { Text(verbatim: sourceName) } else { Text("My WHOOP") }
+                    }
+                    .font(StrandFont.pro(17))
+                    .foregroundStyle(StrandPalette.textPrimary)
+                    .lineLimit(dts.isAccessibilitySize ? nil : 1)
                 }
-                .font(StrandFont.pro(17))
-                .foregroundStyle(StrandPalette.textPrimary)
-                .lineLimit(1)
-                Spacer(minLength: 8)
+                if !dts.isAccessibilitySize { Spacer(minLength: 8) }
                 Picker("Source", selection: $ownedOnly) {
                     Text("Owned").tag(true)
                     Text("All").tag(false)
@@ -217,8 +222,8 @@ struct FullDayChartView: View {
         HStack(spacing: NoopMetrics.cardInnerSpacing) {
             Button { stepDay(-1) } label: {
                 Image(systemName: "chevron.left")
-                    .font(.system(size: 15, weight: .semibold))
-                    .frame(width: 44, height: 36)
+                    .font(StrandFont.pro(15, weight: .semibold))
+                    .frame(minWidth: 44, minHeight: 36)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -234,8 +239,8 @@ struct FullDayChartView: View {
 
             Button { stepDay(1) } label: {
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 15, weight: .semibold))
-                    .frame(width: 44, height: 36)
+                    .font(StrandFont.pro(15, weight: .semibold))
+                    .frame(minWidth: 44, minHeight: 36)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -323,8 +328,8 @@ struct FullDayChartView: View {
             Text(verbatim: resolutionSubtitle)
                 .font(StrandFont.pro(17, weight: .semibold))
                 .foregroundStyle(StrandPalette.textSecondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+                .lineLimit(dts.isAccessibilitySize ? nil : 1)
+                .minimumScaleFactor(dts.isAccessibilitySize ? 1 : 0.8)
         }
         .accessibilityElement(children: .combine)
     }
@@ -424,7 +429,9 @@ struct FullDayChartView: View {
     /// Min / Avg / Max of the visible window, as Health's figure columns.
     private var statsRow: some View {
         let v = displayPoints.map(\.value)
-        return HStack(alignment: .top, spacing: 0) {
+        let layout = dts.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
+                                             : AnyLayout(HStackLayout(alignment: .top, spacing: 0))
+        return layout {
             stat("Min", format(v.min() ?? 0))
             stat("Avg", format(v.reduce(0, +) / Double(max(1, v.count))))
             stat("Max", format(v.max() ?? 0))

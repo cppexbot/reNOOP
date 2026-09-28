@@ -173,28 +173,35 @@ struct WorkoutHistoryRow: View {
     @AppStorage(UnitPrefs.systemKey) private var unitSystemRaw = UnitSystem.metric.rawValue
     @AppStorage(UnitPrefs.distanceSystemKey) private var distanceSystemRaw = ""
 
+    @Environment(\.dynamicTypeSize) private var dts
+    @ScaledMetric(relativeTo: .title2) private var iconSize: CGFloat = 22
+    @ScaledMetric(relativeTo: .largeTitle) private var iconCircle: CGFloat = 44
+
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
-            WorkoutTypeIcon(workoutType: row.sport, size: 22, weight: .semibold,
+        let layout = dts.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+            : AnyLayout(HStackLayout(alignment: .center, spacing: 12))
+        layout {
+            WorkoutTypeIcon(workoutType: row.sport, size: iconSize, weight: .semibold,
                             color: StrandPalette.activityExerciseText)
-                .frame(width: 44, height: 44)
+                .frame(width: iconCircle, height: iconCircle)
                 .background(Circle().fill(StrandPalette.fitnessCard))
             VStack(alignment: .leading, spacing: 0) {
                 Text(WorkoutSource.localizedSport(row.sport))
                     .font(StrandFont.pro(17))
                     .foregroundStyle(StrandPalette.textPrimary)
-                    .lineLimit(1)
+                    .lineLimit(dts.isAccessibilitySize ? nil : 1)
                 Text(headline)
                     .font(StrandFont.pro(28, weight: .semibold))
                     .foregroundStyle(StrandPalette.activityExerciseText)
-                    .lineLimit(1)
+                    .lineLimit(dts.isAccessibilitySize ? nil : 1)
                     .minimumScaleFactor(0.7)
             }
-            Spacer(minLength: 8)
+            if !dts.isAccessibilitySize { Spacer(minLength: 8) }
             Text(dateLabel)
                 .font(StrandFont.pro(13))
                 .foregroundStyle(StrandPalette.textSecondary)
-                .frame(maxHeight: .infinity, alignment: .bottom)
+                .frame(maxHeight: dts.isAccessibilitySize ? nil : CGFloat.infinity, alignment: .bottom)
         }
         .padding(.vertical, 4)
         .accessibilityElement(children: .combine)

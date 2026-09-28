@@ -119,6 +119,8 @@ struct HealthTrendChart: View {
                     .offset(y: y(trend.recentAverage) - labelHeight - 4)
             }
         }
+        // The figures ride fixed rows over the lines: they follow Dynamic Type only as far as the rows hold them.
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .accessibilityHidden(true)
     }
 

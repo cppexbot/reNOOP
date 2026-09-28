@@ -35,6 +35,11 @@ struct LiftSessionEditSheet: View {
     /// A weight or reps field whose 0 was emptied when it was focused.
     @State private var clearedZero: Field?
 
+    @Environment(\.dynamicTypeSize) private var dts
+    /// The set-number column, wide enough for the number's circle.
+    @ScaledMetric(relativeTo: .subheadline) private var setColumnWidth: CGFloat = 34
+    @ScaledMetric(relativeTo: .subheadline) private var setBadgeSize: CGFloat = 30
+
     @FocusState private var focused: Field?
     private enum Field: Hashable { case weight(String), reps(String), rpe(String), sessionRpe }
 
@@ -114,17 +119,20 @@ struct LiftSessionEditSheet: View {
         let group = exercises[index]
         let canAdd = group.entries.count < LiftSessionEngine.maxSetsPerExercise
         return Section {
-            HStack(spacing: 8) {
-                Text("Set").frame(width: Self.setColumnWidth, alignment: .center)
-                Text(weightHeading).frame(maxWidth: .infinity, alignment: .leading)
-                Text("Reps").frame(maxWidth: .infinity, alignment: .leading)
-                Text("RPE").frame(maxWidth: .infinity, alignment: .leading)
+            // At accessibility sizes each field carries its own heading instead (`column`).
+            if !dts.isAccessibilitySize {
+                HStack(spacing: 8) {
+                    Text("Set").frame(width: setColumnWidth, alignment: .center)
+                    Text(weightHeading).frame(maxWidth: .infinity, alignment: .leading)
+                    Text("Reps").frame(maxWidth: .infinity, alignment: .leading)
+                    Text("RPE").frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .font(StrandFont.pro(13))
+                .foregroundStyle(StrandPalette.textSecondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .accessibilityHidden(true)
             }
-            .font(StrandFont.pro(13))
-            .foregroundStyle(StrandPalette.textSecondary)
-            .lineLimit(1)
-            .minimumScaleFactor(0.8)
-            .accessibilityHidden(true)
 
             ForEach(Array(group.entries.enumerated()), id: \.element.id) { position, entry in
                 setRow(exercise: index, position: position, entry: entry)
@@ -154,24 +162,43 @@ struct LiftSessionEditSheet: View {
     /// set renumbers the ones after it.
     private func setRow(exercise: Int, position: Int, entry: Entry) -> some View {
         let warmup = entry.form.isWarmup
-        return HStack(spacing: 8) {
+        let layout = dts.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+            : AnyLayout(HStackLayout(spacing: 8))
+        return layout {
             Button { update(exercise, entry.id) { $0.form.isWarmup.toggle() } } label: {
                 Text(warmup ? String(localized: "W") : "\(position + 1)")
                     .font(StrandFont.pro(15, weight: .semibold).monospacedDigit())
                     .foregroundStyle(warmup ? StrandPalette.metricAmber : StrandPalette.activityExerciseText)
-                    .frame(width: 30, height: 30)
+                    .frame(width: setBadgeSize, height: setBadgeSize)
                     .background(Circle().fill(warmup ? StrandPalette.metricAmber.opacity(0.18)
                                                      : StrandPalette.fitnessCard))
-                    .frame(width: Self.setColumnWidth, alignment: .center)
+                    .frame(width: setColumnWidth, alignment: .center)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel(warmup
                                 ? String(localized: "Warm-up set — tap to make it a working set")
                                 : String(localized: "Set \(position + 1) — tap to mark it a warm-up"))
-            field(.weight(entry.id), text: binding(exercise, entry.id, \.weight))
-            field(.reps(entry.id), text: binding(exercise, entry.id, \.reps))
-            field(.rpe(entry.id), text: binding(exercise, entry.id, \.rpe))
+            column(weightHeading) { field(.weight(entry.id), text: binding(exercise, entry.id, \.weight)) }
+            column("Reps") { field(.reps(entry.id), text: binding(exercise, entry.id, \.reps)) }
+            column("RPE") { field(.rpe(entry.id), text: binding(exercise, entry.id, \.rpe)) }
+        }
+    }
+
+    /// A field under its column heading when the row is stacked; otherwise the heading row above names it.
+    @ViewBuilder
+    private func column<Content: View>(_ heading: LocalizedStringKey, @ViewBuilder _ content: () -> Content) -> some View {
+        if dts.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(heading)
+                    .font(StrandFont.pro(13))
+                    .foregroundStyle(StrandPalette.textSecondary)
+                    .accessibilityHidden(true)
+                content()
+            }
+        } else {
+            content()
         }
     }
 
@@ -343,6 +370,4 @@ struct LiftSessionEditSheet: View {
     }
 
     private static let empty = "—"
-    /// The set-number column, wide enough for the number's circle.
-    private static let setColumnWidth: CGFloat = 34
 }

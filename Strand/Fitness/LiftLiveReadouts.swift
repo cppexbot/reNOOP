@@ -39,7 +39,7 @@ struct LiftHeartRate: View {
     var body: some View {
         HStack(spacing: 3) {
             Image(systemName: "heart.fill")
-                .font(.system(size: 11, weight: .semibold))
+                .font(StrandFont.pro(11, weight: .semibold))
             Text(model.bpm.map(String.init) ?? "—")
                 .font(StrandFont.pro(15, weight: .semibold))
                 .monospacedDigit()
@@ -55,15 +55,19 @@ struct LiftHeartRate: View {
 /// `LiftHeartRate`: a beat redraws this number, not the page.
 struct LiftHeartRateFigure: View {
     @EnvironmentObject private var model: AppModel
+    @ScaledMetric(relativeTo: .largeTitle) private var numeralSize: CGFloat = 88
+    @ScaledMetric(relativeTo: .title2) private var heartSize: CGFloat = 26
 
     var body: some View {
         HStack(alignment: .lastTextBaseline, spacing: 4) {
             Text(model.bpm.map(String.init) ?? "--")
-                .font(LiveFigure.numeral)
+                .font(LiveFigure.numeral(numeralSize))
                 .monospacedDigit()
                 .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.4)
             Image(systemName: "heart.fill")
-                .font(.system(size: 26, weight: .bold))
+                .font(.system(size: heartSize, weight: .bold))
                 .foregroundStyle(StrandPalette.healthHeart)
         }
         .accessibilityElement(children: .ignore)

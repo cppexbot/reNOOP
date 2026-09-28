@@ -82,7 +82,6 @@ private struct ConfirmationCapsule: View {
                     .font(StrandFont.pro(15, weight: .semibold))
                     .foregroundStyle(StrandPalette.textPrimary)
                     .labelStyle(.titleAndIcon)
-                    .lineLimit(1)
                     .padding(.horizontal, 18)
                     .padding(.vertical, 12)
                     .modifier(CapsuleSurface())

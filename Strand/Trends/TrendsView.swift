@@ -133,6 +133,8 @@ enum HealthTrendsUnits {
 private struct TrainingLoadRow: View {
     let balance: Double
 
+    @ScaledMetric(relativeTo: .title2) private var valueSize: CGFloat = 24
+
     var body: some View {
         NavigationLink(value: TabRoute.trainingLoad) {
             SummaryCard {
@@ -141,7 +143,7 @@ private struct TrainingLoadRow: View {
                                         tint: StrandPalette.activityTitle)
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text(verbatim: TrainingLoadModel.signed(balance))
-                            .font(StrandFont.number(24, weight: .bold))
+                            .font(StrandFont.number(valueSize, weight: .bold))
                             .foregroundStyle(StrandPalette.textPrimary)
                         Text("Form")
                             .font(StrandFont.subhead.weight(.semibold))

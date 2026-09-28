@@ -89,7 +89,7 @@ struct ScoresSettingsPage: View {
                         HStack(spacing: 6) {
                             Text(stepsCalibrationSummary)
                             Image(systemName: "chevron.right")
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(StrandFont.pro(13, weight: .semibold))
                                 .foregroundStyle(StrandPalette.textTertiary)
                         }
                     }

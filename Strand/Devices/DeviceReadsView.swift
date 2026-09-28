@@ -10,6 +10,8 @@ import WhoopProtocol
 struct DeviceReadsView: View {
     /// The strap generation, when the registry knows it; nil (the legacy "WHOOP" row) shows both.
     let family: DeviceFamily?
+    @Environment(\.dynamicTypeSize) private var dts
+    @ScaledMetric(relativeTo: .footnote) private var scaledColumn: CGFloat = 56
 
 
     /// Tri-state support for a metric on a given strap — honest, never overstated.
@@ -81,22 +83,29 @@ struct DeviceReadsView: View {
                 if family == nil {
                     HStack {
                         Spacer()
-                        Text(verbatim: "4.0").frame(width: Self.column)
-                        Text(verbatim: "5.0/MG").frame(width: Self.column)
+                        Text(verbatim: "4.0").frame(width: column)
+                        Text(verbatim: "5.0/MG").frame(width: column)
                     }
                     .font(StrandFont.pro(13))
+                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                     .foregroundStyle(StrandPalette.textSecondary)
                     .accessibilityHidden(true)
                 }
                 ForEach(rows) { row in
-                    HStack {
+                    let layout = dts.isAccessibilitySize
+                        ? AnyLayout(VStackLayout(alignment: .trailing, spacing: 4)) : AnyLayout(HStackLayout())
+                    layout {
                         Text(row.feature).foregroundStyle(StrandPalette.textPrimary)
-                        Spacer()
-                        switch family {
-                        case .whoop4?: supportCell(row.whoop4)
-                        case .whoop5?: supportCell(row.whoop5)
-                        case nil: supportCell(row.whoop4); supportCell(row.whoop5)
+                            .frame(maxWidth: dts.isAccessibilitySize ? .infinity : nil, alignment: .leading)
+                        if !dts.isAccessibilitySize { Spacer() }
+                        HStack {
+                            switch family {
+                            case .whoop4?: supportCell(row.whoop4)
+                            case .whoop5?: supportCell(row.whoop5)
+                            case nil: supportCell(row.whoop4); supportCell(row.whoop5)
+                            }
                         }
+                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                     }
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(a11yLabel(row))
@@ -106,14 +115,15 @@ struct DeviceReadsView: View {
         .settingsPage("What NOOP Reads")
     }
 
-    /// Width of each strap column, shared by the header and the marks so they line up.
-    private static let column: CGFloat = 56
+    /// Width of each strap column, shared by the header and the marks so they line up. Its text is capped
+    /// at xxxLarge, so the column stops growing there too.
+    private var column: CGFloat { min(scaledColumn, 84) }
 
     private func supportCell(_ state: LimitState) -> some View {
         Image(systemName: state.glyph)
             .fontWeight(.semibold)
             .foregroundStyle(state.tint)
-            .frame(width: family == nil ? Self.column : nil)
+            .frame(width: family == nil ? column : nil)
             .accessibilityHidden(true)
     }
 
