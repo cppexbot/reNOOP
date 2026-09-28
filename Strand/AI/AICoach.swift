@@ -23,17 +23,52 @@ public let aiCoachPrivacyNote =
 // MARK: - Chat model
 
 /// One turn in the coaching conversation.
+///
+/// What the app says ABOUT a reply (that it is the day's brief, that it was cut off) lives in its own
+/// fields and is drawn by the screen in the transcript's meta type, never written into `text`: the
+/// text is what the model said, and is what goes back to it as history.
 struct ChatMessage: Identifiable, Equatable {
     enum Role: String { case user, assistant }
     let id: UUID
     let role: Role
     let text: String
+    /// The morning brief rather than an answer to a question.
+    let isBrief: Bool
+    /// The reply stopped before it finished: the user stopped it, or the stream failed mid-way.
+    let isInterrupted: Bool
 
-    init(id: UUID = UUID(), role: Role, text: String) {
+    init(id: UUID = UUID(), role: Role, text: String, isBrief: Bool = false, isInterrupted: Bool = false) {
         self.id = id
         self.role = role
         self.text = text
+        self.isBrief = isBrief
+        self.isInterrupted = isInterrupted
     }
+}
+
+/// The per-message service facts (`isBrief`, `isInterrupted`) across launches. The stored transcript
+/// row carries only the text, so these sit beside it keyed by message id, written with every save of
+/// the transcript and read back when it is restored. A message with no entry has neither flag.
+enum CoachMessageFlags {
+    private static let key = "coach.messageFlags"
+    private static let brief = 1
+    private static let interrupted = 2
+
+    static func load() -> [String: Int] {
+        UserDefaults.standard.dictionary(forKey: key) as? [String: Int] ?? [:]
+    }
+
+    static func save(_ messages: [ChatMessage]) {
+        var raw: [String: Int] = [:]
+        for m in messages {
+            let bits = (m.isBrief ? brief : 0) | (m.isInterrupted ? interrupted : 0)
+            if bits != 0 { raw[m.id.uuidString] = bits }
+        }
+        UserDefaults.standard.set(raw, forKey: key)
+    }
+
+    static func isBrief(_ bits: Int?) -> Bool { (bits ?? 0) & brief != 0 }
+    static func isInterrupted(_ bits: Int?) -> Bool { (bits ?? 0) & interrupted != 0 }
 }
 
 // MARK: - Secure key storage (Keychain)
@@ -144,11 +179,15 @@ enum AICoachError: LocalizedError {
         case .rateLimited(let detail):
             let extra = detail.isEmpty ? "" : " (\(detail))"
             return "The provider is rate-limiting requests right now. Wait a moment and try again.\(extra)"
-        case .server(let code, let detail):
-            let extra = detail.isEmpty ? "" : " - \(detail)"
-            return "The provider returned an error (\(code))\(extra)."
-        case .network(let detail):
-            return "Network problem: \(detail). The coach is the only feature that needs the internet."
+        // The status code and the provider's own wording stay out of the transcript: they are service
+        // text, in English, and tell the wearer nothing they can act on.
+        case .server(let code, _):
+            if (500...599).contains(code) {
+                return String(localized: "The provider isn’t responding. Try again later.")
+            }
+            return String(localized: "The provider turned the request down. Check the model in Coach settings.")
+        case .network:
+            return String(localized: "Can’t reach the provider. Check your connection and try again.")
         case .decode:
             return "Couldn't read the provider's reply. Try again."
         case .emptyReply(let message):
@@ -659,11 +698,14 @@ final class AICoachEngine: ObservableObject {
         guard !Self.isStaleConversation(lastEpochDay: lastDay, todayEpochDay: Self.localEpochDay()) else {
             return
         }
+        let flags = CoachMessageFlags.load()
         messages = rows
             .sorted { $0.orderIndex < $1.orderIndex }
             .map { ChatMessage(id: UUID(uuidString: $0.id) ?? UUID(),
                                 role: ChatMessage.Role(rawValue: $0.role) ?? .user,
-                                text: $0.text) }
+                                text: $0.text,
+                                isBrief: CoachMessageFlags.isBrief(flags[$0.id]),
+                                isInterrupted: CoachMessageFlags.isInterrupted(flags[$0.id])) }
         conversationDay = lastDay
     }
 
@@ -674,6 +716,7 @@ final class AICoachEngine: ObservableObject {
     private func persistMessages() {
         let snapshot = messages
         let providerId = provider.rawValue
+        CoachMessageFlags.save(snapshot)
         Task {
             guard let store = await repo.storeHandle() else { return }
             let rows = snapshot.enumerated().map { index, m in
@@ -691,6 +734,7 @@ final class AICoachEngine: ObservableObject {
         messages = []
         droppedSummary = nil      // K13: reset the summary cache on clear
         droppedSummaryKey = []
+        CoachMessageFlags.save([])
         Task { try? await repo.storeHandle()?.clearCoachMessages() }
     }
 
@@ -699,7 +743,7 @@ final class AICoachEngine: ObservableObject {
     /// No-op if a conversation already exists, so it never duplicates into an active chat.
     func surfaceScheduledBrief(_ text: String) {
         guard messages.isEmpty else { return }
-        appendMessage(ChatMessage(role: .assistant, text: "Today's brief\n\n" + text))
+        appendMessage(ChatMessage(role: .assistant, text: text, isBrief: true))
         persistMessages()
     }
 
@@ -707,8 +751,82 @@ final class AICoachEngine: ObservableObject {
     /// assistant message, unconditionally — unlike `surfaceScheduledBrief`, this always appends so a
     /// mid-conversation tap still shows the fresh brief.
     func appendGeneratedBrief(_ text: String) {
-        appendMessage(ChatMessage(role: .assistant, text: "Today's brief\n\n" + text))
+        appendMessage(ChatMessage(role: .assistant, text: text, isBrief: true))
         persistMessages()
+    }
+
+    // MARK: Stop and try again
+
+    /// The reply being written (a question's or the brief's), kept so the screen's stop button can end it.
+    private var replyTask: Task<Void, Never>?
+
+    /// Runs one reply as its own task, so `stop()` can cancel it; returns when it has settled.
+    /// A request made while another reply is still being written runs as before, without taking over
+    /// the handle, so the stop button always ends the reply on screen.
+    private func runReply(_ work: @escaping @MainActor () async -> Void) async {
+        guard replyTask == nil else { await work(); return }
+        let task = Task { @MainActor in await work() }
+        replyTask = task
+        await task.value
+        replyTask = nil
+    }
+
+    /// Stops the reply being written. What has arrived stays, marked as interrupted, and no error is
+    /// raised: stopping is the user's choice, not a failure.
+    func stop() {
+        replyTask?.cancel()
+    }
+
+    /// Whether the last reply can be asked for again: an answer to the question just before it, or the
+    /// brief standing alone at the head of the chat. Checked against every gate the new request would
+    /// meet, so "Try Again" never removes a reply it cannot replace.
+    var canRetryLastReply: Bool {
+        guard !sending, isConfigured, CoachBriefScheduler.coachMasterEnabled,
+              let last = messages.last, last.role == .assistant else { return false }
+        if last.isBrief { return messages.count == 1 && dataConsent }
+        return messages.dropLast().last?.role == .user
+    }
+
+    /// "Try Again" on the last reply: it leaves with the question it answered, and the question is
+    /// asked afresh (or, for the brief, the brief is written again).
+    func retryLastReply() async {
+        guard canRetryLastReply, let last = messages.last else { return }
+        if last.isBrief {
+            messages.removeLast()
+            await startBriefIfNeeded()
+            return
+        }
+        let question = messages[messages.count - 2].text
+        messages.removeLast(2)
+        await send(question)
+    }
+
+    /// Ends a reply that did not finish: what arrived stays, marked as interrupted; an empty placeholder
+    /// leaves the transcript.
+    private func settleUnfinished(_ placeholder: ChatMessage, partial: String) {
+        guard let lastIdx = messages.indices.last, messages[lastIdx].id == placeholder.id else { return }
+        let text = partial.trimmingCharacters(in: .whitespacesAndNewlines)
+        if text.isEmpty {
+            messages.remove(at: lastIdx)
+        } else {
+            messages[lastIdx] = ChatMessage(id: placeholder.id, role: .assistant, text: text,
+                                            isBrief: placeholder.isBrief, isInterrupted: true)
+        }
+    }
+
+    /// Records why a reply failed, unless the user stopped it, which is no failure at all.
+    private func recordFailure(_ error: Error) {
+        if Task.isCancelled {
+            errorText = nil
+            keyRejected = false
+        } else if let e = error as? AICoachError {
+            errorText = e.errorDescription
+            // Typed, never text-matched: the message is localized and the case is not.
+            if case .badKey = e { keyRejected = true } else { keyRejected = false }
+        } else {
+            errorText = AICoachError.network(error.localizedDescription).errorDescription
+            keyRejected = false
+        }
     }
 
     /// K11: An optional chart image (base64-encoded PNG) to send with the next user message.
@@ -718,8 +836,12 @@ final class AICoachEngine: ObservableObject {
 
     /// Send a question: append it, build the metrics context, call the chosen provider with the
     /// system prompt + context + running history, parse the reply, append it. Never throws/crashes;
-    /// failures land in `errorText`.
+    /// failures land in `errorText`. `stop()` ends it early.
     func send(_ userText: String) async {
+        await runReply { await self.streamAnswer(to: userText) }
+    }
+
+    private func streamAnswer(to userText: String) async {
         let trimmed = userText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { errorText = AICoachError.emptyQuestion.errorDescription; return }
         // The master switch, checked at the EGRESS rather than only on the routes in. Every way into Coach
@@ -770,14 +892,16 @@ final class AICoachEngine: ObservableObject {
 
         // K1: Stream the reply. Append a placeholder assistant message, then mutate its text as
         // chunks arrive by replacing the last element in `messages`. The transcript re-renders on
-        // each update (SwiftUI binds to `messages`). On error mid-stream, keep the partial text and
-        // append a "(stream interrupted)" marker — never a crash.
+        // each update (SwiftUI binds to `messages`). Stopped or failed mid-stream, the partial text
+        // stays, flagged `isInterrupted` for the screen to say so — never a crash.
         let placeholder = ChatMessage(role: .assistant, text: "")
         appendMessage(placeholder)
         var accumulated = ""
 
         do {
             try await streamProvider(key: key, messages: wire, inlineImage: imageBase64) { delta in
+                // A stopped reply takes nothing more, whatever the provider still had in flight.
+                guard !Task.isCancelled else { return }
                 accumulated += delta
                 // Replace the last message's text with the accumulated stream so far.
                 if let lastIdx = self.messages.indices.last,
@@ -787,6 +911,10 @@ final class AICoachEngine: ObservableObject {
                     )
                 }
             }
+            if Task.isCancelled {
+                settleUnfinished(placeholder, partial: accumulated)
+                return
+            }
             // Finalize: trim whitespace. If the stream produced nothing, show "(no reply)".
             let clean = accumulated.trimmingCharacters(in: .whitespacesAndNewlines)
             if let lastIdx = messages.indices.last, messages[lastIdx].role == .assistant {
@@ -795,40 +923,22 @@ final class AICoachEngine: ObservableObject {
                     text: clean.isEmpty ? "(no reply)" : clean
                 )
             }
-        } catch let e as AICoachError {
-            // Mid-stream error: keep the partial text + an interrupted marker (PRD K1 acceptance).
-            let partial = accumulated.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !partial.isEmpty, let lastIdx = messages.indices.last, messages[lastIdx].role == .assistant {
-                messages[lastIdx] = ChatMessage(
-                    id: placeholder.id, role: .assistant,
-                    text: partial + "\n\n*(stream interrupted)*"
-                )
-            } else if let lastIdx = messages.indices.last, messages[lastIdx].role == .assistant {
-                // No text received at all — remove the empty placeholder.
-                messages.remove(at: lastIdx)
-            }
-            errorText = e.errorDescription
-            // Typed, never text-matched: the message is localized and the case is not.
-            if case .badKey = e { keyRejected = true } else { keyRejected = false }
         } catch {
-            let partial = accumulated.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !partial.isEmpty, let lastIdx = messages.indices.last, messages[lastIdx].role == .assistant {
-                messages[lastIdx] = ChatMessage(
-                    id: placeholder.id, role: .assistant,
-                    text: partial + "\n\n*(stream interrupted)*"
-                )
-            } else if let lastIdx = messages.indices.last, messages[lastIdx].role == .assistant {
-                messages.remove(at: lastIdx)
-            }
-            errorText = AICoachError.network(error.localizedDescription).errorDescription
-            keyRejected = false
+            // Mid-stream: keep the partial text, marked interrupted (PRD K1 acceptance); with no text
+            // received at all the empty placeholder leaves.
+            settleUnfinished(placeholder, partial: accumulated)
+            recordFailure(error)
         }
     }
 
     /// Proactively generate "Today's brief" the first time the Coach opens, readiness + a training
     /// prescription + one recovery tip, without the user typing. Requires a key + data consent.
-    /// K1: streams the brief the same way `send` does.
+    /// K1: streams the brief the same way `send` does, and stops the same way.
     func startBriefIfNeeded() async {
+        await runReply { await self.streamBrief() }
+    }
+
+    private func streamBrief() async {
         guard isConfigured, dataConsent, messages.isEmpty, !sending else { return }
         guard let key = resolvedKey else { return }
         errorText = nil
@@ -839,20 +949,26 @@ final class AICoachEngine: ObservableObject {
         let wire: [(role: ChatMessage.Role, content: String)] =
             [(.user, context + "\n\n---\n\n" + Self.briefInstruction)]
 
-        let prefix = "Today's brief\n\n"
-        let placeholder = ChatMessage(role: .assistant, text: prefix)
+        // The brief is marked by its flag, which the screen draws as a header line; the text is the
+        // model's alone.
+        let placeholder = ChatMessage(role: .assistant, text: "", isBrief: true)
         appendMessage(placeholder)
         var accumulated = ""
 
         do {
             try await streamProvider(key: key, messages: wire) { delta in
+                guard !Task.isCancelled else { return }
                 accumulated += delta
                 if let lastIdx = self.messages.indices.last,
                    self.messages[lastIdx].role == .assistant {
                     self.messages[lastIdx] = ChatMessage(
-                        id: placeholder.id, role: .assistant, text: prefix + accumulated
+                        id: placeholder.id, role: .assistant, text: accumulated, isBrief: true
                     )
                 }
+            }
+            if Task.isCancelled {
+                settleUnfinished(placeholder, partial: accumulated)
+                return
             }
             let clean = accumulated.trimmingCharacters(in: .whitespacesAndNewlines)
             if clean.isEmpty {
@@ -860,37 +976,11 @@ final class AICoachEngine: ObservableObject {
                     messages.remove(at: lastIdx)
                 }
             } else if let lastIdx = messages.indices.last, messages[lastIdx].role == .assistant {
-                messages[lastIdx] = ChatMessage(id: placeholder.id, role: .assistant, text: prefix + clean)
+                messages[lastIdx] = ChatMessage(id: placeholder.id, role: .assistant, text: clean, isBrief: true)
             }
-        } catch let e as AICoachError {
-            let partial = accumulated.trimmingCharacters(in: .whitespacesAndNewlines)
-            if partial.isEmpty {
-                if let lastIdx = messages.indices.last, messages[lastIdx].role == .assistant {
-                    messages.remove(at: lastIdx)
-                }
-            } else if let lastIdx = messages.indices.last, messages[lastIdx].role == .assistant {
-                messages[lastIdx] = ChatMessage(
-                    id: placeholder.id, role: .assistant,
-                    text: prefix + partial + "\n\n*(stream interrupted)*"
-                )
-            }
-            errorText = e.errorDescription
-            // Typed, never text-matched: the message is localized and the case is not.
-            if case .badKey = e { keyRejected = true } else { keyRejected = false }
         } catch {
-            let partial = accumulated.trimmingCharacters(in: .whitespacesAndNewlines)
-            if partial.isEmpty {
-                if let lastIdx = messages.indices.last, messages[lastIdx].role == .assistant {
-                    messages.remove(at: lastIdx)
-                }
-            } else if let lastIdx = messages.indices.last, messages[lastIdx].role == .assistant {
-                messages[lastIdx] = ChatMessage(
-                    id: placeholder.id, role: .assistant,
-                    text: prefix + partial + "\n\n*(stream interrupted)*"
-                )
-            }
-            errorText = AICoachError.network(error.localizedDescription).errorDescription
-            keyRejected = false
+            settleUnfinished(placeholder, partial: accumulated)
+            recordFailure(error)
         }
     }
 
@@ -1138,6 +1228,9 @@ final class AICoachEngine: ObservableObject {
         ]
         if let summary = try? await callProvider(key: key, messages: wire) {
             droppedSummary = "Summary of earlier conversation: \(summary.trimmingCharacters(in: .whitespacesAndNewlines))"
+        } else if Task.isCancelled {
+            // Stopped before the summary came back: the next send summarizes this set again.
+            droppedSummaryKey = []
         }
     }
 

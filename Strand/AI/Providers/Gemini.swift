@@ -24,7 +24,7 @@ struct GeminiClient: AIProviderClient {
         // Built via URL(string:): appendingPathComponent percent-encodes the ":" in
         // ":generateContent" on some Foundation versions and the API rejects %3A.
         guard let url = URL(string: "\(AIProvider.gemini.endpoint.absoluteString)/\(model):generateContent") else {
-            throw AICoachError.network("invalid model id")
+            throw AICoachError.server(400, "invalid model id")
         }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
@@ -90,7 +90,7 @@ struct GeminiClient: AIProviderClient {
         // :streamGenerateContent?alt=sse — SSE line-per-chunk. Built via URL(string:) to avoid
         // appendingPathComponent percent-encoding the ":" (same note as `send`).
         guard let url = URL(string: "\(AIProvider.gemini.endpoint.absoluteString)/\(model):streamGenerateContent?alt=sse") else {
-            throw AICoachError.network("invalid model id")
+            throw AICoachError.server(400, "invalid model id")
         }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
@@ -128,7 +128,7 @@ struct GeminiClient: AIProviderClient {
         ]
 
         guard let url = URL(string: "\(AIProvider.gemini.endpoint.absoluteString)/\(model):streamGenerateContent?alt=sse") else {
-            throw AICoachError.network("invalid model id")
+            throw AICoachError.server(400, "invalid model id")
         }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
