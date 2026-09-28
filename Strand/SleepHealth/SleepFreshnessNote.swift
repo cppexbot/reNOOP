@@ -59,7 +59,7 @@ struct SleepFreshnessNote: View {
         switch status {
         case .syncing:
             let chunks = live.syncChunksThisSession
-            NoticeCard(title: Text("Syncing strap history"),
+            NoticeCard(title: Text("Syncing history from the strap…"),
                        message: chunks > 0 ? Text("\(chunks) chunks so far") : nil,
                        tone: .progress)
         case .calculating:

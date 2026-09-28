@@ -105,6 +105,9 @@ struct FullDayChartView: View {
         #endif
         .background(StrandPalette.summaryCanvas.ignoresSafeArea())
         .navigationTitle("Full Day by the Second")
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) { zoomMenu }
+        }
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
@@ -267,12 +270,9 @@ struct FullDayChartView: View {
         let today = Repository.logicalDayStart(Date())
         if Calendar.current.isDate(dayStart, inSameDayAs: today) { return String(localized: "Today") }
         if Calendar.current.isDate(dayStart, inSameDayAs: today.addingTimeInterval(-86_400)) { return String(localized: "Yesterday") }
-        return Self.dayFmt.string(from: dayStart)
+        return dayStart.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated)
+            .locale(AppLanguage.activeLocale))
     }
-
-    private static let dayFmt: DateFormatter = {
-        let f = DateFormatter(); f.dateFormat = "EEE d MMM"; f.locale = Locale(identifier: "en_US_POSIX"); return f
-    }()
 
     // MARK: Chart
 
@@ -316,9 +316,8 @@ struct FullDayChartView: View {
                 Text(verbatim: displayPoints.last.map { format($0.value) } ?? "—")
                     .font(StrandFont.pro(34, weight: .bold))
                     .foregroundStyle(StrandPalette.textPrimary)
-                let unit = unitSuffix.trimmingCharacters(in: .whitespaces)
-                if !unit.isEmpty {
-                    Text(verbatim: unit)
+                if !axUnit.isEmpty {
+                    Text(verbatim: axUnit)
                         .font(StrandFont.pro(20, weight: .semibold))
                         .foregroundStyle(StrandPalette.textSecondary)
                 }
@@ -365,7 +364,7 @@ struct FullDayChartView: View {
             zoomDomain: $zoomDomain,
             zoomBounds: panBounds,   // #986: pan/scroll clamp is the rolling 3-day window, not one day
             valueFormat: { format($0) },
-            dateFormat: { Self.timeFmt.string(from: $0) },
+            dateFormat: { AppClock.hourMinute($0) },
             axTitle: metric.title,
             axUnit: axUnit,
             axLocale: AppLanguage.activeLocale
@@ -406,27 +405,43 @@ struct FullDayChartView: View {
             : String(localized: "Other sources don’t offload raw per-second data on-device.")
     }
 
-    /// How to move through the chart, one footnote line, and Reset once zoomed in.
-    private var zoomHint: some View {
-        HStack(spacing: NoopMetrics.space2) {
-            #if os(macOS)
-            Text(zoomDomain == nil ? "Scroll to zoom · drag to pan" : "Zoomed in. Drag to pan")
-            #else
-            // #979 spin-off: name the hold-to-scrub affordance — a hidden gesture nobody tries is a
-            // feature that doesn't exist. (On the Mac the pointer hover is self-discovering.)
-            Text(zoomDomain == nil ? "Pinch to zoom · drag to pan · hold to read" : "Zoomed in. Drag to pan · hold to read")
-            #endif
-            Spacer(minLength: 8)
-            if zoomDomain != nil {
+    /// Reset, only once zoomed in. Zooming itself has a way in that is not a gesture: the toolbar's
+    /// Zoom In / Zoom Out, and VoiceOver's zoom action on the chart.
+    @ViewBuilder private var zoomHint: some View {
+        if zoomDomain != nil {
+            HStack {
+                Spacer(minLength: 8)
                 Button("Reset") { withAnimation(StrandMotion.interactive) { zoomDomain = nil } }
                     .font(StrandFont.pro(13, weight: .semibold))
                     .foregroundStyle(StrandPalette.accent)
                     .buttonStyle(.plain)
             }
+            .padding(.horizontal, 4)
         }
-        .font(StrandFont.pro(13))
-        .foregroundStyle(StrandPalette.textSecondary)
-        .padding(.horizontal, 4)
+    }
+
+    /// The toolbar's zoom menu: the same steps as a pinch (or VoiceOver's zoom), about the window centre.
+    private var zoomMenu: some View {
+        Menu {
+            Button { zoom(in: true) } label: { Label("Zoom In", systemImage: "plus.magnifyingglass") }
+            Button { zoom(in: false) } label: { Label("Zoom Out", systemImage: "minus.magnifyingglass") }
+                .disabled(zoomDomain == nil)
+        } label: {
+            Image(systemName: "plus.magnifyingglass")
+        }
+        .accessibilityLabel(Text("Zoom"))
+        .barGlyph()
+    }
+
+    /// Halve (or double) the visible window about its centre. A window back at a whole day or wider is
+    /// the unzoomed day again, so Reset disappears where it has nothing left to undo.
+    private func zoom(in zoomIn: Bool) {
+        let next = OverviewHRChart.zoomed(visibleWindow, scale: zoomIn ? 2 : 0.5, anchorFraction: 0.5,
+                                          bounds: panBounds)
+        let span = next.upperBound.timeIntervalSince(next.lowerBound)
+        withAnimation(StrandMotion.interactive) {
+            zoomDomain = span >= dayBounds.upperBound.timeIntervalSince(dayBounds.lowerBound) ? nil : next
+        }
     }
 
     /// Min / Avg / Max of the visible window, as Health's figure columns.
@@ -543,7 +558,7 @@ struct FullDayChartView: View {
         }
     }
 
-    /// The unit VoiceOver reads after a value, in the reader's language.
+    /// The unit after a value, in the reader's language: on the big figure and in what VoiceOver reads.
     private var axUnit: String {
         if metric == .hr { return String(localized: "bpm") }
         let unit = unitSuffix.trimmingCharacters(in: .whitespaces)
@@ -601,10 +616,6 @@ struct FullDayChartView: View {
             return Gradient(colors: [StrandPalette.sleepDeep.opacity(0.55), StrandPalette.sleepDeep])
         }
     }
-
-    private static let timeFmt: DateFormatter = {
-        let f = DateFormatter(); f.dateFormat = "HH:mm"; f.locale = Locale(identifier: "en_US_POSIX"); return f
-    }()
 }
 
 #if os(macOS)

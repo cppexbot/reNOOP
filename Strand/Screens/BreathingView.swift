@@ -258,7 +258,6 @@ private struct BreathingPage: View {
                         .font(StrandFont.pro(17))
                         .foregroundStyle(StrandPalette.textPrimary)
                 }
-                .tint(StrandPalette.accent)
                 .padding(.vertical, 10)
             }
         }
@@ -323,20 +322,21 @@ private struct BreathModeRow: View {
         .padding(16)
         .background(StrandPalette.summaryCard, in: RoundedRectangle(cornerRadius: SummaryCard<EmptyView>.radius, style: .continuous))
         .contentShape(RoundedRectangle(cornerRadius: SummaryCard<EmptyView>.radius, style: .continuous))
-        .opacity(enabled ? 1 : 0.6)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
     }
 
     private var glyphView: some View {
         glyph.frame(width: glyphBox, height: glyphBox)
+            .opacity(enabled ? 1 : 0.5)
     }
 
+    /// An unavailable mode dims its name and ▶ only: the line under it says why, and stays readable.
     private var labels: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
                 .font(StrandFont.pro(20, weight: .bold))
-                .foregroundStyle(StrandPalette.textPrimary)
+                .foregroundStyle(enabled ? StrandPalette.textPrimary : StrandPalette.textTertiary)
             Text(detail)
                 .font(StrandFont.pro(15))
                 .foregroundStyle(StrandPalette.textSecondary)
@@ -355,12 +355,13 @@ private struct BreathModeRow: View {
 }
 
 /// Calm: a felt rhythm just below the heart, so it needs a bonded strap and a resting-band heart rate.
-/// Its own view because it reads `bpm` (≈1 Hz) and the bond.
+/// Its own view because it reads `bpm` (≈1 Hz) and the bond. Without a strap, a tap opens Devices.
 private struct BreathCalmCard: View {
     @ObservedObject var hub: BreathHub
     let reduceMotion: Bool
     @EnvironmentObject private var model: AppModel
     @EnvironmentObject private var live: LiveState
+    @EnvironmentObject private var router: NavRouter
     @ScaledMetric(relativeTo: .title2) private var glyphSize: CGFloat = 24
     @AppStorage(HapticPrefs.breathing) private var breathingHaptics = true
 
@@ -368,14 +369,20 @@ private struct BreathCalmCard: View {
     private var canRun: Bool { hub.controller.canBuzz && breathingHaptics && restingBand }
 
     var body: some View {
-        Button { hub.startCalm(reduceMotion: reduceMotion) } label: {
+        Button {
+            if canRun {
+                hub.startCalm(reduceMotion: reduceMotion)
+            } else if !hub.controller.canBuzz {
+                router.openDevices()
+            }
+        } label: {
             BreathModeRow(title: "Calm", detail: detail, tint: StrandPalette.healthBody,
                           glyph: AnyView(Image(systemName: "heart.fill").font(.system(size: glyphSize, weight: .semibold))
                               .foregroundStyle(StrandPalette.healthBody)),
                           enabled: canRun)
         }
         .buttonStyle(.plain)
-        .disabled(!canRun)
+        .disabled(!canRun && hub.controller.canBuzz)
     }
 
     private var detail: String {
@@ -407,6 +414,7 @@ private struct BreathRunningRow: View {
                     Image(systemName: "chevron.right")
                         .font(StrandFont.pro(13, weight: .semibold))
                         .foregroundStyle(StrandPalette.textTertiary)
+                        .accessibilityHidden(true)
                 }
                 .padding(16)
                 .background(StrandPalette.summaryCard, in: RoundedRectangle(cornerRadius: SummaryCard<EmptyView>.radius, style: .continuous))
@@ -481,6 +489,7 @@ private struct BreathSessionView: View {
                     .padding(.top, 36)
                     .padding(.horizontal, 24)
                     .animation(.easeInOut(duration: 0.3), value: hub.phaseWord)
+                    .accessibilityAddTraits(.updatesFrequently)
                 if hub.kind == .sweep {
                     sweepProgress.padding(.top, 14)
                 }
@@ -494,6 +503,11 @@ private struct BreathSessionView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.black.ignoresSafeArea())
         .preferredColorScheme(.dark)
+        // Full screen means full screen: no status bar, and the Home indicator fades while the session runs.
+        #if os(iOS)
+        .statusBarHidden(true)
+        .persistentSystemOverlays(.hidden)
+        #endif
     }
 
     private var sweepProgress: some View {
@@ -586,12 +600,10 @@ private struct BreathSummaryView: View {
             Button(action: onDone) {
                 Text("Done")
                     .font(StrandFont.pro(17, weight: .semibold))
-                    .foregroundStyle(.black)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(Capsule().fill(StrandPalette.healthRespiratory))
+                    .padding(.vertical, 6)
             }
-            .buttonStyle(.plain)
+            .breathDoneButton()
             .padding(.horizontal, 20)
             .padding(.bottom, 24)
         }
@@ -609,6 +621,30 @@ private struct BreathSummaryView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .font(StrandFont.pro(17))
         .padding(.vertical, 13)
+    }
+}
+
+private extension View {
+    /// The summary's Done: iOS 26's prominent Liquid Glass capsule in the session's hue; a bordered
+    /// prominent capsule before it (and the Mac's native bezel, since `.capsule` there is macOS 14).
+    @ViewBuilder func breathDoneButton() -> some View {
+        #if compiler(>=6.2) && os(iOS)
+        if #available(iOS 26.0, *) {
+            self.buttonStyle(.glassProminent)
+                .tint(StrandPalette.healthRespiratory)
+                .foregroundStyle(.black)
+                .controlSize(.large)
+        } else {
+            self.buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
+                .tint(StrandPalette.healthRespiratory).foregroundStyle(.black).controlSize(.large)
+        }
+        #elseif os(iOS)
+        self.buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
+            .tint(StrandPalette.healthRespiratory).foregroundStyle(.black).controlSize(.large)
+        #else
+        self.buttonStyle(.borderedProminent)
+            .tint(StrandPalette.healthRespiratory).foregroundStyle(.black).controlSize(.large)
+        #endif
     }
 }
 

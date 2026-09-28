@@ -7,7 +7,8 @@ import StrandDesign
 // central hook (Wave 3, in BLEManager's existing offload/evaluateStress call-site) posts a pending nudge
 // on `StressNudgeCenter`; a short sheet asks its one question. NEVER an alarm, NEVER a push (unless the
 // user separately opted into notifications), NEVER a diagnosis — "HRV dipped while you were still", with
-// Breathe now / Not now / Turn off, matching DaytimeStress's "passive suggestion" stance.
+// Breathe now / Not now, matching DaytimeStress's "passive suggestion" stance. Turning check-ins off lives in
+// Settings → Notifications, beside the switch that turned them on.
 //
 // See docs/superpowers/specs/2026-06-19-v5-haptic-biofeedback-design.md (L3 / UX → "Auto-nudge (passive)").
 
@@ -38,8 +39,8 @@ final class StressNudgeCenter: ObservableObject {
     func dismiss() { pending = nil }
 }
 
-/// Asks the check-in's one question in a short sheet whenever a nudge is pending: Breathe now / Not now,
-/// and a small Turn off (the master toggle, via `BiofeedbackPrefs`). Dismissing it is "Not now".
+/// Asks the check-in's one question in a short sheet whenever a nudge is pending: Breathe now / Not now.
+/// Dismissing it is "Not now".
 struct StressCheckInSheetHost: View {
     @ObservedObject var center: StressNudgeCenter
     /// Start a one-minute breathing cue (the host runs it at the resonance / 5.5 pace).
@@ -55,11 +56,7 @@ struct StressCheckInSheetHost: View {
                         center.dismiss()
                         onBreatheNow()
                     },
-                    onNotNow: { center.dismiss() },
-                    onTurnOff: {
-                        BiofeedbackPrefs.checkInEnabled = false
-                        center.dismiss()
-                    })
+                    onNotNow: { center.dismiss() })
                 .presentationDetents(dts.isAccessibilitySize ? [.large] : [.height(300)])
                 #if os(macOS)
                 .frame(width: 420)
@@ -71,7 +68,6 @@ struct StressCheckInSheetHost: View {
 private struct StressCheckInSheet: View {
     let onBreatheNow: () -> Void
     let onNotNow: () -> Void
-    let onTurnOff: () -> Void
     @Environment(\.dynamicTypeSize) private var dts
     @ScaledMetric(relativeTo: .title) private var glyphSize: CGFloat = 30
 
@@ -81,10 +77,6 @@ private struct StressCheckInSheet: View {
         } else {
             content
         }
-    }
-
-    private var footerLayout: AnyLayout {
-        dts.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 14)) : AnyLayout(HStackLayout())
     }
 
     private var content: some View {
@@ -101,29 +93,51 @@ private struct StressCheckInSheet: View {
                 .padding(.top, 14)
                 .padding(.horizontal, 28)
             Spacer(minLength: 16)
+            // One prominent action and one plain one, as a system sheet asks.
             Button(action: onBreatheNow) {
                 Text("Breathe now")
                     .font(StrandFont.pro(17, weight: .semibold))
-                    .foregroundStyle(.black)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 15)
-                    .background(Capsule().fill(StrandPalette.healthRespiratory))
+                    .padding(.vertical, 6)
             }
-            .buttonStyle(.plain)
+            .checkInPrimaryButton()
             .padding(.horizontal, 20)
-            footerLayout {
-                Button("Turn off", action: onTurnOff)
-                    .foregroundStyle(StrandPalette.textSecondary)
-                if !dts.isAccessibilitySize { Spacer() }
-                Button("Not now", action: onNotNow)
-                    .foregroundStyle(StrandPalette.accent)
+            Button(action: onNotNow) {
+                Text("Not now")
+                    .font(StrandFont.pro(17))
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .contentShape(Rectangle())
             }
-            .font(StrandFont.pro(17))
             .buttonStyle(.plain)
-            .padding(.horizontal, 28)
-            .padding(.top, 14)
-            .padding(.bottom, 20)
+            .foregroundStyle(StrandPalette.accent)
+            .padding(.horizontal, 20)
+            .padding(.top, 6)
+            .padding(.bottom, 14)
         }
         .frame(maxWidth: .infinity)
+    }
+}
+
+private extension View {
+    /// iOS 26's prominent Liquid Glass capsule in the breathing hue; a bordered prominent capsule before
+    /// it (and the Mac's native bezel, since `.capsule` there is macOS 14).
+    @ViewBuilder func checkInPrimaryButton() -> some View {
+        #if compiler(>=6.2) && os(iOS)
+        if #available(iOS 26.0, *) {
+            self.buttonStyle(.glassProminent)
+                .tint(StrandPalette.healthRespiratory)
+                .foregroundStyle(.black)
+                .controlSize(.large)
+        } else {
+            self.buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
+                .tint(StrandPalette.healthRespiratory).foregroundStyle(.black).controlSize(.large)
+        }
+        #elseif os(iOS)
+        self.buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
+            .tint(StrandPalette.healthRespiratory).foregroundStyle(.black).controlSize(.large)
+        #else
+        self.buttonStyle(.borderedProminent)
+            .tint(StrandPalette.healthRespiratory).foregroundStyle(.black).controlSize(.large)
+        #endif
     }
 }

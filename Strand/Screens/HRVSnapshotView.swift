@@ -24,6 +24,9 @@ struct HRVSnapshotView: View {
     /// Optional dismissal hook when presented as a sheet (Live → "Take an HRV reading").
     var onClose: (() -> Void)? = nil
 
+    /// Opens Devices from the not-streaming notice. Nil hides the notice's action.
+    var onOpenDevices: (() -> Void)? = nil
+
     /// Where the live R-R is coming from, so the methodology caveat is honest (#537): a WHOOP 5/MG
     /// derives R-R from the optical pulse signal (noisier) while a WHOOP 4 / chest strap is electrical
     /// R-R. Defaults to `.unknown` for callers that do not pass a strap model, matching the Android twin.
@@ -63,6 +66,8 @@ struct HRVSnapshotView: View {
 
     /// Whether the just-finished snapshot has been saved (drives the Save button → "Saved").
     @State private var saved = false
+    /// The last save did not reach the store: the button offers Try Again instead of going back to Save.
+    @State private var saveFailed = false
     @Environment(\.dynamicTypeSize) private var dts
     @ScaledMetric(relativeTo: .largeTitle) private var glyphSize: CGFloat = 56
     @ScaledMetric(relativeTo: .title2) private var figureSize: CGFloat = 24
@@ -119,6 +124,33 @@ struct HRVSnapshotView: View {
         .onDisappear {
             ScreenIdle.keepAwake(false)
         }
+        // The minute ends with the hands still and the eyes likely closed: say so by touch and by voice.
+        #if os(iOS)
+        .sensoryFeedback(trigger: phase) { _, new in
+            guard new == .done else { return nil }
+            return result?.rmssd != nil ? .success : .warning
+        }
+        #endif
+        .onChangeCompat(of: phase) { if $0 == .done { announceResult() } }
+    }
+
+    /// VoiceOver hears the reading end: the figure, or why there is none.
+    private func announceResult() {
+        let text: String
+        if let rmssd = result?.rmssd {
+            text = "\(String(localized: "Reading complete")). \(String(localized: "RMSSD \(Int(rmssd.rounded())) milliseconds"))"
+        } else if let line = statusLine {
+            text = line
+        } else {
+            return
+        }
+        #if os(iOS)
+        AccessibilityNotification.Announcement(text).post()
+        #elseif os(macOS)
+        if #available(macOS 14.0, *) {
+            AccessibilityNotification.Announcement(text).post()
+        }
+        #endif
     }
 
     // MARK: - State area
@@ -243,7 +275,8 @@ struct HRVSnapshotView: View {
                 Button {
                     save(r)
                 } label: {
-                    Label(saved ? "Saved" : "Save", systemImage: saved ? "checkmark" : "square.and.arrow.down")
+                    Label(saved ? "Saved" : saveFailed ? "Try Again" : "Save",
+                          systemImage: saved ? "checkmark" : saveFailed ? "arrow.clockwise" : "square.and.arrow.down")
                         .font(StrandFont.pro(17, weight: .semibold))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 6)
@@ -364,8 +397,8 @@ struct HRVSnapshotView: View {
 
     private var notBondedHint: some View {
         NoticeCard(title: Text("Strap not streaming"),
-                   message: Text("Connect it on the Live screen first."),
-                   systemImage: "applewatch.radiowaves.left.and.right", tone: .warning)
+                   systemImage: "applewatch.radiowaves.left.and.right", tone: .warning,
+                   actionTitle: onOpenDevices == nil ? nil : "Open Devices", action: onOpenDevices)
     }
 
     // MARK: - Capture control
@@ -379,6 +412,7 @@ struct HRVSnapshotView: View {
         runningRMSSD = nil
         result = nil
         saved = false
+        saveFailed = false
         ScreenIdle.keepAwake(true)      // hold the screen awake through the hands-still capture (no-op on macOS)
     }
 
@@ -461,9 +495,11 @@ struct HRVSnapshotView: View {
         let day = Repository.dayString(Date())
         let point = MetricPoint(day: day, key: HRVSnapshot.metricKey, value: rmssd)
         saved = true                    // optimistic — the write is local + idempotent
+        saveFailed = false
         Task {
             guard let store = await model.repo.storeHandle() else {
                 saved = false
+                saveFailed = true
                 return
             }
             do {
@@ -471,6 +507,7 @@ struct HRVSnapshotView: View {
                 await model.repo.refresh()
             } catch {
                 saved = false
+                saveFailed = true
             }
         }
     }

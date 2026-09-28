@@ -2,7 +2,7 @@ import SwiftUI
 import StrandDesign
 
 /// "What's New", as Apple's own sheets draw it: a big title, one row per change of the latest release
-/// (numbered glyph, bold title, one line) and a single Continue button. Earlier releases are one tap
+/// (its own glyph, bold title, one line) and a single Continue button. Earlier releases are one tap
 /// away. Shown automatically after an update and from Settings → About.
 struct WhatsNewView: View {
     let onClose: () -> Void
@@ -79,7 +79,9 @@ struct WhatsNewView: View {
 }
 
 /// One release as What's New rows. Each changelog entry's lead phrase becomes the bold title and its
-/// first sentence the grey line; issue references and credits stay in the full changelog.
+/// first sentence the grey line; issue references and credits stay in the full changelog. Both are
+/// looked up in the string catalog by their English text, so a translated release reads in the app's
+/// language and an untranslated one falls back to English.
 private struct WhatsNewRows: View {
     let release: AppChangelog.Release
     @Environment(\.dynamicTypeSize) private var dts
@@ -88,20 +90,20 @@ private struct WhatsNewRows: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
-            ForEach(Array(release.items.enumerated()), id: \.offset) { index, raw in
+            ForEach(Array(release.items.enumerated()), id: \.offset) { _, raw in
                 let item = WhatsNewItem(raw)
                 HStack(alignment: .top, spacing: 16) {
-                    Image(systemName: index < 50 ? "\(index + 1).circle.fill" : "circle.fill")
+                    Image(systemName: WhatsNewItem.symbol(for: item.title))
                         .font(.system(size: glyphSize))
                         .foregroundStyle(StrandPalette.settingsBlue)
                         .frame(width: glyphWidth)
                         .accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(verbatim: item.title)
+                        Text(verbatim: String(localized: String.LocalizationValue(item.title)))
                             .font(StrandFont.pro(15, weight: .semibold))
                             .foregroundStyle(StrandPalette.textPrimary)
                         if let line = item.line {
-                            Text(verbatim: line)
+                            Text(verbatim: String(localized: String.LocalizationValue(line)))
                                 .font(StrandFont.pro(15))
                                 .foregroundStyle(StrandPalette.textSecondary)
                                 .lineLimit(dts.isAccessibilitySize ? nil : 2)
@@ -182,6 +184,27 @@ private struct WhatsNewItem {
         self.title = title.isEmpty ? Self.clean(text) : title
         self.line = line.isEmpty ? nil : line + "."
     }
+
+    /// The row's glyph, as Apple's What's New gives each change its own symbol rather than a number (the
+    /// changes are not a sequence). Keyed by the entry's English title; a title without one gets the
+    /// neutral sparkles.
+    static func symbol(for title: String) -> String {
+        symbols[title] ?? "sparkles"
+    }
+
+    private static let symbols: [String: String] = [
+        "A lift log you advance from the strap": "dumbbell.fill",
+        "A Coach you can turn off completely": "bubble.left.and.bubble.right.fill",
+        "Sync the strap from a shortcut, and watch it work": "arrow.triangle.2.circlepath",
+        "Workouts that are easier to keep tidy": "figure.run",
+        "An Oura ring that reads its own packets correctly": "circle.circle.fill",
+        "WHOOP 5 readings that admit when they failed": "checkmark.shield.fill",
+        "Charts that stop redrawing the whole screen": "chart.xyaxis.line",
+        "Steps charts, and an optional 30-day average": "figure.walk",
+        "Apple Health that keeps up": "heart.fill",
+        "Smaller corrections": "wrench.and.screwdriver.fill",
+        "Localization": "globe",
+    ]
 
     /// Up to and excluding the first sentence-ending ". ", skipping "e.g." / "i.e." style abbreviations.
     private static func firstSentence(_ s: String) -> String {

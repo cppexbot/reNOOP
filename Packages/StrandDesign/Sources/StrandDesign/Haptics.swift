@@ -56,34 +56,3 @@ public enum StrandHaptic {
         #endif
     }
 }
-
-public extension View {
-    /// Declarative haptic fired when `trigger` changes (iOS 17+ `.sensoryFeedback`; no-op
-    /// below / on macOS). Use for value-driven landings: score reveal, bond success,
-    /// refresh-done — anything where a state change, not a tap, is the cue.
-    @ViewBuilder
-    func strandHaptic<V: Equatable>(_ haptic: StrandHaptic, trigger: V) -> some View {
-        #if os(iOS)
-        if #available(iOS 17.0, *) {
-            self.sensoryFeedback(trigger: trigger) { _, _ in haptic.sensory }
-        } else { self }
-        #else
-        self
-        #endif
-    }
-}
-
-#if os(iOS)
-@available(iOS 17.0, *)
-private extension StrandHaptic {
-    var sensory: SensoryFeedback {
-        switch self {
-        case .selection: return .selection
-        case .light:     return .impact(weight: .light)
-        case .commit:    return .impact(weight: .heavy)
-        case .success:   return .success
-        case .warning:   return .warning
-        }
-    }
-}
-#endif

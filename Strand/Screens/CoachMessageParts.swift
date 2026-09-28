@@ -208,6 +208,13 @@ final class FlightTarget {
         lastFrame = nil
     }
 
+    /// Ends the flight where it stands: its clock jumps to the settled end, so the waiting sender lets the
+    /// bubble underneath take over. For a flight caught by the quiet-motion gate mid-air.
+    func land() {
+        elapsed = OutgoingFlight.duration
+        lastFrame = nil
+    }
+
     func tick(_ now: Date) -> TimeInterval {
         if let lastFrame { elapsed += min(max(0, now.timeIntervalSince(lastFrame)), 1.0 / 30) }
         lastFrame = now
@@ -224,36 +231,49 @@ struct FlyingMessageBubble: View {
     /// Where the bubble lands, read live: the transcript scrolls while it flies.
     let target: FlightTarget
     let viewportHeight: CGFloat
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ObservedObject private var motion = NoopMotionState.shared
 
+    /// Under Reduce Motion / Quiet Motion there is no flight: the question simply appears in place.
     var body: some View {
-        TimelineView(.animation) { context in
-            let t = target.tick(context.date)
-            let from = CGRect(x: flight.from.minX, y: flight.from.minY,
-                              width: flight.from.width, height: flight.from.height + MessageBubbleShape.tailHeight)
-            let to = target.rect ?? from
-            let travel = MessageMotion.spring(t, response: 0.54, damping: 0.71)
-            let narrow = MessageMotion.spring(t, response: 0.22, damping: 1, velocity: 8)
-            let width = MessageMotion.lerp(from.width, to.width, narrow)
-            let height = MessageMotion.lerp(from.height, to.height, narrow)
-            let right = MessageMotion.lerp(from.maxX, to.maxX, travel)
-            let bottom = MessageMotion.lerp(from.maxY, to.maxY, travel)
-            Text(flight.text)
-                .font(StrandFont.pro(17))
-                .foregroundStyle(StrandPalette.messageOutgoingText)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(width: max(0, to.width - 28), alignment: .leading)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .frame(width: width, height: height, alignment: .topLeading)
-                .background {
-                    MessageBubbleFill(outgoing: true, viewportHeight: viewportHeight)
-                        .clipShape(MessageBubbleShape(outgoing: true, tail: true))
-                }
-                .scaleEffect(Self.scale(t), anchor: .bottomTrailing)
-                .opacity(Self.opacity(t))
-                .position(x: right - width / 2, y: bottom - height / 2)
+        let still = motion.poseStill(reduceMotion)
+        TimelineView(.animation(minimumInterval: nil, paused: still)) { context in
+            if still {
+                Color.clear
+            } else {
+                bubble(at: target.tick(context.date))
+            }
         }
         .allowsHitTesting(false)
+        .onAppear { if still { target.land() } }
+        .onChangeCompat(of: still) { if $0 { target.land() } }
+    }
+
+    private func bubble(at t: TimeInterval) -> some View {
+        let from = CGRect(x: flight.from.minX, y: flight.from.minY,
+                          width: flight.from.width, height: flight.from.height + MessageBubbleShape.tailHeight)
+        let to = target.rect ?? from
+        let travel = MessageMotion.spring(t, response: 0.54, damping: 0.71)
+        let narrow = MessageMotion.spring(t, response: 0.22, damping: 1, velocity: 8)
+        let width = MessageMotion.lerp(from.width, to.width, narrow)
+        let height = MessageMotion.lerp(from.height, to.height, narrow)
+        let right = MessageMotion.lerp(from.maxX, to.maxX, travel)
+        let bottom = MessageMotion.lerp(from.maxY, to.maxY, travel)
+        return Text(flight.text)
+            .font(StrandFont.pro(17))
+            .foregroundStyle(StrandPalette.messageOutgoingText)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(width: max(0, to.width - 28), alignment: .leading)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .frame(width: width, height: height, alignment: .topLeading)
+            .background {
+                MessageBubbleFill(outgoing: true, viewportHeight: viewportHeight)
+                    .clipShape(MessageBubbleShape(outgoing: true, tail: true))
+            }
+            .scaleEffect(Self.scale(t), anchor: .bottomTrailing)
+            .opacity(Self.opacity(t))
+            .position(x: right - width / 2, y: bottom - height / 2)
     }
 
     private static func scale(_ t: Double) -> CGFloat {
@@ -287,7 +307,12 @@ struct MessageTypingIndicator: View {
     /// How long it takes to shrink away.
     static let shrinkDuration: TimeInterval = 0.25
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ObservedObject private var motion = NoopMotionState.shared
+
     var body: some View {
+        // The caller's `still`, or the gate read here, so the indicator can never loop past it.
+        let still = self.still || motion.poseStill(reduceMotion)
         TimelineView(.animation(minimumInterval: nil, paused: still)) { context in
             let t = context.date.timeIntervalSince(appearedAt)
             let gone = endedAt.map { 1 - MessageMotion.bezier(context.date.timeIntervalSince($0) / Self.shrinkDuration, 0.25, 0, 0.25, 1) } ?? 1

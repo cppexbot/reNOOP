@@ -114,6 +114,7 @@ private struct LivePage: View {
         // (noisier), a WHOOP 4's electrical, so the reading is told which (#537).
         .sheet(isPresented: $showHRVSnapshot) {
             HRVSnapshotView(onClose: { showHRVSnapshot = false },
+                            onOpenDevices: { showHRVSnapshot = false; router.openDevices() },
                             source: WhoopModel(rawValue: selectedModelRaw) == .whoop5mg ? .opticalPPG : .chestStrap)
                 .environmentObject(live)
         }
@@ -168,7 +169,7 @@ private struct LiveHeartFigure: View {
     var body: some View {
         let bpm = model.bpm
         VStack(alignment: .leading, spacing: 0) {
-            LiveHeartGlow(beating: bpm != nil && !motion.poseStill(reduceMotion))
+            LiveHeartGlow(bpm: motion.poseStill(reduceMotion) ? nil : bpm)
                 .frame(maxWidth: .infinity)
                 .frame(height: 230)
             Group {
@@ -201,39 +202,70 @@ private struct LiveHeartFigure: View {
 }
 
 /// The heart from the watch's Heart Rate app: a bright heart inside softer, larger copies of itself that
-/// fade into the page. Beats once a second while a live reading flows; still otherwise.
+/// fade into the page. Beats at the live rate while a reading flows; still otherwise (and under the
+/// quiet-motion gate, which the caller applies by passing `nil`).
 private struct LiveHeartGlow: View {
-    let beating: Bool
-    @State private var beat = false
+    /// The rate the heart beats at. `nil` holds it still.
+    let bpm: Int?
+    @State private var clock = LiveBeatClock()
 
     var body: some View {
+        TimelineView(.animation(minimumInterval: nil, paused: bpm == nil)) { ctx in
+            heart(pulse: bpm == nil ? 0 : clock.pulse(at: ctx.date))
+        }
+        .animation(.easeOut(duration: 0.3), value: bpm == nil)
+        .accessibilityHidden(true)
+        .onAppear { clock.retime(to: bpm, at: Date()) }
+        .onChangeCompat(of: bpm) { clock.retime(to: $0, at: Date()) }
+    }
+
+    private func halo(ring: CGFloat, pulse: CGFloat) -> some View {
+        let opacity: Double = 0.42 - Double(ring) * 0.08
+        let scale: CGFloat = (1 + ring * 0.27) * (1 + ring * 0.015 * pulse)
+        return Image(systemName: "heart.fill")
+            .font(.system(size: 104))
+            .foregroundStyle(StrandPalette.healthHeart.opacity(opacity))
+            .scaleEffect(scale)
+            .blur(radius: 0.5 + ring * 0.8)
+    }
+
+    /// `pulse` runs 0 (at rest) to 1 (the top of a beat).
+    private func heart(pulse: Double) -> some View {
         ZStack {
             // Concentric copies of the heart, each a step larger and fainter, as the watch draws its halo.
             ForEach((1...4).reversed(), id: \.self) { ring in
-                Image(systemName: "heart.fill")
-                    .font(.system(size: 104))
-                    .foregroundStyle(StrandPalette.healthHeart.opacity(0.42 - Double(ring) * 0.08))
-                    .scaleEffect((1 + CGFloat(ring) * 0.27) * (beat ? 1 + CGFloat(ring) * 0.015 : 1))
-                    .blur(radius: 0.5 + CGFloat(ring) * 0.8)
+                halo(ring: CGFloat(ring), pulse: CGFloat(pulse))
             }
             Image(systemName: "heart.fill")
                 .font(.system(size: 104))
-                .foregroundStyle(LinearGradient(colors: [Color(red: 1, green: 0.36, blue: 0.3), Color(red: 0.88, green: 0.08, blue: 0.18)],
-                                                startPoint: .top, endPoint: .bottom))
+                .foregroundStyle(StrandPalette.healthHeart)
                 .shadow(color: StrandPalette.healthHeart.opacity(0.5), radius: 12)
-                .scaleEffect(beat ? 1.05 : 1)
+                .scaleEffect(1 + 0.05 * pulse)
         }
-        .accessibilityHidden(true)
-        .onAppear { setBeat(beating) }
-        .onChangeCompat(of: beating) { setBeat($0) }
+    }
+}
+
+/// The heart's beat phase. A new rate re-anchors the phase where it stands, so the beat speeds up or
+/// slows down without jumping mid-stroke.
+private struct LiveBeatClock {
+    private var anchor = Date()
+    private var anchorPhase = 0.0
+    private var beatsPerSecond = 1.0
+
+    private func phase(at date: Date) -> Double {
+        anchorPhase + max(0, date.timeIntervalSince(anchor)) * beatsPerSecond
     }
 
-    private func setBeat(_ on: Bool) {
-        if on {
-            withAnimation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true)) { beat = true }
-        } else {
-            withAnimation(.easeOut(duration: 0.3)) { beat = false }
-        }
+    mutating func retime(to bpm: Int?, at date: Date) {
+        anchorPhase = phase(at: date).truncatingRemainder(dividingBy: 1)
+        anchor = date
+        if let bpm, bpm > 0 { beatsPerSecond = Double(bpm) / 60 }
+    }
+
+    /// One smooth swell and release per beat: 0 at rest, 1 at the peak.
+    func pulse(at date: Date) -> Double {
+        let f = phase(at: date).truncatingRemainder(dividingBy: 1)
+        return 0.5 - 0.5 * cos(2 * .pi * f)
     }
 }
 
@@ -434,18 +466,13 @@ private struct LiveWorkoutRow: View {
 }
 
 private extension View {
-    /// iOS 26's prominent Liquid Glass capsule in Exercise green; a bordered prominent capsule before it.
+    /// A bordered prominent capsule in Exercise green. Not Liquid Glass: this button sits in the scrolling
+    /// content, and glass belongs to the controls layer above it.
+    /// (`.capsule` is macOS 14, so the Mac keeps its native bezel.)
     @ViewBuilder func liveProminentButton() -> some View {
-        #if compiler(>=6.2) && os(iOS)
-        if #available(iOS 26.0, *) {
-            self.buttonStyle(.glassProminent)
-                .tint(StrandPalette.activityExerciseText)
-                .foregroundStyle(StrandPalette.fitnessOnAccent)
-                .controlSize(.large)
-        } else {
-            self.buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
-                .tint(StrandPalette.activityExerciseText).controlSize(.large)
-        }
+        #if os(iOS)
+        self.buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
+            .tint(StrandPalette.activityExerciseText).controlSize(.large)
         #else
         self.buttonStyle(.borderedProminent)
             .tint(StrandPalette.activityExerciseText).controlSize(.large)
@@ -497,7 +524,7 @@ private struct LiveProblemLine: View {
                            text: String(localized: "Strap not connected"), tone: .info)
         }
         if !live.bonded {
-            return Problem(icon: "ellipsis.circle", text: String(localized: "Connected, waiting for a streaming state."),
+            return Problem(icon: "ellipsis.circle", text: String(localized: "Connecting…"),
                            tone: .warning)
         }
         if !live.encryptedBond {
@@ -506,7 +533,7 @@ private struct LiveProblemLine: View {
         }
         if LiveView.shouldShowStandardHRNote(live.standardHRMode) {
             return Problem(icon: "antenna.radiowaves.left.and.right",
-                           text: String(localized: "Standard HR mode (low bandwidth)"), tone: .info)
+                           text: String(localized: "Heart rate updates less often"), tone: .info)
         }
         if !live.worn {
             return Problem(icon: "hand.raised", text: String(localized: "Off wrist"), tone: .warning)

@@ -106,8 +106,11 @@ struct CoachSettingsView: View {
                         .keyboardType(.URL)
                         #endif
                 }
-                Picker("Key Header", selection: $coach.customAuthHeader) {
-                    ForEach(CustomAIAuthHeader.allCases) { Text($0.displayName).tag($0) }
+                // How the key is sent is a server detail most readers never change.
+                DisclosureGroup("Advanced") {
+                    Picker("Key Header", selection: $coach.customAuthHeader) {
+                        ForEach(CustomAIAuthHeader.allCases) { Text($0.displayName).tag($0) }
+                    }
                 }
             }
             Picker("Model", selection: modelPickerSelection) {
@@ -124,25 +127,32 @@ struct CoachSettingsView: View {
             }
             SecureField(coach.provider == .custom ? "API Key (optional)" : "API Key", text: $keyDraft)
                 .onSubmit(commit)
+            // Return saves the key; the row appears once there is a key to save, so an empty form never
+            // shows a greyed button that reads as another field.
+            if !keyDraftIsEmpty && !(coach.provider == .custom && !coach.isConfigured) {
+                Button(coach.hasKey ? "Update Key" : "Save Key", action: commit)
+            }
         } footer: {
             // Setup failures only: once connected, the conversation shows a failed send under itself.
             if !coach.isConfigured, let error = coach.errorText, !error.isEmpty {
                 Text(error).foregroundStyle(StrandPalette.settingsRed)
             }
         }
-        Section {
-            if coach.provider == .custom && !coach.isConfigured {
+        if coach.provider == .custom && !coach.isConfigured {
+            Section {
                 Button("Connect", action: commit)
                     .disabled(coach.customBaseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            } else {
-                Button(coach.hasKey ? "Update Key" : "Save Key", action: commit)
-                    .disabled(keyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
-            if coach.provider != .custom {
+        } else if coach.provider != .custom {
+            Section {
                 Button("Refresh Models") { Task { await coach.refreshModels() } }
                     .disabled(!coach.hasKey)
             }
         }
+    }
+
+    private var keyDraftIsEmpty: Bool {
+        keyDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     /// Bridges the model Picker to `coach.model`, with a "Custom…" sentinel that opens the free-text
