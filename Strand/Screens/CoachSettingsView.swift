@@ -194,10 +194,8 @@ struct CoachSettingsView: View {
                 }
             }
         } footer: {
-            // The only place this is agreed to, so it names what a workout carries (#2033).
-            if coach.dataConsent {
-                Text("Charge, sleep, HRV and workouts with sport, duration, distance and heart rate.")
-            }
+            // The only place this is agreed to, so it names who receives what, whether on or off (#2033, CR-10).
+            Text("\(coach.provider.displayName) receives Charge, sleep, HRV and workouts with sport, duration, distance and heart rate when you ask.")
         }
     }
 
