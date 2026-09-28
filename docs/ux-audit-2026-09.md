@@ -530,6 +530,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 ### 1. Каркас: таб-бар, аксессуар, тулбары, шторки, поиск
 
 **K-1. Поиск «Обзора» находит только 9 названий разделов — Improvement · High**
+- **Статус:** исправлено, 10c307e7.
 - **What:** `StrandiOS/App/BrowseView.swift:53–58` фильтрует только строки категорий. Запросы «ВСР», «VO₂», «пульс покоя» дают «Нет результатов», хотя страницы этих показателей есть. Поиск в «Здоровье» находит типы данных.
 - **Why:** `searching.md › Best practices`: "Aim to make your app’s content searchable through a single location."
 - **Fix:** в режиме поиска добавить секцию показателей:
@@ -542,6 +543,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Скриншот:** `shell/browse`.
 
 **K-2. Один экран открывается то переходом, то шторкой; быстрое действие показывает корень вкладки в шторке — Improvement · High**
+- **Статус:** исправлено, 10c307e7.
 - **What:** в `StrandiOS/App/RootTabView.swift`:
   - Что вами движет, Lab Book и Коуч открываются шторкой (132–146), Журнал — тоже шторкой (157–161);
   - Тренды открываются переходом (147–151);
@@ -553,6 +555,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Скриншот:** долгое нажатие на иконку → «Начать тренировку».
 
 **K-3. Мини-плеер закрывает подсказки Коуча; Коуч прячет таб-бар — Improvement · High**
+- **Статус:** исправлено, 9b55077f.
 - **What:**
   - `CoachView.swift:94` делает `.toolbar(.hidden, for: .tabBar)`, но аксессуар тренировки остаётся. Он ложится на ряд подсказок над полем ввода: текст «…качество важнее объёма — спланируй тр…» виден под капсулой «Силовая 2:20».
   - Если открыть Коуча из «Обзора», пропадают и вкладки.
@@ -603,6 +606,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Скриншоты:** `light/sleepmore`, `light/profile`.
 
 **K-9. Повторное касание вкладки ещё и обновляет данные — Craft · Low**
+- **Статус:** исправлено, 10c307e7.
 - **What:** `RootTabView.swift:82`: `Task { await repo.refresh() }`.
 - **Why:** `tab-bars.md › Best practices`: "Use a tab bar to support navigation, not to provide actions."
 - **Fix:** удалить строку: обновление уже есть в `.refreshable` и при возврате в приложение.
@@ -615,6 +619,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 ### 2. Сводка
 
 **S-1. Заряд, Усилие и Отдых меняют цвет между экранами; один цвет значит разное — Improvement · High**
+- **Статус:** исправлено (канон — цвета колец), 51ea6e5e.
 - **What:**
   - На Сводке Заряд красный (Move), Усилие зелёное (Exercise), Отдых голубой (Stand): `SummaryView.swift:228–253`.
   - На странице «Заряд» столбцы красно-жёлто-зелёные по порогам, заголовок подборки зелёный, «Последнее 46 %» красное, «Среднее 44 %» бирюзовое. У Усилия всё оранжевое: `MetricHealthStyle.swift:56–60, 80–84, 238–242`.
@@ -630,6 +635,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Скриншоты:** `light/summary` + `light/metric-charge` + `light/metric-strain`.
 
 **S-2. Карточка «Активность» не перестраивается — Improvement · High**
+- **Статус:** исправлено, 1a85ade7.
 - **What:** три колонки, два разделителя по 25 pt и кольца 64 pt в одном `HStack`, у колонки `.fixedSize()` (`SummaryCards.swift:127–173`, строка 170). Когда Заряд перенесён со вчера, подпись «Прошлой ночью · 24 сент.» (~150 pt) переполняет строку уже на стандартном кегле, а на AX1 — всегда.
 - **Why:** `typography.md › Supporting Dynamic Type`: "When font size increases in a horizontally constrained context, inline items (like glyphs and timestamps) and container boundaries can crowd text and cause truncation or overlapping."
 - **Fix:**
@@ -661,6 +667,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 ### 3. Сон и «Больше данных о сне»
 
 **SL-1. Кольцо «Оценки сна»: четыре сегмента различаются только цветом — Improvement · High**
+- **Статус:** исправлено (разбивка вернулась под кольцо по решению владельца), 51ea6e5e.
 - **What:** `SleepHealthComponents.swift:47–55, 64–66`. Сегменты Длительность / Прерывания / Глубокий и REM / Регулярность рассчитаны (`SleepScore.Part.points`), но нигде не подписаны. VoiceOver слышит только «Оценка сна, 95». Владелец разбивку под кольцом убрал сознательно.
 - **Why:** `color.md › Inclusive color`: "Avoid relying solely on color to differentiate between objects, indicate interactivity, or communicate essential information."
 - **Fix:** визуально ничего не добавлять, озвучить разбивку:
@@ -671,6 +678,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Скриншот:** `light/sleep`.
 
 **SL-2. Цвета стадий сна означают на листе другие вещи — Improvement · High**
+- **Статус:** исправлено, 51ea6e5e.
 - **What:**
   - `SleepMoreDataView.swift:249–257`: голубая точка REM обозначает «Время в постели», синяя Core — «Время сна», цвет Deep — «Потребность».
   - `:595–596`: коралловый «Бодрствование» означает недобор.
@@ -728,6 +736,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Скриншот:** `light/metric-steps`.
 
 **M-4. Заряд: состояние на столбцах только цветом, жёлтый 1,51:1 — Improvement · Medium**
+- **Статус:** исправлено (пороги на оси + слово состояния), 51ea6e5e.
 - **What:** `MetricHealthStyle.swift:82–83`: красный/жёлтый/зелёный по порогам 50/70 без линий и подписей. Жёлтый `#FFCC00` на белом даёт 1,51:1.
 - **Why:** `charts.md › Color`: "Avoid relying solely on color to differentiate between different pieces of data or communicate essential information in a chart."
 - **Fix:** `RuleMark(y: .value("", 50))` и `RuleMark(y: .value("", 70))` с `.annotation { Text("Low") }`; в строке выбора выводить слово состояния.
@@ -758,6 +767,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 ### 5. Тренировки: вкладка, «Все тренировки», детали, запись, зал, интервалы, дневник, ручное добавление, выбор спорта
 
 **W-1. Тренировка удаляется полным свайпом без подтверждения и без undo — Improvement · High**
+- **Статус:** исправлено, a372fb21.
 - **What:** в `WorkoutHistoryView.swift:70–74` у `.swipeActions` остаётся `allowsFullSwipe` по умолчанию. `delete` (`:160–164`) стирает и GPS-маршрут. Для сравнения: сессия зала удаляется с подтверждением (`LiftSessionDetailSheet.swift:155–161`), у сна есть «Отменить».
 - **Why:** `alerts.md › Best practices`: "…when people take an uncommon destructive action that they can’t undo, it’s important to display an alert in case they initiated the action accidentally." `undo-and-redo.md › Best practices`: "People generally expect to initiate undo and redo in system-supported ways, such as … shaking their iPhone."
 - **Fix:**
@@ -770,6 +780,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
   `restoreWorkout` сделать по образцу `undoDeleteSleepSession`.
 
 **W-2. Шторки теряют ввод при смахивании и по ✕ — Improvement · High**
+- **Статус:** исправлено, a372fb21 (Lab Book — 686fe2f9).
 - **What:** `LiftProgramEditorSheet.swift:119`, `LiftProgramItemSheet.swift:139`, `LiftSessionEditSheet.swift:90` (флаг `hasChanges` отключает только ✓), `ManualWorkoutSheet.swift:156`, `LiftSetEditor.swift:111,121` (детент medium), `MarkerEditorView.swift:219–222` (Lab Book). В `Strand/Fitness` нет ни одного `interactiveDismissDisabled`.
 - **Why:** `sheets.md › Mobile (iOS, iPadOS)`: "If people have unsaved changes in the sheet when they begin swiping to dismiss it, use an action sheet to let them confirm their action." `modality.md › Best practices`: "if closing the view could result in the loss of user-generated content, be sure to explain the situation and give people ways to resolve it."
 - **Fix:**
@@ -783,6 +794,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
   ```
 
 **W-3. ✕ в интервалах сбрасывает прогресс без вопроса — Improvement · High**
+- **Статус:** исправлено, 51ea6e5e.
 - **What:** `IntervalTimerView.swift:209–212` сразу вызывает `runner.stopAndReset()`. Тот же ✕ при записи тренировки спрашивает подтверждение (`LiveWorkoutView.swift:71`).
 - **Why:** `progress-indicators.md › Best practices`: "When canceling a process results in lost progress, it’s helpful to provide an alert that includes an option to confirm the cancellation or resume the process."
 - **Fix:** `.confirmationDialog` с кнопкой «Завершить интервалы» (`.destructive`), когда `runner.elapsed > 0 && !runner.isFinished`.
@@ -875,6 +887,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 ### 6. Будильник и расписание сна
 
 **AL-1. Резервный будильник не пробивает режим «Сон» — Improvement · High**
+- **Статус:** исправлено (AlarmKit по решению владельца), b9b96897.
 - **What:**
   - Уведомление «Smart alarm / Time to wake up.» (`Strand/App/AppModel.swift:1594–1597`, зеркало — `:1527–1530`) уходит без `interruptionLevel`, то есть `.active`. В Фокусе «Сон» оно будет задержано.
   - Батарея при этом просит `.timeSensitive` (`BatteryNotifier.swift:143,174`): срочность расставлена наоборот.
@@ -926,6 +939,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 ### 8. Дыхание (Осознанность)
 
 **BR-1. Итог сессии: ложная точность ВСР — Improvement · High**
+- **Статус:** исправлено, 51ea6e5e.
 - **What:** «ВСР +14% от начала · пик 58 мс» считается по сырому RMSSD на скользящих 30 интервалах без очистки от эктопических ударов (`BreathingView.swift:951–983, 830–834`). «Пик» — максимум шумного ряда. У Apple в итогах «Осознанности» только время и пульс.
 - **Why:** `machine-learning.md › Private or public`: "As with critical app features, features that use sensitive data must prioritize accuracy and reliability."
 - **Fix:** оставить «Время» и «Пульс». Если ВСР нужна — одно число из очищенного окна: `HRVAnalyzer.analyze(rawRR:…, maxRejectedFraction: HRVAnalyzer.defaultSpotMaxRejectedFraction).rmssd`.
@@ -954,12 +968,14 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 (Critical: CR-10 — отправка данных без вопроса, CR-12 — голосовой ввод.)
 
 **CO-1. Нет раскрытия ИИ, «Доставлено» появляется по таймеру — Improvement · High**
+- **Статус:** исправлено, 9b55077f.
 - **What:** экран — чат с «контактом»: «печатает…», статусы доставки. Название «ИИ-тренер» раскрывает ИИ частично, но нигде не сказано, что ответы могут быть ошибочны, хотя речь о ВСР и нагрузке. «Доставлено» ставится через 1 с независимо от сети (`CoachView.swift:340–348, 739–742`).
 - **Why:** `generative-ai.md › Transparency`: "Never trick someone into thinking they’re interacting with or viewing content authored by a human if they’re actually interacting with AI." `generative-ai.md › Inputs`: "it’s important to clearly communicate that AI-generated content may contain errors."
 - **Fix:** без новых элементов: вторая строка `serviceLine` (на месте «iMessage · Encrypted» у Apple) → «ИИ · может ошибаться». «Доставлено» убрать, оставить только «Не доставлено».
 - **Скриншот:** `light/coach`.
 
 **CO-2. Нельзя остановить генерацию или повторить ответ — Improvement · High**
+- **Статус:** исправлено, 9b55077f.
 - **What:** пока идёт стрим, отправка и микрофон заблокированы, «стоп» нет. У ответа есть «Копировать», «Поделиться» и «Сохранить», но нет «Повторить» (`CoachView.swift:435–449, 672–674`; `AICoach.swift:722–753`).
 - **Why:** `generative-ai.md › Outputs`: "surfacing controls like Edit, Undo, Retry, or Adjust near generated content preserves people’s agency"
 - **Fix:**
@@ -970,12 +986,14 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Скриншот:** `light/coach-typing`.
 
 **CO-3. «Отключить» стирает ключ и переписку без подтверждения — Improvement · High**
+- **Статус:** исправлено, a372fb21.
 - **What:** удаляет ключ из Keychain и все сообщения одним касанием (`CoachSettingsView.swift:51–54`; `AICoach.swift:431–446`). Менее разрушительное «Очистить разговор» при этом подтверждение спрашивает.
 - **Why:** `alerts.md › Best practices`: "…when people take an uncommon destructive action that they can’t undo, it’s important to display an alert in case they initiated the action accidentally."
 - **Fix:** `.confirmationDialog("Disconnect \(coach.provider.displayName)?", …) { Button("Disconnect", role: .destructive) { coach.disconnect() } }`.
 - **Скриншот:** `light/coach-settings`.
 
 **CO-4. Ошибки ИИ: английские строки, HTTP-коды, служебный текст в сообщениях — Improvement · Medium**
+- **Статус:** исправлено, 9b55077f.
 - **What:**
   - Ошибки вида «The provider returned an error (503) - …», «Network problem: …» (`AICoach.swift:132–157, 804, 818, 842`) показываются 11 pt.
   - `*(stream interrupted)*` и «Today's brief» вшиты прямо в текст сообщения.
@@ -990,11 +1008,13 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Скриншот:** `light/coach-settings`.
 
 **CO-6. Один хаптик на успех и сбой; ответ не объявляется — Improvement · Medium (по коду)**
+- **Статус:** исправлено, 9b55077f.
 - **What:** лёгкий impact на любой переход `sending → false`, в том числе при ошибке (`CoachView.swift:143–148`). VoiceOver о пришедшем ответе не узнаёт.
 - **Why:** `playing-haptics.md › Best practices`: "If you use the same haptic pattern for a positive outcome like a level completion, people will be confused." `voiceover.md › Navigation`: "Inform VoiceOver when visible content or layout changes occur."
 - **Fix:** `.sensoryFeedback(trigger: replyArrived) { _, _ in coach.errorText == nil ? .impact(weight: .light) : .error }`; `AccessibilityNotification.Announcement(…)`.
 
 **CO-7. Мелочи чата — Craft · Low**
+- **Статус:** исправлено, 9b55077f (подъём шапки -54 оставлен: иначе обрезается).
 - **What:** «+» открывает подсказки (в «Сообщениях» это меню приложений) и дублирует ряд подсказок. Шестерёнка и тап по шапке ведут в одно место. Шапка поднята хаком `-54` (`CoachView.swift:201, 209`). В пустом чате подсказка уходит за правый край.
 - **Why:** `design-principles.md › Simplicity`: "Include just what’s necessary."
 - **Fix:** оставить один вход в настройки — тап по шапке, как в «Сообщениях»; «+» убрать; подсказкам дать `.scrollTargetBehavior(.viewAligned)` с видимым краем.
@@ -1003,6 +1023,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 ### 10. Журнал
 
 **JR-1. «Да/Нет» различаются только заливкой, белое на бирюзе 2,57:1 — Improvement · Medium**
+- **Статус:** исправлено, 686fe2f9.
 - **What:** `JournalView.swift:487–508`. VoiceOver слышит «Yes, button» без названия привычки и без состояния. Заполненность дня в полосе недели не озвучивается (`:143–145`).
 - **Why:** `accessibility.md › Vision`: "Convey information with more than color alone."
 - **Fix:**
@@ -1013,11 +1034,13 @@ voiceInput.stopTranscribing { _ in }                          // не допис
   Для колонки дня — `.accessibilityValue(Text(fraction.formatted(.percent)))`.
 
 **JR-2. Удаление без undo; настроение не удалить — Improvement · Medium**
+- **Статус:** исправлено, 686fe2f9.
 - **What:** записи удаляются сразу (`JournalView.swift:278–281, 298–300`); у настроения `remove: nil` (`:340–344`).
 - **Why:** `undo-and-redo.md › Best practices`: "People generally expect to initiate undo and redo in system-supported ways, such as … shaking their iPhone."
 - **Fix:** `undoManager?.registerUndo(withTarget: repo) { … }` (встряхивание, без нового UI); `remove: { moods[day] = nil; … }`.
 
 **JR-3. Два «+» на одно действие; иконка 9 pt — Craft · Low**
+- **Статус:** исправлено, 686fe2f9.
 - **What:** «+» в тулбаре (`:79–83`) и «+» у каждой строки (`:157–173`). Иконка 9 pt (`:127`). В целом экран близок к «Лекарствам» Apple, в том числе бирюзовые строки «Внесение» и полоса недели.
 - **Why:** `design-principles.md` (вступление, Simplicity): "A well-designed experience removes the unnecessary, with every element earning its place."
 - **Fix:** тулбарный «+» убрать или оставить только его, как у Apple («Добавить лекарство» в тулбаре, «+» у строки — для записи приёма; решить, что из этого что). Иконку — `.caption2`.
@@ -1026,12 +1049,14 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 ### 11. «Что вами движет»
 
 **WM-1. Вопросы на английском в русском интерфейсе — Improvement · High**
+- **Статус:** исправлено, 686fe2f9.
 - **What:** «Did you drink any alcohol?», «Did you feel stressed?», «Did you have caffeine late in the day?» — это ключи вопросов из экспорта WHOOP (`Strand/Data/JournalCatalog.swift:32`), и они показываются как есть. В `Localizable.xcstrings` таких ключей нет.
 - **Why:** `writing.md › Getting started`: "Choose simple, plain language and write with accessibility and localization in mind".
 - **Fix:** хранить английский ключ, а показывать `JournalCatalog.displayName(for:)` → `String(localized:)`. Так же в Журнале и в подборках.
 - **Скриншот:** `light/insights`.
 
 **WM-2. Причинные формулировки и статистика на карточках — Improvement · High**
+- **Статус:** исправлено, 686fe2f9.
 - **What:**
   - «Каждый напиток снижает Заряд на следующий день на ~5 %», «Tomorrow’s Charge 63%» — причинность и точный прогноз (`InsightsHubView.swift:641–655`).
   - Карточка показывается, даже когда кривая почти целиком популяционная.
@@ -1042,12 +1067,14 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Скриншот:** `light/insights`.
 
 **WM-3. Сегменты «Заряд · HRV · Отдых · RHR» — Improvement · Medium**
+- **Статус:** исправлено, 686fe2f9.
 - **What:** русские слова вперемешку с английскими аббревиатурами. На Сводке тот же показатель называется «ВСР».
 - **Why:** `writing.md › Getting started`: "Create a list of common terms, and reference that list to keep your language consistent."
 - **Fix:** «Заряд · ВСР · Отдых · Пульс покоя» (или короткое «Пульс»).
 - **Скриншот:** `light/insights`.
 
 **WM-4. Пустое состояние «Пока нет закономерностей» без кнопки — Craft · Low**
+- **Статус:** исправлено, 686fe2f9.
 - **What:** `InsightsHubView.swift:38–39`.
 - **Why:** `writing.md › Best practices`: "Provide clear next steps on any blank screens."
 - **Fix:** `ContentUnavailableView { … } actions: { Button("Open Journal") { … } }`.
@@ -1055,6 +1082,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 ### 12. Lab Book (Лабораторный журнал)
 
 **LB-1. Единицы и числа по-английски — Improvement · Medium**
+- **Статус:** исправлено, 686fe2f9.
 - **What:**
   - Единицы «nmol/L», «mmol/L», «µg/L», «mmHg» — у Apple «нмоль/л», «ммоль/л», «мкг/л», «мм рт. ст.».
   - Значения всегда через точку: «5.0», «1.40» (`LabBookView.swift:569–585`), а в остальном приложении запятая («14,0»).
@@ -1064,12 +1092,14 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Скриншот:** `light/labbook`.
 
 **LB-2. Ввод анализа без проверки, удаление без подтверждения — Improvement · Medium**
+- **Статус:** исправлено, 686fe2f9.
 - **What:** принимаются систолическое 1200 и давление 80/120; ✓ просто серая, без причины (`MarkerEditorView.swift:72–79, 176–197`). Анализ удаляется свайпом сразу (`LabBookView.swift:421–430`).
 - **Why:** `entering-data.md › Best practices`: "Dynamically validate field values." `alerts.md › Best practices` (см. W-1).
 - **Fix:** строка ошибки только при ошибке: `if s <= d { Text("Систолическое выше диастолического.").foregroundStyle(.red) }`; `.confirmationDialog("Удалить значение?")`.
 - **Скриншот:** `light/labbookadd`.
 
 **LB-3. Название рядом с «Журналом» — Craft · Low**
+- **Статус:** исправлено, 10c307e7, 686fe2f9.
 - **What:** в «Обзоре» «Журнал» и «Лабораторный журнал» стоят в одной карточке. У Apple раздел называется «Результаты анализов».
 - **Why:** `writing.md › Best practices`: "Build language patterns."
 - **Fix:** переименовать в «Анализы».
@@ -1078,12 +1108,14 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 ### 13. Настройки и Профиль
 
 **ST-1. Своя настройка «Светлая/Тёмная/Автоматически» — Improvement · High**
+- **Статус:** исправлено (настройка удалена по решению владельца), f67a8186.
 - **What:** страница «Оформление» (`SettingsGeneralPages.swift:141–156, 229–256`) дословно копирует верх системного «Экран и яркость». Выбор применяется через `.preferredColorScheme` (`StrandiOSApp.swift:243`) и повторно в окне HUD, где стиль запоминается один раз при создании (`ConfirmationHUD.swift:61–67`). «Автоматически» в iOS — это расписание «закат/рассвет», а здесь — «как в системе»: подпись та же, смысл другой.
 - **Why:** `dark-mode.md › Best practices`: "Avoid offering an app-specific appearance setting." … "Worse, they may think your app is broken because it doesn’t respond to their systemwide appearance choice."
 - **Fix:** секцию «Внешний вид» и `.preferredColorScheme` убрать из релиза, один раз вызвать `UserDefaults.standard.removeObject(forKey: AppearanceMode.storageKey)`. Для скриншотов оставить `-theme.appearance` под `#if DEBUG`. Компромисс: владелец сам оставил выбор «Системная / Светлая / Тёмная». Если выбор остаётся, подпись «Автоматически» заменить на «Как в системе».
 - **Скриншот:** `light/set-display` против `apple/iphd6804774e-1`.
 
 **ST-2. Настройки вложены в лист профиля и повторяют его — Improvement · High**
+- **Статус:** исправлено, f67a8186.
 - **What:** путь такой: аватар → лист (фото, имя, «Сведения о здоровье», «Устройства», «Импорт», «Настройки») → «Настройки».
   - На странице «Настройки» снова фото и имя (96 pt против 90 в листе), снова «Сведения о здоровье», браслет (он же «Устройства») и «Импорт»: три из четырёх рядов повторяются уровнем ниже (`ProfileDetailsView.swift:17–58`, `SettingsView.swift:26–122`).
   - До «Единиц» 4 уровня.
@@ -1100,6 +1132,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Скриншоты:** `light/profile`, `light/settings`.
 
 **ST-3. «Импорт из файла…» заменяет всю базу без подтверждения — Improvement · High**
+- **Статус:** исправлено, a372fb21.
 - **What:** после выбора файла база перезаписывается сразу (`BackupSyncView.swift:84, 135–141` → `DataBackup.swift:351–384`). «Восстановить…» с тем же результатом закрыт алертом «Replace all data» (`:114–122`).
 - **Why:** `alerts.md › Best practices`: "…when people take an uncommon destructive action that they can’t undo, it’s important to display an alert in case they initiated the action accidentally."
 - **Fix:** `.alert("Replace All Data?", isPresented: $confirmImport) { Button("Cancel", role: .cancel) {}; Button("Replace", role: .destructive) { runImport() } }`.
@@ -1174,6 +1207,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 ### 14. Устройства и мастер добавления
 
 **DV-1. ⓘ в рядах устройств — картинка, а тап по ряду открывает страницу — Improvement · High**
+- **Статус:** исправлено, 05d4df50.
 - **What:** `DevicesView.swift:126–163`: ряд — скрытый `NavigationLink` (`.opacity(0)`), а ⓘ скрыт от VoiceOver и ничего не делает. В «Все часы» и Bluetooth тап по ряду переключает или подключает устройство, а ⓘ открывает детали. Смену активного браслета мы спрятали за страницу и алерт (`DeviceDetailView.swift:80–84`).
 - **Why:** `lists-and-tables.md › Mobile (iOS, iPadOS, visionOS)`: "Use an info button only to reveal more information about a row’s content." … "If you need to let people drill into a list or table row’s subviews, use a disclosure indicator accessory control."
 - **Fix:**
@@ -1188,6 +1222,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Скриншот:** `light/devices`.
 
 **DV-2. Поиск BLE не называет настоящую причину и винит браслет — Improvement · High**
+- **Статус:** исправлено, 05d4df50, 5ea7409f.
 - **What:**
   - При выключенном или запрещённом Bluetooth мастер бесконечно показывает «Поиск…» и спрашивает, «не спит ли устройство» (`AddDeviceWizard.swift:955–986`). Причина лежит в `live.lastSyncError` и не читается.
   - Онбординг через 12 с пишет «Не найден. Наденьте и зарядите браслет…» (`OnboardingWizard.swift:390–411`).
@@ -1197,11 +1232,13 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Скриншот:** `light/addwizard-pick`.
 
 **DV-3. «Импорт из файла» в мастере Oura просто закрывает мастер — Improvement · High**
+- **Статус:** исправлено, 05d4df50.
 - **What:** `AddDeviceWizard.swift:496, 558–561, 597, 1085` — `stopAllScans(); onClose()`. Импорта нет.
 - **Why:** `buttons.md › Content`: "Ensure that each button clearly communicates its purpose."
 - **Fix:** `NavigationLink("Import a File") { DataSourcesView() }`.
 
 **DV-4. «Забыть», «Удалить данные», «Убрать из списка» — центральные алерты, имена путают — Improvement · Medium**
+- **Статус:** исправлено, 05d4df50.
 - **What:**
   - Все три действия подтверждаются алертом, а в Bluetooth и на странице AirPods iOS использует action sheet снизу (`DeviceDetailView.swift:240–249, 356–409`).
   - «Убрать из списка» тоже удаляет данные.
@@ -1210,6 +1247,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Fix:** `.confirmationDialog(title, isPresented: …, titleVisibility: .visible) { Button(actionTitle, role: .destructive) { … } }`; «Убрать из списка» → «Удалить устройство и данные»; «Сделать активным» — без подтверждения.
 
 **DV-5. Мастер: самодельный «назад», «Подключить» открывает алерт, отмена называется не «Отменить» — Improvement · Medium**
+- **Статус:** исправлено, 05d4df50.
 - **What:**
   - Шаги переключаются через `@State` без push: «‹» нарисован вручную, свайпа назад нет (`AddDeviceWizard.swift:183–210`).
   - «Подключить» открывает алерт «Сделать активным?» с «Не сейчас» (`:459`).
@@ -1222,12 +1260,14 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 ### 15. Онбординг и первый запуск
 
 **ON-1. Системный запрос Bluetooth появляется в первую секунду, поверх экрана условий — Improvement · High**
+- **Статус:** не исправлялось по решению владельца (путь BLE); неверная фраза «Дальше попросим Bluetooth» убрана, 5ea7409f.
 - **What:** цепочка вызовов: `StrandiOSApp.swift:86` (`AppModel()` в `init`) → `AppModel.swift:252` (`BLEManager(...)`) → `BLEManager.swift:1370` (`CBCentralManager(...)` в `init`). Шаг «Наденьте браслет» говорит «Дальше попросим Bluetooth» (`OnboardingWizard.swift:303`), хотя вопрос уже задан.
 - **Why:** `onboarding.md › Additional requests`: "making the request during your onboarding flow gives you the opportunity to show people why your app or game needs their permission and the benefits of granting it."
 - **Fix:** создавать central сразу только если `CBManager.authorization != .notDetermined`, иначе — `makeCentralIfNeeded()` из шага сканирования. `central` сейчас `CBCentralManager!`, все обращения нужно перевести на guard. По правилам AGENTS.md это путь BLE: проверить на браслете.
 - **Скриншот:** `light/onb0` на чистой установке.
 
 **ON-2. Ранний запрос уведомлений и три «церемониальных» экрана — Improvement · High**
+- **Статус:** исправлено, 5ea7409f.
 - **What:**
   - Шаг «Уведомления» просит разрешение для функций, которые по умолчанию выключены: их тумблеры спросят сами (`NotificationsSettingsPage.swift:37,42,50`). Текст «Умный будильник и подсказки — касанием по запястью» описывает вибрацию браслета, а для неё разрешение iOS не нужно.
   - «Наденьте браслет» — инструкция без действия.
@@ -1238,6 +1278,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Скриншоты:** `light/onb1`, `light/onb5`, `light/onb6`.
 
 **ON-3. Тексты запросов разрешений только на английском и обещают больше, чем правда — Improvement · High**
+- **Статус:** исправлено (en, ru), ba8f53d7, 5ea7409f.
 - **What:**
   - Все 7 `NS*UsageDescription` (`StrandiOS/Resources/Info.plist:62–75`, из `project.yml:295–305`) только на английском, `InfoPlist.xcstrings` нет. На русском iPhone системные алерты английские.
   - В строках по 2–3 предложения с довеском «Nothing leaves it.».
@@ -1246,6 +1287,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Fix:** `StrandiOS/Resources/InfoPlist.xcstrings` на все 10 языков, по одной фразе на ключ, например `NSBluetoothAlwaysUsageDescription` = «NOOP подключается к браслету WHOOP, чтобы считывать пульс, ВСР и заряд на этом iPhone.».
 
 **ON-4. Экран условий выбивается из онбординга — Improvement · High**
+- **Статус:** исправлено, 5ea7409f.
 - **What:**
   - `TermsGateView.swift` набран SF Rounded (`StrandFont.title1/.subhead`, 21–26), а соседние экраны — SF Pro со стеклянными капсулами.
   - Четыре юридических утверждения оформлены свитчами в `ScrollView` с многострочными подписями (56–66).
@@ -1256,6 +1298,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Fix:** сверстать по метрикам `OnboardingWizard` (`SetupPage`): утверждения — ряды с ✓ в `Form`, TERMS.md — в листе из бандла, кнопка — «Принять». Показывать через `.fullScreenCover` с `.interactiveDismissDisabled()` (заодно закрывает CR-7). Сам гейт при сайдлоад-распространении оправдан: другого места показать соглашение нет.
 
 **ON-5. Шаг «О вас» заранее заполнен предположениями — Improvement · Medium**
+- **Статус:** исправлено, 5ea7409f.
 - **What:** дата рождения «26 сент. 2000 г.» (ровно 26 лет назад), пол «Мужской», 178 см, 75 кг подставлены как ответы. Пользователь может нажать «Продолжить», и зоны и калории посчитаются по чужим данным.
 - **Why:** `entering-data.md` (вступление): "When you need information from people, design ways that make it easy for them to provide it without making mistakes." Принцип `design-principles.md › Responsibility`: "Only collect what your product needs to function, and handle it with care." Заполнение предположениями — суждение ревьюера.
 - **Fix:** поля пустые со значением «Не указано», как у Apple в «Сведениях о здоровье»; «Продолжить» доступно всегда, но расчёты идут по данным только после ввода; пол — «Не указан / Женский / Мужской / Другой».
@@ -1292,26 +1335,31 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 (Текст виджетов мельче 11 pt — CR-9; подписи кнопок Live Activity — CR-5.)
 
 **WG-1. Тап по виджету или баннеру не открывает нужный экран — Improvement · High**
+- **Статус:** исправлено, 10c307e7.
 - **What:** ни в одном из 4 виджетов и 4 Live Activity нет `.widgetURL` или `Link`. `StrandiOSApp.swift:329–333` понимает только `import-health`. `CoachBriefWidget.swift:11, 188` обещает «Tap to open Coach».
 - **Why:** `widgets.md › Adding interactivity`: "Ensure that a widget interaction opens your app at the right location." `live-activities.md › Compact presentation`: "Ensure both leading and trailing elements link to the same screen."
 - **Fix:** `.widgetURL(URL(string: "noop://coach"))` (и `workout`, `heart-rate`, `stress`, `today`, `intervals`) плюс маршрутизация в `.onOpenURL`.
 
 **WG-2. Двойные поля: кольца не помещаются в маленький виджет — Improvement · High**
+- **Статус:** исправлено, 5448e31a.
 - **What:** свои `.padding(10/12/16)` (`NOOPWidget.swift:186, 199, 226`, `CoachBriefWidget.swift:151`) добавляются к системным ~16 pt: 158 − 2·26 = 106 pt, а три кольца по 40 pt требуют 120 pt. Ветки `else { .padding().background(.background) }` — мёртвый код.
 - **Why:** `widgets.md › Choosing margins and padding`: "Use the standard margin width for widgets — 16 points for most widgets — to avoid crowding their edges and creating a cluttered appearance."
 - **Fix:** четыре `.padding(...)` и мёртвые ветки удалить.
 
 **WG-3. Пульс в основном виджете не проверяется на возраст — Improvement · High**
+- **Статус:** исправлено, 5448e31a.
 - **What:** снимок может быть часовой давности. NOOP-виджет пишет «58 bpm», а соседний «Пульс» — «—» (`NOOPWidget.swift:85, 108–109, 217, 297` против `HeartRateWidget.swift:110–112`). В описании обещан «live HR».
 - **Why:** `widgets.md › Mobile (iOS, iPadOS)`: "Widgets don't show real-time information."
 - **Fix:** `HrDisplay.resolve(bpm:newestPointTs:now:)` во всех четырёх местах; из описания убрать «live».
 
 **WG-4. Статус подключения — только красная/зелёная точка 8 pt под шапкой «NOOP» — Improvement · High**
+- **Статус:** исправлено, 5448e31a.
 - **What:** `NOOPWidget.swift:231–242`. В режимах tinted/clear обе точки становятся белыми, а шапка съедает строку маленького виджета.
 - **Why:** `accessibility.md › Vision`: "people who are color blind may have particular difficulty with pairings such as red-green and blue-orange." `widgets.md › Best practices`: "When you include brand elements, people seldom need your logo or app icon to help them recognize your widget."
 - **Fix:** `headerRow` удалить; устаревшие данные показывать «—» и временем обновления.
 
 **WG-5. Режимы рендеринга iOS 26, превью и Dynamic Type — Improvement · Medium**
+- **Статус:** исправлено, 5448e31a.
 - **What:**
   - Дуга кольца без `.widgetAccentable()` (`NOOPWidget.swift:390`).
   - `healthBody` на vibrant (`CoachBriefWidget.swift:95, 98`).
@@ -1321,6 +1369,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Fix:** `.widgetAccentable()`; `.secondary`/`.primary` вместо цветов на vibrant; `context.isPreview ? .placeholder : WidgetSnapshot.load()`; `.footnote.weight(.semibold)` / `.caption` / `.caption2` и `.dynamicTypeSize(...DynamicTypeSize.xxxLarge)` на корне medium-виджетов.
 
 **LA-1. Live Activity пульса не заканчивается: продлевается каждый час — Improvement · High**
+- **Статус:** исправлено, 5448e31a.
 - **What:** `LiveHRBannerLifecycle.swift:31` (`renewAfter = 60*60`), `LiveActivityController.swift:157–164`; неизменившееся число пере-пушится ради свежести. На экране блокировки главное значение — «—».
 - **Why:** `live-activities.md › Best practices`: "Offer Live Activities for tasks and events that have a defined beginning and end." `live-activities.md › Starting, updating, and ending a Live Activity`: "Update a Live Activity only when new content is available."
 - **Fix:** HR-активность привязать к событию с концом (тренировка); `.renew` убрать; в конце — `end(final, dismissalPolicy: .after(.now + 15*60))`. Круглосуточный пульс — задача виджета.
@@ -1347,6 +1396,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 - **Fix:** 14 pt; `.medium` для вторичных строк; шрифт `ActivityClock` параметром; проценты через `.formatted(.percent)`; `dismissalPolicy: .after(.now + 15*60)`.
 
 **NT-1. Уведомление о болезни: данные о здоровье на экране блокировки и «Up: HRV −18%» — Improvement · High**
+- **Статус:** исправлено, 5448e31a, b9b96897.
 - **What:** тело вида «Up: RHR +6, HRV −18% and Respiration up» видно посторонним (`HealthAlertBanner.swift:24–36`, `IllnessNotifier.swift:32–37`): нет категории с плейсхолдером. «Up:» стоит перед падением ВСР. Заголовок «Your signals agree you're unwell» звучит как диагноз.
 - **Why:** `notifications.md › Best practices`: "Avoid including sensitive, personal, or confidential information in a notification." `notifications.md › Content`: "Provide generically descriptive text to display when notification previews aren't available."
 - **Fix:** `UNNotificationCategory(identifier: "health", actions: [], intentIdentifiers: [], hiddenPreviewsBodyPlaceholder: String(localized: "Health notice"))` плюс `content.categoryIdentifier = "health"`; тело — список без «Up:»; заголовок — «Показатели вне нормы».
@@ -1406,6 +1456,7 @@ voiceInput.stopTranscribing { _ in }                          // не допис
 Этого достаточно. Больше акцентов не нужно, всё остальное должно быть тихим.
 
 **Craft-1. Триада не имеет своего цвета — Improvement · High (см. S-1).** Единственная собственная идея дизайна одета в цвета колец Apple (Move/Exercise/Stand), а на своих страницах — в другие цвета. Чтобы триада стала подписью продукта, ей нужна одна тройка цветов везде: кольца, заголовки, графики, виджеты, Live Activity.
+- **Статус:** исправлено, 51ea6e5e.
 
 **Craft-2. Два шрифта «Здоровья» — Improvement · Medium.** Сводка и карточки сна набраны SF Rounded (`StrandFont.headline/body/number`, заголовок секции `rounded(22)`). Страница показателя, расписание, тренды и настройки — SF Pro (`StrandFont.pro`). `Typography.swift:111–112` сам признаёт, что «Здоровье» использует SF Pro. У Apple в «Здоровье» SF Rounded только в цифрах колец, а в «Фитнесе» — в цифрах метрик.
 - **Why:** `typography.md › Conveying hierarchy`: "Minimize the number of typefaces you use, even in a highly customized interface."
