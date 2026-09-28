@@ -17,8 +17,8 @@ import WhoopStore
 //
 // NON-CLINICAL (load-bearing, spec §"Non-clinical / legal framing"): no word here asserts a clinical
 // judgement — never "abnormal/high/low/normal" as NOOP's own statement; any reference range shown is
-// EXACTLY what the user typed from their own report; correlation copy says association, not cause. One
-// footnote under the list says so.
+// EXACTLY what the user typed from their own report; correlation copy says association, not cause. The ⓘ
+// in the bar says so.
 
 struct LabBookView: View {
     @EnvironmentObject var repo: Repository
@@ -61,11 +61,6 @@ struct LabBookView: View {
                         categoryCard(category)
                     }
                 }
-                Text("A private notebook, not a medical service: NOOP doesn't read or judge these numbers.")
-                    .font(StrandFont.pro(13))
-                    .foregroundStyle(StrandPalette.textSecondary)
-                    .padding(.horizontal, 4)
-                    .padding(.top, 8)
             }
             .padding(.horizontal, NoopMetrics.screenHPadding)
             .padding(.top, NoopMetrics.space2)
@@ -77,11 +72,16 @@ struct LabBookView: View {
         }
         .refreshable { await load() }
         .background(StrandPalette.summaryCanvas.ignoresSafeArea())
-        .navigationTitle(Text("Lab Book"))
+        .navigationTitle(Text("Lab Results"))
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                InfoButton(label: "About Lab Results") {
+                    Text("A private notebook, not a medical service: NOOP doesn't read or judge these numbers.")
+                }
+            }
             ToolbarItem(placement: .primaryAction) {
                 Menu {
                     Button { showingEditor = true } label: { Label("Add Reading", systemImage: "plus") }
@@ -351,10 +351,10 @@ private struct LabValueText: View {
         let scaled = size * scale
         if let row, let v = row.value {
             HStack(alignment: .firstTextBaseline, spacing: 3) {
-                Text(verbatim: LabBookFormat.value(v, key: key))
+                Text(verbatim: LabBookFormat.displayValue(v, key: key))
                     .font(.system(size: scaled, weight: .semibold, design: .rounded).monospacedDigit())
                     .foregroundStyle(StrandPalette.textPrimary)
-                Text(verbatim: row.unit)
+                Text(verbatim: LabBookFormat.unit(row.unit))
                     .font(.system(size: scaled * 0.75))
                     .foregroundStyle(StrandPalette.textSecondary)
             }
@@ -382,6 +382,7 @@ private struct MarkerDetailView: View {
     @State private var pairs: [WindowedPair] = []
     @State private var correlation: Correlation?
     @State private var computing = false
+    @State private var deleting: LabMarkerRow?
     @Environment(\.dynamicTypeSize) private var dts
 
     private var signal: MetricDescriptor? { LabBookSignals.options.first { $0.key == signalKey } }
@@ -433,16 +434,22 @@ private struct MarkerDetailView: View {
                             .foregroundStyle(StrandPalette.textSecondary)
                     }
                     .contextMenu {
-                        Button(role: .destructive) { Task { await onDelete(row.id) } } label: {
+                        Button(role: .destructive) { deleting = row } label: {
                             Label("Delete", systemImage: "trash")
                         }
                     }
-                }
-                .onDelete { offsets in
-                    let ids = offsets.map { Array(readings.reversed())[$0].id }
-                    Task { for id in ids { await onDelete(id) } }
+                    // No destructive role: SwiftUI would slide the row out before the question is answered.
+                    .swipeActions(allowsFullSwipe: false) {
+                        Button { deleting = row } label: { Label("Delete", systemImage: "trash") }
+                            .tint(.red)
+                    }
                 }
             }
+        }
+        .confirmationDialog("Delete Reading?",
+                            isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }),
+                            titleVisibility: .visible, presenting: deleting) { row in
+            Button("Delete", role: .destructive) { Task { await onDelete(row.id) } }
         }
         .settingsPage(LocalizedStringKey(LabBookFormat.name(markerKey)))
         .task(id: "\(signalKey)|\(window.rawValue)|\(repo.refreshSeq)") { await recompute() }
@@ -503,15 +510,10 @@ private struct MarkerDetailView: View {
             Text("\(n) of \(LabBookSignals.floor) readings needed line up.")
                 .foregroundStyle(StrandPalette.textSecondary)
         } else if let c = correlation {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(verbatim: LabBookSignals.insightSentence(markerName: LabBookFormat.name(markerKey),
-                                                              signalName: signal?.title ?? "", r: c.r))
-                    .font(StrandFont.pro(17, weight: .semibold))
-                Text(verbatim: "r = \(LabBookSignals.signedR(c.r)) · n = \(n)")
-                    .font(StrandFont.pro(13))
-                    .foregroundStyle(StrandPalette.textSecondary)
-            }
-            .padding(.vertical, 2)
+            Text(verbatim: LabBookSignals.insightSentence(markerName: LabBookFormat.name(markerKey),
+                                                          signalName: signal?.title ?? "", r: c.r))
+                .font(StrandFont.pro(17, weight: .semibold))
+                .padding(.vertical, 2)
         } else {
             Text("Not enough variation to compare.")
                 .foregroundStyle(StrandPalette.textSecondary)
@@ -584,6 +586,28 @@ enum LabBookFormat {
         guard v.isFinite else { return "—" }
         guard let decimals = MarkerCatalog.definition(for: key)?.decimals else { return plain(v) }
         return decimals == 0 ? String(Int(v.rounded())) : String(format: "%.\(decimals)f", v)
+    }
+
+    /// The value as the screen shows it: `value`'s precision (a custom marker up to 3 decimals, trailing
+    /// zeros dropped) in the reader's number format ("14,0" in Russian). Display only: `value` and `plain`
+    /// stay the POSIX strings Coach and the cross-platform tests pin.
+    static func displayValue(_ v: Double, key: String) -> String {
+        guard v.isFinite else { return "—" }
+        let decimals = MarkerCatalog.definition(for: key)?.decimals
+        let scale = pow(10, Double(decimals ?? 3))
+        let rounded = (v * scale).rounded() / scale
+        let shown = rounded == 0 ? 0 : rounded   // never "-0"
+        let precision: NumberFormatStyleConfiguration.Precision
+        if let decimals { precision = .fractionLength(decimals) } else { precision = .fractionLength(0...3) }
+        return shown.formatted(.number.precision(precision).locale(AppLanguage.activeLocale))
+    }
+
+    /// A unit as the screen shows it: a catalog unit in the reader's language ("mmol/L" → «ммоль/л»); a unit
+    /// the user typed that the catalogue does not carry reads as typed. The stored unit is never rewritten.
+    static func unit(_ unit: String) -> String {
+        let t = unit.trimmingCharacters(in: .whitespaces)
+        guard !t.isEmpty, !t.contains("%") else { return t }
+        return String(localized: String.LocalizationValue(t))
     }
 
     /// Up to 3 decimals with trailing zeros dropped ("0.27", "1.02", "140"), always with a "." separator
@@ -684,8 +708,9 @@ enum LabWindow: String, CaseIterable, Identifiable {
 // (strength words, tends-to, association-not-cause) plus the mandatory markers clause.
 
 enum LabBookSignals {
-    /// The reading-count floor below which NO conclusion sentence renders (spec default 4).
-    static let floor = 4
+    /// The reading-count floor below which NO conclusion sentence renders. Eight, not four: a line through
+    /// four points is mostly chance. Display only; nothing stored depends on it.
+    static let floor = 8
 
     /// The wearable metrics offered to pair a marker against. Strap-source keys read through the
     /// Explore freshest-wins path; weight resolves from Apple/Health-Connect/strap as available.
@@ -703,10 +728,6 @@ enum LabBookSignals {
 
     private static func descriptor(_ key: String) -> MetricDescriptor? {
         MetricCatalog.all.first { $0.key == key }
-    }
-
-    static func signedR(_ r: Double) -> String {
-        (r >= 0 ? "+" : "−") + String(format: "%.2f", abs(r))
     }
 
     /// "When LDL is higher, HRV tends to be lower." — descriptive, no causal language.

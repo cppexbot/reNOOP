@@ -14,7 +14,7 @@ import WhoopStore
 //  1. Habits — the LAG-AWARE EffectRanker feed for the selected outcome: each journal behaviour at its
 //     strongest honest lag ({0,+1,+2} days), with/without means as the card's figure pair.
 //  2. Alcohol / caffeine — the personal DoseResponseEngine curve, shrunk toward a documented population
-//     prior until enough nights accrue; the details carry the evening what-if on the latest outcome.
+//     prior; a card shows only once the user's own nights, not the prior, carry the curve.
 //  3. Metrics and mood — the curated metric-pair correlations and what tracks the logged mood.
 //
 // All maths lives in StrandAnalytics (EffectRanker / DoseResponseEngine / DoseResponsePriors); this view
@@ -22,7 +22,10 @@ import WhoopStore
 
 struct InsightsHubView: View {
     @EnvironmentObject private var repo: Repository
+    @EnvironmentObject private var router: NavRouter
     @StateObject private var model = InsightsHubViewModel()
+    /// Journal question keys → the names the Journal shows (renames, translated built-ins).
+    @StateObject private var catalog = JournalCatalogStore()
 
     /// The outcome the habit feed is ranked against (Charge / HRV / Rest / RHR).
     @State private var outcome: InsightsHubViewModel.Outcome = .recovery
@@ -36,8 +39,10 @@ struct InsightsHubView: View {
                         .padding(.top, 80)
                 } else if model.ranked.isEmpty && model.doseCards.isEmpty && model.relationships.isEmpty {
                     EmptyStateView(title: Text("No Patterns Yet"), systemImage: "sparkles",
-                                   description: Text("Keep logging your journal."))
-                        .padding(.top, 60)
+                                   description: Text("Keep logging your journal.")) {
+                        openJournal
+                    }
+                    .padding(.top, 60)
                 } else {
                     habitsSection
                     doseSection
@@ -67,7 +72,7 @@ struct InsightsHubView: View {
             switch route {
             case .effect(let behavior):
                 if let r = model.ranked.first(where: { $0.behavior == behavior }) {
-                    EffectDetailView(effect: r, outcome: outcome)
+                    EffectDetailView(effect: r, outcome: outcome, title: catalog.displayName(for: r.behavior))
                 }
             case .dose(let id):
                 if let card = model.doseCards.first(where: { $0.id == id }) {
@@ -77,6 +82,15 @@ struct InsightsHubView: View {
         }
         .task(id: repo.refreshSeq) { await model.load(repo: repo) }
         .onChangeCompat(of: outcome) { model.rankFor($0) }
+    }
+
+    /// The empty state's way on: the Journal, pushed as Browse pushes it on iPhone; the sidebar row on the Mac.
+    @ViewBuilder private var openJournal: some View {
+        #if os(iOS)
+        NavigationLink(value: MoreDestination.journal) { Text("Open Journal") }
+        #else
+        Button("Open Journal") { router.openJournal() }
+        #endif
     }
 
     // MARK: Habits (ranked, lag-aware)
@@ -98,7 +112,8 @@ struct InsightsHubView: View {
                 NavigationLink(value: InsightRoute.effect(r.behavior)) {
                     SummaryCard {
                         VStack(alignment: .leading, spacing: 8) {
-                            SummaryCardTitleRow(icon: "checklist", title: r.behavior, tint: StrandPalette.healthMind)
+                            SummaryCardTitleRow(icon: "checklist", title: catalog.displayName(for: r.behavior),
+                                                tint: StrandPalette.healthMind)
                             insightSentence(InsightCopy.effectSentence(r, outcome: outcome))
                             Rectangle().fill(StrandPalette.hairline).frame(height: NoopMetrics.hairlineWidth)
                             InsightCopy.figures(r.effect, outcome: outcome)
@@ -143,8 +158,7 @@ struct InsightsHubView: View {
                 SummaryCard {
                     VStack(alignment: .leading, spacing: 8) {
                         SummaryCardTitleRow(icon: "arrow.left.arrow.right", title: rel.title,
-                                            tint: KeyMetric.charge.healthTint,
-                                            trailing: String(format: "r = %+.2f", rel.corr.r), chevron: false)
+                                            tint: KeyMetric.charge.healthTint, chevron: false)
                         insightSentence(InsightCopy.relationshipSentence(rel.corr.r))
                         RBar(r: rel.corr.r, color: KeyMetric.charge.healthTint)
                             .padding(.top, 4)
@@ -284,6 +298,8 @@ extension InsightsHubViewModel.Outcome {
 private struct EffectDetailView: View {
     let effect: RankedEffect
     let outcome: InsightsHubViewModel.Outcome
+    /// The behaviour as the Journal names it.
+    let title: String
 
     var body: some View {
         let e = effect.effect
@@ -301,27 +317,26 @@ private struct EffectDetailView: View {
                 LabeledContent("Days With", value: "\(e.nWith)")
                 LabeledContent("Days Without", value: "\(e.nWithout)")
                 LabeledContent("Shows Up", value: InsightCopy.lagWord(effect.lag))
-                LabeledContent("Effect Size") {
-                    Text(verbatim: "\(InsightCopy.effectMagnitudeWord(e.cohensD)) · d = \(String(format: "%.2f", e.cohensD))")
-                }
+                LabeledContent("Effect Size", value: InsightCopy.effectMagnitudeWord(e.cohensD))
                 LabeledContent("Confidence", value: InsightCopy.confidenceWord(effect.confidence))
             }
         }
-        .settingsPage(LocalizedStringKey(effect.behavior))
+        // The name is already resolved (a rename, or a translated built-in), so it is not looked up again.
+        .settingsForm()
+        .navigationTitle(Text(verbatim: title))
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
     }
 }
 
-/// Alcohol or caffeine: the personal curve, what each extra unit tends to do, and tonight's what-if on
-/// the latest reading.
+/// Alcohol or caffeine: the personal curve and how sure the reading is. No forecast: an association on
+/// past nights is not a prediction for tomorrow.
 private struct DoseDetailView: View {
     let card: InsightsHubViewModel.DoseCard
-    /// Defaults to one above the typical starting point, so it reads as a second-drink what-if.
-    @State private var previewDose = 2
 
     var body: some View {
         let r = card.response
-        let delta = r.delta(fromDose: 1, toDose: previewDose)
-        let projected = card.latestOutcome.map { max(0, min(card.outcomeCeiling, $0 + delta)) }
         Form {
             Section {
                 VStack(alignment: .leading, spacing: 12) {
@@ -333,20 +348,11 @@ private struct DoseDetailView: View {
                 }
                 .padding(.vertical, 6)
             } footer: {
-                if r.priorDominated {
-                    Text("Mostly typical patterns until you log more days.")
-                } else if card.timingProxy {
+                if card.timingProxy {
                     Text("Dose here is timing: later in the day counts as more.")
                 }
             }
             Section {
-                Picker(card.forecastOverline, selection: $previewDose) {
-                    ForEach(card.doseChoices, id: \.self) { Text(verbatim: card.doseChoiceLabel($0)).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                LabeledContent(String(localized: "Tomorrow\u{2019}s \(card.outcomeLabel)")) {
-                    Text(verbatim: projected.map { "\(Int($0.rounded()))\(card.outcomeSuffix)" } ?? "—")
-                }
                 LabeledContent("Confidence", value: InsightCopy.confidenceWord(r.confidence))
             }
         }
@@ -437,12 +443,13 @@ final class InsightsHubViewModel: ObservableObject {
     enum Outcome: String, CaseIterable, Identifiable {
         case recovery, hrv, sleep, rhr
         var id: String { rawValue }
+        /// The metric's name as Summary's tiles print it (`KeyMetric.title`), so one metric reads one way.
         var label: String {
             switch self {
-            case .recovery: return String(localized: "Charge")
-            case .hrv:      return "HRV"
-            case .sleep:    return String(localized: "Rest")
-            case .rhr:      return "RHR"
+            case .recovery: return KeyMetric.charge.title
+            case .hrv:      return KeyMetric.hrv.title
+            case .sleep:    return KeyMetric.rest.title
+            case .rhr:      return KeyMetric.restingHr.title
             }
         }
         /// metricSeries key.
@@ -550,8 +557,9 @@ final class InsightsHubViewModel: ObservableObject {
             guard let response = DoseResponseEngine.estimate(behavior: behavior,
                                                              doseByDay: doses,
                                                              outcomeByDay: outcomeDays) else { continue }
-            let latest = outcomeDays.keys.max().flatMap { outcomeDays[$0] }
-            cards.append(DoseCard(behavior: behavior, response: response, latestOutcome: latest))
+            // A curve still carried by the population prior is not the user's pattern: no card.
+            guard !response.priorDominated else { continue }
+            cards.append(DoseCard(behavior: behavior, response: response))
         }
 
         self.behaviours = byBehaviour
@@ -614,8 +622,6 @@ final class InsightsHubViewModel: ObservableObject {
     struct DoseCard: Identifiable {
         let behavior: DosedBehavior
         let response: DoseResponse
-        /// The user's most recent outcome value (for the evening damage forecast anchor).
-        let latestOutcome: Double?
 
         var id: String { behavior.rawValue }
         var outcomeName: String { response.outcome }
@@ -638,47 +644,18 @@ final class InsightsHubViewModel: ObservableObject {
         var outcomeLabel: String { String(localized: String.LocalizationValue(outcomeName)) }
         var tint: Color { outcomeName == "HRV" ? KeyMetric.hrv.healthTint : KeyMetric.charge.healthTint }
 
-        /// "Each drink lowers next-day Charge by ~8 %." — the card's and the details page's one sentence.
+        /// "Next-day Charge is usually lower after drinking." — the card's and the details page's one
+        /// sentence: which way the outcome tends to sit, never how much one more causes.
         var sentence: String {
-            let per = response.perUnit
-            let rounded = (abs(per) * 10).rounded() / 10
-            let size = "~" + (rounded == rounded.rounded() ? "\(Int(rounded))" : String(format: "%.1f", rounded))
-                + (outcomeName == "HRV" ? " " + String(localized: "ms") : " %")
             let name = outcomeLabel
-            guard rounded > 0 else { return String(localized: "\(name) doesn\u{2019}t move with it.") }
-            switch (behavior, per < 0) {
-            case (.alcohol, true):   return String(localized: "Each drink lowers next-day \(name) by \(size).")
-            case (.alcohol, false):  return String(localized: "Each drink raises next-day \(name) by \(size).")
-            case (.caffeine, true):  return String(localized: "Later caffeine lowers next-day \(name) by \(size).")
-            case (.caffeine, false): return String(localized: "Later caffeine raises next-day \(name) by \(size).")
+            guard (abs(response.perUnit) * 10).rounded() > 0 else {
+                return String(localized: "\(name) doesn\u{2019}t move with it.")
             }
-        }
-
-        /// Outcome units suffix for the forecast tiles.
-        var outcomeSuffix: String { outcomeName == "HRV" ? " ms" : "%" }
-        /// Clamp ceiling for the projected outcome (Charge/Rest are 0–100; HRV uncapped-ish).
-        var outcomeCeiling: Double { outcomeName == "HRV" ? 400 : 100 }
-
-        var forecastOverline: String {
-            switch behavior {
-            case .alcohol:  return String(localized: "Tonight\u{2019}s forecast")
-            case .caffeine: return String(localized: "Timing forecast")
-            }
-        }
-
-        /// The dose choices the evening stepper offers (0/1/2/3 → 0…maxCurveDose).
-        var doseChoices: [Int] { Array(0...DoseResponseEngine.maxCurveDose) }
-        func doseChoiceLabel(_ d: Int) -> String {
-            switch behavior {
-            case .alcohol:  return d >= DoseResponseEngine.maxCurveDose ? "\(d)+" : "\(d)"
-            case .caffeine:
-                // Timing buckets, not counts.
-                switch d {
-                case 0: return String(localized: "AM")
-                case 1: return String(localized: "Noon")
-                case 2: return String(localized: "2pm+")
-                default: return String(localized: "Eve")
-                }
+            switch (behavior, response.perUnit < 0) {
+            case (.alcohol, true):   return String(localized: "Next-day \(name) is usually lower after drinking.")
+            case (.alcohol, false):  return String(localized: "Next-day \(name) is usually higher after drinking.")
+            case (.caffeine, true):  return String(localized: "Next-day \(name) is usually lower after late caffeine.")
+            case (.caffeine, false): return String(localized: "Next-day \(name) is usually higher after late caffeine.")
             }
         }
     }
@@ -697,6 +674,7 @@ private func hubPreviewRepo() -> Repository {
 #Preview("Insights Hub") {
     InsightsHubView()
         .environmentObject(hubPreviewRepo())
+        .environmentObject(NavRouter())
         .frame(width: 920, height: 980)
         .preferredColorScheme(.dark)
 }

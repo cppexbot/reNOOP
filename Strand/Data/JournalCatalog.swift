@@ -26,8 +26,9 @@ enum JournalCatalogBackupKeys {
 final class JournalCatalogStore: ObservableObject {
 
     /// Mirrors Android STARTER_JOURNAL_QUESTIONS value-for-value (JournalLog.kt). These are DATA,
-    /// not UI literals, stored verbatim in the journal table and rendered verbatim, so they must
-    /// never be localised (a translated key would start a new, disconnected behaviour).
+    /// not UI literals, stored verbatim in the journal table, so the stored key is never localised (a
+    /// translated key would start a new, disconnected behaviour). Only the label on screen is, through
+    /// `JournalCatalog.displayName(for:)`.
     nonisolated static let starterQuestions: [String] = [
         "Did you drink any alcohol?",
         "Did you have caffeine late in the day?",
@@ -270,9 +271,11 @@ final class JournalCatalogStore: ObservableObject {
 
     // MARK: - Custom add / remove / restore (v1 API preserved)
 
-    /// The display label for a canonical key: the user's rename, or the verbatim canonical.
+    /// The display label for a canonical key: the user's rename; else a question the user typed, as typed;
+    /// else a built-in (starter or imported) question in the reader's language.
     func displayName(for canonical: String) -> String {
-        item(for: canonical)?.displayName ?? canonical.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let saved = item(for: canonical) { return saved.display }
+        return JournalCatalog.displayName(for: canonical)
     }
 
     /// True when `q` is a user-added custom question (not a starter/imported one).
@@ -309,6 +312,21 @@ final class JournalCatalogStore: ObservableObject {
         if let idx = items.firstIndex(where: { Self.norm($0.canonical) == key }) {
             items[idx].hidden = false
         }
+    }
+}
+
+/// On-screen names for journal questions. The stored question stays the verbatim English key (the WHOOP
+/// export's wording, which the effects engine joins on); only the label is translated. A key with no
+/// translation, such as an imported question the catalogue does not carry, reads as stored.
+enum JournalCatalog {
+    /// A built-in question (starter or imported) in the reader's language. User-typed questions do not
+    /// come through here: `JournalCatalogItem.display` and `JournalCatalogStore.displayName(for:)` show
+    /// them as typed.
+    static func displayName(for canonical: String) -> String {
+        let key = canonical.trimmingCharacters(in: .whitespacesAndNewlines)
+        // A "%" would be read as a format specifier; no built-in question carries one.
+        guard !key.isEmpty, !key.contains("%") else { return key }
+        return String(localized: String.LocalizationValue(key))
     }
 }
 
@@ -365,9 +383,10 @@ struct JournalCatalogItem: Equatable, Codable, Identifiable {
 
     var id: String { canonical }
 
-    /// What the UI renders: the rename if present, else the verbatim canonical.
+    /// What the UI renders: the rename if present; a custom question as typed; a built-in one localised.
     var display: String {
-        displayName ?? canonical
+        if let displayName { return displayName }
+        return custom ? canonical : JournalCatalog.displayName(for: canonical)
     }
 
     init(canonical: String, displayName: String?, kind: JournalKind, group: JournalGroup,

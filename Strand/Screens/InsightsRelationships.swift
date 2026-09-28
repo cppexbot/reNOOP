@@ -74,7 +74,7 @@ struct MoodLinksSection: View {
 
     // MARK: - Cards
 
-    /// "Mood" and one Highlights card per link, the r value on the title row.
+    /// "Mood" and one Highlights card per link: the sentence and the strength bar, no coefficient.
     private var insightsCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             SummarySectionHeader(title: "Mood")
@@ -82,7 +82,7 @@ struct MoodLinksSection: View {
                 SummaryCard {
                     VStack(alignment: .leading, spacing: 8) {
                         SummaryCardTitleRow(icon: "face.smiling", title: line.metric, tint: StrandPalette.healthMind,
-                                            trailing: String(format: "r = %+.2f", line.r), chevron: false)
+                                            chevron: false)
                         Text(verbatim: line.text)
                             .font(StrandFont.headline)
                             .foregroundStyle(StrandPalette.textPrimary)
@@ -113,7 +113,7 @@ struct MoodLinksSection: View {
             days.compactMap { d in pick(d).map { (day: d.day, value: $0) } }
         }
         let candidates: [(id: String, name: String, series: [(day: String, value: Double)])] = [
-            ("mind-hrv", "HRV", bodySeries { $0.avgHrv }),
+            ("mind-hrv", KeyMetric.hrv.title, bodySeries { $0.avgHrv }),
             ("mind-recovery", String(localized: "recovery"), bodySeries { $0.recovery }),
             ("mind-sleep", String(localized: "sleep duration"), bodySeries { $0.totalSleepMin }),
         ]

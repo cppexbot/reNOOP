@@ -4,7 +4,8 @@
 //  Health iOS 26 Medications: the day's name, a strip of days with a filled circle per day (how much
 //  of it was logged), "Log" cards with a "+", then what was logged. Here the day strip runs from
 //  six days back to tomorrow (journal answers feed the effect ranker, so backfill is bounded, #656);
-//  habits answer in a sheet, mood and caffeine log straight from their row's "+" menu.
+//  habits answer in a sheet, mood and caffeine log straight from their row's "+" menu. A delete from the
+//  Logged card can be undone (shake, or ⌘Z), as Health's are.
 //
 //  Writes go through the same Repository calls the old Insights journal used, under the native
 //  `noop-journal` source, so imported WHOOP rows are never touched.
@@ -32,6 +33,7 @@ struct JournalView: View {
     @State private var showHabits = false
 
     @Environment(\.dynamicTypeSize) private var dts
+    @Environment(\.undoManager) private var undoManager
     @ScaledMetric(relativeTo: .body) private var iconColumn: CGFloat = 26
     @ScaledMetric(relativeTo: .body) private var loggedIconSize: CGFloat = 18
 
@@ -80,11 +82,6 @@ struct JournalView: View {
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                addMenu { Image(systemName: "plus") }.barGlyph()
-            }
-        }
         .sheet(isPresented: $showHabits, onDismiss: { Task { await load() } }) {
             JournalHabitsSheet(catalog: catalog, items: { items }, day: selectedKey,
                                title: dayTitle, answers: $answers, numeric: $numeric)
@@ -130,7 +127,7 @@ struct JournalView: View {
         let letter = String(date(off).formatted(.dateTime.weekday(.narrow).locale(locale)))
         return VStack(spacing: 6) {
             Image(systemName: "arrowtriangle.down.fill")
-                .font(.system(size: 9))
+                .font(.caption2)
                 .foregroundStyle(selected ? StrandPalette.textPrimary : .clear)
             Text(verbatim: letter)
                 .font(StrandFont.pro(13, weight: .semibold))
@@ -148,6 +145,8 @@ struct JournalView: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(verbatim: date(off).formatted(.dateTime.weekday(.wide).day().month().locale(locale))))
+        .accessibilityValue(Text(verbatim: Double(fraction(dayKey(off)))
+            .formatted(.percent.precision(.fractionLength(0)).locale(locale))))
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
@@ -204,20 +203,6 @@ struct JournalView: View {
             .foregroundStyle(tint)
             .frame(minWidth: 32, minHeight: 32)
             .contentShape(Rectangle())
-    }
-
-    private func addMenu<L: View>(@ViewBuilder label: () -> L) -> some View {
-        Menu {
-            Button { showHabits = true } label: { Label("Habits", systemImage: "checklist") }
-            Menu {
-                moodButtons
-            } label: { Label("Mood", systemImage: "face.smiling") }
-            if offset >= 0 {
-                Menu {
-                    caffeineButtons
-                } label: { Label("Caffeine", systemImage: "cup.and.saucer.fill") }
-            }
-        } label: { label() }
     }
 
     private func moodMenu<L: View>(@ViewBuilder label: () -> L) -> some View {
@@ -284,7 +269,15 @@ struct JournalView: View {
         if let mood = moods[day] {
             rows.append(LoggedRow(id: "mood", title: String(localized: "Mood"),
                                   value: "\(MoodStore.face(for: mood)) \(MoodStore.label(for: mood))",
-                                  done: true, remove: nil))
+                                  done: true,
+                                  remove: {
+                                      moods[day] = nil
+                                      Task { await repo.clearMood(day: day) }
+                                      registerUndo {
+                                          await repo.saveMood(day: day, value: mood)
+                                          await load()
+                                      }
+                                  }))
         }
         let names = Dictionary(items.map { ($0.canonical, $0) }, uniquingKeysWith: { a, _ in a })
         for e in entries.filter({ $0.day == day }).sorted(by: { $0.question < $1.question }) {
@@ -299,10 +292,22 @@ struct JournalView: View {
             // Only the native row can be cleared; an imported answer belongs to its export.
             let native = answers[e.question] != nil || numeric[e.question] != nil
             let question = e.question
-            rows.append(LoggedRow(id: "j:" + question, title: item?.display ?? question, value: value,
+            let answeredYes = e.answeredYes
+            let number = e.numericValue
+            rows.append(LoggedRow(id: "j:" + question, title: item?.display ?? catalog.displayName(for: question),
+                                  value: value,
                                   done: e.answeredYes,
                                   remove: native ? {
                                       Task { await repo.clearJournalAnswer(day: day, question: question); await load() }
+                                      registerUndo {
+                                          if let number {
+                                              await repo.saveJournalNumeric(day: day, question: question, value: number)
+                                          } else {
+                                              await repo.saveJournalAnswer(day: day, question: question,
+                                                                           answeredYes: answeredYes)
+                                          }
+                                          await load()
+                                      }
                                   } : nil))
         }
         for intake in intakes(on: day) {
@@ -311,9 +316,21 @@ struct JournalView: View {
             rows.append(LoggedRow(id: "c:" + intake.id.uuidString, title: String(localized: "Caffeine"),
                                   value: [mg, time].compactMap { $0 }.joined(separator: " · "),
                                   done: true,
-                                  remove: intake.isImported ? nil : { caffeine.remove(intake.id) }))
+                                  remove: intake.isImported ? nil : {
+                                      caffeine.remove(intake.id)
+                                      registerUndo { caffeine.log(at: intake.at, mg: intake.mg) }
+                                  }))
         }
         return rows
+    }
+
+    /// Puts a Logged-card delete on the window's undo stack (shake to undo on iPhone, ⌘Z on the Mac).
+    private func registerUndo(_ restore: @escaping @MainActor () async -> Void) {
+        guard let undoManager else { return }
+        undoManager.registerUndo(withTarget: catalog) { _ in
+            Task { @MainActor in await restore() }
+        }
+        undoManager.setActionName(String(localized: "Delete"))
     }
 
     /// Health's "Logged" card: grey on the white page, its title inside above a hairline.
@@ -397,6 +414,15 @@ struct JournalView: View {
     }
 }
 
+private extension Repository {
+    /// Clear the day's mood check-in (only the native `noop-mood` row; nothing imported lives there).
+    func clearMood(day: String) async {
+        guard let store = await storeHandle() else { return }
+        _ = try? await store.deleteMetricSeriesPoint(deviceId: MoodStore.moodDeviceId, day: day,
+                                                     key: MoodStore.moodKey)
+    }
+}
+
 private extension String {
     /// "четверг, 24 сентября" → "Четверг, 24 сентября" (weekday names are lowercase in many locales).
     var capitalizedFirstLetter: String { prefix(1).uppercased() + dropFirst() }
@@ -410,6 +436,7 @@ struct JournalHabitsSheet: View {
     @EnvironmentObject private var repo: Repository
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var catalog: JournalCatalogStore
+    @Environment(\.undoManager) private var undoManager
     let items: () -> [JournalCatalogItem]
     let day: String
     let title: String
@@ -472,13 +499,19 @@ struct JournalHabitsSheet: View {
             if item.kind.isNumeric {
                 numericField(item)
             } else {
-                answerButton("Yes", item: item, value: true)
-                answerButton("No", item: item, value: false)
+                // Unanswered until one is picked; the Logged card's Delete clears an answer.
+                Picker(item.display, selection: answerBinding(item)) {
+                    Text("Yes").tag(Bool?.some(true))
+                    Text("No").tag(Bool?.some(false))
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .fixedSize()
             }
         }
         .contextMenu {
             Button("Rename…") {
-                renameDraft = item.displayName ?? item.canonical
+                renameDraft = item.display
                 renaming = item
             }
             Menu("Group") {
@@ -491,34 +524,41 @@ struct JournalHabitsSheet: View {
             } else {
                 Button("Change to Number") { catalog.setKind(item.canonical, to: .numeric(unitLabel: nil)) }
             }
-            Button(role: .destructive) { catalog.remove(item.canonical) } label: {
+            Button(role: .destructive) { remove(item) } label: {
                 Text(item.custom ? "Delete" : "Hide")
             }
         }
     }
 
-    /// Tri-state, as before: tapping the chosen answer again clears it.
-    private func answerButton(_ label: LocalizedStringKey, item: JournalCatalogItem, value: Bool) -> some View {
-        let selected = answers[item.canonical] == value
-        return Button {
-            let q = item.canonical
-            if selected {
-                answers[q] = nil
-                Task { await repo.clearJournalAnswer(day: day, question: q) }
-            } else {
+    /// Yes, No, or nil while the day's question is unanswered.
+    private func answerBinding(_ item: JournalCatalogItem) -> Binding<Bool?> {
+        let q = item.canonical
+        return Binding(
+            get: { answers[q] },
+            set: { value in
                 answers[q] = value
-                Task { await repo.saveJournalAnswer(day: day, question: q, answeredYes: value) }
+                Task {
+                    if let value { await repo.saveJournalAnswer(day: day, question: q, answeredYes: value) }
+                    else { await repo.clearJournalAnswer(day: day, question: q) }
+                }
+            })
+    }
+
+    /// Delete (custom) or hide (built-in) an item, undoable: the item comes back with its name, type and group.
+    private func remove(_ item: JournalCatalogItem) {
+        let saved = catalog.item(for: item.canonical)
+        catalog.remove(item.canonical)
+        guard let undoManager else { return }
+        undoManager.registerUndo(withTarget: catalog) { store in
+            Task { @MainActor in
+                if item.custom {
+                    if let saved, store.item(for: saved.canonical) == nil { store.items.append(saved) }
+                } else {
+                    store.restore(item.canonical)
+                }
             }
-        } label: {
-            Text(label)
-                .font(StrandFont.pro(15, weight: .semibold))
-                .foregroundStyle(selected ? StrandPalette.summaryCard : StrandPalette.textPrimary)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 6)
-                .background(selected ? StrandPalette.healthMindText : StrandPalette.textTertiary.opacity(0.15),
-                            in: Capsule())
         }
-        .buttonStyle(.plain)
+        undoManager.setActionName(item.custom ? String(localized: "Delete") : String(localized: "Hide"))
     }
 
     private func numericField(_ item: JournalCatalogItem) -> some View {

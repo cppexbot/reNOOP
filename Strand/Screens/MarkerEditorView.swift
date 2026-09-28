@@ -39,6 +39,15 @@ struct MarkerEditorView: View {
     @State private var referenceText = ""
 
     @State private var saving = false
+    @State private var askDiscard = false
+    @State private var openedAt: Date?
+    private enum Field: Hashable { case value, systolic, diastolic }
+    @FocusState private var focused: Field?
+
+    private var hasChanges: Bool {
+        selection != nil || addingCustom || openedAt.map { $0 != takenAt } == true
+            || ![valueText, diastolicText, note, referenceText].allSatisfy(\.isEmpty)
+    }
 
     var body: some View {
         NavigationStack {
@@ -71,17 +80,19 @@ struct MarkerEditorView: View {
             #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    SheetCloseButton { dismiss() }
+                    SheetCloseButton { if hasChanges { askDiscard = true } else { dismiss() } }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     SheetConfirmButton(tint: StrandPalette.settingsBlue) { save() }
                         .disabled(drafts.isEmpty || saving)
                 }
             }
+            .discardGuard(hasChanges: hasChanges, isPresented: $askDiscard) { dismiss() }
         }
         #if os(macOS)
         .frame(minWidth: 460, minHeight: 560)
         #endif
+        .onAppear { if openedAt == nil { openedAt = takenAt } }
     }
 
     // MARK: - Reading inputs
@@ -89,14 +100,14 @@ struct MarkerEditorView: View {
     private var readingSection: some View {
         Section {
             if isBloodPressure {
-                numberRow("Systolic", text: $valueText, unit: "mmHg")
-                numberRow("Diastolic", text: $diastolicText, unit: "mmHg")
+                numberRow("Systolic", text: $valueText, unit: LabBookFormat.unit("mmHg"), field: .systolic)
+                numberRow("Diastolic", text: $diastolicText, unit: LabBookFormat.unit("mmHg"), field: .diastolic)
             } else {
-                numberRow("Value", text: $valueText, unit: activeUnit)
+                numberRow("Value", text: $valueText, unit: LabBookFormat.unit(activeUnit), field: .value)
                 if unitOptions.count > 1 {
                     // The transparent unit switcher (e.g. mmol/L ↔ mg/dL); stored in the canonical unit.
                     Picker("Unit", selection: $unitChoice) {
-                        ForEach(unitOptions.indices, id: \.self) { Text(verbatim: unitOptions[$0]).tag($0) }
+                        ForEach(unitOptions.indices, id: \.self) { Text(verbatim: LabBookFormat.unit(unitOptions[$0])).tag($0) }
                     }
                     .pickerStyle(.segmented)
                 }
@@ -105,16 +116,20 @@ struct MarkerEditorView: View {
             TextField("Note", text: $note)
             TextField("Range on Report", text: $referenceText)
         } footer: {
-            if !conversionNote.isEmpty {
+            if let error = bloodPressureError(live: true) {
+                Text(error).foregroundStyle(StrandPalette.statusCritical)
+            } else if !conversionNote.isEmpty {
                 Text(verbatim: conversionNote)
             }
         }
     }
 
-    private func numberRow(_ title: LocalizedStringKey, text: Binding<String>, unit: String) -> some View {
+    private func numberRow(_ title: LocalizedStringKey, text: Binding<String>, unit: String,
+                           field: Field) -> some View {
         LabeledContent(title) {
             HStack(spacing: 6) {
                 TextField(title, text: text)
+                    .focused($focused, equals: field)
                     .labelsHidden()
                     .multilineTextAlignment(.trailing)
                     .numericKeyboard()
@@ -147,6 +162,18 @@ struct MarkerEditorView: View {
     }
 
     private var isBloodPressure: Bool { markerKey == LabBookProjection.bpSystolicKey }
+
+    /// Why a typed blood-pressure pair can't be a reading; nil while it can. `live` leaves out what the
+    /// field being typed into may still grow out of (the "1" on the way to 120).
+    private func bloodPressureError(live: Bool = false) -> LocalizedStringKey? {
+        guard isBloodPressure else { return nil }
+        let sys = parsed(valueText), dia = parsed(diastolicText)
+        let sysDone = !(live && focused == .systolic), diaDone = !(live && focused == .diastolic)
+        if let sys, sys > 260 || (sysDone && sys < 50) { return "Systolic must be between 50 and 260 mmHg." }
+        if let dia, dia > 160 || (diaDone && dia < 30) { return "Diastolic must be between 30 and 160 mmHg." }
+        if sysDone, diaDone, let sys, let dia, sys <= dia { return "Systolic must be higher than diastolic." }
+        return nil
+    }
 
     /// The unit options for the active marker — a switcher list only for markers that have a
     /// well-known dual unit (lipids/glucose: mmol/L↔mg/dL). Everything else has one canonical unit.
@@ -183,7 +210,8 @@ struct MarkerEditorView: View {
         }
         guard selection != nil else { return [] }
         if isBloodPressure {
-            guard let sys = parsed(valueText), let dia = parsed(diastolicText) else { return [] }
+            guard bloodPressureError() == nil,
+                  let sys = parsed(valueText), let dia = parsed(diastolicText) else { return [] }
             return [
                 row(key: LabBookProjection.bpSystolicKey, category: .bloodPressure, value: sys, unit: "mmHg"),
                 row(key: LabBookProjection.bpDiastolicKey, category: .bloodPressure, value: dia, unit: "mmHg"),
