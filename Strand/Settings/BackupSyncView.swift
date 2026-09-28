@@ -69,16 +69,14 @@ struct BackupSyncView: View {
                 }
                 .settingsPicker()
                 .onChangeCompat(of: keep) { n in FolderBackup.keepCount = n }
-            } footer: {
-                // Auto is ON but the last successful backup is stale: a moved or disconnected cloud folder
-                // stops backups silently, so say so here rather than at restore time.
-                if auto, folderLabel != nil, lastMs > 0,
-                   BackupSync.isBackupStale(lastBackupMs: lastMs,
-                                            nowMs: Int(Date().timeIntervalSince1970 * 1000.0)) {
-                    Text("Auto-backup hasn't run in a few days. Check the backup folder is still available — a moved or disconnected cloud folder stops backups silently.")
-                        .foregroundStyle(StrandPalette.statusWarning)
-                } else if lastMs > 0 {
-                    Text("Last backup: \(relativeTime(lastMs))")
+                if lastMs > 0 {
+                    // Daily is on but the last success is days old: a moved or disconnected cloud folder
+                    // stops backups silently, so the value turns to the warning colour here rather than
+                    // the problem surfacing at restore time.
+                    LabeledContent("Last backup") {
+                        Text(relativeTime(lastMs))
+                            .foregroundStyle(backupIsStale ? StrandPalette.statusWarning : StrandPalette.textSecondary)
+                    }
                 }
             }
 
@@ -131,6 +129,11 @@ struct BackupSyncView: View {
         } message: { name in
             Text("Replace all current data with the backup \(name)? This cannot be undone.")
         }
+    }
+
+    private var backupIsStale: Bool {
+        auto && folderLabel != nil
+            && BackupSync.isBackupStale(lastBackupMs: lastMs, nowMs: Int(Date().timeIntervalSince1970 * 1000.0))
     }
 
     // MARK: - File export / import
@@ -191,16 +194,15 @@ struct BackupSyncView: View {
             let size = ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
             let cap = ByteCountFormatter.string(fromByteCount: limit, countStyle: .file)
             alertTitle = String(localized: "Backup exported")
-            alertMessage = String(localized: "Saved to \(url.lastPathComponent). Your database is \(size), over the \(cap) NOOP restores without asking — the backup is complete and valid, and restoring it will ask you to confirm once.")
+            alertMessage = String(localized: "Saved to \(url.lastPathComponent). At \(size) it is over \(cap), so restoring it asks once more.")
             showAlert = true
         case .restoreTooLarge(let name, let limit):
             let cap = ByteCountFormatter.string(fromByteCount: limit, countStyle: .file)
-            oversizeRestoreMessage = String(localized: "\(name) is larger than the \(cap) NOOP restores without asking. That limit guards against a malicious archive expanding to fill this \(Platform.deviceNoun) — a backup you exported yourself is not that. Restoring it needs the space the database will take. You'll be asked to choose the file again.")
+            oversizeRestoreMessage = String(localized: "\(name) is over \(cap). Restore it only if you exported it yourself. You'll choose the file again.")
             showOversizeRestoreConfirm = true
         case .imported:
-            alertTitle = String(localized: "Backup imported")
-            alertMessage = String(localized: "Your data has been restored. Quit and reopen NOOP for it to take effect.")
-            showAlert = true
+            // ST-6: an outcome, not a question — the capsule, as Backed up already does.
+            Confirmation.shared.show(String(localized: "Restored. Reopen NOOP."))
         case .failure(let message):
             alertTitle = String(localized: "Backup problem")
             alertMessage = message
@@ -237,7 +239,7 @@ struct BackupSyncView: View {
                 // active, a cancelled picker changed nothing — and the button the message points at is
                 // hidden, so alerting here would send the user chasing a control that isn't shown.
                 alertTitle = String(localized: "No folder selected")
-                alertMessage = String(localized: "NOOP didn't get a folder back from the picker. If the Open button won't do anything, tap \"Use NOOP's own folder\" below to back up inside NOOP instead — you can read those backups from the Files app.")
+                alertMessage = String(localized: "If Open does nothing, tap NOOP folder to back up inside NOOP.")
                 showAlert = true
             }
         }
@@ -249,10 +251,9 @@ struct BackupSyncView: View {
     // Backups). No folder picker, no security-scoped bookmark — works even where the picker won't select.
     private func useNoopFolder() {
         FolderBackup.useNoopFolder()
+        // The Folder row now names it; the capsule confirms the switch (ST-6).
         folderLabel = FolderBackup.folderLabel()
-        alertTitle = String(localized: "Using NOOP's folder")
-        alertMessage = String(localized: "Backups will be saved inside NOOP. Open the Files app → On My iPhone → NOOP → Backups to see them, or drag that folder into iCloud Drive to read it on your Mac. To use a different folder later, tap Change folder.")
-        showAlert = true
+        Confirmation.shared.show(String(localized: "Using NOOP's folder"))
     }
     #endif
 
@@ -298,8 +299,8 @@ struct BackupSyncView: View {
             await MainActor.run {
                 switch result {
                 case .imported:
-                    alertTitle = String(localized: "Restored")
-                    alertMessage = String(localized: "Fully quit and reopen NOOP to load it.")
+                    Confirmation.shared.show(String(localized: "Restored. Reopen NOOP."))
+                    return
                 case .failure(let m):
                     alertTitle = String(localized: "Restore problem"); alertMessage = m
                 case .restoreTooLarge(let name, let limit):
@@ -308,7 +309,7 @@ struct BackupSyncView: View {
                     // than leaving the user with a refusal and nowhere to go.
                     let cap = ByteCountFormatter.string(fromByteCount: limit, countStyle: .file)
                     alertTitle = String(localized: "Backup problem")
-                    alertMessage = String(localized: "\(name) is larger than the \(cap) NOOP restores without asking. You can still restore it from Settings → Backup → Import…, which will ask you to confirm.")
+                    alertMessage = String(localized: "\(name) is over \(cap). Restore it with Import from file….")
                 case .cancelled, .exported, .exportedOversize:
                     alertTitle = String(localized: "Restore problem"); alertMessage = String(localized: "Couldn't restore that backup.")
                 }
@@ -358,9 +359,8 @@ private struct RestorePickerSheet: View {
                             }
                         }
                         Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(StrandFont.caption).foregroundStyle(StrandPalette.textTertiary)
                     }
+                    .contentShape(Rectangle())
                 }
                 .accessibilityLabel(accessibilityLabel(snap))
             }

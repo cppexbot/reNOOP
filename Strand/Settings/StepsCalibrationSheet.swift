@@ -270,10 +270,6 @@ struct StepsCalibrationSheet: View {
             }
         } header: {
             Text("Adjust manually")
-        } footer: {
-            if draftManual > 0 {
-                Text("Takes effect on the next analytics pass (after the next sync).")
-            }
         }
     }
 

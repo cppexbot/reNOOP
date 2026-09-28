@@ -132,6 +132,10 @@ struct StrapGesturesSection: View {
             .settingsPicker()
             if behavior.doubleTapAction == .runShortcut {
                 TextField("Shortcut", text: $behavior.doubleTapShortcut)
+                    .autocorrectionDisabled()
+                    #if os(iOS)
+                    .textInputAutocapitalization(.never)
+                    #endif
             }
             if behavior.doubleTapAction != .none {
                 Button("Test") {
@@ -259,13 +263,9 @@ struct HeartRateBroadcastSection: View {
 
     /// Honest live status: advertising vs starting, then a radio warning, or who's reading it.
     @ViewBuilder private var phoneStatus: some View {
-        HStack(spacing: 8) {
-            Circle()
-                .fill(hrBroadcaster.advertising ? StrandPalette.settingsGreen : StrandPalette.settingsOrange)
-                .frame(width: 8, height: 8)
-                .accessibilityHidden(true)
-            Text(hrBroadcaster.advertising ? LocalizedStringKey("Broadcasting") : LocalizedStringKey("Starting…"))
-        }
+        // A grey value, as Settings states a status (ST-10).
+        LabeledContent("Status",
+                       value: String(localized: hrBroadcaster.advertising ? "Broadcasting" : "Starting…"))
         if let note = hrBroadcaster.statusNote {
             Text(note).foregroundStyle(StrandPalette.statusWarning)
         } else if hrBroadcaster.subscriberCount > 0 {

@@ -26,6 +26,8 @@ struct DeveloperSettingsPage: View {
     @AppStorage("selectedWhoopModel") private var selectedWhoopModelRaw = WhoopModel.whoop4.rawValue
 
     @State private var strapNameDraft = ""
+    /// ST-8: renaming reboots the strap, so the button asks first.
+    @State private var confirmRename = false
     @State private var rawCsvBusy = false
     @State private var lastRawCsvURL: URL?
     @State private var exportError: String?
@@ -35,6 +37,10 @@ struct DeveloperSettingsPage: View {
 
     var body: some View {
         TestCentreView(extra: AnyView(developerRows))
+        .alert("Rename and restart the strap?", isPresented: $confirmRename) {
+            Button("Rename") { model.ble.renameStrap(strapNameDraft) }
+            Button("Cancel", role: .cancel) { }
+        }
         .alert("Export failed", isPresented: Binding(
             get: { exportError != nil }, set: { if !$0 { exportError = nil } })) {
             Button("OK", role: .cancel) { }
@@ -55,7 +61,7 @@ struct DeveloperSettingsPage: View {
                 exportRawSensorCSV()
             } label: {
                 HStack {
-                    Text(rawCsvBusy ? "Exporting…" : "Export raw sensor data (CSV)")
+                    Text(rawCsvBusy ? "Exporting…" : "Export raw data (CSV)")
                     if rawCsvBusy { Spacer(); ProgressView().controlSize(.small) }
                 }
             }
@@ -93,8 +99,10 @@ struct DeveloperSettingsPage: View {
             LabeledContent("Strap name", value: live.advertisingName ?? "—")
             HStack {
                 TextField("New strap name", text: $strapNameDraft)
-                    .disableAutocorrection(true)
-                Button("Rename") { model.ble.renameStrap(strapNameDraft) }
+                    .autocorrectionDisabled()
+                // Borderless, so a tap on the field never lands on the button sharing its row.
+                Button("Rename") { confirmRename = true }
+                    .buttonStyle(.borderless)
                     .disabled(strapNameDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         } footer: {

@@ -62,7 +62,7 @@ enum StrainTargetNotifier {
         /// Title + body for the nudge. `target` is the optimal-band low on the 0-21 coupled axis.
         /// NOOP's OWN wording — the feature is reimplemented behaviour, not copied copy.
         static func copy(target: Int) -> (title: String, body: String) {
-            (String(localized: "Optimal strain reached"),
+            (String(localized: "Effort Target Reached"),
              String(localized: "Today's target: \(target)."))
         }
     }

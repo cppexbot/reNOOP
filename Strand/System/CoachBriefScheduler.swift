@@ -46,10 +46,10 @@ enum CoachBriefScheduler {
     static let defaultTimeMinutes = 7 * 60
     private static let minutesPerDay = 24 * 60
 
-    /// Category id the posted notification carries, so `NotificationPresenter` can recognise a brief tap
-    /// (as opposed to any other local notification) and route it to Coach.
+    /// Category id the posted notification carries, grouping the briefs apart from NOOP's other alerts.
     static let notificationCategoryId = "coach-brief"
-    private static let requestIdPrefix = "coach-brief-"
+    /// Every brief's request id starts with this (one id per day); `NotificationPresenter` routes a tap by it.
+    static let requestIdPrefix = "coach-brief-"
 
     /// The Coach master switch, under the same `noop.` key Android writes and `RootTabView` binds.
     ///
@@ -283,7 +283,7 @@ enum CoachBriefScheduler {
         #if os(iOS)
         publishToWidget(text)  // K10: mirror into the App Group for the widget
         #endif
-        postNotification(title: String(localized: "Today's brief"),
+        postNotification(title: String(localized: "Morning Brief"),
                           body: oneLineSummary(from: text))
         return true
     }

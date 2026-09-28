@@ -45,10 +45,15 @@ struct ShortcutsSettingsPage: View {
         .settingsPage("Shortcuts")
     }
 
-    /// A Shortcut-name field, right-aligned in its row as Settings draws an editable value.
+    /// A Shortcut-name field, right-aligned in its row as Settings draws an editable value. The name must
+    /// match the Shortcut exactly, so the keyboard neither corrects nor capitalises it (ST-8).
     private func shortcutField(text: Binding<String>) -> some View {
         TextField("Shortcut", text: text, prompt: Text("Shortcut"))
             .labelsHidden()
             .multilineTextAlignment(.trailing)
+            .autocorrectionDisabled()
+            #if os(iOS)
+            .textInputAutocapitalization(.never)
+            #endif
     }
 }

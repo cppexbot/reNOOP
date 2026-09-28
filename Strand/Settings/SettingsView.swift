@@ -20,6 +20,8 @@ struct SettingsView: View {
     @AppStorage("noop.coachEnabled") private var coachEnabled = true
     /// Hydration tracker (opt-in). Off hides the hydration card + detail.
     @AppStorage(HydrationStore.enabledKey) private var hydrationEnabled = false
+    /// Seven taps on the version in About NOOP (ST-9); debug builds always show the section.
+    @AppStorage(DeveloperUnlock.key) private var developerUnlocked = false
 
     @Environment(\.dynamicTypeSize) private var dts
 
@@ -69,7 +71,9 @@ struct SettingsView: View {
 
             Section {
                 SettingsLink(.about, "About NOOP", icon: "info", color: StrandPalette.settingsGray)
-                SettingsLink(.developer, "Developer", icon: "hammer.fill", color: StrandPalette.settingsGray)
+                if DeveloperUnlock.isAlwaysOn || developerUnlocked {
+                    SettingsLink(.developer, "Developer", icon: "hammer.fill", color: StrandPalette.settingsGray)
+                }
             }
         }
         .settingsForm()
@@ -88,11 +92,13 @@ struct SettingsView: View {
     }
 
     /// The active strap by name, its link state and charge on the right, as the Watch app heads its list
-    /// with the paired watch. Opens Devices, where the strap's own settings live.
+    /// with the paired watch. Opens Devices, where the strap's own settings live. The value is the Devices
+    /// list's own status line, so the two can never word the same strap differently (ST-5).
     private var strapRow: some View {
-        let name = model.deviceRegistry?.devices.first { $0.status == .active }?.displayName
-        var value = String(localized: live.connected ? "Connected" : "Not connected")
-        if live.connected, let pct = live.batteryPct { value += " · \(Int(pct.rounded()))%" }
+        let active = model.deviceRegistry?.devices.first { $0.status == .active }
+        let name = active?.displayName
+        let value = active.map { DeviceReadout.make($0, live: live).statusLine }
+            ?? String(localized: "Not connected")
         let stacked = dts.isAccessibilitySize
         return NavigationLink(value: SettingsPage.devices) {
             SettingsValueLayout.make(stacked).callAsFunction {
@@ -166,12 +172,10 @@ extension View {
         navigationDestination(for: SettingsPage.self) { $0.destination }
     }
 
-    /// A Settings page: the native grouped list on the Health canvas.
+    /// A Settings page: the native grouped list on the system grouped background, which lifts to the
+    /// elevated colour by itself in a dark sheet.
     func settingsForm() -> some View {
-        self
-            .formStyle(.grouped)
-            .scrollContentBackground(.hidden)
-            .background(StrandPalette.summaryCanvas.ignoresSafeArea())
+        self.formStyle(.grouped)
     }
 
     /// A choice row as Settings draws it: the value on the right, a pushed checkmark list (iOS).

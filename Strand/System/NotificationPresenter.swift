@@ -7,7 +7,8 @@ import UserNotifications
 /// Without a `UNUserNotificationCenterDelegate`, iOS/macOS suppress a notification's banner while the
 /// app is in the FOREGROUND (the default). A user testing a reminder with the app open would see
 /// nothing and conclude notifications are broken. Returning banner + sound + list here makes them
-/// visible whether the app is open or not — matching what the user expects from a reminder.
+/// visible whether the app is open or not — matching what the user expects from a reminder. The one
+/// exception is news the open app already shows in its own banner, which goes to the list only.
 ///
 /// Cross-platform (iOS + macOS). Register once at launch:
 /// `UNUserNotificationCenter.current().delegate = NotificationPresenter.shared`.
@@ -28,7 +29,7 @@ final class NotificationPresenter: NSObject, UNUserNotificationCenterDelegate {
     }
 
     /// `setNotificationCategories` REPLACES the whole set, so every category NOOP registers is declared here, in
-    /// one place. The morning brief's category needs no registration to route a tap and is not listed.
+    /// one place. The morning brief routes by its request id and needs no category here.
     private static func registerCategories() {
         let health = UNNotificationCategory(
             identifier: healthCategoryId, actions: [], intentIdentifiers: [],
@@ -42,23 +43,31 @@ final class NotificationPresenter: NSObject, UNUserNotificationCenterDelegate {
     /// root has wired it.
     var onCoachBriefTapped: (() -> Void)?
 
+    /// Request ids whose news the open app already shows in its own banner (NT-2): in the foreground they
+    /// go quietly to Notification Centre instead of dropping a second banner over the first.
+    private static let inAppBannerIds: Set<String> = ["illness-watch"]
+
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
-        completionHandler([.banner, .sound, .list])
+        if Self.inAppBannerIds.contains(notification.request.identifier) {
+            completionHandler([.list])
+        } else {
+            completionHandler([.banner, .sound, .list])
+        }
     }
 
-    /// Handle a tap on a delivered notification. Only the scheduled morning-brief category (K5) routes
-    /// anywhere; every other notification (wind-down, smart-alarm, battery/illness) just opens the app
-    /// to wherever it was, matching the pre-K5 behaviour.
+    /// Handle a tap on a delivered notification, routed by its request id (NT-2). Only the morning brief
+    /// (K5) routes anywhere; every other notification (wind-down, smart-alarm, battery/illness) just opens
+    /// the app to wherever it was.
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
-        if response.notification.request.content.categoryIdentifier == CoachBriefScheduler.notificationCategoryId {
+        if response.notification.request.identifier.hasPrefix(CoachBriefScheduler.requestIdPrefix) {
             onCoachBriefTapped?()
         }
         completionHandler()

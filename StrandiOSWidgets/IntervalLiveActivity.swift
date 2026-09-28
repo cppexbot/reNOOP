@@ -44,7 +44,7 @@ struct IntervalLiveActivity: Widget {
             } compactLeading: {
                 ring(state)
             } compactTrailing: {
-                ActivityClock(font: .system(size: 15, weight: .semibold)) { clockText(state) }
+                ActivityClock(font: .system(size: 15, weight: .semibold), alignment: .leading) { clockText(state) }
                     .foregroundStyle(tint(state))
             } minimal: {
                 ring(state)

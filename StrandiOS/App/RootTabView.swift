@@ -21,7 +21,6 @@ struct RootTabView: View {
     /// daily brief is cancelled, because the brief calls a provider from the BACKGROUND with no UI
     /// attached and would otherwise keep posting AI notifications for a feature the wearer switched off.
     @AppStorage("noop.coachEnabled") private var coachEnabled = true
-    @AppStorage("noop.bottomBarAutoHide") private var bottomBarAutoHide = false
 
     /// The live gym session, owned at the app root — see `LiftSessionController`.
     @EnvironmentObject private var liftSession: LiftSessionController
@@ -90,7 +89,6 @@ struct RootTabView: View {
             .tint(StrandPalette.accent)
             // #1841: the same "Hide bar when scrolling" preference Android drives its own bar with. Here
             // the system owns the behaviour — iOS 26's tab bar MINIMISES to a pill on scroll down.
-            .noopTabBarAutoHide(bottomBarAutoHide)
         .task {
             await repo.refresh()
             // Backup & Sync: on-launch catch-up (see RootView). Detached + utility priority so a
@@ -197,7 +195,6 @@ struct RootTabView: View {
                                   showsNavigationBar: Bool = false) -> some View {
         NavigationStack(path: path) {
             view
-                .background(StrandPalette.surfaceBase.ignoresSafeArea())
                 // Summary uses the native large title + glass toolbar (Health); the others draw their own.
                 .toolbar(showsNavigationBar ? .automatic : .hidden, for: .navigationBar)
                 .tabRouteDestinations()
@@ -217,7 +214,6 @@ struct RootTabView: View {
                 .settingsDestinations()
                 .navigationDestination(for: MoreDestination.self) { route in
                     route.destination
-                        .background(StrandPalette.surfaceBase.ignoresSafeArea())
                         .navigationBarTitleDisplayMode(.inline)
                         .toolbarBackground(.hidden, for: .navigationBar)
                 }
@@ -269,25 +265,3 @@ private struct IntervalRunHost: View {
 }
 
 #endif
-
-/// #1841: apply the iOS 26 tab-bar minimise behaviour, doing nothing on older systems.
-///
-/// The availability branch is deliberately the ONLY branch. `RootTabView` already documents what happens
-/// when a condition that flips at runtime wraps this `TabView`: #519 put two states in separate
-/// `_ConditionalContent` branches, and every navigation rebuilt the whole subtree, resetting `@State`
-/// inside the tab roots — scroll offsets, chart ranges, expanded sections.
-///
-/// So the preference must NOT select between branches. It selects the modifier's ARGUMENT, while the
-/// availability check — fixed for the life of the process — is what picks a branch. Toggling the setting
-/// changes a value, never the view's identity.
-extension View {
-    @ViewBuilder
-    func noopTabBarAutoHide(_ enabled: Bool) -> some View {
-        if #available(iOS 26.0, *) {
-            // `.onScrollDown` minimises to a pill on downward scroll; `.never` pins it fully visible.
-            self.tabBarMinimizeBehavior(enabled ? .onScrollDown : .never)
-        } else {
-            self
-        }
-    }
-}

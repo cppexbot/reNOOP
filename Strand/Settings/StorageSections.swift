@@ -16,7 +16,6 @@ struct StorageSections: View {
     @State private var report: AppModel.StorageReport?
     @State private var loading = true
     @State private var cleaning = false
-    @State private var lastCleanedSummary: String?
 
     var body: some View {
         // One section carries the load: a modifier on a Group inside a Form lands on EVERY child section.
@@ -60,16 +59,6 @@ struct StorageSections: View {
             }
             .disabled(cleaning || reclaimable == 0)
             .accessibilityLabel("Clean up leftover import files")
-
-            if let lastCleanedSummary {
-                HStack(spacing: 8) {
-                    Circle()
-                        .fill(StrandPalette.settingsGreen)
-                        .frame(width: 8, height: 8)
-                        .accessibilityHidden(true)
-                    Text(lastCleanedSummary)
-                }
-            }
         }
     }
 
@@ -106,7 +95,9 @@ struct StorageSections: View {
         let after = r.inbox + r.importTemp
         let freed = max(0, before - after)
         report = r
-        lastCleanedSummary = freed > 0 ? String(localized: "Reclaimed \(Self.format(freed)).") : String(localized: "Already clean.")
+        // The sizes above already show the result; the capsule confirms it (ST-10), as Backed up does.
+        Confirmation.shared.show(freed > 0 ? String(localized: "Reclaimed \(Self.format(freed)).")
+                                           : String(localized: "Already clean."))
         cleaning = false
     }
 

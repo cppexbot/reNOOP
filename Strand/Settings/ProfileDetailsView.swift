@@ -70,9 +70,10 @@ struct ProfileDetailsView: View {
                                in: ProfileStore.dateOfBirthRange, displayedComponents: .date)
                 }
                 Picker("Sex", selection: $profile.sex) {
-                    Text("Male").tag("male")
+                    // Health's options and order; "Other" is the onboarding wizard's word for the same tag.
                     Text("Female").tag("female")
-                    Text("Non-binary").tag("nonbinary")
+                    Text("Male").tag("male")
+                    Text("Other").tag("nonbinary")
                 }
                 #if os(iOS)
                 .pickerStyle(.navigationLink)

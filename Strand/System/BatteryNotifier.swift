@@ -16,6 +16,18 @@ enum BatteryNotifier {
     private static let criticalAlertedKey = "behavior.batteryCriticalAlerted"
     private static let bedtimeAlertedKey = "behavior.batteryBedtimeAlerted"
 
+    /// NT-2: every battery alert is one notification about one thing, the strap's battery, so they share
+    /// ONE request id: a newer alert replaces the older on the Lock Screen instead of stacking a second,
+    /// third and fourth about the same discharge. The thread groups it with any copy an older build left.
+    static let notificationId = "battery"
+    private static let threadId = "battery"
+    /// Which alert the standing notification is, so clearing the stale "charged" note never pulls a
+    /// low-battery warning that replaced it.
+    private static let kindKey = "batteryKind"
+    private enum Kind: String { case low, full, runtime, critical, bedtime }
+    /// The per-alert ids older builds posted under; cleared with the full note so none outlives the change.
+    private static let legacyIds = ["battery-low", "battery-full", "battery-runtime", "battery-critical", "battery-bedtime"]
+
     /// Pure crossing-with-hysteresis policy, identical on macOS/iOS and Android (#368). The two
     /// `*Alerted` flags are PERSISTED, so they survive process death — and the 25% re-arm band means
     /// a 14↔15% jitter fires the low alert exactly once per discharge cycle (no in-memory prevPct
@@ -81,22 +93,39 @@ enum BatteryNotifier {
         d.set(result.newLowAlerted, forKey: lowAlertedKey)
         d.set(result.newFullAlerted, forKey: fullAlertedKey)
         if result.fireLow {
-            post(identifier: "battery-low",
-                 title: String(localized: "Low battery"),
+            post(.low,
+                 title: String(localized: "Low Battery"),
                  body: String(localized: "Charge it before tonight."))
         }
         if result.fireFull {
-            post(identifier: "battery-full",
-                 title: String(localized: "Strap charged"),
+            post(.full,
+                 title: String(localized: "Strap Charged"),
                  body: String(localized: "Your WHOOP is at 100%."))
         }
         // #514: the strap has dropped below 100% — pull the stale "fully charged" note (delivered
-        // banner + any still-pending request) so it can't linger after the cell discharges.
-        if result.clearFull {
-            let center = UNUserNotificationCenter.current()
-            center.removeDeliveredNotifications(withIdentifiers: ["battery-full"])
-            center.removePendingNotificationRequests(withIdentifiers: ["battery-full"])
+        // banner + any still-pending request) so it can't linger after the cell discharges. Only when the
+        // shared id still holds the full note: a low alert that replaced it stays.
+        if result.clearFull { clearFullNote() }
+    }
+
+    private static func clearFullNote() {
+        let center = UNUserNotificationCenter.current()
+        center.removeDeliveredNotifications(withIdentifiers: legacyIds)
+        center.removePendingNotificationRequests(withIdentifiers: legacyIds)
+        center.getDeliveredNotifications { delivered in
+            if delivered.contains(where: { $0.request.identifier == notificationId && isFull($0.request.content) }) {
+                center.removeDeliveredNotifications(withIdentifiers: [notificationId])
+            }
         }
+        center.getPendingNotificationRequests { pending in
+            if pending.contains(where: { $0.identifier == notificationId && isFull($0.content) }) {
+                center.removePendingNotificationRequests(withIdentifiers: [notificationId])
+            }
+        }
+    }
+
+    private static func isFull(_ content: UNNotificationContent) -> Bool {
+        content.userInfo[kindKey] as? String == Kind.full.rawValue
     }
 
     /// Predictive twin of `onBatteryUpdate`: run the runtime estimate against
@@ -113,8 +142,8 @@ enum BatteryNotifier {
                                                    alerted: d.bool(forKey: runtimeAlertedKey))
         d.set(result.newAlerted, forKey: runtimeAlertedKey)
         if result.fire {
-            post(identifier: "battery-runtime",
-                 title: String(localized: "Strap battery low"),
+            post(.runtime,
+                 title: String(localized: "Strap Battery Low"),
                  body: String(localized: "\(BatteryEstimator.label(hours: remainingHours)) left. Charge it tonight."))
         }
     }
@@ -137,8 +166,8 @@ enum BatteryNotifier {
                                                     alerted: d.bool(forKey: criticalAlertedKey))
         d.set(result.newAlerted, forKey: criticalAlertedKey)
         if result.fire {
-            post(identifier: "battery-critical",
-                 title: String(localized: "Charge your strap now"),
+            post(.critical,
+                 title: String(localized: "Charge Your Strap Now"),
                  body: String(localized: "\(pct)% left. It stops recording near 10%."),
                  interruptionLevel: .active)
         }
@@ -168,14 +197,14 @@ enum BatteryNotifier {
                                                    alerted: d.bool(forKey: bedtimeAlertedKey))
         d.set(result.newAlerted, forKey: bedtimeAlertedKey)
         if result.fire, let runway = result.runway {
-            post(identifier: "battery-bedtime",
-                 title: String(localized: "Won't last the night"),
+            post(.bedtime,
+                 title: String(localized: "Won't Last the Night"),
                  body: String(localized: "\(BatteryEstimator.label(hours: runway.usableHours)) left. Charge before bed."),
                  interruptionLevel: .active)
         }
     }
 
-    private static func post(identifier: String, title: String, body: String,
+    private static func post(_ kind: Kind, title: String, body: String,
                              interruptionLevel: UNNotificationInterruptionLevel = .active) {
         let center = UNUserNotificationCenter.current()
         // Authorization is requested once via requestAuthorization() when alerts are enabled; here
@@ -188,7 +217,9 @@ enum BatteryNotifier {
             content.sound = .default
             // A charge reminder is not time-critical: only the wake-up backup breaks through a Focus (AL-1).
             content.interruptionLevel = interruptionLevel
-            center.add(UNNotificationRequest(identifier: identifier,
+            content.threadIdentifier = threadId
+            content.userInfo = [kindKey: kind.rawValue]
+            center.add(UNNotificationRequest(identifier: notificationId,
                                              content: content, trigger: nil))
         }
     }

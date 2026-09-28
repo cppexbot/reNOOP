@@ -65,6 +65,7 @@ struct StrandiOSApp: App {
         PuffinExperiment.migrateContinuousHrvOvernightDefault()
         // One fixed look that follows the system: pin the retired theme knobs before any view reads them.
         AppearanceLock.apply()
+        RetiredSettings.purge()
         // Debug-only canary: trips if the App Group entitlement is missing on this target before any
         // silent no-op (PendingIntents, WidgetSnapshot.publish, Live Activity) can mask the issue as
         // "the widget doesn't show anything yet." No-op in Release.
@@ -833,10 +834,13 @@ private struct NoticeGalleryDemo: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 12) {
-                NoticeCard(title: Text("Syncing strap history"), message: Text("\(12) chunks so far"), tone: .progress)
+                NoticeCard(title: Text("Syncing history from the strap…"), message: Text("\(12) chunks so far"), tone: .progress)
                 NoticeCard(title: Text("Sleep hasn't synced"), message: Text("Keep the strap nearby and sync again."),
                            systemImage: "exclamationmark.arrow.triangle.2.circlepath", tone: .error)
-                NoticeCard(title: Text("Signs of strain"), message: Text("Up: \("resting HR, HRV"). Take it easy today."),
+                // The signals as AppModel renders them for HealthAlertCopy: localized names, each with its sign.
+                NoticeCard(title: Text("Signs of strain"),
+                           message: Text(verbatim: [String(localized: "Resting HR +\(6)"),
+                                                    String(localized: "HRV −\(18)%")].joined(separator: ", ")),
                            systemImage: "exclamationmark.triangle.fill", tone: .warning)
                 NoticeCard(title: Text("Strap not connected"), systemImage: "antenna.radiowaves.left.and.right.slash",
                            tone: .info, actionTitle: "Open Devices", action: {})

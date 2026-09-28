@@ -890,7 +890,6 @@ private struct PairingCard<Actions: View>: View {
         // The card's detent is a fixed height; at accessibility sizes it scrolls instead of clipping.
         if dts.isAccessibilitySize {
             ScrollView { card }
-                .background(StrandPalette.summaryCard.ignoresSafeArea())
         } else {
             card
         }
@@ -906,8 +905,8 @@ private struct PairingCard<Actions: View>: View {
         }
         .padding(.horizontal, 24)
         .padding(.bottom, 24)
+        // No fill of its own: the sheet's glass (and its elevated dark background) shows through.
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(StrandPalette.summaryCard.ignoresSafeArea())
     }
 }
 

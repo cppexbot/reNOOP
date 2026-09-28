@@ -20,6 +20,11 @@ struct AboutSettingsPage: View {
     @AppStorage(UpdateWatch.Keys.enabled) private var autoCheckUpdates = UpdateAvailability.defaultEnabled
     @Environment(\.openURL) private var openURL
 
+    /// ST-9: Settings shows Developer only after seven taps here, as Android's build number unlocks its
+    /// developer options. Stored, so the section stays once found.
+    @AppStorage(DeveloperUnlock.key) private var developerUnlocked = false
+    @State private var versionTaps = 0
+
     /// The real bundle version (CFBundleShortVersionString), never a hand-edited constant.
     private var bundleVersionString: String { UpdateWatch.installedVersion }
 
@@ -27,6 +32,8 @@ struct AboutSettingsPage: View {
         Form {
             Section {
                 LabeledContent("Version", value: bundleVersionString)
+                    .contentShape(Rectangle())
+                    .onTapGesture { countVersionTap() }
                 #if os(iOS)
                 if let days = signingDaysLeft {
                     LabeledContent("Signing expires") {
@@ -88,6 +95,15 @@ struct AboutSettingsPage: View {
         .sheet(isPresented: $showHowNoopWorks) { HowNoopWorksView(onClose: { showHowNoopWorks = false }) }
     }
 
+    private func countVersionTap() {
+        guard !DeveloperUnlock.isAlwaysOn, !developerUnlocked else { return }
+        versionTaps += 1
+        if versionTaps >= DeveloperUnlock.taps {
+            developerUnlocked = true
+            Confirmation.shared.show(String(localized: "Developer settings on"), systemImage: "hammer.fill")
+        }
+    }
+
     @ViewBuilder private var updateStatus: some View {
         switch updateChecker.state {
         case .checking:
@@ -108,5 +124,20 @@ struct AboutSettingsPage: View {
         f.unitsStyle = .full
         f.dateTimeStyle = .named
         return f.localizedString(from: DateComponents(day: days))
+    }
+}
+
+/// Where the Developer section's unlock lives (ST-9): shown in debug builds, and in a release build after
+/// `taps` taps on the version in About NOOP.
+enum DeveloperUnlock {
+    static let key = "noop.developerUnlocked"
+    static let taps = 7
+
+    static var isAlwaysOn: Bool {
+        #if DEBUG
+        true
+        #else
+        false
+        #endif
     }
 }

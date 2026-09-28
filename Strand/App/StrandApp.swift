@@ -10,6 +10,7 @@ struct StrandApp: App {
         PuffinExperiment.migrateContinuousHrvOvernightDefault()
         // One fixed look that follows the system: pin the retired theme knobs before any view reads them.
         AppearanceLock.apply()
+        RetiredSettings.purge()
         // Foreground presentation: without a delegate, macOS suppresses a notification's banner while the
         // app is frontmost, so a reminder tested with NOOP open would show nothing. Mirrors iOS.
         UNUserNotificationCenter.current().delegate = NotificationPresenter.shared

@@ -61,7 +61,12 @@ struct NOOPLiveActivity: Widget {
                     .monospacedDigit()
                     .foregroundStyle(ActivityStyle.heart)
             } minimal: {
-                Image(systemName: "heart.fill").foregroundStyle(ActivityStyle.heart)
+                // The heart rate itself (LA-2); the heart until there is one to show.
+                if let bpm = Self.shownBpm(context) {
+                    ActivityMinimalValue(value: String(bpm), tint: ActivityStyle.heart)
+                } else {
+                    Image(systemName: "heart.fill").foregroundStyle(ActivityStyle.heart)
+                }
             }
             .keylineTint(ActivityStyle.heart)
             .widgetURL(WidgetLink.workout.url)

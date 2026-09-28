@@ -2,7 +2,8 @@
 //  NOOP · Settings → General, Units.
 //
 //  Display-only preferences: nothing stored changes, NOOP keeps everything in SI. Keys are the ones the
-//  old Settings screen wrote, unchanged.
+//  old Settings screen wrote, unchanged. Language, the clock, Reduce Motion and the tab bar's minimise
+//  behaviour are the system's (ST-4): NOOP follows them and keeps no copy.
 
 import SwiftUI
 #if os(iOS)
@@ -15,18 +16,9 @@ import StrandAnalytics
 
 struct GeneralSettingsPage: View {
     @EnvironmentObject private var model: AppModel
+    @Environment(\.openURL) private var openURL
 
-    /// App-owned copy language. Apple binds a bundle localization at process launch, so this writes the
-    /// standard AppleLanguages override and takes effect after the user reopens NOOP.
-    @AppStorage(AppLanguage.storageKey) private var appLanguageRaw = AppLanguage.system.rawValue
-    /// #1821: Clock format. Defaults to `.system`, so upgrading changes nobody's displayed times.
-    @AppStorage(ClockFormatPreference.defaultsKey) private var clockFormatRaw = ClockFormatPreference.system.rawValue
     @AppStorage(DayCycleMode.storageKey) private var dayCycleModeRaw = DayCycleMode.sleepOnset.rawValue
-    /// Pose every looping animation still and stop the tilt sensor, without system Low Power Mode or
-    /// Reduce Motion. Read by `NoopMotionState`.
-    @AppStorage(QuietMotionPrefs.enabledKey) private var quietMotion = false
-    /// #1841: iOS 26 minimises the tab bar to a pill on scroll down (`noopTabBarAutoHide`).
-    @AppStorage("noop.bottomBarAutoHide") private var bottomBarAutoHide = false
     // Alternate app icon (iOS only) — false = Titanium (AppIcon), true = Blue Titanium (AppIcon-Navy).
     @AppStorage("appIcon.alt") private var useNavyIcon = false
 
@@ -35,27 +27,15 @@ struct GeneralSettingsPage: View {
     var body: some View {
         Form {
             Section {
-                Picker("Language", selection: $appLanguageRaw) {
-                    ForEach(AppLanguage.allCases) { language in
-                        Text(language == .system ? String(localized: "System default") : language.autonym)
-                            .tag(language.rawValue)
-                    }
+                // The system owns the app language (ST-4): the row shows it and opens where it is changed.
+                Button {
+                    if let url = Self.languageSettingsURL { openURL(url) }
+                } label: {
+                    LabeledContent("Language", value: AppLanguage.displayName)
+                        .foregroundStyle(StrandPalette.textPrimary)
+                        .contentShape(Rectangle())
                 }
-                .settingsPicker()
-                .onChangeCompat(of: appLanguageRaw) { AppLanguage.apply($0) }
-            } footer: {
-                Text("Language changes take effect after you reopen NOOP.")
-            }
-
-            Section {
-                // #1829: the resolved clock is memoised, so the write has to drop the memo.
-                Picker("Clock", selection: $clockFormatRaw) {
-                    Text("System default").tag(ClockFormatPreference.system.rawValue)
-                    Text("12-hour").tag(ClockFormatPreference.twelveHour.rawValue)
-                    Text("24-hour").tag(ClockFormatPreference.twentyFourHour.rawValue)
-                }
-                .settingsPicker()
-                .onChangeCompat(of: clockFormatRaw) { _ in AppClock.invalidate() }
+                .buttonStyle(.plain)
 
                 Picker("Day starts", selection: Binding(
                     get: { DayCycleMode.persisted(dayCycleModeRaw) },
@@ -82,15 +62,6 @@ struct GeneralSettingsPage: View {
             #endif
 
             Section {
-                Toggle("Reduce motion", isOn: $quietMotion)
-                #if os(iOS)
-                if #available(iOS 26.0, *) {
-                    Toggle("Hide bar when scrolling", isOn: $bottomBarAutoHide)
-                }
-                #endif
-            }
-
-            Section {
                 NavigationLink("Units", value: SettingsPage.units)
             }
         }
@@ -101,6 +72,15 @@ struct GeneralSettingsPage: View {
         } message: {
             Text(iconError ?? "")
         }
+    }
+
+    /// NOOP's page in the Settings app, where iOS keeps its per-app Language; on the Mac, Language & Region.
+    private static var languageSettingsURL: URL? {
+        #if os(iOS)
+        URL(string: UIApplication.openSettingsURLString)
+        #else
+        URL(string: "x-apple.systempreferences:com.apple.Localization-Settings.extension")
+        #endif
     }
 
     #if os(iOS)
@@ -161,12 +141,35 @@ struct UnitsSettingsPage: View {
                 .settingsPicker()
                 // #1846: a preference only — a night that measured just one of the two still shows it.
                 Picker("Skin temperature", selection: $skinTempDisplayRaw) {
-                    Text("Temperature").tag("")
+                    Text("Absolute").tag("")
                     Text("Deviation").tag(SkinTempDisplay.Kind.deviation.rawValue)
                 }
                 .settingsPicker()
             }
         }
         .settingsPage("Units")
+    }
+}
+
+// MARK: - Retired settings
+
+/// Preferences NOOP used to keep its own copy of, now taken from the system (ST-4): the app language
+/// (Settings → NOOP → Language), the 12/24-hour clock (`Locale`), Reduce Motion
+/// (`accessibilityReduceMotion`) and the iOS 26 tab bar's minimise-on-scroll. Their toggles are gone, so a
+/// value stored by an older build would otherwise keep overriding the system with nothing left to turn it
+/// off. `purge()` removes them once at launch; every reader already treats a missing key as "follow the
+/// system".
+enum RetiredSettings {
+    static let keys = [
+        AppLanguage.retiredStorageKey,
+        ClockFormatPreference.defaultsKey,
+        QuietMotionPrefs.enabledKey,
+        "noop.bottomBarAutoHide",
+    ]
+
+    static func purge(_ defaults: UserDefaults = .standard) {
+        for key in keys where defaults.object(forKey: key) != nil {
+            defaults.removeObject(forKey: key)
+        }
     }
 }

@@ -47,7 +47,6 @@ struct ScoresSettingsPage: View {
 
     @State private var showScoringGuide = false
     @State private var showRecalibrateConfirm = false
-    @State private var showRecalibrated = false
     @State private var showStepsCalibration = false
 
     var body: some View {
@@ -81,20 +80,14 @@ struct ScoresSettingsPage: View {
                     .fixedSize()
                     .accessibilityLabel("Step calibration, \(String(format: "%.1f", profile.stepTicksPerStep)) counter ticks per step")
                 }
-                // WHOOP 4.0 steps ESTIMATE (a separate thing from the 5/MG counter divisor above).
+                // WHOOP 4.0 steps ESTIMATE (a separate thing from the 5/MG counter divisor above). Opens a
+                // sheet, which a row marks with its value alone; a chevron promises a push (ST-10).
                 Button {
                     showStepsCalibration = true
                 } label: {
-                    LabeledContent("Steps estimate") {
-                        HStack(spacing: 6) {
-                            Text(stepsCalibrationSummary)
-                            Image(systemName: "chevron.right")
-                                .font(StrandFont.pro(13, weight: .semibold))
-                                .foregroundStyle(StrandPalette.textTertiary)
-                        }
-                    }
-                    .foregroundStyle(StrandPalette.textPrimary)
-                    .contentShape(Rectangle())
+                    LabeledContent("Steps estimate", value: stepsCalibrationSummary)
+                        .foregroundStyle(StrandPalette.textPrimary)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             } header: {
@@ -123,17 +116,13 @@ struct ScoresSettingsPage: View {
         }
         .settingsPage("Scores")
         .sheet(isPresented: $showScoringGuide) { ScoringGuideView(onClose: { showScoringGuide = false }) }
-        .confirmationDialog("Recalibrate your Charge baseline?",
+        // ST-6: one name for the action — the row, the question and its button all say reset.
+        .confirmationDialog("Reset your Charge baseline?",
                             isPresented: $showRecalibrateConfirm, titleVisibility: .visible) {
-            Button("Recalibrate") { recalibrate() }
+            Button("Reset baseline", role: .destructive) { recalibrate() }
             Button("Cancel", role: .cancel) { }
         } message: {
-            Text("This restarts the roughly 4-night build-up for Charge and your HRV baseline. Your history stays. Use it if a bad first week, like wearing it while sick, set your baseline off.")
-        }
-        .alert("Charge baseline recalibrating", isPresented: $showRecalibrated) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text("NOOP will re-learn your baseline from tonight's data onward. Your history is kept, and it takes a few nights to settle.")
+            Text("It rebuilds over about 4 nights. History stays.")
         }
         .sheet(isPresented: $showStepsCalibration) {
             StepsCalibrationSheet(repo: model.repo, onClose: { showStepsCalibration = false })
@@ -158,6 +147,6 @@ struct ScoresSettingsPage: View {
             await model.intelligence.analyzeRecent()
             await model.repo.refresh()
         }
-        showRecalibrated = true
+        Confirmation.shared.show(String(localized: "Baseline reset"))
     }
 }

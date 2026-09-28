@@ -4,6 +4,10 @@
 //  the strain-target nudge. Same keys and side effects the old Automations page had.
 
 import SwiftUI
+import UserNotifications
+#if os(iOS)
+import UIKit
+#endif
 import StrandDesign
 
 struct NotificationsSettingsPage: View {
@@ -17,8 +21,26 @@ struct NotificationsSettingsPage: View {
     /// it lives on the Notifications sidebar screen; on iOS this is its only switch. Default OFF.
     @AppStorage("notif.masterEnabled") private var wristAlertsMaster = false
 
+    @Environment(\.openURL) private var openURL
+    @Environment(\.scenePhase) private var scenePhase
+    /// ST-7: the system switch for NOOP's notifications. Denied, the phone alerts below cannot be delivered,
+    /// so they are disabled and the row above them opens the setting that can.
+    @State private var systemDenied = false
+
     var body: some View {
         Form {
+            if systemDenied {
+                Section {
+                    Button {
+                        if let url = Self.systemNotificationSettingsURL { openURL(url) }
+                    } label: {
+                        LabeledContent("Notifications", value: String(localized: "Off"))
+                            .foregroundStyle(StrandPalette.textPrimary)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
             #if os(iOS)
             Section {
                 Toggle("Wrist alerts", isOn: $wristAlertsMaster)
@@ -45,18 +67,38 @@ struct NotificationsSettingsPage: View {
                             model.evaluateStrainTarget()
                         }
                     }
-                Toggle("Strap charge", isOn: $behavior.batteryAlerts)
+                // Battery, never "charge": Charge is a score (ST-5).
+                Toggle("Strap battery", isOn: $behavior.batteryAlerts)
                     .onChangeCompat(of: behavior.batteryAlerts) { on in
                         if on { BatteryNotifier.requestAuthorization() }
                     }
                 if behavior.batteryAlerts {
-                    Toggle("Charge forecast", isOn: $behavior.batteryPredictiveAlerts)
+                    Toggle("Battery forecast", isOn: $behavior.batteryPredictiveAlerts)
                 }
             } header: {
                 Text("Alerts")
             }
+            .disabled(systemDenied)
         }
         .settingsPage("Notifications")
+        .task { await refreshSystemStatus() }
+        // Back from the Settings app with the switch flipped.
+        .onChangeCompat(of: scenePhase) { phase in
+            if phase == .active { Task { await refreshSystemStatus() } }
+        }
+    }
+
+    private func refreshSystemStatus() async {
+        let status = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
+        systemDenied = status == .denied
+    }
+
+    private static var systemNotificationSettingsURL: URL? {
+        #if os(iOS)
+        URL(string: UIApplication.openNotificationSettingsURLString)
+        #else
+        URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension")
+        #endif
     }
 
     // MARK: - Inactivity reminder (#419)
@@ -66,14 +108,8 @@ struct NotificationsSettingsPage: View {
         if inactivity.enabled {
             if !wristAlertsMaster {
                 // The reminder buzzes through the wrist-alerts gate; say so instead of failing silently.
-                HStack(spacing: 8) {
-                    Circle()
-                        .fill(StrandPalette.settingsOrange)
-                        .frame(width: 8, height: 8)
-                        .accessibilityHidden(true)
-                    Text("Wrist alerts are off")
-                        .foregroundStyle(StrandPalette.textSecondary)
-                }
+                Text("Wrist alerts are off")
+                    .foregroundStyle(StrandPalette.textSecondary)
             }
             Stepper(value: $inactivity.thresholdMinutes, in: 15...120, step: 15) {
                 LabeledContent("After sitting") { Text("\(inactivity.thresholdMinutes) min").monospacedDigit() }

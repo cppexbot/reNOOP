@@ -26,8 +26,7 @@ struct SyncLiveActivity: Widget {
                 .lineLimit(1)
                 Spacer(minLength: 8)
                 if isActive(context.state.phase) {
-                    elapsed(since: context.state.startedAt)
-                        .font(.system(size: 17, weight: .semibold))
+                    elapsed(since: context.state.startedAt, font: .system(size: 17, weight: .semibold))
                         .foregroundStyle(ActivityStyle.secondary)
                 }
             }
@@ -51,8 +50,7 @@ struct SyncLiveActivity: Widget {
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     if isActive(context.state.phase) {
-                        elapsed(since: context.state.startedAt)
-                            .font(.system(size: 15, weight: .semibold))
+                        elapsed(since: context.state.startedAt, font: .system(size: 15, weight: .semibold))
                             .foregroundStyle(ActivityStyle.secondary)
                             .padding(.trailing, 4)
                     }
@@ -69,8 +67,14 @@ struct SyncLiveActivity: Widget {
                     .monospacedDigit()
                     .foregroundStyle(tint(context.state.phase))
             } minimal: {
-                Image(systemName: glyph(context.state.phase))
-                    .foregroundStyle(tint(context.state.phase))
+                // The chunk count once the strap has sent one, as the compact pill reads (LA-2); the glyph
+                // before that and once the sync is over.
+                if isActive(context.state.phase), context.state.chunks > 0 {
+                    ActivityMinimalValue(value: "\(context.state.chunks)", tint: tint(context.state.phase))
+                } else {
+                    Image(systemName: glyph(context.state.phase))
+                        .foregroundStyle(tint(context.state.phase))
+                }
             }
             .keylineTint(tint(context.state.phase))
             .widgetURL(WidgetLink.devices.url)
@@ -82,9 +86,10 @@ private func isActive(_ phase: SyncActivityAttributes.Phase) -> Bool {
     phase == .connecting || phase == .syncing
 }
 
-/// Counts up on its own from the run's start; no pushes needed to keep it moving.
-private func elapsed(since start: Date) -> some View {
-    ActivityClock(font: .system(size: 17, weight: .semibold)) {
+/// Counts up on its own from the run's start; no pushes needed to keep it moving. The font is each
+/// presentation's own: the island's 15 pt, the banner's 17 pt (LA-3).
+private func elapsed(since start: Date, font: Font) -> some View {
+    ActivityClock(font: font) {
         Text(timerInterval: start...Date.distantFuture, countsDown: false)
     }
 }

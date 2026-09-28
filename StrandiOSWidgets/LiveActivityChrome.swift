@@ -71,24 +71,44 @@ struct ActivityControl<Intent: LiveActivityIntent>: View {
 
 /// A self-ticking clock that takes only the width of its widest reading. A running `Text(timerInterval:)` claims
 /// every point it is offered, so the width comes from a hidden template in the same font and the live clock is
-/// right-aligned over it.
+/// aligned over it: to the trailing edge on a banner's right, to the leading edge in the island's compact
+/// trailing slot, where a shorter reading has to sit snug against the camera rather than leave a gap by it
+/// (LA-2). The font is the caller's, never overridden here (LA-3).
 struct ActivityClock<Clock: View>: View {
     var template: String = "00:00"
     let font: Font
+    var alignment: TextAlignment = .trailing
     @ViewBuilder let clock: () -> Clock
 
     var body: some View {
+        let leading = alignment == .leading
         Text(verbatim: template)
             .font(font)
             .monospacedDigit()
             .hidden()
-            .overlay(alignment: .trailing) {
+            .overlay(alignment: leading ? .leading : .trailing) {
                 clock()
                     .font(font)
                     .monospacedDigit()
-                    .multilineTextAlignment(.trailing)
+                    .multilineTextAlignment(leading ? .leading : .trailing)
                     .lineLimit(1)
             }
+    }
+}
+
+/// A reading small enough for the island's minimal presentation, which shows updated information rather
+/// than a bare logo (LA-2): the number in the activity's hue, scaled down rather than clipped.
+struct ActivityMinimalValue: View {
+    let value: String
+    let tint: Color
+
+    var body: some View {
+        Text(verbatim: value)
+            .font(.system(size: 14, weight: .semibold))
+            .monospacedDigit()
+            .minimumScaleFactor(0.6)
+            .lineLimit(1)
+            .foregroundStyle(tint)
     }
 }
 

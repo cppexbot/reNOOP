@@ -23,12 +23,16 @@ struct LiftLiveActivity: Widget {
         } dynamicIsland: { context in
             let state = context.state
             return DynamicIsland {
+                // The control on the left and the heart rate on the right, where the Lock Screen banner keeps
+                // them, so the two presentations read as one layout (LA-2).
                 DynamicIslandExpandedRegion(.leading) {
-                    ActivityDisc(symbol: "dumbbell.fill", tint: ActivityStyle.exercise, size: 44)
+                    ActivityControl(intent: LiftSetDoneIntent(), symbol: "checkmark", label: "Next",
+                                    tint: ActivityStyle.exercise, size: 44)
                         .padding(.leading, 4)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    ActivityControl(intent: LiftSetDoneIntent(), symbol: "checkmark", label: "Next", size: 44)
+                    heartRate(state)
+                        .font(.system(size: 15, weight: .semibold))
                         .padding(.trailing, 4)
                 }
                 DynamicIslandExpandedRegion(.center) {
@@ -40,32 +44,27 @@ struct LiftLiveActivity: Widget {
                     }
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    HStack(spacing: 6) {
-                        Text(statusLine(state))
-                            .lineLimit(1)
-                        Spacer(minLength: 6)
-                        heartRate(state)
-                    }
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(ActivityStyle.secondary)
-                    .padding(.horizontal, 8)
+                    Text(statusLine(state))
+                        .lineLimit(1)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(ActivityStyle.secondary)
+                        .padding(.horizontal, 8)
                 }
             } compactLeading: {
-                // The heart rate, where the island has the room for it, with the dumbbell standing in until
-                // the strap reports one — so this side is never blank (Utku, 22 Sep 2026).
-                if let bpm = state.bpm {
-                    Label { Text("\(bpm)").monospacedDigit() } icon: { Image(systemName: "heart.fill") }
-                        .font(Self.islandFont)
-                        .foregroundStyle(ActivityStyle.heart)
-                } else {
-                    Image(systemName: "dumbbell.fill")
-                        .font(Self.islandFont)
-                        .foregroundStyle(ActivityStyle.exercise)
+                // The heart rate, with a dash until the strap reports one — so this side is never blank (Utku,
+                // 22 Sep 2026) and keeps one colour through the session instead of switching from the
+                // dumbbell's green to the heart's red when the first reading lands (LA-2).
+                Label {
+                    Text(verbatim: state.bpm.map(String.init) ?? "–").monospacedDigit()
+                } icon: {
+                    Image(systemName: "heart.fill")
                 }
+                .font(Self.islandFont)
+                .foregroundStyle(ActivityStyle.heart)
             } compactTrailing: {
-                ActivityClock(font: Self.islandFont) { clock(state) }
+                ActivityClock(font: Self.islandFont, alignment: .leading) { clock(state) }
             } minimal: {
-                Image(systemName: "dumbbell.fill").foregroundStyle(tint(state))
+                minimal(state)
             }
             .keylineTint(tint(state))
             .widgetURL(WidgetLink.workout.url)
@@ -74,6 +73,23 @@ struct LiftLiveActivity: Widget {
 
     /// The Dynamic Island's compact face, shared by its heart rate and its clock.
     private static let islandFont = Font.system(size: 15, weight: .semibold)
+
+    /// Updated information rather than a logo (LA-2): the rest as a draining ring, as the interval timer's
+    /// island shows its phase; through a set, the heart rate; the dumbbell only before either exists.
+    @ViewBuilder
+    private func minimal(_ state: LiftActivityAttributes.ContentState) -> some View {
+        if let ends = state.restEndsAt, ends > state.stageStartedAt {
+            ProgressView(timerInterval: state.stageStartedAt...ends, countsDown: true,
+                         label: { EmptyView() }, currentValueLabel: { EmptyView() })
+                .progressViewStyle(.circular)
+                .tint(ActivityStyle.rest)
+                .frame(width: 20, height: 20)
+        } else if let bpm = state.bpm {
+            ActivityMinimalValue(value: String(bpm), tint: ActivityStyle.heart)
+        } else {
+            Image(systemName: "dumbbell.fill").foregroundStyle(tint(state))
+        }
+    }
 
     /// Green while working, cyan through the rest — the sheet's and the mini-player's colour language.
     private func tint(_ state: LiftActivityAttributes.ContentState) -> Color {

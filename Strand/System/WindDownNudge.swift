@@ -214,7 +214,7 @@ enum WindDownNudge {
         center.removePendingNotificationRequests(withIdentifiers: [requestId] + perDayRequestIds)
 
         let content = UNMutableNotificationContent()
-        content.title = String(localized: "Time to wind down")
+        content.title = String(localized: "Time to Wind Down")
         content.body = String(localized: "Bedtime in \(leadMinutes) min.")
         content.sound = .default
 
