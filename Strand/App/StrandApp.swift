@@ -64,6 +64,8 @@ struct StrandApp: App {
                 // fixed-geometry tiles/gauges stay legible at the largest accessibility sizes rather than
                 // clipping; the common Larger-Text range still scales fully.
                 .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+                // One loading indicator everywhere: the system spinner in grey (`SystemProgressStyle`).
+                .systemProgressStyle()
                 // #267: pull a reasonably fresh sync when the window comes to the foreground rather than
                 // waiting for the 900s periodic timer or an incidental reconnect. Floored at 90s and never
                 // clock/empty-streak-suppressed (BackfillPolicy.shouldRun's .foreground case), so this is

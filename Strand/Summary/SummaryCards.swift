@@ -433,7 +433,7 @@ struct SummaryStrapStatus: View {
     @ViewBuilder private var label: some View {
         HStack(spacing: 5) {
             if syncing {
-                ProgressView().controlSize(.mini)
+                ProgressView().controlSize(.small)
                 if !compact { Text("Syncing") }
             } else {
                 switch display {
