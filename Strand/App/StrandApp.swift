@@ -8,7 +8,7 @@ struct StrandApp: App {
         // #1008: pin the pre-change Overnight-only default for existing installs before
         // anything reads it. Idempotent; a no-op on fresh installs and after the first launch.
         PuffinExperiment.migrateContinuousHrvOvernightDefault()
-        // One fixed look (System / Light / Dark only): pin the retired theme knobs before any view reads them.
+        // One fixed look that follows the system: pin the retired theme knobs before any view reads them.
         AppearanceLock.apply()
         // Foreground presentation: without a delegate, macOS suppresses a notification's banner while the
         // app is frontmost, so a reminder tested with NOOP open would show nothing. Mirrors iOS.
@@ -28,8 +28,6 @@ struct StrandApp: App {
     /// #267: drives a foreground sync kick when the window becomes active (no scenePhase hook
     /// existed on macOS before this).
     @Environment(\.scenePhase) private var scenePhase
-    /// Appearance preference (System/Light/Dark). Default follows the OS; the Settings picker writes it.
-    @AppStorage(AppearanceMode.storageKey) private var appearanceRaw = AppearanceMode.system.rawValue
     /// Chart data-colour style (Titanium / Classic throwback). Re-colours gauges + charts.
     @AppStorage(ChartStyle.storageKey) private var chartStyleRaw = ChartStyle.titanium.rawValue
     /// Chrome accent colour (mint / WHOOP blue / custom). Chrome only — never the data colour worlds.
@@ -54,7 +52,7 @@ struct StrandApp: App {
                 // card observes the SAME instance the central detector (AppModel.evaluateStress) posts to.
                 .environment(\.stressNudgeCenter, model.stressNudgeCenter)
                 .frame(minWidth: 1000, minHeight: 700)
-                .preferredColorScheme(AppearanceMode.resolve(appearanceRaw).colorScheme)
+                .preferredColorScheme(AppearanceLock.colorScheme)
                 // Keep date/number words on the same bundle language as every localized string. A pending
                 // Settings change intentionally becomes active only after the documented reopen.
                 .environment(\.locale, AppLanguage.activeLocale)

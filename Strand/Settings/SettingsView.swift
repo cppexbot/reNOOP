@@ -44,7 +44,6 @@ struct SettingsView: View {
 
             Section {
                 SettingsLink(.general, "General", icon: "gearshape.fill", color: StrandPalette.settingsGray)
-                SettingsLink(.display, "Display", icon: "sun.max.fill", color: StrandPalette.settingsBlue)
                 SettingsLink(.notifications, "Notifications", icon: "bell.badge.fill", color: StrandPalette.settingsRed)
                 SettingsLink(.shortcuts, "Shortcuts", icon: "square.2.layers.3d.fill", color: StrandPalette.settingsPurple)
             } header: {
@@ -127,11 +126,10 @@ struct SettingsView: View {
 
 // MARK: - Pages
 
-/// Every page Settings (and the profile sheet) can push, as a `Hashable` value a `NavigationPath` carries.
+/// Every page Settings can push, as a `Hashable` value a `NavigationPath` carries.
 enum SettingsPage: Hashable {
-    case settings
     case profile, heartRateZones
-    case general, units, display, notifications, shortcuts
+    case general, units, notifications, shortcuts
     case workouts, scores
     case devices, strapSync, powerSaving, doubleTap, haptics, hrBroadcast
     case appleHealth, dataSources, backup
@@ -139,12 +137,10 @@ enum SettingsPage: Hashable {
 
     @ViewBuilder var destination: some View {
         switch self {
-        case .settings:       SettingsView()
         case .profile:        ProfileDetailsView()
         case .heartRateZones: HeartRateZonesPage()
         case .general:        GeneralSettingsPage()
         case .units:          UnitsSettingsPage()
-        case .display:        DisplaySettingsPage()
         case .notifications:  NotificationsSettingsPage()
         case .shortcuts:      ShortcutsSettingsPage()
         case .workouts:       WorkoutsSettingsPage()

@@ -1,5 +1,5 @@
 //  SettingsGeneralPages.swift
-//  NOOP · Settings → General, Units, Display.
+//  NOOP · Settings → General, Units.
 //
 //  Display-only preferences: nothing stored changes, NOOP keeps everything in SI. Keys are the ones the
 //  old Settings screen wrote, unchanged.
@@ -22,6 +22,15 @@ struct GeneralSettingsPage: View {
     /// #1821: Clock format. Defaults to `.system`, so upgrading changes nobody's displayed times.
     @AppStorage(ClockFormatPreference.defaultsKey) private var clockFormatRaw = ClockFormatPreference.system.rawValue
     @AppStorage(DayCycleMode.storageKey) private var dayCycleModeRaw = DayCycleMode.sleepOnset.rawValue
+    /// Pose every looping animation still and stop the tilt sensor, without system Low Power Mode or
+    /// Reduce Motion. Read by `NoopMotionState`.
+    @AppStorage(QuietMotionPrefs.enabledKey) private var quietMotion = false
+    /// #1841: iOS 26 minimises the tab bar to a pill on scroll down (`noopTabBarAutoHide`).
+    @AppStorage("noop.bottomBarAutoHide") private var bottomBarAutoHide = false
+    // Alternate app icon (iOS only) — false = Titanium (AppIcon), true = Blue Titanium (AppIcon-Navy).
+    @AppStorage("appIcon.alt") private var useNavyIcon = false
+
+    @State private var iconError: String?
 
     var body: some View {
         Form {
@@ -61,12 +70,56 @@ struct GeneralSettingsPage: View {
                 .settingsPicker()
             }
 
+            #if os(iOS)
+            Section {
+                Picker("App icon", selection: $useNavyIcon) {
+                    Text("Default").tag(false)
+                    Text("Navy").tag(true)
+                }
+                .settingsPicker()
+                .onChangeCompat(of: useNavyIcon) { applyAppIcon($0) }
+            }
+            #endif
+
+            Section {
+                Toggle("Reduce motion", isOn: $quietMotion)
+                #if os(iOS)
+                if #available(iOS 26.0, *) {
+                    Toggle("Hide bar when scrolling", isOn: $bottomBarAutoHide)
+                }
+                #endif
+            }
+
             Section {
                 NavigationLink("Units", value: SettingsPage.units)
             }
         }
         .settingsPage("General")
+        .alert("Couldn't change the app icon", isPresented: Binding(
+            get: { iconError != nil }, set: { if !$0 { iconError = nil } })) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(iconError ?? "")
+        }
     }
+
+    #if os(iOS)
+    /// Apply the alternate-icon choice; on failure revert the picker so it never disagrees with the
+    /// Home Screen.
+    private func applyAppIcon(_ useNavy: Bool) {
+        Task { @MainActor in
+            let target = useNavy ? "AppIcon-Navy" : nil
+            guard UIApplication.shared.supportsAlternateIcons,
+                  UIApplication.shared.alternateIconName != target else { return }
+            do {
+                try await UIApplication.shared.setAlternateIconName(target)
+            } catch {
+                useNavyIcon = !useNavy
+                iconError = error.localizedDescription
+            }
+        }
+    }
+    #endif
 }
 
 // MARK: - Units
@@ -115,144 +168,5 @@ struct UnitsSettingsPage: View {
             }
         }
         .settingsPage("Units")
-    }
-}
-
-// MARK: - Display
-
-struct DisplaySettingsPage: View {
-    // Light/Dark/System theme. Read by both app roots' .preferredColorScheme; default follows the OS.
-    @AppStorage(AppearanceMode.storageKey) private var appearanceRaw = AppearanceMode.system.rawValue
-    /// Pose every looping animation still and stop the tilt sensor, without system Low Power Mode or
-    /// Reduce Motion. Read by `NoopMotionState`.
-    @AppStorage(QuietMotionPrefs.enabledKey) private var quietMotion = false
-    /// #1841: iOS 26 minimises the tab bar to a pill on scroll down (`noopTabBarAutoHide`).
-    @AppStorage("noop.bottomBarAutoHide") private var bottomBarAutoHide = false
-    // Alternate app icon (iOS only) — false = Titanium (AppIcon), true = Blue Titanium (AppIcon-Navy).
-    @AppStorage("appIcon.alt") private var useNavyIcon = false
-
-    @State private var iconError: String?
-    @Environment(\.colorScheme) private var colorScheme
-
-    private var mode: AppearanceMode { AppearanceMode(rawValue: appearanceRaw) ?? .system }
-
-    var body: some View {
-        Form {
-            Section {
-                HStack(spacing: 0) {
-                    appearanceOption(.light)
-                    appearanceOption(.dark)
-                }
-                .padding(.vertical, 6)
-                Toggle("Automatic", isOn: Binding(
-                    get: { mode == .system },
-                    set: { on in
-                        appearanceRaw = on ? AppearanceMode.system.rawValue
-                                           : (colorScheme == .dark ? AppearanceMode.dark : .light).rawValue
-                    }
-                ))
-            } header: {
-                Text("Appearance")
-            }
-
-            #if os(iOS)
-            Section {
-                Picker("App icon", selection: $useNavyIcon) {
-                    Text("Default").tag(false)
-                    Text("Navy").tag(true)
-                }
-                .settingsPicker()
-                .onChangeCompat(of: useNavyIcon) { applyAppIcon($0) }
-            }
-            #endif
-
-            Section {
-                Toggle("Reduce motion", isOn: $quietMotion)
-                #if os(iOS)
-                if #available(iOS 26.0, *) {
-                    Toggle("Hide bar when scrolling", isOn: $bottomBarAutoHide)
-                }
-                #endif
-            }
-        }
-        .settingsPage("Display")
-        .alert("Couldn't change the app icon", isPresented: Binding(
-            get: { iconError != nil }, set: { if !$0 { iconError = nil } })) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text(iconError ?? "")
-        }
-    }
-
-    /// One of Display & Brightness's two appearance thumbnails: a small screen, its name, a check circle.
-    private func appearanceOption(_ option: AppearanceMode) -> some View {
-        // With Automatic on, the check follows what the system is showing now, as Settings does.
-        let selected = mode == option || (mode == .system && (option == .dark) == (colorScheme == .dark))
-        return Button {
-            appearanceRaw = option.rawValue
-        } label: {
-            VStack(spacing: 8) {
-                AppearanceThumbnail(dark: option == .dark)
-                Text(option.label)
-                    .font(StrandFont.pro(15))
-                    .foregroundStyle(StrandPalette.textPrimary)
-                Image(systemName: selected ? "checkmark.circle.fill" : "circle")
-                    .font(StrandFont.pro(22))
-                    .foregroundStyle(selected ? StrandPalette.settingsBlue : StrandPalette.textTertiary)
-            }
-            .frame(maxWidth: .infinity)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(selected ? .isSelected : [])
-    }
-
-    #if os(iOS)
-    /// Apply the alternate-icon choice; on failure revert the picker so it never disagrees with the
-    /// Home Screen.
-    private func applyAppIcon(_ useNavy: Bool) {
-        Task { @MainActor in
-            let target = useNavy ? "AppIcon-Navy" : nil
-            guard UIApplication.shared.supportsAlternateIcons,
-                  UIApplication.shared.alternateIconName != target else { return }
-            do {
-                try await UIApplication.shared.setAlternateIconName(target)
-            } catch {
-                useNavyIcon = !useNavy
-                iconError = error.localizedDescription
-            }
-        }
-    }
-    #endif
-}
-
-/// A phone screen in miniature, light or dark, as Display & Brightness shows the two appearances.
-private struct AppearanceThumbnail: View {
-    let dark: Bool
-
-    var body: some View {
-        let page = dark ? StrandPalette.settingsAppearanceDarkPage : StrandPalette.settingsAppearanceLightPage
-        let card = dark ? StrandPalette.settingsAppearanceDarkCard : StrandPalette.settingsAppearanceLightCard
-        RoundedRectangle(cornerRadius: 12, style: .continuous)
-            .fill(page)
-            .frame(width: 64, height: 128)
-            .overlay(alignment: .top) {
-                VStack(spacing: 6) {
-                    Text(verbatim: "9:41")
-                        .font(StrandFont.pro(13, weight: .semibold))
-                        .foregroundStyle(dark ? StrandPalette.settingsAppearanceDarkText
-                                              : StrandPalette.settingsAppearanceLightText)
-                        .padding(.top, 12)
-                    RoundedRectangle(cornerRadius: 5, style: .continuous).fill(card).frame(height: 22)
-                    RoundedRectangle(cornerRadius: 5, style: .continuous).fill(card).frame(height: 22)
-                }
-                .padding(.horizontal, 7)
-            }
-            .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(StrandPalette.hairline, lineWidth: 1)
-            )
-            // A fixed miniature: its clock follows Dynamic Type only as far as the screen holds it.
-            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }
 }

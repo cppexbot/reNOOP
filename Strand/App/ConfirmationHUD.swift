@@ -77,13 +77,15 @@ final class Confirmation: ObservableObject {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top))
         host.view.backgroundColor = .clear
         w.rootViewController = host
-        // The app's own Light / Dark choice, which this window does not inherit from the scene's root view.
-        switch AppearanceMode.resolve(UserDefaults.standard.string(forKey: AppearanceMode.storageKey)
-                                      ?? AppearanceMode.system.rawValue).colorScheme {
+        #if DEBUG
+        // The screenshot override (`AppearanceLock.colorScheme`), which this window does not inherit from
+        // the scene's root view. Release follows the system, as every window does by default.
+        switch AppearanceLock.colorScheme {
         case .light?: w.overrideUserInterfaceStyle = .light
         case .dark?: w.overrideUserInterfaceStyle = .dark
-        default: w.overrideUserInterfaceStyle = .unspecified
+        default: break
         }
+        #endif
         w.isHidden = false
         window = w
     }

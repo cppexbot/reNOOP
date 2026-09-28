@@ -13,47 +13,20 @@ import StrandAnalytics
 
 // MARK: - Account sheet
 
-/// Health's profile sheet: the photo and name, then the pages behind them.
+/// Health's profile sheet, which IS the settings root there (as in Fitness): the Settings list, photo and
+/// name on top, in its own stack. Nothing here is saved on close, so it closes with ✕.
 struct ProfileSheet: View {
-    @EnvironmentObject private var profile: ProfileStore
     let onClose: () -> Void
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
-                    VStack(spacing: 10) {
-                        SummaryAvatar(imageData: profile.avatarImageData, initials: profile.initials, size: 90)
-                        if !profile.displayName.isEmpty {
-                            Text(profile.displayName)
-                                .font(StrandFont.pro(28, weight: .bold))
-                                .foregroundStyle(StrandPalette.textPrimary)
-                        }
+            SettingsView()
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        SheetCloseButton(action: onClose)
                     }
-                    .frame(maxWidth: .infinity)
-                    .listRowBackground(Color.clear)
                 }
-                Section {
-                    NavigationLink("Health Details", value: SettingsPage.profile)
-                }
-                Section {
-                    NavigationLink("Devices", value: SettingsPage.devices)
-                    NavigationLink("Import", value: SettingsPage.dataSources)
-                }
-                Section {
-                    NavigationLink("Settings", value: SettingsPage.settings)
-                }
-            }
-            .settingsForm()
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    SheetConfirmButton(tint: StrandPalette.accent, action: onClose)
-                }
-            }
-            .settingsDestinations()
+                .settingsDestinations()
         }
     }
 }
