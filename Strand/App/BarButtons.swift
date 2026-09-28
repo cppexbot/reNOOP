@@ -47,6 +47,7 @@ struct SheetConfirmButton: View {
                     Image(systemName: "checkmark").foregroundStyle(glyph)
                 }
                 .buttonStyle(.glassProminent)
+                .accessibilityLabel(Text("Done"))
             } else {
                 fallback
             }
@@ -64,7 +65,7 @@ struct SheetConfirmButton: View {
 
     private var fallback: some View {
         Button(action: action) { Image(systemName: "checkmark") }
-            .accessibilityLabel(Text("Save"))
+            .accessibilityLabel(Text("Done"))
     }
 }
 

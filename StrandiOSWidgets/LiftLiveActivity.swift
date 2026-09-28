@@ -26,7 +26,7 @@ struct LiftLiveActivity: Widget {
                         .padding(.leading, 4)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    ActivityControl(intent: LiftSetDoneIntent(), symbol: "checkmark", size: 44)
+                    ActivityControl(intent: LiftSetDoneIntent(), symbol: "checkmark", label: "Next", size: 44)
                         .padding(.trailing, 4)
                 }
                 DynamicIslandExpandedRegion(.center) {
@@ -98,7 +98,8 @@ struct LiftLiveActivity: Widget {
         // The Clock timer banner's order — the control on the left in the session's green, the clock on the
         // right — so the words get the middle (Utku, 21 Sep 2026: "the writings are usually cut too quick").
         HStack(spacing: 12) {
-            ActivityControl(intent: LiftSetDoneIntent(), symbol: "checkmark", tint: ActivityStyle.exercise)
+            ActivityControl(intent: LiftSetDoneIntent(), symbol: "checkmark", label: "Next",
+                            tint: ActivityStyle.exercise)
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(state.exercise)

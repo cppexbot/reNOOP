@@ -151,6 +151,18 @@ struct IntervalTimerView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .background(StrandPalette.summaryCard, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        // One adjustable element per block, so VoiceOver reads "Work, 0:30" and swipes change it.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(title))
+        .accessibilityValue(Text(value))
+        .accessibilityAdjustableAction { direction in
+            guard !runner.running else { return }
+            switch direction {
+            case .increment: plus()
+            case .decrement: minus()
+            @unknown default: break
+            }
+        }
     }
 
     private func stepButton(_ symbol: String, tint: Color, action: @escaping () -> Void) -> some View {

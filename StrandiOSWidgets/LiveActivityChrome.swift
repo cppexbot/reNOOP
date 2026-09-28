@@ -48,10 +48,11 @@ struct ActivityDisc: View {
 }
 
 /// A round control. Grey with a white glyph by default (the Fitness pause); `tint` draws it in the hue (the
-/// Clock timer's pause). The intent runs in the app.
+/// Clock timer's pause). The intent runs in the app; `label` is what VoiceOver reads for the glyph.
 struct ActivityControl<Intent: LiveActivityIntent>: View {
     let intent: Intent
     let symbol: String
+    let label: LocalizedStringKey
     var tint: Color? = nil
     var size: CGFloat = 46
 
@@ -64,6 +65,7 @@ struct ActivityControl<Intent: LiveActivityIntent>: View {
                 .background(Circle().fill((tint ?? .white).opacity(tint == nil ? 0.22 : 0.25)))
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(Text(label))
     }
 }
 

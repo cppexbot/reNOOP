@@ -38,9 +38,9 @@ struct DeviceReadsView: View {
         /// Spoken label for the row's accessibility description.
         var spoken: String {
             switch self {
-            case .full:    return String(localized: "yes")
+            case .full:    return String(localized: "Yes")
             case .partial: return String(localized: "partly")
-            case .none:    return String(localized: "no")
+            case .none:    return String(localized: "No")
             }
         }
     }
@@ -55,10 +55,10 @@ struct DeviceReadsView: View {
     }
 
     private let rows: [LimitRow] = [
-        LimitRow(feature: "Live heart rate", spokenFeature: "Live heart rate", whoop4: .full, whoop5: .full),
-        LimitRow(feature: "HRV (rMSSD)", spokenFeature: "HRV", whoop4: .full, whoop5: .full),
-        LimitRow(feature: "Sleep staging", spokenFeature: "Sleep staging", whoop4: .full, whoop5: .full),
-        LimitRow(feature: "Recovery & strain", spokenFeature: "Recovery and strain", whoop4: .full, whoop5: .full),
+        LimitRow(feature: "Live heart rate", spokenFeature: String(localized: "Live heart rate"), whoop4: .full, whoop5: .full),
+        LimitRow(feature: "HRV (rMSSD)", spokenFeature: String(localized: "HRV"), whoop4: .full, whoop5: .full),
+        LimitRow(feature: "Sleep staging", spokenFeature: String(localized: "Sleep staging"), whoop4: .full, whoop5: .full),
+        LimitRow(feature: "Recovery & strain", spokenFeature: String(localized: "Recovery & strain"), whoop4: .full, whoop5: .full),
         // `.partial` on BOTH generations: the displayed respiratory rate is always
         // `SleepStager.respRateFromRR` — an on-device RSA estimate off the R-R stream, which is what
         // `.partial` means — computed with NO family branch (`AnalyticsEngine`'s `respRateDaily`). The
@@ -67,14 +67,14 @@ struct DeviceReadsView: View {
         // unconverted (schema: "resp rate computed server-side", `HistoricalStreams` keeps it as a raw
         // `RespSample`) and never becomes the shown value. Neither is "read live off the strap" (`.full`)
         // — which is also why an over-counted-R-R 4.0 night (#1331) blanks it.
-        LimitRow(feature: "Respiratory rate", spokenFeature: "Respiratory rate", whoop4: .partial, whoop5: .partial),
-        LimitRow(feature: "Stress (on-device)", spokenFeature: "Stress", whoop4: .full, whoop5: .full),
-        LimitRow(feature: "Workout detection", spokenFeature: "Workout detection", whoop4: .full, whoop5: .full),
-        LimitRow(feature: "Skin temperature", spokenFeature: "Skin temperature", whoop4: .partial, whoop5: .full),
-        LimitRow(feature: "Steps", spokenFeature: "Steps", whoop4: .partial, whoop5: .full),
-        LimitRow(feature: "Blood oxygen (SpO₂ %)", spokenFeature: "Blood oxygen", whoop4: .none, whoop5: .none),
-        LimitRow(feature: "ECG", spokenFeature: "ECG", whoop4: .none, whoop5: .partial),
-        LimitRow(feature: "Blood pressure", spokenFeature: "Blood pressure", whoop4: .none, whoop5: .none),
+        LimitRow(feature: "Respiratory rate", spokenFeature: String(localized: "Respiratory rate"), whoop4: .partial, whoop5: .partial),
+        LimitRow(feature: "Stress (on-device)", spokenFeature: String(localized: "Stress"), whoop4: .full, whoop5: .full),
+        LimitRow(feature: "Workout detection", spokenFeature: String(localized: "Workout detection"), whoop4: .full, whoop5: .full),
+        LimitRow(feature: "Skin temperature", spokenFeature: String(localized: "Skin temperature"), whoop4: .partial, whoop5: .full),
+        LimitRow(feature: "Steps", spokenFeature: String(localized: "Steps"), whoop4: .partial, whoop5: .full),
+        LimitRow(feature: "Blood oxygen (SpO₂ %)", spokenFeature: String(localized: "Blood oxygen"), whoop4: .none, whoop5: .none),
+        LimitRow(feature: "ECG", spokenFeature: String(localized: "ECG"), whoop4: .none, whoop5: .partial),
+        LimitRow(feature: "Blood pressure", spokenFeature: String(localized: "Blood pressure"), whoop4: .none, whoop5: .none),
     ]
 
     var body: some View {

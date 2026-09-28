@@ -172,9 +172,13 @@ struct LiveWorkoutView: View {
                                            size: panelGlyphSize, weight: .semibold, color: StrandPalette.activityExerciseText)),
             clock: {
                 TimelineView(.animation(minimumInterval: 0.05)) { ctx in
-                    RecordingClockText(text: Self.stopwatch(model.activeWorkout?.elapsed(at: ctx.date) ?? 0))
+                    let elapsed = model.activeWorkout?.elapsed(at: ctx.date) ?? 0
+                    let s = max(0, Int(elapsed))
+                    RecordingClockText(text: Self.stopwatch(elapsed))
+                        .accessibilityLabel(Text("Elapsed time"))
+                        .accessibilityValue(Text(Duration.seconds(s).formatted(.units(allowed: [.hours, .minutes, .seconds], width: .wide))))
+                        .accessibilityAddTraits(.updatesFrequently)
                 }
-                .accessibilityLabel(Text("Elapsed time"))
             },
             trailing: { ActivityRingsView(rings: rings, diameter: 44).opacity(rings.isEmpty ? 0 : 1) },
             leading: { RecordingButton(symbol: "xmark", label: "End workout") { showEndConfirm = true } },

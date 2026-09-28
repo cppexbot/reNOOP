@@ -60,6 +60,7 @@ struct IntervalLiveActivity: Widget {
     private func control(_ state: IntervalActivityAttributes.ContentState, size: CGFloat) -> some View {
         ActivityControl(intent: IntervalsToggleIntent(),
                         symbol: state.pausedRemaining == nil ? "pause.fill" : "play.fill",
+                        label: state.pausedRemaining == nil ? "Pause" : "Resume",
                         tint: tint(state), size: size)
     }
 

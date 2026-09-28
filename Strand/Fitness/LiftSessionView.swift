@@ -302,6 +302,7 @@ struct LiftSessionView: View {
                         }
                     }
                     .font(StrandFont.pro(22))
+                    .accessibilityHidden(true)
                     Text(warmup ? String(localized: "Warm-up") : String(localized: "Set \(slot.setIndex)"))
                         .foregroundStyle(warmup ? StrandPalette.fitnessTime : StrandPalette.textPrimary)
                 }
@@ -314,6 +315,7 @@ struct LiftSessionView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityValue(Text(recorded ? "Done" : isWorking ? "In progress" : "Not started"))
         .listRowBackground(isWorking ? StrandPalette.activityExerciseText.opacity(0.16) : nil)
     }
 
@@ -406,9 +408,12 @@ struct LiftSessionView: View {
                 .foregroundStyle(StrandPalette.activityExerciseText)),
             clock: {
                 TimelineView(.periodic(from: Date(timeIntervalSince1970: floor(Date().timeIntervalSince1970)), by: 1)) { ctx in
-                    RecordingClockText(text: ActiveWorkoutClock.clock(Int(ctx.date.timeIntervalSince1970) - engine.startTs))
+                    let s = Int(ctx.date.timeIntervalSince1970) - engine.startTs
+                    RecordingClockText(text: ActiveWorkoutClock.clock(s))
+                        .accessibilityLabel(Text("Session"))
+                        .accessibilityValue(Text(Duration.seconds(max(0, s)).formatted(.units(allowed: [.hours, .minutes, .seconds], width: .wide))))
+                        .accessibilityAddTraits(.updatesFrequently)
                 }
-                .accessibilityLabel(Text("Session"))
             },
             trailing: { LiftHeartRate() },
             leading: {
