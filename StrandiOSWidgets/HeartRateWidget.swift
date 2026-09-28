@@ -184,8 +184,8 @@ struct HeartRateWidgetView: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityText)
-        // A card of fixed height: its type stops at the largest standard size, as Health's widgets do.
-        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+        // A chart card of fixed height: its type stops at xLarge, where the axis and trace still fit.
+        .dynamicTypeSize(...DynamicTypeSize.xLarge)
     }
 
     /// One spoken sentence rather than a run of loose numbers. The Android twin had to settle for

@@ -71,6 +71,10 @@ struct CoachBriefWidgetView: View {
     }
 
     var body: some View {
+        briefBody.dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+    }
+
+    @ViewBuilder private var briefBody: some View {
         if !entry.coachEnabled {
             // Coach switched off in the app: an empty glyph, no copy.
             Image(systemName: "sparkles")

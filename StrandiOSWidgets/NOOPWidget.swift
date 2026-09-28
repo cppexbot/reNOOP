@@ -46,6 +46,12 @@ struct NOOPWidgetView: View {
     private var bpm: Int? { snap.shownHeartRate(at: entry.date).bpm }
 
     var body: some View {
+        content
+            // Fixed-size rings and cells: type stops at the largest standard size, as the other widgets do.
+            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+    }
+
+    @ViewBuilder private var content: some View {
         switch family {
         case .accessoryCircular:
             recoveryGauge
@@ -58,8 +64,8 @@ struct NOOPWidgetView: View {
         case .systemMedium:
             medium
         default:
-            // systemSmall (and any future compact family)
-            small
+            // systemSmall (and any future compact family): three ring captions share 42 pt columns.
+            small.dynamicTypeSize(...DynamicTypeSize.xLarge)
         }
     }
 
@@ -116,11 +122,11 @@ struct NOOPWidgetView: View {
                     .frame(maxWidth: .infinity, alignment: .trailing)
             }
             HStack(alignment: .top, spacing: 0) {
-                accessoryScore("Charge", symbol: "figure.mind.and.body",
+                accessoryScore(String(localized: "Charge"), symbol: "figure.mind.and.body",
                                text: snap.recovery.map { "\($0)%" }, tint: chargeColor)
-                accessoryScore("Effort", symbol: "figure.strengthtraining.traditional",
+                accessoryScore(String(localized: "Effort"), symbol: "figure.strengthtraining.traditional",
                                text: effortText, tint: effortColor)
-                accessoryScore("Rest", symbol: "moon.fill",
+                accessoryScore(String(localized: "Rest"), symbol: "moon.fill",
                                text: snap.rest.map { "\($0)%" }, tint: restColor)
             }
         }
@@ -241,7 +247,7 @@ struct NOOPWidgetView: View {
             WidgetScoreRing(
                 text: snap.recovery.map(String.init),
                 fraction: snap.recovery.map { Double($0) / 100 },
-                label: "Charge",
+                label: String(localized: "Charge"),
                 color: chargeColor,
                 diameter: diameter,
                 lineWidth: lineWidth,
@@ -252,7 +258,7 @@ struct NOOPWidgetView: View {
                 text: effortText,
                 // Fill is always the stored 0–100 axis so WHOOP 0–21 and native 0–100 agree on arc length.
                 fraction: snap.effort.map { Double($0) / 100 },
-                label: "Effort",
+                label: String(localized: "Effort"),
                 color: effortColor,
                 diameter: diameter,
                 lineWidth: lineWidth,
@@ -262,7 +268,7 @@ struct NOOPWidgetView: View {
             WidgetScoreRing(
                 text: snap.rest.map(String.init),
                 fraction: snap.rest.map { Double($0) / 100 },
-                label: "Rest",
+                label: String(localized: "Rest"),
                 color: restColor,
                 diameter: diameter,
                 lineWidth: lineWidth,

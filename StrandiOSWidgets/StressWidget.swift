@@ -232,8 +232,8 @@ struct StressWidgetView: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityText)
-        // A card of fixed height: its type stops at the largest standard size, as Health's widgets do.
-        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+        // A chart card of fixed height with a footer: its type stops at Large, where all of it still fits.
+        .dynamicTypeSize(...DynamicTypeSize.large)
     }
 
     /// One spoken sentence rather than a run of loose numbers, the same choice the heart-rate widget
