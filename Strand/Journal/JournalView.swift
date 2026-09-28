@@ -515,7 +515,7 @@ struct JournalHabitsSheet: View {
                 .foregroundStyle(selected ? StrandPalette.summaryCard : StrandPalette.textPrimary)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 6)
-                .background(selected ? StrandPalette.healthMind : StrandPalette.textTertiary.opacity(0.15),
+                .background(selected ? StrandPalette.healthMindText : StrandPalette.textTertiary.opacity(0.15),
                             in: Capsule())
         }
         .buttonStyle(.plain)

@@ -14,13 +14,13 @@ public enum NoopVisualStyle {
     public static let surfaceBottom = Color(light: "#F4F5F7", dark: "#282A31")
     public static let inset = Color(light: "#E8E9ED", dark: "#23252C")
 
-    public static let border = Color(light: "#D8DAE0", dark: "#373A44")
+    public static let border = Color(light: "#D8DAE0", dark: "#373A44", lightHC: "#9FA2AB", darkHC: "#6A6D78")
     public static let borderHighlight = Color(light: "#FFFFFF", dark: "#4B4E59")
-    public static let divider = Color(light: "#E4E5E9", dark: "#383A43")
+    public static let divider = Color(light: "#E4E5E9", dark: "#383A43", lightHC: "#A7AAB2", darkHC: "#666974")
 
-    public static let primaryText = Color(light: "#17181C", dark: "#F7F7FA")
-    public static let secondaryText = Color(light: "#555861", dark: "#C3C4CA")
-    public static let tertiaryText = Color(light: "#7D808A", dark: "#7D7F88")
+    public static let primaryText = Color(light: "#17181C", dark: "#F7F7FA", lightHC: "#000000", darkHC: "#FFFFFF")
+    public static let secondaryText = Color(light: "#555861", dark: "#C3C4CA", lightHC: "#3A3C42", darkHC: "#E2E3E8")
+    public static let tertiaryText = Color(light: "#6C6E78", dark: "#81838C", lightHC: "#4F5158", darkHC: "#A5A6AC")
 
     public static let mint = Color(light: "#149A78", dark: "#69DDB8")
     public static let mintDeep = Color(light: "#0D765C", dark: "#13A982")

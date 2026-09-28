@@ -27,7 +27,7 @@ final class DynamicColorParseOnceTests: XCTestCase {
             .deletingLastPathComponent()   // repo root
         let src = try String(contentsOf: root.appendingPathComponent(
             "Packages/StrandDesign/Sources/StrandDesign/Palette.swift"), encoding: .utf8)
-        let start = try XCTUnwrap(src.range(of: "init(light: String, dark: String) {"),
+        let start = try XCTUnwrap(src.range(of: "init(light: String, dark: String, lightHC: String? = nil, darkHC: String? = nil) {"),
                                   "the dynamic token initialiser moved or was renamed")
         // The initialiser is the last member of the extension, so its body runs to the closing brace
         // pair that ends the extension. Cutting at the NEXT top-level `// MARK:` is stable against
@@ -37,18 +37,19 @@ final class DynamicColorParseOnceTests: XCTestCase {
         return String(rest[..<end])
     }
 
-    /// Exactly two parses: the two hoisted `let`s. A third means one crept back into a closure.
+    /// Exactly four parses: the hoisted light, dark and two Increase Contrast tuples. A fifth means one
+    /// crept back into a closure.
     ///
     /// Comment lines are dropped first. The initialiser's own comment explains the fix by naming the
     /// function, and counting that would make this test fail on an accurate description of the code it
     /// is guarding.
-    func testTheHexIsParsedExactlyTwicePerToken() throws {
+    func testTheHexIsParsedOncePerVariant() throws {
         let body = try dynamicInitBody()
             .split(separator: "\n", omittingEmptySubsequences: false)
             .filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//") }
             .joined(separator: "\n")
         let parses = body.components(separatedBy: "sRGBComponents(hex:").count - 1
-        XCTAssertEqual(parses, 2,
+        XCTAssertEqual(parses, 4,
                        "the provider must pick between two pre-parsed tuples, not parse per resolution")
     }
 
@@ -72,5 +73,16 @@ final class DynamicColorParseOnceTests: XCTestCase {
         let rgba = Color.sRGBComponents(hex: "12345680")
         XCTAssertEqual(rgba.r, 18.0 / 255.0, accuracy: 1e-12)
         XCTAssertEqual(rgba.a, 128.0 / 255.0, accuracy: 1e-12)
+    }
+
+    /// CR-2: both platforms pick the Increase Contrast tuple when the system asks for it. (The setting
+    /// cannot be forced in a unit test, so the branch is pinned in source like the hoist above.)
+    func testIncreaseContrastPicksTheHighContrastTuples() throws {
+        let body = try dynamicInitBody()
+        XCTAssertTrue(body.contains("trait.accessibilityContrast == .high"))
+        XCTAssertTrue(body.contains("accessibilityDisplayShouldIncreaseContrast"))
+        XCTAssertTrue(body.contains("components.lightHC") && body.contains("components.darkHC"))
+        XCTAssertTrue(body.contains("lightHC ?? light") && body.contains("darkHC ?? dark"),
+                      "a token without HC variants must keep its normal hex under Increase Contrast")
     }
 }

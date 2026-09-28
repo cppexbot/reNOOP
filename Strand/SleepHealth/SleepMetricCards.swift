@@ -46,7 +46,7 @@ struct SleepCardValueText: View {
             case .text(let t):
                 Text(t)
                     .font(StrandFont.rounded(scaled * 0.8, weight: .bold))
-                    .foregroundStyle(tint)
+                    .foregroundStyle(StrandPalette.text(for: tint))
             }
         }
         .lineLimit(1)
@@ -56,7 +56,7 @@ struct SleepCardValueText: View {
     private func number(_ s: String) -> some View {
         Text(verbatim: s)
             .font(StrandFont.rounded(scaled, weight: .bold))
-            .foregroundStyle(tint)
+            .foregroundStyle(StrandPalette.text(for: tint))
     }
 
     private func unit(_ s: String) -> some View {

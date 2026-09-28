@@ -103,7 +103,7 @@ struct MetricStressDayCard: View {
                     if let v = value.as(Int.self) {
                         Text(verbatim: "\(v)")
                             .font(StrandFont.pro(12))
-                            .foregroundStyle(StrandPalette.textTertiary)
+                            .foregroundStyle(StrandPalette.textSecondary)
                     }
                 }
             }

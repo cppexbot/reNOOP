@@ -568,7 +568,7 @@ struct LiftSessionView: View {
                 .foregroundStyle(StrandPalette.textPrimary)
             value()
                 .font(StrandFont.pro(28, weight: .semibold))
-                .foregroundStyle(tint)
+                .foregroundStyle(StrandPalette.text(for: tint))
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
         }

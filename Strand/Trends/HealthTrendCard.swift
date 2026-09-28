@@ -36,7 +36,7 @@ struct HealthTrendCard: View {
                         .foregroundStyle(StrandPalette.textSecondary)
                     Spacer(minLength: 8)
                     Text(Self.averageLabel(trend.recentCount, unit: trend.unit))
-                        .foregroundStyle(tint)
+                        .foregroundStyle(StrandPalette.text(for: tint))
                 }
                 .font(StrandFont.pro(15))
             }
@@ -166,7 +166,7 @@ struct HealthTrendChart: View {
     private func label(_ text: String, color: Color, width: CGFloat, alignment: Alignment) -> some View {
         Text(verbatim: text)
             .font(StrandFont.pro(15, weight: .semibold))
-            .foregroundStyle(color)
+            .foregroundStyle(StrandPalette.text(for: color))
             .lineLimit(1)
             .frame(width: width, height: labelHeight, alignment: alignment)
     }

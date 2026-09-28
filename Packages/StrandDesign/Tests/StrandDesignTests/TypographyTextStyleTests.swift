@@ -21,3 +21,13 @@ final class TypographyTextStyleTests: XCTestCase {
         }
     }
 }
+
+/// CR-2: a hue token resolves to its darker text twin; an unknown colour passes through.
+final class PaletteTextToneTests: XCTestCase {
+    func testHueTokensMapToTheirTextTokens() {
+        XCTAssertEqual(StrandPalette.text(for: StrandPalette.healthHeart), StrandPalette.healthHeartText)
+        XCTAssertEqual(StrandPalette.text(for: StrandPalette.healthMind), StrandPalette.healthMindText)
+        XCTAssertEqual(StrandPalette.text(for: StrandPalette.activityTitle), StrandPalette.activityTitleText)
+        XCTAssertEqual(StrandPalette.text(for: .purple), .purple)
+    }
+}

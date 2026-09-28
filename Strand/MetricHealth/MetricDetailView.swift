@@ -349,7 +349,7 @@ struct MetricDetailView: View {
                         .font(StrandFont.pro(17, weight: .semibold))
                         .lineLimit(dts.isAccessibilitySize ? 3 : 1)
                 }
-                .foregroundStyle(tint)
+                .foregroundStyle(StrandPalette.text(for: tint))
                 Text(sentence)
                     .font(StrandFont.pro(17, weight: .semibold))
                     .foregroundStyle(StrandPalette.textPrimary)

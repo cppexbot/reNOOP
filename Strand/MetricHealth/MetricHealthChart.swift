@@ -141,7 +141,7 @@ struct MetricHealthChart: View {
                 if let v = value.as(Double.self) {
                     Text(verbatim: axisLabel(v))
                         .font(StrandFont.pro(12))
-                        .foregroundStyle(StrandPalette.textTertiary)
+                        .foregroundStyle(StrandPalette.textSecondary)
                 }
             }
         }

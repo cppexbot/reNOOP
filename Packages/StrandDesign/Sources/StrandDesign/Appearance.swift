@@ -50,6 +50,7 @@ public enum AccentColor: String, CaseIterable, Identifiable, Sendable {
     case mint        // the brand default (#1068 NoopVisualStyle.mint world)
     case whoopBlue   // the classic WHOOP link blue
     case custom      // a user-picked colour (hex stored separately)
+    case system      // the system blue, resolved by the OS so Increase Contrast darkens it (CR-2)
 
     public var id: String { rawValue }
     public static let storageKey = "accent.color"
@@ -63,6 +64,7 @@ public enum AccentColor: String, CaseIterable, Identifiable, Sendable {
         case .mint:      return String(localized: "Mint", bundle: .module)
         case .whoopBlue: return String(localized: "WHOOP Blue", bundle: .module)
         case .custom:    return String(localized: "Custom", bundle: .module)
+        case .system:    return String(localized: "Blue", bundle: .module)
         }
     }
 
@@ -74,6 +76,7 @@ public enum AccentColor: String, CaseIterable, Identifiable, Sendable {
         case .mint:      return NoopVisualStyle.mint
         case .whoopBlue: return Color(light: "#234F9E", dark: "#60A0E0")
         case .custom:    return Color(hex: StrandPalette.customAccentHex)
+        case .system:    return .blue
         }
     }
 
@@ -83,6 +86,7 @@ public enum AccentColor: String, CaseIterable, Identifiable, Sendable {
         case .mint:      return NoopVisualStyle.mintGlow
         case .whoopBlue: return Color(light: "#3A6FC0", dark: "#8FBEEC")
         case .custom:    return AccentColor.lighten(StrandPalette.customAccentHex)
+        case .system:    return .blue
         }
     }
 
@@ -93,6 +97,7 @@ public enum AccentColor: String, CaseIterable, Identifiable, Sendable {
         case .mint:      return NoopVisualStyle.mintDeep.opacity(0.18)
         case .whoopBlue: return Color(light: "#234F9E", dark: "#60A0E0").opacity(0.18)
         case .custom:    return Color(hex: StrandPalette.customAccentHex).opacity(0.18)
+        case .system:    return Color.blue.opacity(0.18)
         }
     }
 

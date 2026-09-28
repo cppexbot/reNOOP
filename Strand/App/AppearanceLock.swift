@@ -11,13 +11,9 @@ import Foundation
 import StrandDesign
 
 enum AppearanceLock {
-    /// iOS system blue, the link colour Apple's own apps use.
-    static let accentHex = "#007AFF"
-
     static func apply(_ defaults: UserDefaults = .standard) {
         defaults.set(ChartStyle.titanium.rawValue, forKey: ChartStyle.storageKey)
-        defaults.set(AccentColor.custom.rawValue, forKey: AccentColor.storageKey)
-        defaults.set(accentHex, forKey: AccentColor.customHexKey)
+        defaults.set(AccentColor.system.rawValue, forKey: AccentColor.storageKey)
         defaults.set(false, forKey: SceneBackgroundPrefs.enabledKey)
         defaults.set(false, forKey: SkyBehindCardsPrefs.enabledKey)
         defaults.set(CardAppearancePrefs.defaultPercent, forKey: CardAppearancePrefs.opacityKey)

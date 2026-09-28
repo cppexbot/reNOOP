@@ -175,7 +175,7 @@ struct FullDayChartView: View {
                 Image(systemName: "chevron.up.chevron.down")
                     .font(StrandFont.pro(11, weight: .semibold))
             }
-            .foregroundStyle(tint)
+            .foregroundStyle(StrandPalette.text(for: tint))
         }
         .tint(tint)
         #if os(macOS)

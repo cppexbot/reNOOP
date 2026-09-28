@@ -100,7 +100,7 @@ struct SummaryCardTitleRow: View {
     private var titleText: some View {
         Text(title)
             .font(StrandFont.headline)
-            .foregroundStyle(tint)
+            .foregroundStyle(StrandPalette.text(for: tint))
             .lineLimit(dts.isAccessibilitySize ? nil : 1)
     }
 
@@ -197,7 +197,7 @@ struct SummaryRingsCard: View {
         VStack(alignment: .leading, spacing: 1) {
             Text(row.title)
                 .font(StrandFont.subhead.weight(.semibold))
-                .foregroundStyle(row.color)
+                .foregroundStyle(StrandPalette.text(for: row.color))
                 .lineLimit(2)
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text(verbatim: row.value)
@@ -442,7 +442,7 @@ struct HighlightFigures: View {
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text(verbatim: value)
                     .font(StrandFont.number(22, weight: .bold))
-                    .foregroundStyle(tint)
+                    .foregroundStyle(StrandPalette.text(for: tint))
                 if !unit.isEmpty {
                     Text(verbatim: unit)
                         .font(StrandFont.subhead.weight(.semibold))

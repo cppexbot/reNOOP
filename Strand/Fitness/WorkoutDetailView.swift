@@ -303,7 +303,7 @@ struct WorkoutDetailView: View {
                 columns(spacing: 10, alignment: .center) {
                     Text("Zone \(zone)")
                         .font(StrandFont.pro(15, weight: .semibold))
-                        .foregroundStyle(color)
+                        .foregroundStyle(StrandPalette.fitnessZoneText(zone))
                         .frame(width: stacked ? nil : zoneLabelWidth, alignment: .leading)
                     GeometryReader { geo in
                         Capsule().fill(color)

@@ -167,7 +167,7 @@ struct LiftLogView: View {
                 if let subtitle {
                     Text(subtitle)
                         .font(StrandFont.pro(17))
-                        .foregroundStyle(tint)
+                        .foregroundStyle(StrandPalette.text(for: tint))
                 }
             }
             Spacer(minLength: playSize + 14)

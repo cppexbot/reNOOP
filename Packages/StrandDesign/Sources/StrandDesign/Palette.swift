@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 // MARK: - Hex Color Helper
 
@@ -30,7 +33,10 @@ public extension Color {
     /// Backed by a `UIColor`/`NSColor` dynamic provider, so a single token automatically re-resolves
     /// at every one of its call sites when the colour scheme flips — no per-view environment plumbing.
     /// This is the whole light-theme strategy: only the token definitions change, never the call sites.
-    init(light: String, dark: String) {
+    ///
+    /// `lightHC` / `darkHC` are the Increase Contrast variants (`accessibilityContrast == .high`); a token
+    /// that omits them keeps its normal hex there (CR-2).
+    init(light: String, dark: String, lightHC: String? = nil, darkHC: String? = nil) {
         // #2393: parse BOTH hexes ONCE, here, and let the provider pick between two ready tuples.
         //
         // The provider closure is not called once per token — it is called once per RESOLUTION, and the
@@ -47,7 +53,9 @@ public extension Color {
         // One declaration rather than two `let`s: watchOS resolves straight to the dark hex, so a separate
         // `lightComponents` would be unused on that platform and warn. A pair that is always read as a
         // whole has no such half.
-        let components = (light: Color.sRGBComponents(hex: light), dark: Color.sRGBComponents(hex: dark))
+        let components = (light: Color.sRGBComponents(hex: light), dark: Color.sRGBComponents(hex: dark),
+                          lightHC: Color.sRGBComponents(hex: lightHC ?? light),
+                          darkHC: Color.sRGBComponents(hex: darkHC ?? dark))
         #if os(watchOS)
         // watchOS has no UITraitCollection / dynamic-provider UIColor, and our watch app is effectively
         // always dark, so a token resolves straight to its dark hex. No per-scheme plumbing on the wrist.
@@ -55,13 +63,18 @@ public extension Color {
                   blue: components.dark.b, opacity: components.dark.a)
         #elseif canImport(UIKit)
         self.init(UIColor { trait in
-            let c = trait.userInterfaceStyle == .dark ? components.dark : components.light
+            let high = trait.accessibilityContrast == .high
+            let c = trait.userInterfaceStyle == .dark
+                ? (high ? components.darkHC : components.dark)
+                : (high ? components.lightHC : components.light)
             return UIColor(red: CGFloat(c.r), green: CGFloat(c.g), blue: CGFloat(c.b), alpha: CGFloat(c.a))
         })
         #elseif canImport(AppKit)
         self.init(nsColor: NSColor(name: nil) { appearance in
             let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
-            let c = isDark ? components.dark : components.light
+            let high = NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast
+            let c = isDark ? (high ? components.darkHC : components.dark)
+                           : (high ? components.lightHC : components.light)
             return NSColor(srgbRed: CGFloat(c.r), green: CGFloat(c.g), blue: CGFloat(c.b), alpha: CGFloat(c.a))
         })
         #else
@@ -238,7 +251,7 @@ public enum StrandPalette {
 
     // MARK: Status — Titanium gold/amber/orange, or the Classic green/amber/red.
     public static var statusPositive: Color { isClassic ? Color(light: "#2E9E4F", dark: "#46B45A") : Color(light: "#1F8A5B", dark: "#03E095") }
-    public static var statusWarning:  Color { isClassic ? Color(light: "#CFA528", dark: "#F2C53D") : Color(light: "#C2792E", dark: "#F0A020") }
+    public static var statusWarning:  Color { isClassic ? Color(light: "#CFA528", dark: "#F2C53D") : Color(light: "#9C6125", dark: "#F0A020", lightHC: "#74481C", darkHC: "#F7BF63") }
     public static var statusCritical: Color { isClassic ? Color(light: "#CB3A2F", dark: "#E5483B") : Color(light: "#C84E1E", dark: "#E0662F") }
 
     // MARK: Per-metric accents — HRV / SpO₂ / energy / risk. Classic leans the traditional hues (purple HRV, red risk).
@@ -282,9 +295,9 @@ public enum StrandPalette {
     // MARK: Summary home (Apple-Health-style) — rings, canvas, card, top wash.
     // The three concentric rings need three clearly separate hues at a glance, which the Titanium score
     // family (green / blue / steel-blue) cannot give, so the Summary owns its own trio.
-    public static let summaryChargeRing       = Color(light: "#34C759", dark: "#30D158")
-    public static let summaryEffortRing       = Color(light: "#FF9500", dark: "#FF9F0A")
-    public static let summaryRestRing         = Color(light: "#5E5CE6", dark: "#7D7AFF")
+    public static let summaryChargeRing       = Color(light: "#34C759", dark: "#30D158", lightHC: "#217F39", darkHC: "#6FE08C")
+    public static let summaryEffortRing       = Color(light: "#FF9500", dark: "#FF9F0A", lightHC: "#A25F00", darkHC: "#FFC466")
+    public static let summaryRestRing         = Color(light: "#5E5CE6", dark: "#7D7AFF", lightHC: "#3532E0", darkHC: "#9E9CFF")
     /// The Activity rings as Apple Watch draws them (sampled from Apple's own ring artwork): each ring
     /// runs from a deeper start hue to a brighter end hue. The rings always sit on a black disc, as they
     /// do in Health, so one set of values serves both appearances.
@@ -294,44 +307,67 @@ public enum StrandPalette {
     public static let activityExerciseEnd   = Color(hex: "#B4FF00")
     public static let activityStandStart    = Color(hex: "#00BDEA")
     public static let activityStandEnd      = Color(hex: "#00F2F0")
-    /// The same three hues as text on a card: the lime and cyan are darkened in light mode to stay legible.
-    public static let activityMoveText     = Color(light: "#F5174F", dark: "#FF2D6C")
-    public static let activityExerciseText = Color(light: "#2BB800", dark: "#A6FF00")
-    public static let activityStandText    = Color(light: "#00A9CC", dark: "#00E5F0")
+    /// The same three hues as text on a card, darkened in light mode to 4.5:1 on #F2F2F7 (7:1 under
+    /// Increase Contrast) (CR-2).
+    public static let activityMoveText     = Color(light: "#DC093F", dark: "#FF2D6C", lightHC: "#A5072F", darkHC: "#FF7CA3")
+    public static let activityExerciseText = Color(light: "#1D7C00", dark: "#A6FF00", lightHC: "#165F00", darkHC: "#C4FF5C")
+    public static let activityStandText    = Color(light: "#007992", dark: "#00E5F0", lightHC: "#005A6D", darkHC: "#7AF4F8")
     /// Health's Activity category tint (the flame in the card's title row).
-    public static let activityTitle        = Color(light: "#FA3C1E", dark: "#FF5A36")
+    public static let activityTitle        = Color(light: "#FA3C1E", dark: "#FF5A36", lightHC: "#D92205", darkHC: "#FF8267")
     /// Fitness's Workout-tab card: the Exercise green washed into the page — deep olive on black in dark
     /// mode, a pale green on the light canvas.
     public static let fitnessCard          = Color(light: "#E3F5D6", dark: "#1B2610")
     /// Glyph on an Exercise-green button (Fitness's black play triangle; white on the light variant).
     public static let fitnessOnAccent      = Color(light: "#FFFFFF", dark: "#000000")
     /// Fitness's workout-page hues: durations in yellow, Effort in blue.
-    public static let fitnessTime          = Color(light: "#C29200", dark: "#FFD60A")
+    public static let fitnessTime          = Color(light: "#8C6A00", dark: "#FFD60A", lightHC: "#684E00", darkHC: "#FFE566")
     public static let fitnessEffort        = Color(light: "#007AFF", dark: "#0A84FF")
     /// Fitness's workout-goal card hues (purple, teal, blue, pink, orange), cycled per card.
-    public static func fitnessGoal(_ index: Int) -> Color {
-        switch index % 5 {
-        case 0:  return Color(light: "#A34BD6", dark: "#BF5AF2")
-        case 1:  return Color(light: "#0F9BB0", dark: "#40C8E0")
-        case 2:  return Color(light: "#007AFF", dark: "#0A84FF")
-        case 3:  return Color(light: "#E0284F", dark: "#FF375F")
-        default: return Color(light: "#E07F00", dark: "#FF9F0A")
-        }
-    }
+    public static func fitnessGoal(_ index: Int) -> Color { fitnessGoalHues[index % 5] }
+    private static let fitnessGoalHues: [Color] = [
+        Color(light: "#A34BD6", dark: "#BF5AF2", lightHC: "#9E41D4", darkHC: "#D28AF6"),
+        Color(light: "#0F9BB0", dark: "#40C8E0", lightHC: "#0C7A8B", darkHC: "#86DDEC"),
+        .blue,
+        Color(light: "#E0284F", dark: "#FF375F", lightHC: "#D71F46", darkHC: "#FF7E98"),
+        Color(light: "#E07F00", dark: "#FF9F0A", lightHC: "#A55D00", darkHC: "#FFC466"),
+    ]
+    /// The goal hues as text on their pale card (CR-2).
+    private static let fitnessGoalTexts: [Color] = [
+        Color(light: "#9E41D4", dark: "#BF5AF2", lightHC: "#7927A9", darkHC: "#D28AF6"),
+        Color(light: "#0C7A8B", dark: "#40C8E0", lightHC: "#095A67", darkHC: "#86DDEC"),
+        .blue,
+        Color(light: "#D71F46", dark: "#FF375F", lightHC: "#A11734", darkHC: "#FF7E98"),
+        Color(light: "#A55D00", dark: "#FF9F0A", lightHC: "#7A4500", darkHC: "#FFC466"),
+    ]
     /// Fitness's five heart-rate zone hues (blue, teal, lime, orange, pink), Zone 1 first.
     public static func fitnessZone(_ zone: Int) -> Color {
         switch zone {
-        case 1:  return Color(light: "#1E7FE0", dark: "#3A9BFF")
-        case 2:  return Color(light: "#0FA596", dark: "#37D6C4")
-        case 3:  return Color(light: "#5E9E00", dark: "#B7F23A")
-        case 4:  return Color(light: "#E07F00", dark: "#FF9F0A")
-        default: return Color(light: "#E0284F", dark: "#FF3B6B")
+        case 1:  return Color(light: "#1E7FE0", dark: "#3A9BFF", lightHC: "#1B70C6", darkHC: "#7DBDFF")
+        case 2:  return Color(light: "#0FA596", dark: "#37D6C4", lightHC: "#0B7C71", darkHC: "#37D6C4")
+        case 3:  return Color(light: "#5E9E00", dark: "#B7F23A", lightHC: "#4A7C00", darkHC: "#B7F23A")
+        case 4:  return Color(light: "#E07F00", dark: "#FF9F0A", lightHC: "#A55D00", darkHC: "#FFC466")
+        default: return Color(light: "#E0284F", dark: "#FF3B6B", lightHC: "#D71F46", darkHC: "#FF7E98")
         }
     }
-    /// Grouped-list canvas behind the Summary cards.
+    /// The zone hues as text ("Zone 2"): 4.5:1 on #F2F2F7, 7:1 under Increase Contrast (CR-2).
+    public static func fitnessZoneText(_ zone: Int) -> Color {
+        switch zone {
+        case 1:  return Color(light: "#1B70C6", dark: "#3A9BFF", lightHC: "#145393", darkHC: "#7DBDFF")
+        case 2:  return Color(light: "#0B7C71", dark: "#37D6C4", lightHC: "#085C54", darkHC: "#37D6C4")
+        case 3:  return Color(light: "#4A7C00", dark: "#B7F23A", lightHC: "#365B00", darkHC: "#B7F23A")
+        case 4:  return Color(light: "#A55D00", dark: "#FF9F0A", lightHC: "#7A4500", darkHC: "#FFC466")
+        default: return Color(light: "#D71F46", dark: "#FF3B6B", lightHC: "#A11734", darkHC: "#FF7E98")
+        }
+    }
+    /// Grouped-list canvas behind the Summary cards, and the solid card on it: the system grouped
+    /// backgrounds on iOS, so sheets get the elevated dark variant and Increase Contrast its own (CR-2).
+    #if canImport(UIKit) && !os(watchOS)
+    public static let summaryCanvas = Color(uiColor: .systemGroupedBackground)
+    public static let summaryCard   = Color(uiColor: .secondarySystemGroupedBackground)
+    #else
     public static let summaryCanvas = Color(light: "#F2F2F7", dark: "#000000")
-    /// Solid Summary card surface.
     public static let summaryCard   = Color(light: "#FFFFFF", dark: "#1C1C1E")
+    #endif
     /// The default (no photo) profile circle: Contacts-style grey gradient behind a white silhouette.
     public static let summaryAvatarTop    = Color(light: "#A9AEBB", dark: "#8E929E")
     public static let summaryAvatarBottom = Color(light: "#868A96", dark: "#6B6F7A")
@@ -358,7 +394,11 @@ public enum StrandPalette {
     public static let messageIncomingText   = Color(light: "#000000", dark: "#FFFFFF")
     public static let messageLink           = Color(light: "#007AFF", dark: "#0984FF")
     public static let messageTypingDot      = Color(light: "#000000", dark: "#FFFFFF")
+    #if canImport(UIKit) && !os(watchOS)
+    public static let messageMeta           = Color(uiColor: .secondaryLabel)
+    #else
     public static let messageMeta           = Color(light: "#3C3C4399", dark: "#EBEBF599")
+    #endif
     public static let messagePlaceholder    = Color(light: "#3C3C434D", dark: "#EBEBF54D")
     public static let messageFieldGlyph     = Color(light: "#858E9980", dark: "#EBEBF56B")
     public static let messageSend           = Color(light: "#0088FF", dark: "#0091FF")
@@ -369,7 +409,7 @@ public enum StrandPalette {
     public static let messageSuggestionEnd   = Color(light: "#E8607E", dark: "#F0708C")
     /// Sleep schedule (Health's Full Schedule): the schedule's purple, and the bedtime/wake dial — the
     /// card it sits on, the track ring, the clock face, the bedtime→wake arc, its ticks and end glyphs.
-    public static let sleepSchedule       = Color(light: "#5E5CE6", dark: "#7D7AFF")
+    public static let sleepSchedule       = Color(light: "#5E5CE6", dark: "#7D7AFF", lightHC: "#3532E0", darkHC: "#9E9CFF")
     public static let sleepDialCard       = Color(light: "#F2F2F7", dark: "#2C2C2E")
     public static let sleepDialTrack      = Color(light: "#E3E3E8", dark: "#000000")
     public static let sleepDialFace       = Color(light: "#FFFFFF", dark: "#2C2C2E")
@@ -378,18 +418,43 @@ public enum StrandPalette {
     public static let sleepDialKnobGlyph  = Color(light: "#8E8E93", dark: "#98989D")
     public static let sleepDialSun        = Color(light: "#FFCC00", dark: "#FFD60A")
     /// "Show More Sleep Data" → Comparisons: the Health category hue each overlaid vital is drawn in.
-    public static let healthHeart       = Color(light: "#FF2D55", dark: "#FF375F")
-    public static let healthRespiratory = Color(light: "#00C7BE", dark: "#63E6E2")
-    public static let healthOxygen      = Color(light: "#32ADE6", dark: "#64D2FF")
-    public static let healthTemperature = Color(light: "#FF9500", dark: "#FF9F0A")
+    public static let healthHeart       = Color(light: "#FF2D55", dark: "#FF375F", lightHC: "#DF002A", darkHC: "#FF7E98")
+    public static let healthRespiratory = Color(light: "#00C7BE", dark: "#63E6E2", lightHC: "#007C76", darkHC: "#9AF0ED")
+    public static let healthOxygen      = Color(light: "#32ADE6", dark: "#64D2FF", lightHC: "#1476A4", darkHC: "#9ADFFF")
+    public static let healthTemperature = Color(light: "#FF9500", dark: "#FF9F0A", lightHC: "#A25F00", darkHC: "#FFC466")
     /// Health category hues for the metric pages and their Summary cards (Heart / Respiratory above).
-    public static let healthBody      = Color(light: "#AF52DE", dark: "#BF5AF2")
-    public static let healthMind      = Color(light: "#30B0C7", dark: "#40C8E0")
-    public static let healthNutrition = Color(light: "#34C759", dark: "#30D158")
+    public static let healthBody      = Color(light: "#AF52DE", dark: "#BF5AF2", lightHC: "#A439D9", darkHC: "#D28AF6")
+    public static let healthMind      = Color(light: "#30B0C7", dark: "#40C8E0", lightHC: "#217989", darkHC: "#86DDEC")
+    public static let healthNutrition = Color(light: "#34C759", dark: "#30D158", lightHC: "#217F39", darkHC: "#6FE08C")
+    /// Category hues as TEXT on a card or canvas (CR-2): the same hue darkened in light mode to 4.5:1 on
+    /// #F2F2F7, and to 7:1 under Increase Contrast. The hue tokens above stay on glyphs, rings and charts.
+    public static let healthHeartText       = Color(light: "#DF002A", dark: "#FF375F", lightHC: "#A80020", darkHC: "#FF7E98")
+    public static let healthRespiratoryText = Color(light: "#007C76", dark: "#63E6E2", lightHC: "#005C58", darkHC: "#9AF0ED")
+    public static let healthOxygenText      = Color(light: "#1476A4", dark: "#64D2FF", lightHC: "#0F5779", darkHC: "#9ADFFF")
+    public static let healthTemperatureText = Color(light: "#A25F00", dark: "#FF9F0A", lightHC: "#784600", darkHC: "#FFC466")
+    public static let healthBodyText        = Color(light: "#A439D9", dark: "#BF5AF2", lightHC: "#7D21AC", darkHC: "#D28AF6")
+    public static let healthMindText        = Color(light: "#217989", dark: "#40C8E0", lightHC: "#185965", darkHC: "#86DDEC")
+    public static let healthNutritionText   = Color(light: "#217F39", dark: "#30D158", lightHC: "#195E2A", darkHC: "#6FE08C")
+    public static let healthSleepText       = Color(light: "#5E5CE6", dark: "#7D7AFF", lightHC: "#3532E0", darkHC: "#9E9CFF")
+    public static let activityTitleText     = Color(light: "#D92205", dark: "#FF5A36", lightHC: "#A21904", darkHC: "#FF8267")
+    /// The text token for a hue token, for a label drawn in its category's hue (CR-2); a hue with no
+    /// text twin is returned unchanged. The lookup compares the static tokens themselves.
+    public static func text(for hue: Color) -> Color {
+        let pairs: [(Color, Color)] = [
+            (healthHeart, healthHeartText), (healthRespiratory, healthRespiratoryText),
+            (healthOxygen, healthOxygenText), (healthTemperature, healthTemperatureText),
+            (healthBody, healthBodyText), (healthMind, healthMindText),
+            (healthNutrition, healthNutritionText), (activityTitle, activityTitleText),
+            (sleepSchedule, healthSleepText), (summaryRestRing, healthSleepText),
+            (summaryChargeRing, healthNutritionText), (summaryEffortRing, healthTemperatureText),
+            (healthZoneHigh, healthNutritionText), (fitnessTime, fitnessTime),
+        ]
+        return (pairs + Array(zip(fitnessGoalHues, fitnessGoalTexts))).first { $0.0 == hue }?.1 ?? hue
+    }
     /// A daily score's state on its chart, in Apple's system red / yellow / green.
-    public static let healthZoneLow   = Color(light: "#FF3B30", dark: "#FF453A")
-    public static let healthZoneMid   = Color(light: "#FFCC00", dark: "#FFD60A")
-    public static let healthZoneHigh  = Color(light: "#34C759", dark: "#30D158")
+    public static let healthZoneLow   = Color(light: "#FF3B30", dark: "#FF453A", lightHC: "#D70015", darkHC: "#FF6961")
+    public static let healthZoneMid   = Color(light: "#FFCC00", dark: "#FFD60A", lightHC: "#A17B00", darkHC: "#FFE566")
+    public static let healthZoneHigh  = Color(light: "#34C759", dark: "#30D158", lightHC: "#217F39", darkHC: "#6FE08C")
     /// Sleep score ring: one hue per part of the score, as the Health app's Sleep Score segments.
     public static let sleepScoreDuration     = Color(light: "#3F6FF5", dark: "#5B86FF")
     public static let sleepScoreInterruption = Color(light: "#FF7A5C", dark: "#FF8C70")
