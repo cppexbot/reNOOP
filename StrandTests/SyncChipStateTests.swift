@@ -5,9 +5,7 @@ import XCTest
 /// what every consumer shows. Covers priority order (backfilling wins over a stale last-sync, which wins
 /// over the 5/MG experimental fallback) and the cold-start `.hidden` case.
 ///
-/// The sole consumer is the device page's Sync row, which wraps `agoText` in "%@ ago" — so every
-/// value the token can take must read correctly with a trailing "ago" (#1472). There is no bare-token
-/// renderer on Apple; the Android twin's chip is the one place a bare token is shown.
+/// The time is carried as a date and worded by `SyncChipState.ago` ("Just Now" under a minute, #1472).
 @MainActor
 final class SyncChipStateTests: XCTestCase {
 
@@ -18,20 +16,17 @@ final class SyncChipStateTests: XCTestCase {
         XCTAssertEqual(SyncChipState.resolve(live: live), .syncing(chunks: 7, pagesBehind: nil))
     }
 
-    func testLastSyncedAt_isSyncedWithAgeText() {
+    func testLastSyncedAt_isSyncedAtThatTime() {
         let live = LiveState()
-        live.lastSyncedAt = Date().timeIntervalSince1970 - 65
-        XCTAssertEqual(SyncChipState.resolve(live: live), .synced(agoText: "1m"))
+        let ts = Date().timeIntervalSince1970 - 65
+        live.lastSyncedAt = ts
+        XCTAssertEqual(SyncChipState.resolve(live: live), .synced(at: Date(timeIntervalSince1970: ts)))
     }
 
-    /// #1472 regression guard. The sub-minute token is wrapped by the device page in "%@ ago", so it must
-    /// compose with a trailing "ago". It used to be the word
-    /// "now", which rendered the user-visible "Synced now ago" for the first minute after every sync;
-    /// "<1m" is the fix and this pins it. Twin of the Android `lastSyncedUnderAMinute_usesSubMinuteToken`.
-    func testLastSyncedUnderAMinute_usesSubMinuteToken() {
-        let live = LiveState()
-        live.lastSyncedAt = Date().timeIntervalSince1970 - 5
-        XCTAssertEqual(SyncChipState.resolve(live: live), .synced(agoText: "<1m"))
+    /// #1472 regression guard: the first minute after a sync reads "Just Now", never "now ago".
+    func testUnderAMinuteReadsJustNow() {
+        let now = Date()
+        XCTAssertEqual(SyncChipState.ago(now.addingTimeInterval(-5), now: now), String(localized: "Just Now"))
     }
 
     func testHistorySyncExperimental_withNoLastSync_isExperimentalLive() {
@@ -101,8 +96,9 @@ final class SyncChipStateTests: XCTestCase {
     func testNotBackfillingIgnoresTheBacklog() {
         let live = LiveState()
         live.backfilling = false
-        live.lastSyncedAt = Date().timeIntervalSince1970 - 65
+        let ts = Date().timeIntervalSince1970 - 65
+        live.lastSyncedAt = ts
         live.pagesBehindAtConnect = 120
-        XCTAssertEqual(SyncChipState.resolve(live: live), .synced(agoText: "1m"))
+        XCTAssertEqual(SyncChipState.resolve(live: live), .synced(at: Date(timeIntervalSince1970: ts)))
     }
 }

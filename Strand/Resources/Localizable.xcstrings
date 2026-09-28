@@ -1,6 +1,7 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Just Now": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "только что"}} } },
     "Set Up Later": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Настроить позже"}} } },
     "Delivered": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Доставлено"}} } },
     "Not Delivered": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Не доставлено"}} } },

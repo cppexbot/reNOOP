@@ -578,6 +578,13 @@ enum DemoRunning {
     @MainActor
     static func start(model: AppModel, lift: LiftSessionController, intervals: IntervalTimerRunner) {
         let args = CommandLine.arguments
+        // `--demo-sync synced|syncing`: the strap-sync status line's states, with no strap.
+        if let j = args.firstIndex(of: "--demo-sync"), j + 1 < args.count {
+            switch args[j + 1] {
+            case "syncing": model.live.backfilling = true
+            default: model.live.lastSyncedAt = Date().timeIntervalSince1970 - 20
+            }
+        }
         guard let i = args.firstIndex(of: "--demo-running"), i + 1 < args.count else { return }
         switch args[i + 1] {
         case "workout":

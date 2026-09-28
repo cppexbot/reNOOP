@@ -174,24 +174,13 @@ struct DeviceDetailView: View {
     }
 
     @ViewBuilder private func syncRow(_ sync: SyncChipState) -> some View {
-        switch sync {
-        case .syncing(let chunks, _):
+        if sync != .hidden {
             HStack {
                 Text("Sync").foregroundStyle(StrandPalette.textPrimary)
                 Spacer()
-                ProgressView().controlSize(.small)
-                if chunks > 0 {
-                    Text(verbatim: "\(chunks)").monospacedDigit().foregroundStyle(StrandPalette.textSecondary)
-                }
+                StrapSyncStatusText(style: .value)
             }
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(Text("Syncing strap history, \(chunks) chunks"))
-        case .synced(let ago):
-            valueRow("Sync", String(localized: "\(ago) ago"))
-        case .experimentalLive:
-            valueRow("Sync", String(localized: "Experimental"))
-        case .hidden:
-            EmptyView()
+            .accessibilityElement(children: .combine)
         }
     }
 

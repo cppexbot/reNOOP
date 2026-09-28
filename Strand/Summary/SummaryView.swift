@@ -71,6 +71,12 @@ struct SummaryView: View {
                     pinnedSection
                     highlightsSection
                     trendsSection
+                    #if os(iOS)
+                    // The strap's sync as Mail and Photos say theirs: one quiet line under everything.
+                    StrapSyncStatusText()
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 12)
+                    #endif
                     Color.clear.frame(height: NoopMetrics.tabBarClearance)
                 }
                 .padding(.horizontal, NoopMetrics.screenHPadding)
