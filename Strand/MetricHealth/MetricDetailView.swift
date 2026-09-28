@@ -42,7 +42,6 @@ struct MetricDetailView: View {
     @ScaledMetric(relativeTo: .largeTitle) private var heroScale: CGFloat = 1
     @ScaledMetric(relativeTo: .body) private var rowScale: CGFloat = 1
     @ScaledMetric(relativeTo: .title) private var highlightValueSize: CGFloat = 30
-    @ScaledMetric(relativeTo: .subheadline) private var highlightIconSize: CGFloat = 14
 
     // MARK: Derived
 
@@ -90,7 +89,7 @@ struct MetricDetailView: View {
             }
             .padding(.horizontal, NoopMetrics.screenHPadding)
             .padding(.top, NoopMetrics.space2)
-            .padding(.bottom, NoopMetrics.space8 + NoopMetrics.tabBarClearance)
+            .padding(.bottom, NoopMetrics.space8)
             #if os(macOS)
             .frame(maxWidth: 680)
             .frame(maxWidth: .infinity)
@@ -273,22 +272,12 @@ struct MetricDetailView: View {
                 emptyState
             }
             if let highlight = MetricHealthSeries.highlight(series: series, calendar: calendar) {
-                sectionHeader("Highlights")
+                SectionHeader(title: "Highlights")
                 highlightCard(highlight)
             }
-            sectionHeader("Options")
+            SectionHeader(title: "Options")
             optionsCard
         }
-    }
-
-    /// Health's section title on the grouped canvas: SF Pro bold, flush with the cards' inset.
-    private func sectionHeader(_ title: LocalizedStringKey) -> some View {
-        Text(title)
-            .font(StrandFont.pro(22, weight: .bold))
-            .foregroundStyle(StrandPalette.textPrimary)
-            .padding(.horizontal, 4)
-            .padding(.top, NoopMetrics.space4)
-            .accessibilityAddTraits(.isHeader)
     }
 
     /// No reading on record for a metric that comes from an import or a strap (not Fitness Age, which is
@@ -345,41 +334,25 @@ struct MetricDetailView: View {
         let figuresLayout = dts.isAccessibilitySize
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
             : AnyLayout(HStackLayout(alignment: .top))
-        return SummaryCard {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 6) {
-                    Image(systemName: metric.icon)
-                        .font(.system(size: highlightIconSize, weight: .semibold))
-                        .accessibilityHidden(true)
-                    Text(metric.title)
-                        .font(StrandFont.pro(17, weight: .semibold))
-                        .lineLimit(dts.isAccessibilitySize ? 3 : 1)
-                }
-                .foregroundStyle(StrandPalette.text(for: tint))
-                Text(sentence)
-                    .font(StrandFont.pro(17, weight: .semibold))
-                    .foregroundStyle(StrandPalette.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-                Rectangle().fill(StrandPalette.hairline).frame(height: NoopMetrics.hairlineWidth)
-                figuresLayout {
-                    highlightFigure(String(localized: "Two-Week Average"), h.average, color: StrandPalette.textSecondary, trailing: false)
-                    if !dts.isAccessibilitySize { Spacer(minLength: 8) }
-                    highlightFigure(String(localized: "Latest"), h.latest, color: StrandPalette.text(for: latestTint),
-                                    trailing: !dts.isAccessibilitySize)
-                }
-                highlightBars(h, latestTint: latestTint)
-                    .frame(height: 96)
-                    .padding(.top, 6)
-                HStack {
-                    Text(verbatim: shortDate(h.firstDay))
-                    Spacer()
-                    Text(verbatim: shortDate(h.lastDay))
-                }
-                .font(StrandFont.pro(13))
-                .foregroundStyle(StrandPalette.textSecondary)
+        return HighlightCard(icon: metric.icon, title: metric.title, tint: tint, sentence: sentence, spacing: 10) {
+            figuresLayout {
+                highlightFigure(String(localized: "Two-Week Average"), h.average, color: StrandPalette.textSecondary, trailing: false)
+                if !dts.isAccessibilitySize { Spacer(minLength: 8) }
+                highlightFigure(String(localized: "Latest"), h.latest, color: StrandPalette.text(for: latestTint),
+                                trailing: !dts.isAccessibilitySize)
             }
+        } chart: {
+            highlightBars(h, latestTint: latestTint)
+                .frame(height: 96)
+                .padding(.top, 6)
+            HStack {
+                Text(verbatim: shortDate(h.firstDay))
+                Spacer()
+                Text(verbatim: shortDate(h.lastDay))
+            }
+            .font(StrandFont.pro(13))
+            .foregroundStyle(StrandPalette.textSecondary)
         }
-        .accessibilityElement(children: .combine)
     }
 
     private func highlightFigure(_ title: String, _ value: Double, color: Color, trailing: Bool) -> some View {
@@ -440,49 +413,48 @@ struct MetricDetailView: View {
     }
 
     private var optionsCard: some View {
-        VStack(spacing: 0) {
-            if !series.isEmpty {
+        SummaryCard(insets: .summaryCardList) {
+            VStack(spacing: 0) {
+                if !series.isEmpty {
+                    NavigationLink {
+                        MetricAllDataView(metric: metric, series: series, sourceByDay: sourceByDay, units: units)
+                    } label: {
+                        optionRow(String(localized: "Show All Data"), accent: false, chevron: true)
+                    }
+                    .buttonStyle(.plain)
+                    optionDivider
+                }
+                if metric.key == "avg_hr" {
+                    // The day's heart rate at full resolution (#575), one level below the daily averages.
+                    NavigationLink {
+                        FullDayChartView()
+                    } label: {
+                        optionRow(String(localized: "Full Day by the Second"), accent: false, chevron: true)
+                    }
+                    .buttonStyle(.plain)
+                    optionDivider
+                }
+                if let card = pinnable {
+                    let pinned = KeyMetricPrefs.decodeEnabled(keyMetricsRaw).contains(card)
+                    Button {
+                        var list = KeyMetricPrefs.decodeEnabled(keyMetricsRaw)
+                        if pinned { list.removeAll { $0 == card } } else { list.append(card) }
+                        keyMetricsRaw = KeyMetricPrefs.encode(list)
+                    } label: {
+                        optionRow(pinned ? String(localized: "Unpin from Summary") : String(localized: "Pin in Summary"),
+                                  accent: true, chevron: false)
+                    }
+                    .buttonStyle(.plain)
+                    optionDivider
+                }
                 NavigationLink {
-                    MetricAllDataView(metric: metric, series: series, sourceByDay: sourceByDay, units: units)
+                    DataSourcesView()
                 } label: {
-                    optionRow(String(localized: "Show All Data"), accent: false, chevron: true)
+                    optionRow(String(localized: "Data Sources"), accent: false, chevron: true)
                 }
                 .buttonStyle(.plain)
-                optionDivider
             }
-            if metric.key == "avg_hr" {
-                // The day's heart rate at full resolution (#575), one level below the daily averages.
-                NavigationLink {
-                    FullDayChartView()
-                } label: {
-                    optionRow(String(localized: "Full Day by the Second"), accent: false, chevron: true)
-                }
-                .buttonStyle(.plain)
-                optionDivider
-            }
-            if let card = pinnable {
-                let pinned = KeyMetricPrefs.decodeEnabled(keyMetricsRaw).contains(card)
-                Button {
-                    var list = KeyMetricPrefs.decodeEnabled(keyMetricsRaw)
-                    if pinned { list.removeAll { $0 == card } } else { list.append(card) }
-                    keyMetricsRaw = KeyMetricPrefs.encode(list)
-                } label: {
-                    optionRow(pinned ? String(localized: "Unpin from Summary") : String(localized: "Pin in Summary"),
-                              accent: true, chevron: false)
-                }
-                .buttonStyle(.plain)
-                optionDivider
-            }
-            NavigationLink {
-                DataSourcesView()
-            } label: {
-                optionRow(String(localized: "Data Sources"), accent: false, chevron: true)
-            }
-            .buttonStyle(.plain)
         }
-        .padding(.horizontal, 16)
-        .background(StrandPalette.summaryCard,
-                    in: RoundedRectangle(cornerRadius: SummaryCard<EmptyView>.radius, style: .continuous))
     }
 
     private func optionRow(_ title: String, accent: Bool, chevron: Bool) -> some View {

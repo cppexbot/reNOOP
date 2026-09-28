@@ -11,7 +11,10 @@ public enum NoopMetrics {
     public static let gap: CGFloat = NoopVisualStyle.itemGap
     public static let sectionGap: CGFloat = NoopVisualStyle.sectionGap
     public static let screenPadding: CGFloat = NoopVisualStyle.pagePadding
-    public static let tabBarClearance: CGFloat = 76  // iOS: extra bottom scroll room so the last card clears the floating tab bar
+    /// Height of the floating tab bar, for chrome laid OVER the `TabView` itself (the pre-iOS 26.1
+    /// mini-player capsule). Never pad scroll content with it: a system `TabView` already insets its
+    /// scroll views by the bar and bottom accessory, and sheets and macOS have no bar at all (Craft-4).
+    public static let tabBarClearance: CGFloat = 76
     /// Canonical diameter for compact circular controls in dense header chrome.
     public static let compactControlSize: CGFloat = 36
     /// Even inset around a header control before applying exact-bounds Liquid Glass, matching the inset
@@ -63,14 +66,15 @@ public extension View {
 
 #if os(iOS)
 public extension View {
-    /// The house iOS sheet idiom: the drag indicator (the touch affordance that says
-    /// "swipe to dismiss") plus detents. macOS sheets are free-floating windows and must
+    /// The house iOS sheet idiom: detents plus the grabber, which appears only when the sheet
+    /// has more than one detent to drag between. macOS sheets are free-floating windows and must
     /// NOT receive this, so the helper is iOS-only and call sites stay shared via #if.
     /// `largeFirst == false` opens at .medium with .large reachable by dragging up (short
     /// forms); `true` opens full-height (long scrolls).
     func noopSheetPresentation(largeFirst: Bool) -> some View {
         self
-            .presentationDragIndicator(.visible)
+            // A single detent cannot be resized, so it shows no grabber (K-10).
+            .presentationDragIndicator(largeFirst ? .hidden : .visible)
             .presentationDetents(largeFirst ? [.large] : [.medium, .large])
     }
 }

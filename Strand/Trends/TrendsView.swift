@@ -45,7 +45,7 @@ struct TrendsView: View {
                 }
             }
             .padding(.horizontal, NoopMetrics.screenHPadding)
-            .padding(.bottom, NoopMetrics.space8 + NoopMetrics.tabBarClearance)
+            .padding(.bottom, NoopMetrics.space8)
             #if os(macOS)
             .frame(maxWidth: 680)
             .frame(maxWidth: .infinity)

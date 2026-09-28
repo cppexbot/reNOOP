@@ -1,24 +1,10 @@
 //  SleepScheduleComponents.swift
-//  NOOP · Sleep schedule — the pieces the Health app's Full Schedule is made of: the bold section header,
-//  the bedtime / wake pair, a schedule card with its "Edit" link, the next-wake card, the day circles.
+//  NOOP · Sleep schedule — the pieces the Health app's Full Schedule is made of: the bedtime / wake
+//  pair, a schedule card with its "Edit" link, the next-wake card, the day circles. Section titles are the
+//  shared `SectionHeader`.
 
 import SwiftUI
 import StrandDesign
-
-/// Health's grouped-page section header: bold 22 pt SF Pro.
-struct SleepScheduleHeader: View {
-    let title: LocalizedStringKey
-
-    var body: some View {
-        Text(title)
-            .font(StrandFont.pro(22, weight: .bold))
-            .foregroundStyle(StrandPalette.textPrimary)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 4)
-            .padding(.top, NoopMetrics.space4)
-            .accessibilityAddTraits(.isHeader)
-    }
-}
 
 /// A white card on the grouped canvas, Health's corner radius.
 struct SleepScheduleCard<Content: View>: View {

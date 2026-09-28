@@ -94,7 +94,7 @@ struct FullDayChartView: View {
             }
             .padding(.horizontal, NoopMetrics.screenHPadding)
             .padding(.top, NoopMetrics.space2)
-            .padding(.bottom, NoopMetrics.space8 + NoopMetrics.tabBarClearance)
+            .padding(.bottom, NoopMetrics.space8)
             #if os(macOS)
             .frame(maxWidth: 680)
             .frame(maxWidth: .infinity)

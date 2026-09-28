@@ -10,14 +10,17 @@ import StrandAnalytics
 
 // MARK: - Container + section header
 
+/// The ONE card on the grouped canvas: white, Health's corner radius, full width. Draw a card with this,
+/// never with a hand-made `.background(RoundedRectangle)`, so every card shares one radius and fill (Craft-3).
 struct SummaryCard<Content: View>: View {
+    /// Summary's margins by default; `.summaryCardList` for a card of rows that carry their own height,
+    /// `.summaryCardRow` for a card that is one list row.
+    var insets: EdgeInsets = .summaryCard
     @ViewBuilder var content: Content
 
     var body: some View {
         content
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
-            .padding(.bottom, 14)
+            .padding(insets)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(StrandPalette.summaryCard,
                         in: RoundedRectangle(cornerRadius: Self.radius, style: .continuous))
@@ -27,7 +30,20 @@ struct SummaryCard<Content: View>: View {
     static var radius: CGFloat { 22 }
 }
 
-struct SummarySectionHeader: View {
+extension EdgeInsets {
+    /// A Summary card's own margins: 16 at the sides, 12 over the title row, 14 under the last line.
+    static var summaryCard: EdgeInsets { EdgeInsets(top: 12, leading: 16, bottom: 14, trailing: 16) }
+    /// A card of rows set edge to edge, each carrying its own vertical padding and hairline (Health's
+    /// grouped list inside a card).
+    static var summaryCardList: EdgeInsets { EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16) }
+    /// A card that is a single list row: even margins above and below.
+    static var summaryCardRow: EdgeInsets { EdgeInsets(top: 14, leading: 16, bottom: 14, trailing: 16) }
+}
+
+/// Health's section title on the grouped canvas (SF Pro bold 22, flush with the cards' inset), with an
+/// optional trailing action ("Edit"). The ONE section header: every grouped-canvas screen uses it, so a
+/// title reads the same on Summary, Sleep, a metric page and the schedule (Craft-3).
+struct SectionHeader: View {
     let title: LocalizedStringKey
     var actionTitle: LocalizedStringKey? = nil
     var action: (() -> Void)? = nil
@@ -325,32 +341,73 @@ struct SummaryMiniChart: View {
 
 // MARK: - Highlight card
 
+/// The ONE Highlights card, as Health sets it on Summary, Sleep and a data type's page (Craft-3): the
+/// category row, one sentence, then — under a hairline — the evidence: two figures and a chart. The row,
+/// the sentence and the hairline are fixed; what legitimately differs between screens is a slot or a
+/// parameter: the figures (each page formats its own readings) and the chart (a week of Effort, the nights
+/// behind a sleep claim, a fortnight of readings), each of which brings its own height.
+struct HighlightCard<Figures: View, Chart: View>: View {
+    let icon: String
+    let title: String
+    let tint: Color
+    let sentence: String
+    /// On for a card that opens a page (Summary's), off for one that opens nothing.
+    var chevron = false
+    /// The gap between the card's rows.
+    var spacing: CGFloat = 8
+    /// Off when the highlight has no evidence to set under its sentence (then no hairline either).
+    var showsEvidence = true
+    @ViewBuilder var figures: Figures
+    @ViewBuilder var chart: Chart
+
+    var body: some View {
+        SummaryCard {
+            VStack(alignment: .leading, spacing: spacing) {
+                SummaryCardTitleRow(icon: icon, title: title, tint: tint, chevron: chevron)
+                Text(verbatim: sentence)
+                    .font(StrandFont.headline)
+                    .foregroundStyle(StrandPalette.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                if showsEvidence {
+                    Rectangle().fill(StrandPalette.hairline).frame(height: NoopMetrics.hairlineWidth)
+                    figures
+                    chart
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+extension HighlightCard where Chart == EmptyView {
+    /// A highlight whose figures carry their own bars (Summary's figure pair).
+    init(icon: String, title: String, tint: Color, sentence: String, chevron: Bool = false,
+         spacing: CGFloat = 8, showsEvidence: Bool = true, @ViewBuilder figures: () -> Figures) {
+        self.init(icon: icon, title: title, tint: tint, sentence: sentence, chevron: chevron,
+                  spacing: spacing, showsEvidence: showsEvidence, figures: figures, chart: { EmptyView() })
+    }
+}
+
 struct SummaryHighlightCard: View {
     let highlight: SummaryHighlight
     /// The last seven days of Effort, drawn under a training-variety highlight (which has no figure pair).
     var effortWeek: [Double] = []
 
     var body: some View {
+        let pair = figures
+        // The claim is "every day looks alike": seven near-equal bars show it at a glance, where the
+        // monotony index itself is a number nobody reads.
+        let showsWeek = pair == nil && highlight.key == "monotony" && effortWeek.count >= 2
         NavigationLink(value: TabRoute.metric(highlight.routeKey)) {
-            SummaryCard {
-                VStack(alignment: .leading, spacing: 8) {
-                    SummaryCardTitleRow(icon: icon, title: highlight.title, tint: tint)
-                    Text(highlight.sentence)
-                        .font(StrandFont.headline)
-                        .foregroundStyle(StrandPalette.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    if let figures = figures {
-                        Rectangle().fill(StrandPalette.hairline).frame(height: NoopMetrics.hairlineWidth)
-                        figures
-                    } else if highlight.key == "monotony", effortWeek.count >= 2 {
-                        // The claim is "every day looks alike": seven near-equal bars show it at a glance,
-                        // where the monotony index itself is a number nobody reads.
-                        Rectangle().fill(StrandPalette.hairline).frame(height: NoopMetrics.hairlineWidth)
-                        weekBars(effortWeek)
-                        Text("Effort, last 7 days")
-                            .font(StrandFont.footnote)
-                            .foregroundStyle(StrandPalette.textSecondary)
-                    }
+            HighlightCard(icon: icon, title: highlight.title, tint: tint, sentence: highlight.sentence,
+                          chevron: true, showsEvidence: pair != nil || showsWeek) {
+                if let pair { pair }
+            } chart: {
+                if showsWeek {
+                    weekBars(effortWeek)
+                    Text("Effort, last 7 days")
+                        .font(StrandFont.footnote)
+                        .foregroundStyle(StrandPalette.textSecondary)
                 }
             }
         }

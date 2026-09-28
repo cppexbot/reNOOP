@@ -546,9 +546,8 @@ struct LiftSessionView: View {
                 }
             }
         }
-        #if os(iOS)
-        .presentationDragIndicator(.visible)
-        #else
+        // One (default .large) detent on iOS, so no grabber: there is nothing to resize (K-10).
+        #if os(macOS)
         .frame(minWidth: 460, minHeight: 560)
         #endif
         .task { await loadSetCountChanges() }

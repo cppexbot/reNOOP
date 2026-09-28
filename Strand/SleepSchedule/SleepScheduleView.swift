@@ -43,19 +43,19 @@ struct SleepScheduleView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 alarmSection
-                SleepScheduleHeader(title: "Full Schedule")
+                SectionHeader(title: "Full Schedule")
                 ForEach(SleepSchedule.entries(inputs)) { entry in
                     SleepScheduleEntryCard(entry: entry) { open(entry, inputs: inputs) }
                 }
                 addButton(inputs)
-                SleepScheduleHeader(title: "Next Wake Up")
+                SectionHeader(title: "Next Wake Up")
                 SleepNextWakeCard(inputs: inputs)
-                SleepScheduleHeader(title: "Additional Details")
+                SectionHeader(title: "Additional Details")
                 detailsCard
             }
             .padding(.horizontal, NoopMetrics.screenHPadding)
             .padding(.top, NoopMetrics.space3)
-            .padding(.bottom, NoopMetrics.tabBarClearance)
+            .padding(.bottom, NoopMetrics.space8)
             #if os(macOS)
             .frame(maxWidth: 680)
             .frame(maxWidth: .infinity)

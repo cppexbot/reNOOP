@@ -77,7 +77,7 @@ struct MoodLinksSection: View {
     /// "Mood" and one Highlights card per link: the sentence and the strength bar, no coefficient.
     private var insightsCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SummarySectionHeader(title: "Mood")
+            SectionHeader(title: "Mood")
             ForEach(lines) { line in
                 SummaryCard {
                     VStack(alignment: .leading, spacing: 8) {

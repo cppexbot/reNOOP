@@ -35,12 +35,12 @@ struct SleepScheduleEditor: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
-                    SleepScheduleHeader(title: "Days Active")
+                    SectionHeader(title: "Days Active")
                     SleepScheduleDayCircles(days: $edit.days)
-                    SleepScheduleHeader(title: "Bedtime and Wake Up")
+                    SectionHeader(title: "Bedtime and Wake Up")
                     dialCard
                     if !edit.isBase {
-                        SleepScheduleHeader(title: "Alarm Options")
+                        SectionHeader(title: "Alarm Options")
                         SleepScheduleCard(fill: StrandPalette.sleepDialCard) {
                             Toggle(isOn: $edit.alarm) {
                                 Text("Alarm").font(StrandFont.pro(17))

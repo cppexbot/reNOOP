@@ -60,9 +60,9 @@ struct JournalView: View {
                     .font(StrandFont.pro(20, weight: .semibold))
                     .foregroundStyle(StrandPalette.textPrimary)
                     .frame(maxWidth: .infinity)
+                // The shared header brings 16 pt above itself, so the strip adds none of its own.
                 dayStrip
-                    .padding(.bottom, 8)
-                sectionHeader("To Log")
+                SectionHeader(title: "To Log")
                 logCards
                 if !loggedRows.isEmpty {
                     loggedCard
@@ -71,7 +71,7 @@ struct JournalView: View {
             }
             .padding(.horizontal, NoopMetrics.screenHPadding)
             .padding(.top, NoopMetrics.space2)
-            .padding(.bottom, NoopMetrics.space8 + NoopMetrics.tabBarClearance)
+            .padding(.bottom, NoopMetrics.space8)
             #if os(macOS)
             .frame(maxWidth: 680)
             .frame(maxWidth: .infinity)
@@ -382,15 +382,6 @@ struct JournalView: View {
         .padding(.bottom, 4)
         .background(StrandPalette.plainPageCard,
                     in: RoundedRectangle(cornerRadius: SummaryCard<EmptyView>.radius, style: .continuous))
-    }
-
-    private func sectionHeader(_ title: LocalizedStringKey) -> some View {
-        Text(title)
-            .font(StrandFont.pro(22, weight: .bold))
-            .foregroundStyle(StrandPalette.textPrimary)
-            .padding(.horizontal, 4)
-            .padding(.top, NoopMetrics.space2)
-            .accessibilityAddTraits(.isHeader)
     }
 
     // MARK: - Load

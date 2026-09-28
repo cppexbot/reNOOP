@@ -28,35 +28,34 @@ struct MetricAllDataView: View {
             MetricHealthStyle.text(metric, $0, units: units)
         }
         return ScrollView {
-            LazyVStack(spacing: 0) {
-                ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
-                    rowLayout {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(verbatim: row.value)
-                                .font(StrandFont.pro(17, weight: .semibold))
-                                .foregroundStyle(StrandPalette.textPrimary)
-                            Text(verbatim: row.source)
-                                .font(StrandFont.pro(13))
+            SummaryCard(insets: .summaryCardList) {
+                LazyVStack(spacing: 0) {
+                    ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
+                        rowLayout {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(verbatim: row.value)
+                                    .font(StrandFont.pro(17, weight: .semibold))
+                                    .foregroundStyle(StrandPalette.textPrimary)
+                                Text(verbatim: row.source)
+                                    .font(StrandFont.pro(13))
+                                    .foregroundStyle(StrandPalette.textSecondary)
+                            }
+                            if !stacked { Spacer(minLength: 8) }
+                            Text(verbatim: row.time)
+                                .font(StrandFont.pro(15))
                                 .foregroundStyle(StrandPalette.textSecondary)
                         }
-                        if !stacked { Spacer(minLength: 8) }
-                        Text(verbatim: row.time)
-                            .font(StrandFont.pro(15))
-                            .foregroundStyle(StrandPalette.textSecondary)
-                    }
-                    .padding(.vertical, 11)
-                    .accessibilityElement(children: .combine)
-                    if index < rows.count - 1 {
-                        Rectangle().fill(StrandPalette.hairline).frame(height: NoopMetrics.hairlineWidth)
+                        .padding(.vertical, 11)
+                        .accessibilityElement(children: .combine)
+                        if index < rows.count - 1 {
+                            Rectangle().fill(StrandPalette.hairline).frame(height: NoopMetrics.hairlineWidth)
+                        }
                     }
                 }
             }
-            .padding(.horizontal, 16)
-            .background(StrandPalette.summaryCard,
-                        in: RoundedRectangle(cornerRadius: SummaryCard<EmptyView>.radius, style: .continuous))
             .padding(.horizontal, NoopMetrics.screenHPadding)
             .padding(.top, NoopMetrics.space3)
-            .padding(.bottom, NoopMetrics.space8 + NoopMetrics.tabBarClearance)
+            .padding(.bottom, NoopMetrics.space8)
         }
         .background(StrandPalette.summaryCanvas.ignoresSafeArea())
         .navigationTitle(Text("All Data"))

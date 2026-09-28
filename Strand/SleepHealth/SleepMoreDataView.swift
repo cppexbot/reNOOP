@@ -513,53 +513,49 @@ private struct SleepMoreRow: View {
         let layout = stacked
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6))
             : AnyLayout(HStackLayout(spacing: 10))
-        layout {
-            HStack(spacing: 10) {
-                if let dot {
-                    Circle()
-                        .fill(dot)
-                        .frame(width: dotSize, height: dotSize)
+        SummaryCard(insets: .summaryCardRow) {
+            layout {
+                HStack(spacing: 10) {
+                    if let dot {
+                        Circle()
+                            .fill(dot)
+                            .frame(width: dotSize, height: dotSize)
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(title)
+                            .font(StrandFont.body)
+                            .foregroundStyle(StrandPalette.textPrimary)
+                            .lineLimit(stacked ? nil : 2)
+                            .minimumScaleFactor(0.85)
+                        if let subtitle {
+                            Text(subtitle)
+                                .font(StrandFont.footnote)
+                                .foregroundStyle(StrandPalette.textSecondary)
+                        }
+                    }
                 }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .font(StrandFont.body)
-                        .foregroundStyle(StrandPalette.textPrimary)
-                        .lineLimit(stacked ? nil : 2)
-                        .minimumScaleFactor(0.85)
-                    if let subtitle {
-                        Text(subtitle)
-                            .font(StrandFont.footnote)
+                if !stacked { Spacer(minLength: 8) }
+                HStack(spacing: 10) {
+                    if let detail {
+                        Text(detail)
+                            .font(StrandFont.subhead)
                             .foregroundStyle(StrandPalette.textSecondary)
+                            .monospacedDigit()
+                    }
+                    Text(value)
+                        .font(StrandFont.body.weight(.semibold))
+                        .foregroundStyle(StrandPalette.textPrimary)
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .fixedSize()
+                    if selected {
+                        Image(systemName: "checkmark")
+                            .font(StrandFont.subhead.weight(.semibold))
+                            .foregroundStyle(StrandPalette.accent)
                     }
                 }
             }
-            if !stacked { Spacer(minLength: 8) }
-            HStack(spacing: 10) {
-                if let detail {
-                    Text(detail)
-                        .font(StrandFont.subhead)
-                        .foregroundStyle(StrandPalette.textSecondary)
-                        .monospacedDigit()
-                }
-                Text(value)
-                    .font(StrandFont.body.weight(.semibold))
-                    .foregroundStyle(StrandPalette.textPrimary)
-                    .monospacedDigit()
-                    .lineLimit(1)
-                    .fixedSize()
-                if selected {
-                    Image(systemName: "checkmark")
-                        .font(StrandFont.subhead.weight(.semibold))
-                        .foregroundStyle(StrandPalette.accent)
-                }
-            }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(StrandPalette.summaryCard, in: RoundedRectangle(cornerRadius: SummaryCard<EmptyView>.radius,
-                                                                    style: .continuous))
-        .contentShape(RoundedRectangle(cornerRadius: SummaryCard<EmptyView>.radius, style: .continuous))
         .accessibilityElement(children: .combine)
     }
 }
@@ -580,52 +576,51 @@ private struct SleepDebtNightsCard: View {
     var body: some View {
         let nights = Array(ledger.nights.suffix(14))
         let peak = max(60, nights.map { abs($0.deltaMin) }.max() ?? 60)
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("Sleep Debt")
-                    .font(StrandFont.body)
-                    .foregroundStyle(StrandPalette.textPrimary)
-                Spacer()
-                Text(ledger.isDebt ? SleepFormat.duration(minutes: ledger.magnitudeMin) : String(localized: "No debt"))
-                    .font(StrandFont.body.weight(.semibold))
-                    .foregroundStyle(StrandPalette.textPrimary)
-            }
-            HStack(alignment: .center, spacing: 4) {
-                ForEach(Array(nights.enumerated()), id: \.offset) { _, night in
-                    VStack(spacing: 4) {
-                        GeometryReader { geo in
-                            let half = geo.size.height / 2
-                            let h = max(2, half * CGFloat(min(1, abs(night.deltaMin) / peak)))
-                            ZStack(alignment: .top) {
-                                Rectangle().fill(StrandPalette.hairline).frame(height: 1).offset(y: half)
-                                RoundedRectangle(cornerRadius: 2, style: .continuous)
-                                    // A shortfall in grey, not Awake's coral: the line it hangs below says
-                                    // it fell short, and the stage hue would claim time awake.
-                                    .fill(night.deltaMin >= 0 ? StrandPalette.healthSleepCore
-                                                              : StrandPalette.textSecondary)
-                                    .frame(width: min(geo.size.width, 10), height: h)
-                                    .offset(y: night.deltaMin >= 0 ? half - h : half)
-                            }
-                            .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
-                        }
-                        Text(Self.dayLabel(night.day))
-                            .font(StrandFont.caption)
-                            .foregroundStyle(StrandPalette.textTertiary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
-                    }
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(Text(verbatim: Self.spokenDay(night.day)))
-                    .accessibilityValue(Text(Self.spokenDelta(night.deltaMin)))
+        SummaryCard(insets: EdgeInsets(top: 16, leading: 16, bottom: 16, trailing: 16)) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("Sleep Debt")
+                        .font(StrandFont.body)
+                        .foregroundStyle(StrandPalette.textPrimary)
+                    Spacer()
+                    Text(ledger.isDebt ? SleepFormat.duration(minutes: ledger.magnitudeMin) : String(localized: "No debt"))
+                        .font(StrandFont.body.weight(.semibold))
+                        .foregroundStyle(StrandPalette.textPrimary)
                 }
+                HStack(alignment: .center, spacing: 4) {
+                    ForEach(Array(nights.enumerated()), id: \.offset) { _, night in
+                        VStack(spacing: 4) {
+                            GeometryReader { geo in
+                                let half = geo.size.height / 2
+                                let h = max(2, half * CGFloat(min(1, abs(night.deltaMin) / peak)))
+                                ZStack(alignment: .top) {
+                                    Rectangle().fill(StrandPalette.hairline).frame(height: 1).offset(y: half)
+                                    RoundedRectangle(cornerRadius: 2, style: .continuous)
+                                        // A shortfall in grey, not Awake's coral: the line it hangs below says
+                                        // it fell short, and the stage hue would claim time awake.
+                                        .fill(night.deltaMin >= 0 ? StrandPalette.healthSleepCore
+                                                                  : StrandPalette.textSecondary)
+                                        .frame(width: min(geo.size.width, 10), height: h)
+                                        .offset(y: night.deltaMin >= 0 ? half - h : half)
+                                }
+                                .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
+                            }
+                            Text(Self.dayLabel(night.day))
+                                .font(StrandFont.caption)
+                                .foregroundStyle(StrandPalette.textTertiary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.7)
+                        }
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(Text(verbatim: Self.spokenDay(night.day)))
+                        .accessibilityValue(Text(Self.spokenDelta(night.deltaMin)))
+                    }
+                }
+                .frame(height: 80)
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel(Text("Sleep Debt"))
             }
-            .frame(height: 80)
-            .accessibilityElement(children: .contain)
-            .accessibilityLabel(Text("Sleep Debt"))
         }
-        .padding(16)
-        .background(StrandPalette.summaryCard, in: RoundedRectangle(cornerRadius: SummaryCard<EmptyView>.radius,
-                                                                    style: .continuous))
     }
 
     /// The day of the month the night ended on.

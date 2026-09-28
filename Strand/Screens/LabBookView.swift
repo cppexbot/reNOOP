@@ -57,14 +57,14 @@ struct LabBookView: View {
                     .padding(.top, 60)
                 } else {
                     ForEach(orderedCategories, id: \.self) { category in
-                        SummarySectionHeader(title: LocalizedStringKey(category.displayName))
+                        SectionHeader(title: LocalizedStringKey(category.displayName))
                         categoryCard(category)
                     }
                 }
             }
             .padding(.horizontal, NoopMetrics.screenHPadding)
             .padding(.top, NoopMetrics.space2)
-            .padding(.bottom, NoopMetrics.space8 + NoopMetrics.tabBarClearance)
+            .padding(.bottom, NoopMetrics.space8)
             #if os(macOS)
             .frame(maxWidth: 680)
             .frame(maxWidth: .infinity)

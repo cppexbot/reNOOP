@@ -29,12 +29,7 @@ struct MetricStressDayCard: View {
         VStack(alignment: .leading, spacing: 0) {
             if let day, !day.scored.isEmpty {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Today")
-                        .font(StrandFont.pro(22, weight: .bold))
-                        .foregroundStyle(StrandPalette.textPrimary)
-                        .padding(.horizontal, 4)
-                        .padding(.top, NoopMetrics.space4)
-                        .accessibilityAddTraits(.isHeader)
+                    SectionHeader(title: "Today")
                     SummaryCard { card(day) }
                 }
             }

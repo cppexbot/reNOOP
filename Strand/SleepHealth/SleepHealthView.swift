@@ -62,7 +62,7 @@ struct SleepHealthView: View {
                     pageContent
                         .padding(.horizontal, NoopMetrics.screenHPadding)
                         .padding(.top, NoopMetrics.space3)
-                    Color.clear.frame(height: NoopMetrics.tabBarClearance)
+                        .padding(.bottom, NoopMetrics.space8)
                 }
                 #if os(macOS)
                 .frame(maxWidth: 680)
@@ -179,7 +179,7 @@ struct SleepHealthView: View {
             .buttonStyle(.plain)
             let schedule = scheduleTiles
             if !schedule.isEmpty {
-                SummarySectionHeader(title: "Sleep Schedule")
+                SectionHeader(title: "Sleep Schedule")
                 SleepTileGrid(tiles: schedule)
             }
             scheduleSection
@@ -190,7 +190,7 @@ struct SleepHealthView: View {
             }
             let vitals = vitalTiles
             if !vitals.isEmpty {
-                SummarySectionHeader(title: "Vitals")
+                SectionHeader(title: "Vitals")
                 SleepTileGrid(tiles: vitals)
             }
             highlightsSection
@@ -420,7 +420,7 @@ struct SleepHealthView: View {
     private var scheduleSection: some View {
         let _ = scheduleRevision
         return VStack(alignment: .leading, spacing: 10) {
-            SummarySectionHeader(title: "Your Schedule")
+            SectionHeader(title: "Your Schedule")
             NavigationLink(value: TabRoute.sleepSchedule) {
                 SleepNextWakeCard(inputs: SleepScheduleStore.inputs(behavior: behavior, model: appModel),
                                   trailing: AnyView(fullScheduleRow))
@@ -451,7 +451,7 @@ struct SleepHealthView: View {
         let highlights = SleepHighlights.make(entries: entries, anchor: Date())
         if !highlights.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
-                SummarySectionHeader(title: "Highlights")
+                SectionHeader(title: "Highlights")
                 ForEach(highlights) { SleepHighlightCard(highlight: $0) }
             }
         }

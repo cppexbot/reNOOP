@@ -123,12 +123,7 @@ private struct BreathingPage: View {
                     askSweep = true
                 }
                 BreathCalmCard(hub: hub, reduceMotion: reduceMotion)
-                Text("Options")
-                    .font(StrandFont.pro(22, weight: .bold))
-                    .foregroundStyle(StrandPalette.textPrimary)
-                    .padding(.horizontal, 4)
-                    .padding(.top, 16)
-                    .accessibilityAddTraits(.isHeader)
+                SectionHeader(title: "Options")
                 options
             }
             .padding(.horizontal, 16)

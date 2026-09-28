@@ -52,7 +52,7 @@ struct InsightsHubView: View {
             }
             .padding(.horizontal, NoopMetrics.screenHPadding)
             .padding(.top, NoopMetrics.space2)
-            .padding(.bottom, NoopMetrics.space8 + NoopMetrics.tabBarClearance)
+            .padding(.bottom, NoopMetrics.space8)
             #if os(macOS)
             .frame(maxWidth: 680)
             .frame(maxWidth: .infinity)
@@ -110,14 +110,10 @@ struct InsightsHubView: View {
         } else {
             ForEach(model.ranked, id: \.behavior) { r in
                 NavigationLink(value: InsightRoute.effect(r.behavior)) {
-                    SummaryCard {
-                        VStack(alignment: .leading, spacing: 8) {
-                            SummaryCardTitleRow(icon: "checklist", title: catalog.displayName(for: r.behavior),
-                                                tint: StrandPalette.healthMind)
-                            insightSentence(InsightCopy.effectSentence(r, outcome: outcome))
-                            Rectangle().fill(StrandPalette.hairline).frame(height: NoopMetrics.hairlineWidth)
-                            InsightCopy.figures(r.effect, outcome: outcome)
-                        }
+                    HighlightCard(icon: "checklist", title: catalog.displayName(for: r.behavior),
+                                  tint: StrandPalette.healthMind,
+                                  sentence: InsightCopy.effectSentence(r, outcome: outcome), chevron: true) {
+                        InsightCopy.figures(r.effect, outcome: outcome)
                     }
                 }
                 .buttonStyle(.plain)
@@ -130,7 +126,7 @@ struct InsightsHubView: View {
 
     @ViewBuilder private var doseSection: some View {
         if !model.doseCards.isEmpty {
-            SummarySectionHeader(title: "Alcohol and Caffeine")
+            SectionHeader(title: "Alcohol and Caffeine")
             ForEach(model.doseCards) { card in
                 NavigationLink(value: InsightRoute.dose(card.id)) {
                     SummaryCard {
@@ -153,7 +149,7 @@ struct InsightsHubView: View {
 
     @ViewBuilder private var relationshipsSection: some View {
         if !model.relationships.isEmpty {
-            SummarySectionHeader(title: "Metrics")
+            SectionHeader(title: "Metrics")
             ForEach(model.relationships) { rel in
                 SummaryCard {
                     VStack(alignment: .leading, spacing: 8) {

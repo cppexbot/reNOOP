@@ -179,7 +179,7 @@ struct AllMetricsView: View {
                     ProgressView().frame(maxWidth: .infinity).padding(.top, NoopMetrics.space8)
                 }
                 ForEach(sections) { section in
-                    SummarySectionHeader(title: "\(section.category.title)")
+                    SectionHeader(title: "\(section.category.title)")
                     ForEach(section.metrics) { metric in
                         if let reading = readings[metric.id] {
                             NavigationLink(value: TabRoute.metricSourced(key: metric.key, source: metric.source)) {
@@ -195,7 +195,7 @@ struct AllMetricsView: View {
                 }
             }
             .padding(.horizontal, NoopMetrics.screenHPadding)
-            .padding(.bottom, NoopMetrics.space8 + NoopMetrics.tabBarClearance)
+            .padding(.bottom, NoopMetrics.space8)
             #if os(macOS)
             .frame(maxWidth: 680)
             .frame(maxWidth: .infinity)
@@ -259,54 +259,53 @@ struct AllMetricsView: View {
 
     /// One row that opens the plain list of metrics nothing has recorded yet. Always open while searching.
     private func emptySection(_ metrics: [MetricDescriptor], expanded: Bool) -> some View {
-        VStack(spacing: 0) {
-            Button {
-                withAnimation(StrandMotion.interactive) { showsEmpty.toggle() }
-            } label: {
-                HStack {
-                    Text("Metrics Without Data")
-                        .font(StrandFont.body)
-                        .foregroundStyle(StrandPalette.textPrimary)
-                    Spacer()
-                    Text(verbatim: "\(metrics.count)")
-                        .font(StrandFont.body)
-                        .foregroundStyle(StrandPalette.textSecondary)
-                    Image(systemName: "chevron.right")
-                        .font(StrandFont.pro(13, weight: .semibold))
-                        .foregroundStyle(StrandPalette.textTertiary)
-                        .rotationEffect(.degrees(expanded ? 90 : 0))
-                        .accessibilityHidden(true)
-                }
-                .padding(.vertical, 13)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            // The chevron's turn is the only sign it opened: VoiceOver hears the state instead.
-            .accessibilityValue(Text(expanded ? "Expanded" : "Collapsed"))
-            if expanded {
-                ForEach(metrics) { metric in
-                    Rectangle().fill(StrandPalette.hairline).frame(height: NoopMetrics.hairlineWidth)
-                    NavigationLink(value: TabRoute.metricSourced(key: metric.key, source: metric.source)) {
-                        HStack {
-                            Text(metric.title)
-                                .font(StrandFont.body)
-                                .foregroundStyle(StrandPalette.textPrimary)
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(StrandFont.pro(13, weight: .semibold))
-                                .foregroundStyle(StrandPalette.textTertiary)
-                                .accessibilityHidden(true)
-                        }
-                        .padding(.vertical, 13)
-                        .contentShape(Rectangle())
+        SummaryCard(insets: .summaryCardList) {
+            VStack(spacing: 0) {
+                Button {
+                    withAnimation(StrandMotion.interactive) { showsEmpty.toggle() }
+                } label: {
+                    HStack {
+                        Text("Metrics Without Data")
+                            .font(StrandFont.body)
+                            .foregroundStyle(StrandPalette.textPrimary)
+                        Spacer()
+                        Text(verbatim: "\(metrics.count)")
+                            .font(StrandFont.body)
+                            .foregroundStyle(StrandPalette.textSecondary)
+                        Image(systemName: "chevron.right")
+                            .font(StrandFont.pro(13, weight: .semibold))
+                            .foregroundStyle(StrandPalette.textTertiary)
+                            .rotationEffect(.degrees(expanded ? 90 : 0))
+                            .accessibilityHidden(true)
                     }
-                    .buttonStyle(.plain)
+                    .padding(.vertical, 13)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                // The chevron's turn is the only sign it opened: VoiceOver hears the state instead.
+                .accessibilityValue(Text(expanded ? "Expanded" : "Collapsed"))
+                if expanded {
+                    ForEach(metrics) { metric in
+                        Rectangle().fill(StrandPalette.hairline).frame(height: NoopMetrics.hairlineWidth)
+                        NavigationLink(value: TabRoute.metricSourced(key: metric.key, source: metric.source)) {
+                            HStack {
+                                Text(metric.title)
+                                    .font(StrandFont.body)
+                                    .foregroundStyle(StrandPalette.textPrimary)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(StrandFont.pro(13, weight: .semibold))
+                                    .foregroundStyle(StrandPalette.textTertiary)
+                                    .accessibilityHidden(true)
+                            }
+                            .padding(.vertical, 13)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
             }
         }
-        .padding(.horizontal, 16)
-        .background(StrandPalette.summaryCard,
-                    in: RoundedRectangle(cornerRadius: SummaryCard<EmptyView>.radius, style: .continuous))
     }
 
     @ViewBuilder private var noResults: some View {

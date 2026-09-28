@@ -90,27 +90,15 @@ struct SleepHighlightCard: View {
     @Environment(\.dynamicTypeSize) private var dts
 
     var body: some View {
-        SummaryCard {
-            VStack(alignment: .leading, spacing: 10) {
-                Label {
-                    Text("Sleep").font(StrandFont.headline)
-                } icon: {
-                    Image(systemName: "bed.double.fill")
-                }
-                .foregroundStyle(StrandPalette.healthSleepDeep)
-                Text(highlight.sentence)
-                    .font(StrandFont.headline)
-                    .foregroundStyle(StrandPalette.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-                if let detail = highlight.detail {
-                    Rectangle().fill(StrandPalette.hairline).frame(height: NoopMetrics.hairlineWidth)
-                    figures(detail)
-                    bars(detail)
-                        .frame(height: 44)
-                }
+        HighlightCard(icon: "bed.double.fill", title: String(localized: "Sleep"), tint: latestTint,
+                      sentence: highlight.sentence, spacing: 10, showsEvidence: highlight.detail != nil) {
+            if let detail = highlight.detail { figures(detail) }
+        } chart: {
+            if let detail = highlight.detail {
+                bars(detail)
+                    .frame(height: 44)
             }
         }
-        .accessibilityElement(children: .combine)
     }
 
     /// Side by side; one under the other at accessibility sizes.

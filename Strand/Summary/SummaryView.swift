@@ -78,9 +78,9 @@ struct SummaryView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.top, 12)
                     #endif
-                    Color.clear.frame(height: NoopMetrics.tabBarClearance)
                 }
                 .padding(.horizontal, NoopMetrics.screenHPadding)
+                .padding(.bottom, NoopMetrics.space8)
                 #if os(macOS)
                 .frame(maxWidth: 680)
                 .frame(maxWidth: .infinity)
@@ -294,7 +294,7 @@ struct SummaryView: View {
 
     private var pinnedSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            SummarySectionHeader(title: "Pinned", actionTitle: "Edit") { customization = .keyMetrics }
+            SectionHeader(title: "Pinned", actionTitle: "Edit") { customization = .keyMetrics }
                 .padding(.top, -NoopMetrics.space2)
             ringsCard
             if let sleepNight, sleepNight.stages.asleep > 0 {
@@ -342,7 +342,7 @@ struct SummaryView: View {
     @ViewBuilder private var highlightsSection: some View {
         if !snapshot.highlights.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
-                SummarySectionHeader(title: "Highlights")
+                SectionHeader(title: "Highlights")
                 ForEach(snapshot.highlights) {
                     SummaryHighlightCard(highlight: $0, effortWeek: snapshot.series["effort"] ?? [])
                 }
@@ -356,7 +356,7 @@ struct SummaryView: View {
     @ViewBuilder private var trendsSection: some View {
         if let trends {
             VStack(alignment: .leading, spacing: 10) {
-                SummarySectionHeader(title: "Trends")
+                SectionHeader(title: "Trends")
                 ForEach(trends.items.prefix(Self.trendCards)) { item in
                     NavigationLink(value: TabRoute.metricSourced(key: item.metric.key, source: item.metric.source)) {
                         HealthTrendCard(metric: item.metric, trend: item.trend,
