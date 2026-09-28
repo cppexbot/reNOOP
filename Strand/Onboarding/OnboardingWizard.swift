@@ -1,8 +1,8 @@
 import SwiftUI
 import UniformTypeIdentifiers
+import CoreBluetooth
 import StrandDesign
 import WhoopStore
-import UserNotifications
 
 // MARK: - OnboardingWizard
 //
@@ -12,15 +12,12 @@ import UserNotifications
 // under the system's glass ‹.
 //
 //  1 Welcome
-//  2 Put on your strap   — charged, worn, close by (Bluetooth asks on the next step)
-//  3 Find your strap     — pick the model, Scan; turns into "Connected" once the strap bonds
-//  4 About you           — date of birth / sex / units / weight / height bound to ProfileStore
-//  5 Your history        — optional WHOOP / Apple Health import
-//  6 Notifications       — leaving it asks the OS once (if not yet determined)
-//  7 Done                → onFinished()
+//  2 Find your strap     — wear it, pick the model, Scan; turns into "Connected" once the strap bonds
+//  3 About you           — date of birth / sex / units / weight / height; only answered rows reach ProfileStore
+//  4 Your history        — optional WHOOP / Apple Health import; Done → onFinished()
 //
-// Presentation, the legal gate and the keys written on finish stay with the host; this view only calls
-// onFinished() when complete.
+// Notification permission is left to the features that need it (their toggles ask on their own). The legal
+// gate and the keys written on finish stay with the host; this view only calls onFinished() when complete.
 
 public struct OnboardingWizard: View {
 
@@ -31,10 +28,11 @@ public struct OnboardingWizard: View {
         self.onFinished = onFinished
     }
 
-    /// Opens on a later step, with the steps before it behind the back button (the DEBUG screenshot harness).
+    /// Opens on a later step (index 0…3), with the steps before it behind the back button (the DEBUG screenshot
+    /// harness).
     init(onFinished: @escaping () -> Void, startAt index: Int) {
         self.onFinished = onFinished
-        let last = Step(rawValue: index) ?? .welcome
+        let last = Step(rawValue: min(max(index, 0), Step.allCases.count - 1)) ?? .welcome
         _path = State(initialValue: Step.allCases.filter { $0 != .welcome && $0.rawValue <= last.rawValue })
     }
 
@@ -42,11 +40,13 @@ public struct OnboardingWizard: View {
     // doing so re-rendered the whole wizard on every HR tick. Child steps observe what they need.
 
     fileprivate enum Step: Int, CaseIterable, Hashable {
-        case welcome, wear, scan, profile, importData, notifications, done
+        case welcome, scan, profile, importData
     }
 
     /// The steps pushed over Welcome; the last one is on screen.
     @State private var path: [Step] = []
+    /// Which About You rows the user has answered, kept here so going back and forth doesn't reset them.
+    @State private var profileAnswers = ProfileAnswers()
 
     public var body: some View {
         NavigationStack(path: $path) {
@@ -57,16 +57,13 @@ public struct OnboardingWizard: View {
     }
 
     @ViewBuilder private func page(_ step: Step) -> some View {
-        let next = { advance(from: step) }
+        let next = { push(after: step) }
         Group {
             switch step {
-            case .welcome:       WelcomeStep(next: next)
-            case .wear:          WearStep(next: next)
-            case .scan:          ScanStep(next: next)
-            case .profile:       ProfileStep(next: next)
-            case .importData:    ImportStep(next: next)
-            case .notifications: NotificationsStep(next: next)
-            case .done:          DoneStep(next: onFinished)
+            case .welcome:    WelcomeStep(next: next)
+            case .scan:       ScanStep(next: next)
+            case .profile:    ProfileStep(answers: $profileAnswers, next: next)
+            case .importData: ImportStep(next: next)
             }
         }
         #if os(iOS)
@@ -76,26 +73,7 @@ public struct OnboardingWizard: View {
 
     // MARK: Navigation
 
-    /// Leaving the Notifications step is the one point in onboarding that asks the OS for notification
-    /// permission — the step before only says why. Request only if not already determined (so a re-run
-    /// doesn't re-prompt), and advance once the OS dialog is dismissed either way — the per-feature
-    /// toggles still handle a later denial on their own.
-    private func advance(from step: Step) {
-        guard step != .notifications else {
-            UNUserNotificationCenter.current().getNotificationSettings { settings in
-                guard settings.authorizationStatus == .notDetermined else {
-                    Task { @MainActor in push(after: step) }
-                    return
-                }
-                UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in
-                    Task { @MainActor in push(after: step) }
-                }
-            }
-            return
-        }
-        push(after: step)
-    }
-
+    /// The next step, or finish after the last one.
     private func push(after step: Step) {
         guard let next = Step(rawValue: step.rawValue + 1) else { onFinished(); return }
         path.append(next)
@@ -106,8 +84,9 @@ public struct OnboardingWizard: View {
 
 /// One setup page, measured off OnBoardingKit's welcome page on iOS 26: the glyph in an 82 pt slot 28 pt
 /// under the bar, 38 pt margins, a 22 pt bold title and a 22 pt secondary sentence flush left, the step's
-/// own content, and a tray of 52 pt capsules whose last button ends 38 pt above the bottom edge.
-private struct SetupPage<Art: View, Content: View, Tray: View>: View {
+/// own content, and a tray of 52 pt capsules whose last button ends 38 pt above the bottom edge. Shared with
+/// the Terms gate, which opens before this wizard.
+struct SetupPage<Art: View, Content: View, Tray: View>: View {
     /// The first page has no bar above it, so its glyph starts lower by the bar's height.
     var isFirst = false
     let title: String
@@ -166,7 +145,7 @@ extension SetupPage where Content == EmptyView {
     }
 }
 
-private enum SetupMetrics {
+enum SetupMetrics {
     static let margin: CGFloat = 38
     /// The widest a page runs (a Mac window, an iPad): an iPhone's width.
     static let column: CGFloat = 480
@@ -182,7 +161,7 @@ private enum SetupMetrics {
 }
 
 /// The tray's buttons: a blue prominent-glass capsule for the step's action, a plain glass one beside it.
-private struct SetupButton: View {
+struct SetupButton: View {
     let title: LocalizedStringKey
     var prominent = true
     let action: () -> Void
@@ -230,7 +209,7 @@ extension View {
 
 /// A grouped card of rows, as the setup screens list their choices (Apps & Data): 26 pt corners on the
 /// grouped fill, hairlines inset to the text.
-private struct SetupCard<Rows: View>: View {
+struct SetupCard<Rows: View>: View {
     @ViewBuilder var rows: () -> Rows
 
     var body: some View {
@@ -239,7 +218,7 @@ private struct SetupCard<Rows: View>: View {
     }
 }
 
-private struct SetupDivider: View {
+struct SetupDivider: View {
     var inset: CGFloat = 16
 
     var body: some View {
@@ -252,12 +231,19 @@ private struct SetupDivider: View {
 }
 
 /// A row in a setup card: the label left, its value or a chevron right.
-private struct SetupRow<Leading: View, Trailing: View>: View {
+struct SetupRow<Leading: View, Trailing: View>: View {
     /// Puts the trailing value under the title at accessibility sizes, as Settings does.
     var stacks = true
     @ViewBuilder var leading: () -> Leading
     @ViewBuilder var trailing: () -> Trailing
     @Environment(\.dynamicTypeSize) private var dts
+
+    init(stacks: Bool = true, @ViewBuilder leading: @escaping () -> Leading,
+         @ViewBuilder trailing: @escaping () -> Trailing) {
+        self.stacks = stacks
+        self.leading = leading
+        self.trailing = trailing
+    }
 
     var body: some View {
         let stacked = stacks && dts.isAccessibilitySize
@@ -300,20 +286,7 @@ private struct WelcomeStep: View {
     }
 }
 
-// MARK: - 2 · Put on your strap
-
-private struct WearStep: View {
-    let next: () -> Void
-
-    var body: some View {
-        SetupPage(title: String(localized: "Put On Your Strap"),
-                  message: String(localized: "Charged, snug on your wrist, close to \(Platform.deviceNounPhrase). Bluetooth will ask next."),
-                  art: { SelectedStrapArt() },
-                  tray: { SetupButton(title: "Continue", action: next) })
-    }
-}
-
-// MARK: - 3 · Find your strap
+// MARK: - 2 · Find your strap
 
 private struct ScanStep: View {
     let next: () -> Void
@@ -323,6 +296,10 @@ private struct ScanStep: View {
     @State private var scanning = false
     /// Set when a scan ran its calm beat without bonding.
     @State private var notFound = false
+    /// The calm beat after a Scan tap; a new tap or leaving the step cancels it.
+    @State private var timeout: Task<Void, Never>?
+    /// Bluetooth access turned off for NOOP in Settings: say so rather than blame the strap.
+    @State private var bluetoothDenied = false
 
     /// Which strap to look for — shared with the Live screen via the same key.
     @AppStorage("selectedWhoopModel") private var selectedModelRaw = WhoopModel.whoop4.rawValue
@@ -358,13 +335,40 @@ private struct ScanStep: View {
             if live.bonded {
                 SetupButton(title: "Continue", action: next)
             } else {
-                SetupButton(title: "Scan") { startScan() }
-                    .disabled(scanning)
+                #if os(iOS)
+                if bluetoothDenied {
+                    SetupButton(title: "Open Settings") {
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            UIApplication.shared.open(url)
+                        }
+                    }
+                } else {
+                    scanButton
+                }
+                #else
+                scanButton
+                #endif
                 // WHOOP leads, but isn't required: other straps and imports live under Devices.
                 SetupButton(title: "Set Up Later", prominent: false, action: next)
             }
         }
-        .onDisappear { scanning = false }
+        .onAppear { refreshBluetoothAccess() }
+        #if os(iOS)
+        // Back from Settings (or the system's Bluetooth prompt).
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            refreshBluetoothAccess()
+        }
+        #endif
+        .onDisappear {
+            timeout?.cancel()
+            timeout = nil
+            scanning = false
+        }
+    }
+
+    private var scanButton: some View {
+        SetupButton(title: "Scan") { startScan() }
+            .disabled(scanning)
     }
 
     /// The picked strap's glyph; a green check once it bonds.
@@ -378,7 +382,7 @@ private struct ScanStep: View {
 
     /// "Searching…" beside a spinner while a scan runs, as Quickly Set Up looks for nearby devices.
     @ViewBuilder private var status: some View {
-        if !live.bonded && (scanning || live.connected) {
+        if !live.bonded && !bluetoothDenied && (scanning || live.connected) {
             HStack(spacing: 10) {
                 ProgressView()
                 Text(live.connected ? "Connecting…" : "Searching…")
@@ -394,22 +398,35 @@ private struct ScanStep: View {
             if let pct = live.batteryPct { return String(localized: "Your strap is bonded · \(Int(pct))% battery.") }
             return String(localized: "Your strap is bonded and ready to stream.")
         }
+        if bluetoothDenied {
+            return String(localized: "Bluetooth is off for NOOP.")
+        }
         if notFound {
             // #130: 5.0/MG bonds to one host at a time, so the WHOOP app holding it hides it from a scan.
             return selectedModel == .whoop5mg
                 ? String(localized: "Not found. Unpair it in the WHOOP app, close that app and try again.")
                 : String(localized: "Not found. Wear it, charge it and close the WHOOP app.")
         }
-        return String(localized: "Choose your strap and tap Scan.")
+        return String(localized: "Wear it snug on your wrist or bicep, sensor against skin.")
+    }
+
+    /// Reads the app's Bluetooth authorization; it never asks for it.
+    private func refreshBluetoothAccess() {
+        bluetoothDenied = CBManager.authorization == .denied
     }
 
     private func startScan(model scanModel: WhoopModel? = nil) {
         let modelToScan = scanModel ?? selectedModel
+        timeout?.cancel()
         scanning = true
         notFound = false
         model.scan(model: modelToScan)
         // After a calm beat without a bond, say what usually helps.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 12) {
+        timeout = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 12_000_000_000)
+            guard !Task.isCancelled else { return }
+            timeout = nil
+            refreshBluetoothAccess()
             if !live.bonded {
                 scanning = false
                 withAnimation(StrandMotion.gentle) { notFound = true }
@@ -425,11 +442,21 @@ private struct ScanStep: View {
     }
 }
 
-// MARK: - 4 · About you
+// MARK: - 3 · About you
+
+/// The About You rows the user has answered. A row nobody touched shows "Not Set" and is never written.
+fileprivate struct ProfileAnswers {
+    var birth = false
+    var height = false
+    var weight = false
+    /// Written on Continue, so picking Not Set again leaves the profile as it was.
+    var sex: String?
+}
 
 /// Health's details at first setup: the avatar, then plain rows with the value on the right; a row opens
-/// its wheel in place.
+/// its wheel in place. Every row starts Not Set.
 private struct ProfileStep: View {
+    @Binding var answers: ProfileAnswers
     let next: () -> Void
     @EnvironmentObject private var profile: ProfileStore
 
@@ -450,11 +477,12 @@ private struct ProfileStep: View {
     private enum Field { case birth, sex, weight, height }
 
     private let sexes: [(String, String)] = [
-        ("male", String(localized: "Male")), ("female", String(localized: "Female")),
+        ("female", String(localized: "Female")), ("male", String(localized: "Male")),
         ("nonbinary", String(localized: "Other"))
     ]
 
     var body: some View {
+        let imperial = unitSystem == .imperial
         SetupPage(title: String(localized: "About You"),
                   message: String(localized: "For your zones, calories and baselines."),
                   art: { SummaryAvatar(imageData: profile.avatarImageData, initials: profile.initials, size: 82) }) {
@@ -462,25 +490,27 @@ private struct ProfileStep: View {
                 SetupCard {
                     // #146: a date of birth, so age advances on its own instead of going stale.
                     wheelRow(.birth, "Date of Birth",
-                             value: profile.dateOfBirth.formatted(.dateTime.day().month(.abbreviated).year())) {
+                             value: answers.birth
+                                ? profile.dateOfBirth.formatted(.dateTime.day().month(.abbreviated).year()) : nil) {
                         DatePicker("Date of Birth", selection: $profile.dateOfBirth,
                                    in: ProfileStore.dateOfBirthRange, displayedComponents: .date)
                     }
                     SetupDivider()
-                    wheelRow(.sex, "Sex", value: sexes.first { $0.0 == profile.sex }?.1 ?? "") {
-                        Picker("Sex", selection: $profile.sex) {
-                            ForEach(sexes, id: \.0) { key, label in Text(label).tag(key) }
+                    wheelRow(.sex, "Sex", value: answers.sex.flatMap { key in sexes.first { $0.0 == key }?.1 }) {
+                        Picker("Sex", selection: $answers.sex) {
+                            Text("Not Set").tag(String?.none)
+                            ForEach(sexes, id: \.0) { key, label in Text(label).tag(String?.some(key)) }
                         }
                     }
                     SetupDivider()
                     wheelRow(.height, "Height",
-                             value: ProfileHeightPicker.text(cm: profile.heightCm, imperial: unitSystem == .imperial)) {
-                        ProfileHeightPicker(imperial: unitSystem == .imperial)
+                             value: answers.height ? ProfileHeightPicker.text(cm: profile.heightCm, imperial: imperial) : nil) {
+                        ProfileHeightPicker(imperial: imperial)
                     }
                     SetupDivider()
                     wheelRow(.weight, "Weight",
-                             value: ProfileWeightPicker.text(kg: profile.weightKg, imperial: unitSystem == .imperial)) {
-                        ProfileWeightPicker(imperial: unitSystem == .imperial)
+                             value: answers.weight ? ProfileWeightPicker.text(kg: profile.weightKg, imperial: imperial) : nil) {
+                        ProfileWeightPicker(imperial: imperial)
                     }
                 }
                 // Two explicit choices: "Metric/Imperial" alone cannot describe mixed conventions such as
@@ -498,22 +528,47 @@ private struct ProfileStep: View {
                 }
             }
         } tray: {
-            SetupButton(title: "Continue", action: next)
+            SetupButton(title: "Continue") {
+                if let sex = answers.sex { profile.sex = sex }
+                next()
+            }
         }
     }
 
-    /// A value row that opens its wheel underneath on iOS; a Mac shows the control in the row.
+    /// Opening a Not Set wheel answers it with the value the wheel shows, as Health Details does; the wheels
+    /// write straight to the profile from then on. Sex has a Not Set choice of its own, so it waits for
+    /// Continue.
+    private func answer(_ field: Field) {
+        switch field {
+        case .birth where !answers.birth:
+            answers.birth = true
+            profile.dateOfBirth = profile.dateOfBirth
+        case .height where !answers.height:
+            answers.height = true
+            profile.heightCm = profile.heightCm
+        case .weight where !answers.weight:
+            answers.weight = true
+            profile.weightKg = profile.weightKg
+        default:
+            break
+        }
+    }
+
+    /// A value row that opens its wheel underneath on iOS; a Mac shows the control in the row once answered.
     @ViewBuilder
-    private func wheelRow<P: View>(_ field: Field, _ title: LocalizedStringKey, value: String,
+    private func wheelRow<P: View>(_ field: Field, _ title: LocalizedStringKey, value: String?,
                                    @ViewBuilder picker: () -> P) -> some View {
         #if os(iOS)
         Button {
-            withAnimation(.easeInOut(duration: 0.25)) { open = open == field ? nil : field }
+            withAnimation(.easeInOut(duration: 0.25)) {
+                if open != field { answer(field) }
+                open = open == field ? nil : field
+            }
         } label: {
             SetupRow {
                 Text(title)
             } trailing: {
-                Text(verbatim: value)
+                valueText(value)
                     .foregroundStyle(open == field ? StrandPalette.settingsBlue : StrandPalette.textSecondary)
             }
         }
@@ -527,13 +582,28 @@ private struct ProfileStep: View {
                 .padding(.horizontal, 16)
         }
         #else
-        let control = picker()
-        SetupRow {
-            Text(title)
-        } trailing: {
-            control.labelsHidden().fixedSize()
+        if value == nil && field != .sex {
+            Button { answer(field) } label: {
+                SetupRow {
+                    Text(title)
+                } trailing: {
+                    valueText(nil).foregroundStyle(StrandPalette.textSecondary)
+                }
+            }
+            .buttonStyle(.plain)
+        } else {
+            let control = picker()
+            SetupRow {
+                Text(title)
+            } trailing: {
+                control.labelsHidden().fixedSize()
+            }
         }
         #endif
+    }
+
+    @ViewBuilder private func valueText(_ value: String?) -> some View {
+        if let value { Text(verbatim: value) } else { Text("Not Set") }
     }
 
     private func menuRow<Options: View>(_ title: LocalizedStringKey, selection: Binding<String>,
@@ -551,7 +621,7 @@ private struct ProfileStep: View {
     }
 }
 
-// MARK: - 5 · Your history (optional)
+// MARK: - 4 · Your history (optional)
 
 /// As setup's "Apps & Data": the sources as rows of one card.
 private struct ImportStep: View {
@@ -580,7 +650,7 @@ private struct ImportStep: View {
                 }
             }
         } tray: {
-            SetupButton(title: "Continue", action: next)
+            SetupButton(title: "Done", action: next)
         }
         .fileImporter(
             isPresented: $showingImporter,
@@ -674,32 +744,6 @@ private struct ImportStep: View {
                 #endif
             }
         }
-    }
-}
-
-// MARK: - 6 · Notifications
-
-private struct NotificationsStep: View {
-    let next: () -> Void
-
-    var body: some View {
-        SetupPage(title: String(localized: "Notifications"),
-                  message: String(localized: "Your smart alarm and nudges tap your wrist."),
-                  art: { SetupGlyph(systemName: "bell.badge") },
-                  tray: { SetupButton(title: "Continue", action: next) })
-    }
-}
-
-// MARK: - 7 · Done
-
-private struct DoneStep: View {
-    let next: () -> Void
-
-    var body: some View {
-        SetupPage(title: String(localized: "You're All Set"),
-                  message: String(localized: "Welcome to NOOP."),
-                  art: { SetupGlyph(systemName: "checkmark.circle") },
-                  tray: { SetupButton(title: "Enter NOOP", action: next) })
     }
 }
 
