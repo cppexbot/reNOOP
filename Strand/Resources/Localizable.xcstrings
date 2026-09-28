@@ -1,6 +1,87 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Finish Workout": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Завершить тренировку"}} } },
+    "Discard Workout": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Отменить тренировку"}} } },
+    "Finish Intervals": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Завершить интервалы"}} } },
+    "Current Set": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Текущий подход"}} } },
+    "Undo %@": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Отменить «%@»"}} } },
+    "Delete Set": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Удалить подход"}} } },
+    "Set Done": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Подход выполнен"}} } },
+    "All Sets Done": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Все подходы выполнены"}} } },
+    "Session RPE": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "RPE сессии"}} } },
+    "Max RPE": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Макс. RPE"}} } },
+    "No Session": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Нет сессии"}} } },
+    "Couldn't Save Session": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Не удалось сохранить сессию"}} } },
+    "Couldn't Save Program": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Не удалось сохранить программу"}} } },
+    "Couldn't Delete Program": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Не удалось удалить программу"}} } },
+    "Couldn't Delete Session": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Не удалось удалить сессию"}} } },
+    "Exercise List Is Full": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Список упражнений заполнен"}} } },
+    "Manage Exercises": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Управлять упражнениями"}} } },
+    "Import a Program": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Импорт программы"}} } },
+    "How Hard It Felt": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Насколько было тяжело"}} } },
+    "Choose a File": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Выбрать файл"}} } },
+    "Choose a Different File": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Выбрать другой файл"}} } },
+    "Choose a sport.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Выберите вид тренировки."}} } },
+    "Fitness Age appears after %lld more nights of wear.": { "localizations": { "ru": {"variations": {"plural": {"one": {"stringUnit": {"state": "translated", "value": "Фитнес-возраст появится после ещё %lld ночи ношения."}}, "few": {"stringUnit": {"state": "translated", "value": "Фитнес-возраст появится после ещё %lld ночей ношения."}}, "many": {"stringUnit": {"state": "translated", "value": "Фитнес-возраст появится после ещё %lld ночей ношения."}}, "other": {"stringUnit": {"state": "translated", "value": "Фитнес-возраст появится после ещё %lld ночей ношения."}}}}} } },
+    "Add your age and sex below; Fitness Age appears after %lld more nights of wear.": { "localizations": { "ru": {"variations": {"plural": {"one": {"stringUnit": {"state": "translated", "value": "Укажите возраст и пол ниже — Фитнес-возраст появится после ещё %lld ночи ношения."}}, "few": {"stringUnit": {"state": "translated", "value": "Укажите возраст и пол ниже — Фитнес-возраст появится после ещё %lld ночей ношения."}}, "many": {"stringUnit": {"state": "translated", "value": "Укажите возраст и пол ниже — Фитнес-возраст появится после ещё %lld ночей ношения."}}, "other": {"stringUnit": {"state": "translated", "value": "Укажите возраст и пол ниже — Фитнес-возраст появится после ещё %lld ночей ношения."}}}}} } },
+    "Show All Metrics": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Показать все показатели"}} } },
+    "Import History": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Импортировать историю"}} } },
+    "Fitness and Fatigue": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Тренированность и усталость"}} } },
+    "Fitness Age appears after a few more days of wear.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Фитнес-возраст появится через несколько дней ношения."}} } },
+    "Add your age and sex below to see your Fitness Age.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Укажите возраст и пол ниже, чтобы увидеть Фитнес-возраст."}} } },
+    "Fitness Age appears after 1 more night of wear.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Фитнес-возраст появится после ещё одной ночи ношения."}} } },
+    "Add your age and sex below; Fitness Age appears after 1 more night of wear.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Укажите возраст и пол ниже — Фитнес-возраст появится после ещё одной ночи ношения."}} } },
+    "Absolute": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Абсолютная"}} } },
+    "Battery forecast": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Прогноз батареи"}} } },
+    "Last backup": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Последняя копия"}} } },
+    "Restored. Reopen NOOP.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Восстановлено. Перезапустите NOOP."}} } },
+    "Saved to %@. At %@ it is over %@, so restoring it asks once more.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Сохранено в %@. Размер %@ больше %@, поэтому при восстановлении NOOP спросит ещё раз."}} } },
+    "%@ is over %@. Restore it only if you exported it yourself. You'll choose the file again.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "%@ больше %@. Восстанавливайте, только если экспортировали файл сами. Файл нужно будет выбрать снова."}} } },
+    "If Open does nothing, tap NOOP folder to back up inside NOOP.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Если «Открыть» не срабатывает, нажмите «Папка NOOP», чтобы хранить копии внутри NOOP."}} } },
+    "%@ is over %@. Restore it with Import from file….": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "%@ больше %@. Восстановите его через «Импорт из файла…»."}} } },
+    "Reset your Charge baseline?": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Сбросить норму Заряда?"}} } },
+    "It rebuilds over about 4 nights. History stays.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Норма наберётся заново примерно за 4 ночи. История сохранится."}} } },
+    "Baseline reset": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Норма сброшена"}} } },
+    "Developer settings on": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Режим разработчика включён"}} } },
+    "Status": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Статус"}} } },
+    "Export raw data (CSV)": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Экспорт сырых данных (CSV)"}} } },
+    "Rename and restart the strap?": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Переименовать и перезапустить браслет?"}} } },
+    "Low Battery": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Низкий заряд батареи"}} } },
+    "Strap Charged": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Браслет заряжен"}} } },
+    "Strap Battery Low": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Низкий заряд браслета"}} } },
+    "Charge Your Strap Now": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Зарядите браслет"}} } },
+    "Won't Last the Night": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Не хватит на ночь"}} } },
+    "Effort Target Reached": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Цель по усилию достигнута"}} } },
+    "Time to Wind Down": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Пора расслабиться"}} } },
+    "Heart rate updates less often": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Пульс обновляется реже"}} } },
+    "Zoom In": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Увеличить"}} } },
+    "Zoom Out": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Уменьшить"}} } },
+    "Zoom": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Масштаб"}} } },
+    "Custom Server": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Свой сервер"}} } },
+    "Syncing history from the strap…": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Синхронизация истории браслета…"}} } },
+    "A lift log you advance from the strap": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Журнал подходов, который листается с браслета"}} } },
+    "An on-device gym log book on iPhone and Mac: build a session, then move between sets with a double-tap on the strap instead of reaching for the phone.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Журнал тренировок в зале прямо на iPhone и Mac: составьте занятие и переходите между подходами двойным касанием браслета, не беря в руки телефон."}} } },
+    "A Coach you can turn off completely": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Коуча можно полностью выключить"}} } },
+    "One master switch retires the AI Coach: the tab, the generated brief, the widget and the tray notification, and every request that would leave the device.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Один главный переключатель отключает ИИ-коуча: вкладку, сводку, виджет, уведомление и все запросы, которые покидали бы устройство."}} } },
+    "Sync the strap from a shortcut, and watch it work": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Синхронизация браслета из быстрой команды — с наглядным ходом"}} } },
+    "A Sync Strap App Intent runs a sync from Shortcuts or the Lock Screen, a Live Activity shows the offload as it goes, and an optional setting keeps the screen awake while it runs.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Действие «Синхронизировать браслет» запускает синхронизацию из «Быстрых команд» или с экрана блокировки, Live Activity показывает её ход, а дополнительная настройка не даёт экрану погаснуть."}} } },
+    "Workouts that are easier to keep tidy": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Тренировки проще держать в порядке"}} } },
+    "Sessions under a minute are discarded, and the list splits into Current and Archived.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Занятия короче минуты отбрасываются, а список делится на текущие и архивные."}} } },
+    "An Oura ring that reads its own packets correctly": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Кольцо Oura правильно читает свои пакеты"}} } },
+    "A notification that tiles exactly into several packets is read in full instead of stopping at the first.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Уведомление, точно разбитое на несколько пакетов, читается целиком, а не обрывается на первом."}} } },
+    "WHOOP 5 readings that admit when they failed": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Показания WHOOP 5 честно сообщают о сбое"}} } },
+    "A failed flag read is no longer reported as though it were a value, on either platform.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Неудачное чтение флага больше не выдаётся за значение ни на одной платформе."}} } },
+    "Charts that stop redrawing the whole screen": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Графики больше не перерисовывают весь экран"}} } },
+    "Workouts and Sleep no longer re-evaluate their entire bodies on every live heart-rate tick.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "«Тренировки» и «Сон» больше не пересчитываются целиком при каждом обновлении пульса."}} } },
+    "Steps charts, and an optional 30-day average": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Графики шагов и среднее за 30 дней по желанию"}} } },
+    "The steps charts are clearer, with a 30-day average card you can turn on.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Графики шагов стали понятнее, а карточку среднего за 30 дней можно включить."}} } },
+    "Apple Health that keeps up": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "«Здоровье» не отстаёт"}} } },
+    "A deferred re-score now publishes once it lands rather than being missed, workouts are observed for live delivery, and a backgrounded pass paces itself under the CPU limit iOS enforces.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Отложенный пересчёт теперь публикуется, как только завершится, тренировки поступают сразу, а фоновый проход укладывается в лимит процессора iOS."}} } },
+    "Smaller corrections": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Мелкие исправления"}} } },
+    "The morning recap waits until 05:00 rather than arriving overnight.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Утренняя сводка приходит не раньше 05:00, а не посреди ночи."}} } },
+    "Localization": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Локализация"}} } },
+    "Chinese is complete in both scripts across the app and the watch complications, the French recovery and strain words are repaired, the theme picker says light rather than lightweight, and a gap that let UI copy ship English in every locale is closed, taking the Home screen and the terms you agree to with it.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Китайский переведён полностью в обеих письменностях, исправлены французские слова для восстановления и нагрузки, и закрыта брешь, из-за которой часть текста интерфейса оставалась английской — включая главный экран и условия использования."}} } },
     "Health notice": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Уведомление о здоровье"}} } },
     "Signals Outside Your Range": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Показатели вне нормы"}} } },
     "Resting HR +%lld": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Пульс в покое +%lld"}} } },
@@ -275,7 +356,7 @@
     "Ask Coach": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Спросить тренера"}} } },
     "Update Key": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Обновить ключ"}} } },
     "Transcribes your question on-device": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Распознаёт вопрос на устройстве"}} } },
-    "Morning Brief": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Утренняя сводка"}} } },
+    "Morning Brief": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Утренний бриф"}} } },
     "Instructions": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Инструкции"}} } },
     "Refresh Models": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Обновить модели"}} } },
     "Save Key": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Сохранить ключ"}} } },
@@ -319,7 +400,7 @@
     "Start Workout": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Начать тренировку"}} } },
     "Heart rate range by hour": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Диапазон пульса по часам"}} } },
     "Find": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Найти"}} } },
-    "Put it on and close the WHOOP app.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Наденьте ремешок и закройте приложение WHOOP."}} } },
+    "Put it on and close the WHOOP app.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Наденьте браслет и закройте приложение WHOOP."}} } },
     "Unpair it in the WHOOP app, then put it in pairing mode.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Отвяжите его в приложении WHOOP и включите режим пары."}} } },
     "Put it on so it wakes up.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Наденьте датчик, чтобы он включился."}} } },
     "Start moving so the machine turns on Bluetooth.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Начните движение, чтобы тренажёр включил Bluetooth."}} } },
@@ -344,7 +425,7 @@
     "Not showing up? Close the WHOOP app.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Не видно? Закройте приложение WHOOP."}} } },
     "Not showing up? Reset the ring in the Oura app and close it.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Не видно? Сбросьте кольцо в приложении Oura и закройте его."}} } },
     "Search Again": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Искать снова"}} } },
-    "Strap Log": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Журнал ремешка"}} } },
+    "Strap Log": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Журнал браслета"}} } },
     "About This Device": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Об этом устройстве"}} } },
     "Workout detection": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Распознавание тренировок"}} } },
     "ECG": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "ЭКГ"}} } },
@@ -352,7 +433,7 @@
     "My Devices": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Мои устройства"}} } },
     "Reconnecting…": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Переподключение…"}} } },
     "Connected · not paired": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Подключено · без пары"}} } },
-    "Strap clock not set": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Часы ремешка не установлены"}} } },
+    "Strap clock not set": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Часы браслета не установлены"}} } },
     "Make Active": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Сделать активным"}} } },
     "What NOOP Reads": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Что читает NOOP"}} } },
     "Voltage": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Напряжение"}} } },
@@ -385,7 +466,7 @@
     "Full Schedule": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Полное расписание"}} } },
     "Next Wake Up": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Следующее пробуждение"}} } },
     "Additional Details": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Дополнительные сведения"}} } },
-    "Strap Alarm": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Будильник ремешка"}} } },
+    "Strap Alarm": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Будильник браслета"}} } },
     "Add Schedule": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Добавить расписание"}} } },
     "Bedtime Reminder": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Напоминание об отходе ко сну"}} } },
     "Wind Down": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Период отдыха"}} } },
@@ -397,7 +478,7 @@
     "schedule.noDays": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Нет дней"}} } },
     "schedule.none": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Пробуждение не запланировано"}} } },
     "schedule.tonight": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Сегодня вечером"}} } },
-    "schedule.silentNote": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Ремешок будит беззвучной вибрацией. Громкий будильник — в приложении «Часы»."}} } },
+    "schedule.silentNote": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Браслет будит беззвучной вибрацией. Громкий будильник — в приложении «Часы»."}} } },
     "Notifications are off": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Уведомления выключены"}} } },
     "Open Settings": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Открыть Настройки"}} } },
     "Categories": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Категории"}} } },
@@ -428,8 +509,8 @@
     "Illness signs": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Признаки болезни"}} } },
     "Strap charge": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Заряд браслета"}} } },
     "Charge forecast": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Прогноз заряда"}} } },
-    "Shortcut": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Команда"}} } },
-    "Export for Shortcuts": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Экспорт для «Команд»"}} } },
+    "Shortcut": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Быстрая команда"}} } },
+    "Export for Shortcuts": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Экспорт для «Быстрых команд»"}} } },
     "Exponential scale": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Экспоненциальная шкала"}} } },
     "Reset baseline": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Сбросить норму"}} } },
     "Show cycle": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Показывать цикл"}} } },
@@ -439,7 +520,7 @@
     "Days stored": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Сохранено дней"}} } },
     "Remove Apple Health data": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Удалить данные Здоровья"}} } },
     "Daily": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Ежедневно"}} } },
-    "Keep backups": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Хранить копий"}} } },
+    "Keep backups": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Хранить копии"}} } },
     "NOOP folder": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Папка NOOP"}} } },
     "Export to file…": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Экспорт в файл…"}} } },
     "Import from file…": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Импорт из файла…"}} } },
@@ -515,9 +596,9 @@
     "After a sync, NOOP offers to save a stretch of raised heart rate as a workout. Nothing is saved until you tap Save.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "После синхронизации NOOP предложит сохранить отрезок повышенного пульса как тренировку. Ничего не сохраняется без нажатия «Сохранить»."}} } },
     "Auto · %lld bpm": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Авто · %lld уд/мин"}} } },
     "Backup": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Резервная копия"}} } },
-    "Blood Oxygen: strap estimate (WHOOP 5/MG, Oura)": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Кислород в крови: оценка ремешка (WHOOP 5/MG, Oura)"}} } },
+    "Blood Oxygen: strap estimate (WHOOP 5/MG, Oura)": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Кислород в крови: оценка браслета (WHOOP 5/MG, Oura)"}} } },
     "Continuous capture keeps the beat-to-beat stream running and uses more battery. Deep sleep reads lower and matches WHOOP.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Непрерывная запись держит поток интервалов R-R включённым и расходует больше заряда. «Глубокий сон» даёт более низкие значения, как в WHOOP."}} } },
-    "Copy strap log": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Скопировать журнал ремешка"}} } },
+    "Copy strap log": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Скопировать журнал браслета"}} } },
     "Counter ticks per step. Leave at 1.0 unless your steps run high.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Импульсов счётчика на шаг. Оставьте 1,0, если шаги не завышены."}} } },
     "Date of birth": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Дата рождения"}} } },
     "Developer": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Разработчик"}} } },
@@ -527,10 +608,10 @@
     "General": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Основные"}} } },
     "Health Details": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Сведения о здоровье"}} } },
     "Max heart rate: %lld bpm": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Максимальный пульс: %lld уд/мин"}} } },
-    "Save strap log…": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Сохранить журнал ремешка…"}} } },
+    "Save strap log…": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Сохранить журнал браслета…"}} } },
     "Scores": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Показатели"}} } },
     "Scores Effort on an exponential intensity curve (Banister TRIMP) instead of heart-rate zones. Re-scores your history.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Считает Усилие по экспоненциальной кривой интенсивности (TRIMP Банистера) вместо пульсовых зон. История будет пересчитана."}} } },
-    "The last 24 hours of decoded sensor streams in one CSV. Nothing is written to your strap or uploaded.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Расшифрованные данные датчиков за последние 24 часа в одном CSV. На ремешок ничего не записывается и никуда не отправляется."}} } },
+    "The last 24 hours of decoded sensor streams in one CSV. Nothing is written to your strap or uploaded.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Расшифрованные данные датчиков за последние 24 часа в одном CSV. На браслет ничего не записывается и никуда не отправляется."}} } },
     "These power your heart-rate zones, calorie estimates and recovery baselines.": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Используются для пульсовых зон, расчёта калорий и базового уровня восстановления."}} } },
     "Up to date": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Установлена последняя версия"}} } },
     "Version": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Версия"}} } },
@@ -557,8 +638,8 @@
     "Skip": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Пропустить"}} } },
     "End session": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Завершить сессию"}} } },
     "End this session?": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Завершить сессию?"}} } },
-    "Finish Session": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Сохранить сессию"}} } },
-    "Discard Session": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Удалить сессию"}} } },
+    "Finish Session": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Завершить сессию"}} } },
+    "Discard Session": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "Отменить сессию"}} } },
     "ACTIVE\nKCAL": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "АКТИВНЫЕ\nККАЛ"}} } },
     "AVERAGE\nHEART RATE": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "СРЕДНИЙ\nПУЛЬС"}} } },
     "AVERAGE\nPACE": { "localizations": { "ru": {"stringUnit": {"state": "translated", "value": "СРЕДНИЙ\nТЕМП"}} } },
@@ -766,31 +847,31 @@
           "de": {"stringUnit": {"state": "translated", "value": "noch keine Daten"}}, "es": {"stringUnit": {"state": "translated", "value": "aún sin datos"}}, "fr": {"stringUnit": {"state": "translated", "value": "pas encore de données"}}, "it": {"stringUnit": {"state": "translated", "value": "ancora nessun dato"}}, "pl": {"stringUnit": {"state": "translated", "value": "brak danych"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "ainda sem dados"}}, "ru": {"stringUnit": {"state": "translated", "value": "данных пока нет"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "暂无数据"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "暫無資料"}}
         } },
         "strap estimate (unverified)": { "localizations": {
-          "de": {"stringUnit": {"state": "translated", "value": "Strap-Schätzung (nicht verifiziert)"}}, "es": {"stringUnit": {"state": "translated", "value": "estimación de la banda (sin verificar)"}}, "fr": {"stringUnit": {"state": "translated", "value": "estimation du bracelet (non vérifiée)"}}, "it": {"stringUnit": {"state": "translated", "value": "stima della fascia (non verificata)"}}, "pl": {"stringUnit": {"state": "translated", "value": "szacunek opaski (niezweryfikowany)"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "estimativa da pulseira (não verificada)"}}, "ru": {"stringUnit": {"state": "translated", "value": "оценка ремешка (не проверена)"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "手环估算值（未验证）"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "手環估算值（未驗證）"}}
+          "de": {"stringUnit": {"state": "translated", "value": "Strap-Schätzung (nicht verifiziert)"}}, "es": {"stringUnit": {"state": "translated", "value": "estimación de la banda (sin verificar)"}}, "fr": {"stringUnit": {"state": "translated", "value": "estimation du bracelet (non vérifiée)"}}, "it": {"stringUnit": {"state": "translated", "value": "stima della fascia (non verificata)"}}, "pl": {"stringUnit": {"state": "translated", "value": "szacunek opaski (niezweryfikowany)"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "estimativa da pulseira (não verificada)"}}, "ru": {"stringUnit": {"state": "translated", "value": "оценка браслета (не проверена)"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "手环估算值（未验证）"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "手環估算值（未驗證）"}}
         } },
         "toggle ON · no estimate yet": { "localizations": {
           "de": {"stringUnit": {"state": "translated", "value": "Schalter AN · noch keine Schätzung"}}, "es": {"stringUnit": {"state": "translated", "value": "interruptor activado · aún sin estimación"}}, "fr": {"stringUnit": {"state": "translated", "value": "commutateur activé · pas encore d'estimation"}}, "it": {"stringUnit": {"state": "translated", "value": "interruttore attivo · nessuna stima"}}, "pl": {"stringUnit": {"state": "translated", "value": "przełącznik włączony · brak szacunku"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "interruptor ligado · ainda sem estimativa"}}, "ru": {"stringUnit": {"state": "translated", "value": "переключатель включён · оценки пока нет"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "开关已开启 · 尚无估算值"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "開關已開啟 · 尚無估算值"}}
         } },
         "Pending sync · strap history still offloading": { "localizations": {
-          "de": {"stringUnit": {"state": "translated", "value": "Synchronisierung ausstehend · Strap-Verlauf wird noch übertragen"}}, "es": {"stringUnit": {"state": "translated", "value": "Sincronización pendiente · el historial de la banda aún se está descargando"}}, "fr": {"stringUnit": {"state": "translated", "value": "Synchronisation en attente · l'historique du bracelet est encore en cours de transfert"}}, "it": {"stringUnit": {"state": "translated", "value": "Sincronizzazione in attesa · la cronologia della fascia è ancora in trasferimento"}}, "pl": {"stringUnit": {"state": "translated", "value": "Oczekiwanie na synchronizację · historia opaski wciąż jest pobierana"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Sincronização pendente · o histórico da pulseira ainda está a ser transferido"}}, "ru": {"stringUnit": {"state": "translated", "value": "Ожидание синхронизации · история ремешка ещё выгружается"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "等待同步 · 手环历史数据仍在传输"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "等待同步 · 手環歷史資料仍在傳輸"}}
+          "de": {"stringUnit": {"state": "translated", "value": "Synchronisierung ausstehend · Strap-Verlauf wird noch übertragen"}}, "es": {"stringUnit": {"state": "translated", "value": "Sincronización pendiente · el historial de la banda aún se está descargando"}}, "fr": {"stringUnit": {"state": "translated", "value": "Synchronisation en attente · l'historique du bracelet est encore en cours de transfert"}}, "it": {"stringUnit": {"state": "translated", "value": "Sincronizzazione in attesa · la cronologia della fascia è ancora in trasferimento"}}, "pl": {"stringUnit": {"state": "translated", "value": "Oczekiwanie na synchronizację · historia opaski wciąż jest pobierana"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Sincronização pendente · o histórico da pulseira ainda está a ser transferido"}}, "ru": {"stringUnit": {"state": "translated", "value": "Ожидание синхронизации · история браслета ещё выгружается"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "等待同步 · 手环历史数据仍在传输"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "等待同步 · 手環歷史資料仍在傳輸"}}
         } },
         "Strap battery charging, no reading yet": { "localizations": {
-          "de": {"stringUnit": {"state": "translated", "value": "Strap-Akku wird geladen, noch kein Messwert"}}, "es": {"stringUnit": {"state": "translated", "value": "Batería de la banda cargando, aún sin lectura"}}, "fr": {"stringUnit": {"state": "translated", "value": "Batterie du bracelet en charge, pas encore de relevé"}}, "it": {"stringUnit": {"state": "translated", "value": "Batteria della fascia in carica, nessuna lettura"}}, "pl": {"stringUnit": {"state": "translated", "value": "Bateria opaski ładuje się, brak odczytu"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Bateria da pulseira a carregar, ainda sem leitura"}}, "ru": {"stringUnit": {"state": "translated", "value": "Ремешок заряжается, показаний пока нет"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "手环正在充电，尚无读数"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "手環正在充電，尚無讀數"}}
+          "de": {"stringUnit": {"state": "translated", "value": "Strap-Akku wird geladen, noch kein Messwert"}}, "es": {"stringUnit": {"state": "translated", "value": "Batería de la banda cargando, aún sin lectura"}}, "fr": {"stringUnit": {"state": "translated", "value": "Batterie du bracelet en charge, pas encore de relevé"}}, "it": {"stringUnit": {"state": "translated", "value": "Batteria della fascia in carica, nessuna lettura"}}, "pl": {"stringUnit": {"state": "translated", "value": "Bateria opaski ładuje się, brak odczytu"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Bateria da pulseira a carregar, ainda sem leitura"}}, "ru": {"stringUnit": {"state": "translated", "value": "Браслет заряжается, показаний пока нет"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "手环正在充电，尚无读数"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "手環正在充電，尚無讀數"}}
         } },
         "Strap battery, no reading yet": { "localizations": {
-          "de": {"stringUnit": {"state": "translated", "value": "Strap-Akku, noch kein Messwert"}}, "es": {"stringUnit": {"state": "translated", "value": "Batería de la banda, aún sin lectura"}}, "fr": {"stringUnit": {"state": "translated", "value": "Batterie du bracelet, pas encore de relevé"}}, "it": {"stringUnit": {"state": "translated", "value": "Batteria della fascia, nessuna lettura"}}, "pl": {"stringUnit": {"state": "translated", "value": "Bateria opaski, brak odczytu"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Bateria da pulseira, ainda sem leitura"}}, "ru": {"stringUnit": {"state": "translated", "value": "Заряд ремешка, показаний пока нет"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "手环电量，尚无读数"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "手環電量，尚無讀數"}}
+          "de": {"stringUnit": {"state": "translated", "value": "Strap-Akku, noch kein Messwert"}}, "es": {"stringUnit": {"state": "translated", "value": "Batería de la banda, aún sin lectura"}}, "fr": {"stringUnit": {"state": "translated", "value": "Batterie du bracelet, pas encore de relevé"}}, "it": {"stringUnit": {"state": "translated", "value": "Batteria della fascia, nessuna lettura"}}, "pl": {"stringUnit": {"state": "translated", "value": "Bateria opaski, brak odczytu"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Bateria da pulseira, ainda sem leitura"}}, "ru": {"stringUnit": {"state": "translated", "value": "Заряд браслета, показаний пока нет"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "手环电量，尚无读数"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "手環電量，尚無讀數"}}
         } },
         "Strap battery, strap not connected": { "localizations": {
-          "de": {"stringUnit": {"state": "translated", "value": "Strap-Akku, Strap nicht verbunden"}}, "es": {"stringUnit": {"state": "translated", "value": "Batería de la banda, banda no conectada"}}, "fr": {"stringUnit": {"state": "translated", "value": "Batterie du bracelet, bracelet non connecté"}}, "it": {"stringUnit": {"state": "translated", "value": "Batteria della fascia, fascia non connessa"}}, "pl": {"stringUnit": {"state": "translated", "value": "Bateria opaski, opaska niepołączona"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Bateria da pulseira, pulseira não ligada"}}, "ru": {"stringUnit": {"state": "translated", "value": "Заряд ремешка, ремешок не подключён"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "手环电量，手环未连接"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "手環電量，手環未連線"}}
+          "de": {"stringUnit": {"state": "translated", "value": "Strap-Akku, Strap nicht verbunden"}}, "es": {"stringUnit": {"state": "translated", "value": "Batería de la banda, banda no conectada"}}, "fr": {"stringUnit": {"state": "translated", "value": "Batterie du bracelet, bracelet non connecté"}}, "it": {"stringUnit": {"state": "translated", "value": "Batteria della fascia, fascia non connessa"}}, "pl": {"stringUnit": {"state": "translated", "value": "Bateria opaski, opaska niepołączona"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Bateria da pulseira, pulseira não ligada"}}, "ru": {"stringUnit": {"state": "translated", "value": "Заряд браслета, браслет не подключён"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "手环电量，手环未连接"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "手環電量，手環未連線"}}
         } },
         "Strap battery %lld percent": { "localizations": {
-          "de": {"stringUnit": {"state": "translated", "value": "Strap-Akku %lld Prozent"}}, "es": {"stringUnit": {"state": "translated", "value": "Batería de la banda %lld por ciento"}}, "fr": {"stringUnit": {"state": "translated", "value": "Batterie du bracelet %lld pour cent"}}, "it": {"stringUnit": {"state": "translated", "value": "Batteria della fascia %lld percento"}}, "pl": {"stringUnit": {"state": "translated", "value": "Bateria opaski %lld procent"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Bateria da pulseira %lld por cento"}}, "ru": {"stringUnit": {"state": "translated", "value": "Заряд ремешка %lld процентов"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "手环电量百分之 %lld"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "手環電量百分之 %lld"}}
+          "de": {"stringUnit": {"state": "translated", "value": "Strap-Akku %lld Prozent"}}, "es": {"stringUnit": {"state": "translated", "value": "Batería de la banda %lld por ciento"}}, "fr": {"stringUnit": {"state": "translated", "value": "Batterie du bracelet %lld pour cent"}}, "it": {"stringUnit": {"state": "translated", "value": "Batteria della fascia %lld percento"}}, "pl": {"stringUnit": {"state": "translated", "value": "Bateria opaski %lld procent"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Bateria da pulseira %lld por cento"}}, "ru": {"stringUnit": {"state": "translated", "value": "Заряд браслета %lld процентов"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "手环电量百分之 %lld"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "手環電量百分之 %lld"}}
         } },
         "Strap battery %lld percent, charging": { "localizations": {
-          "de": {"stringUnit": {"state": "translated", "value": "Strap-Akku %lld Prozent, wird geladen"}}, "es": {"stringUnit": {"state": "translated", "value": "Batería de la banda %lld por ciento, cargando"}}, "fr": {"stringUnit": {"state": "translated", "value": "Batterie du bracelet %lld pour cent, en charge"}}, "it": {"stringUnit": {"state": "translated", "value": "Batteria della fascia %lld percento, in carica"}}, "pl": {"stringUnit": {"state": "translated", "value": "Bateria opaski %lld procent, ładowanie"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Bateria da pulseira %lld por cento, a carregar"}}, "ru": {"stringUnit": {"state": "translated", "value": "Заряд ремешка %lld процентов, заряжается"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "手环电量百分之 %lld，正在充电"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "手環電量百分之 %lld，正在充電"}}
+          "de": {"stringUnit": {"state": "translated", "value": "Strap-Akku %lld Prozent, wird geladen"}}, "es": {"stringUnit": {"state": "translated", "value": "Batería de la banda %lld por ciento, cargando"}}, "fr": {"stringUnit": {"state": "translated", "value": "Batterie du bracelet %lld pour cent, en charge"}}, "it": {"stringUnit": {"state": "translated", "value": "Batteria della fascia %lld percento, in carica"}}, "pl": {"stringUnit": {"state": "translated", "value": "Bateria opaski %lld procent, ładowanie"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Bateria da pulseira %lld por cento, a carregar"}}, "ru": {"stringUnit": {"state": "translated", "value": "Заряд браслета %lld процентов, заряжается"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "手环电量百分之 %lld，正在充电"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "手環電量百分之 %lld，正在充電"}}
         } },
         "Syncing strap history, chunk %lld": { "localizations": {
-          "de": {"stringUnit": {"state": "translated", "value": "Strap-Verlauf wird synchronisiert, Block %lld"}}, "es": {"stringUnit": {"state": "translated", "value": "Sincronizando historial de la banda, bloque %lld"}}, "fr": {"stringUnit": {"state": "translated", "value": "Synchronisation de l'historique du bracelet, bloc %lld"}}, "it": {"stringUnit": {"state": "translated", "value": "Sincronizzazione della cronologia della fascia, blocco %lld"}}, "pl": {"stringUnit": {"state": "translated", "value": "Synchronizacja historii opaski, fragment %lld"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "A sincronizar o histórico da pulseira, bloco %lld"}}, "ru": {"stringUnit": {"state": "translated", "value": "Синхронизация истории ремешка, фрагмент %lld"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "正在同步手环历史数据，第 %lld 块"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "正在同步手環歷史資料，第 %lld 塊"}}
+          "de": {"stringUnit": {"state": "translated", "value": "Strap-Verlauf wird synchronisiert, Block %lld"}}, "es": {"stringUnit": {"state": "translated", "value": "Sincronizando historial de la banda, bloque %lld"}}, "fr": {"stringUnit": {"state": "translated", "value": "Synchronisation de l'historique du bracelet, bloc %lld"}}, "it": {"stringUnit": {"state": "translated", "value": "Sincronizzazione della cronologia della fascia, blocco %lld"}}, "pl": {"stringUnit": {"state": "translated", "value": "Synchronizacja historii opaski, fragment %lld"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "A sincronizar o histórico da pulseira, bloco %lld"}}, "ru": {"stringUnit": {"state": "translated", "value": "Синхронизация истории браслета, фрагмент %lld"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "正在同步手环历史数据，第 %lld 块"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "正在同步手環歷史資料，第 %lld 塊"}}
         } },
         "%lld cards shown": { "localizations": {
           "de": {"stringUnit": {"state": "translated", "value": "%lld Karten angezeigt"}}, "es": {"stringUnit": {"state": "translated", "value": "%lld tarjetas mostradas"}}, "fr": {"stringUnit": {"state": "translated", "value": "%lld cartes affichées"}}, "it": {"stringUnit": {"state": "translated", "value": "%lld schede mostrate"}}, "pl": {"stringUnit": {"state": "translated", "value": "Pokazane karty: %lld"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "%lld cartões mostrados"}}, "ru": {"stringUnit": {"state": "translated", "value": "Показано карточек: %lld"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "显示 %lld 张卡片"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "顯示 %lld 張卡片"}}
@@ -3060,7 +3141,7 @@
       "de": { "stringUnit": { "state": "translated", "value": "Einheiten für Körpermaße" } }, "es": { "stringUnit": { "state": "translated", "value": "Unidades de medidas corporales" } }, "fr": { "stringUnit": { "state": "translated", "value": "Unités des mensurations" } }, "it": { "stringUnit": { "state": "translated", "value": "Unità delle misure corporee" } }, "pl": { "stringUnit": { "state": "translated", "value": "Jednostki pomiarów ciała" } }, "pt-PT": { "stringUnit": { "state": "translated", "value": "Unidades das medidas corporais" } }, "ru": { "stringUnit": { "state": "translated", "value": "Единицы параметров тела" } }, "zh-Hans": { "stringUnit": { "state": "translated", "value": "身体测量单位" } }, "zh-Hant": { "stringUnit": { "state": "translated", "value": "身體測量單位" } }
     } },
     "Body measurements": { "localizations": {
-      "de": { "stringUnit": { "state": "translated", "value": "Körpermaße" } }, "es": { "stringUnit": { "state": "translated", "value": "Medidas corporales" } }, "fr": { "stringUnit": { "state": "translated", "value": "Mensurations" } }, "it": { "stringUnit": { "state": "translated", "value": "Misure corporee" } }, "pl": { "stringUnit": { "state": "translated", "value": "Pomiary ciała" } }, "pt-PT": { "stringUnit": { "state": "translated", "value": "Medidas corporais" } }, "ru": { "stringUnit": { "state": "translated", "value": "Параметры тела" } }, "zh-Hans": { "stringUnit": { "state": "translated", "value": "身体测量" } }, "zh-Hant": { "stringUnit": { "state": "translated", "value": "身體測量" } }
+      "de": { "stringUnit": { "state": "translated", "value": "Körpermaße" } }, "es": { "stringUnit": { "state": "translated", "value": "Medidas corporales" } }, "fr": { "stringUnit": { "state": "translated", "value": "Mensurations" } }, "it": { "stringUnit": { "state": "translated", "value": "Misure corporee" } }, "pl": { "stringUnit": { "state": "translated", "value": "Pomiary ciała" } }, "pt-PT": { "stringUnit": { "state": "translated", "value": "Medidas corporais" } }, "ru": { "stringUnit": { "state": "translated", "value": "Измерения тела" } }, "zh-Hans": { "stringUnit": { "state": "translated", "value": "身体测量" } }, "zh-Hant": { "stringUnit": { "state": "translated", "value": "身體測量" } }
     } },
     "Choose body measurements and exercise distance separately. Your data is always stored the same way; these settings only change its display.": { "localizations": {
       "de": { "stringUnit": { "state": "translated", "value": "Wähle Einheiten für Körpermaße und Trainingsdistanz separat. Deine Daten werden immer gleich gespeichert; diese Einstellungen ändern nur die Anzeige." } }, "es": { "stringUnit": { "state": "translated", "value": "Elige por separado las unidades de las medidas corporales y de la distancia de ejercicio. Los datos siempre se almacenan igual; estos ajustes solo cambian su visualización." } }, "fr": { "stringUnit": { "state": "translated", "value": "Choisissez séparément les unités des mensurations et de la distance d’exercice. Les données sont toujours stockées de la même façon ; ces réglages ne changent que leur affichage." } }, "it": { "stringUnit": { "state": "translated", "value": "Scegli separatamente le unità per le misure corporee e la distanza di allenamento. I dati vengono sempre memorizzati allo stesso modo; queste impostazioni cambiano solo la visualizzazione." } }, "pl": { "stringUnit": { "state": "translated", "value": "Wybierz osobno jednostki pomiarów ciała i dystansu treningu. Dane są zawsze przechowywane tak samo; te ustawienia zmieniają tylko sposób wyświetlania." } }, "pt-PT": { "stringUnit": { "state": "translated", "value": "Escolha separadamente as unidades para medidas corporais e distância de exercício. Os dados são sempre armazenados da mesma forma; estas definições alteram apenas a apresentação." } }, "ru": { "stringUnit": { "state": "translated", "value": "Выберите единицы для параметров тела и дистанции тренировки отдельно. Данные всегда хранятся одинаково; эти настройки меняют только отображение." } }, "zh-Hans": { "stringUnit": { "state": "translated", "value": "分别选择身体测量和运动距离的单位。数据的存储方式始终不变；这些设置只会改变显示方式。" } }, "zh-Hant": { "stringUnit": { "state": "translated", "value": "分別選擇身體測量和運動距離的單位。資料的儲存方式始終不變；這些設定只會改變顯示方式。" } }
@@ -3853,7 +3934,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "NOOP удаляет это устройство из вашего списка и стирает записанные здесь данные. Вы можете заново подключить ремешок, чтобы снова загрузить его недавнюю историю."
+            "value": "NOOP удаляет это устройство из вашего списка и стирает записанные здесь данные. Вы можете заново подключить браслет, чтобы снова загрузить его недавнюю историю."
           }
         },
         "zh-Hans": {
@@ -32425,7 +32506,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Apple Здоровье"
+            "value": "Здоровье"
           }
         },
         "zh-Hans": {
@@ -33656,7 +33737,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Запрашивает у ремешка ЗНАЧЕНИЯ конфигурации: GET_DEVICE_CONFIG_VALUE (0x79) и GET_FF_VALUE (0x80), по одному ключу за обмен. Обеих команд в этой прошивке может просто не быть — выяснить это и есть цель пробы. Только чтение — никакое значение не записывается, а команды SET из этой пробы никогда не отправляются. Результат показан здесь и записан в журнал ремешка."
+            "value": "Запрашивает у браслета ЗНАЧЕНИЯ конфигурации: GET_DEVICE_CONFIG_VALUE (0x79) и GET_FF_VALUE (0x80), по одному ключу за обмен. Обеих команд в этой прошивке может просто не быть — выяснить это и есть цель пробы. Только чтение — никакое значение не записывается, а команды SET из этой пробы никогда не отправляются. Результат показан здесь и записан в журнал браслета."
           }
         },
         "zh-Hans": {
@@ -33714,7 +33795,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Запрашивает у ремешка список ИМЁН флагов функций, известных его прошивке: START_FF_KEY_EXCHANGE (0x75), затем SEND_NEXT_FF (0x76), пока ремешок не сообщит о завершении. Только чтение — ни одно значение не записывается, и команды SET этой пробой никогда не отправляются. Список показывается здесь и записывается в журнал ремешка."
+            "value": "Запрашивает у браслета список ИМЁН флагов функций, известных его прошивке: START_FF_KEY_EXCHANGE (0x75), затем SEND_NEXT_FF (0x76), пока браслет не сообщит о завершении. Только чтение — ни одно значение не записывается, и команды SET этой пробой никогда не отправляются. Список показывается здесь и записывается в журнал браслета."
           }
         },
         "zh-Hans": {
@@ -43152,7 +43233,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Вибрация в ответ (подтверждение)"
+            "value": "Подтверждение"
           }
         },
         "zh-Hans": {
@@ -59737,7 +59818,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "День 1: яркий свет %@–%@, отбой около %@."
+            "value": "День 1: яркий свет %@–%@, отход ко сну около %@."
           }
         },
         "zh-Hans": {
@@ -59795,7 +59876,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "День 1, яркий свет %1$@–%2$@, отбой примерно в %3$@."
+            "value": "День 1, яркий свет %1$@–%2$@, отход ко сну примерно в %3$@."
           }
         },
         "zh-Hans": {
@@ -87065,7 +87146,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Импорт временных файлов"
+            "value": "Временные файлы импорта"
           }
         },
         "zh-Hans": {
@@ -108296,7 +108377,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Нужен ремешок"
+            "value": "Нужен браслет"
           }
         },
         "zh-Hans": {
@@ -128931,7 +129012,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Пульс покоя"
+            "value": "Пульс в покое"
           }
         },
         "zh-Hans": {
@@ -137489,7 +137570,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Пульс покоя"
+            "value": "Пульс в покое"
           }
         },
         "zh-Hans": {
@@ -138255,7 +138336,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Пульс покоя повышен, а ВСР ниже нормы — классические признаки высокой активации. Отдайте приоритет отдыху, гидратации и лёгкому дню."
+            "value": "Пульс в покое повышен, а ВСР ниже нормы — классические признаки высокой активации. Отдайте приоритет отдыху, гидратации и лёгкому дню."
           }
         },
         "zh-Hans": {
@@ -138313,7 +138394,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Пульс покоя ↔ Заряд"
+            "value": "Пульс в покое ↔ Заряд"
           }
         },
         "zh-Hans": {
@@ -159765,7 +159846,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Синхронизирую историю браслета"
+            "value": "Синхронизация истории браслета"
           }
         },
         "zh-Hans": {
@@ -160547,7 +160628,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Синхронизирую историю браслета…"
+            "value": "Синхронизация истории браслета…"
           }
         },
         "zh-Hans": {
@@ -165771,7 +165852,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Это удалит все запланированные файлы журнала ремешка и необработанного захвата, сохранённые NOOP. Это действие нельзя отменить."
+            "value": "Это удалит все запланированные файлы журнала браслета и необработанного захвата, сохранённые NOOP. Это действие нельзя отменить."
           }
         },
         "pl": {
@@ -203014,7 +203095,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ремешок зафиксировал мало движений за ночь (часто у WHOOP 4.0), поэтому эта ночь могла быть распознана не полностью, а общее время сна может выглядеть коротким. Убедись, что ремешок полностью синхронизировался; значения остаются без изменений."
+            "value": "Браслет зафиксировал мало движений за ночь (часто у WHOOP 4.0), поэтому эта ночь могла быть распознана не полностью, а общее время сна может выглядеть коротким. Убедись, что браслет полностью синхронизировался; значения остаются без изменений."
           }
         },
         "zh-Hans": {
@@ -215975,10 +216056,10 @@
     "+10 s": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"+10 s"}},"en":{"stringUnit":{"state":"translated","value":"+10 s"}},"es":{"stringUnit":{"state":"translated","value":"+10 s"}},"fr":{"stringUnit":{"state":"translated","value":"+10 s"}},"it":{"stringUnit":{"state":"translated","value":"+10 s"}},"pl":{"stringUnit":{"state":"translated","value":"+10 s"}},"pt-PT":{"stringUnit":{"state":"translated","value":"+10 s"}},"ru":{"stringUnit":{"state":"translated","value":"+10 с"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"+10 秒"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"+10 秒"}}}},
     " · %@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":" · %@"}},"en":{"stringUnit":{"state":"translated","value":" · %@"}},"es":{"stringUnit":{"state":"translated","value":" · %@"}},"fr":{"stringUnit":{"state":"translated","value":" · %@"}},"it":{"stringUnit":{"state":"translated","value":" · %@"}},"pl":{"stringUnit":{"state":"translated","value":" · %@"}},"pt-PT":{"stringUnit":{"state":"translated","value":" · %@"}},"ru":{"stringUnit":{"state":"translated","value":" · %@"}},"zh-Hans":{"stringUnit":{"state":"translated","value":" · %@"}},"zh-Hant":{"stringUnit":{"state":"translated","value":" · %@"}}}},
     "Check what the strap has stored": { "localizations": {
-      "de": { "stringUnit": { "state": "translated", "value": "Prüfen, was das Band gespeichert hat" } }, "en": { "stringUnit": { "state": "translated", "value": "Check what the strap has stored" } }, "es": { "stringUnit": { "state": "translated", "value": "Comprobar qué tiene guardado la correa" } }, "fr": { "stringUnit": { "state": "translated", "value": "Vérifier ce que le bracelet a enregistré" } }, "it": { "stringUnit": { "state": "translated", "value": "Controlla cosa ha memorizzato il braccialetto" } }, "pl": { "stringUnit": { "state": "translated", "value": "Sprawdź, co zapisała opaska" } }, "pt-PT": { "stringUnit": { "state": "translated", "value": "Verificar o que a pulseira tem guardado" } }, "ru": { "stringUnit": { "state": "translated", "value": "Проверить, что сохранено на ремешке" } }, "zh-Hans": { "stringUnit": { "state": "translated", "value": "查看手环已存储的闹钟" } }, "zh-Hant": { "stringUnit": { "state": "translated", "value": "查看手環已儲存的鬧鐘" } }
+      "de": { "stringUnit": { "state": "translated", "value": "Prüfen, was das Band gespeichert hat" } }, "en": { "stringUnit": { "state": "translated", "value": "Check what the strap has stored" } }, "es": { "stringUnit": { "state": "translated", "value": "Comprobar qué tiene guardado la correa" } }, "fr": { "stringUnit": { "state": "translated", "value": "Vérifier ce que le bracelet a enregistré" } }, "it": { "stringUnit": { "state": "translated", "value": "Controlla cosa ha memorizzato il braccialetto" } }, "pl": { "stringUnit": { "state": "translated", "value": "Sprawdź, co zapisała opaska" } }, "pt-PT": { "stringUnit": { "state": "translated", "value": "Verificar o que a pulseira tem guardado" } }, "ru": { "stringUnit": { "state": "translated", "value": "Проверить, что сохранено на браслете" } }, "zh-Hans": { "stringUnit": { "state": "translated", "value": "查看手环已存储的闹钟" } }, "zh-Hant": { "stringUnit": { "state": "translated", "value": "查看手環已儲存的鬧鐘" } }
     } },
     "The answer from the strap appears in your strap log and debug export, with the raw bytes it replied with.": { "localizations": {
-      "de": { "stringUnit": { "state": "translated", "value": "Die Antwort des Bands erscheint im Band-Log und im Diagnose-Export, samt der empfangenen Rohbytes." } }, "en": { "stringUnit": { "state": "translated", "value": "The answer from the strap appears in your strap log and debug export, with the raw bytes it replied with." } }, "es": { "stringUnit": { "state": "translated", "value": "La respuesta de la correa aparece en el registro y en la exportación de diagnóstico, con los bytes recibidos." } }, "fr": { "stringUnit": { "state": "translated", "value": "La réponse du bracelet apparaît dans le journal et l’export de diagnostic, avec les octets bruts reçus." } }, "it": { "stringUnit": { "state": "translated", "value": "La risposta del braccialetto compare nel log e nell’esportazione diagnostica, con i byte grezzi ricevuti." } }, "pl": { "stringUnit": { "state": "translated", "value": "Odpowiedź opaski pojawi się w logu i eksporcie diagnostycznym, wraz z otrzymanymi surowymi bajtami." } }, "pt-PT": { "stringUnit": { "state": "translated", "value": "A resposta da pulseira aparece no registo e na exportação de diagnóstico, com os bytes recebidos." } }, "ru": { "stringUnit": { "state": "translated", "value": "Ответ ремешка появится в журнале ремешка и диагностическом экспорте вместе с полученными байтами." } }, "zh-Hans": { "stringUnit": { "state": "translated", "value": "手环的回应会出现在手环日志和诊断导出中，并附带收到的原始字节。" } }, "zh-Hant": { "stringUnit": { "state": "translated", "value": "手環的回應會出現在手環日誌和診斷匯出中，並附上收到的原始位元組。" } }
+      "de": { "stringUnit": { "state": "translated", "value": "Die Antwort des Bands erscheint im Band-Log und im Diagnose-Export, samt der empfangenen Rohbytes." } }, "en": { "stringUnit": { "state": "translated", "value": "The answer from the strap appears in your strap log and debug export, with the raw bytes it replied with." } }, "es": { "stringUnit": { "state": "translated", "value": "La respuesta de la correa aparece en el registro y en la exportación de diagnóstico, con los bytes recibidos." } }, "fr": { "stringUnit": { "state": "translated", "value": "La réponse du bracelet apparaît dans le journal et l’export de diagnostic, avec les octets bruts reçus." } }, "it": { "stringUnit": { "state": "translated", "value": "La risposta del braccialetto compare nel log e nell’esportazione diagnostica, con i byte grezzi ricevuti." } }, "pl": { "stringUnit": { "state": "translated", "value": "Odpowiedź opaski pojawi się w logu i eksporcie diagnostycznym, wraz z otrzymanymi surowymi bajtami." } }, "pt-PT": { "stringUnit": { "state": "translated", "value": "A resposta da pulseira aparece no registo e na exportação de diagnóstico, com os bytes recebidos." } }, "ru": { "stringUnit": { "state": "translated", "value": "Ответ браслета появится в журнале браслета и диагностическом экспорте вместе с полученными байтами." } }, "zh-Hans": { "stringUnit": { "state": "translated", "value": "手环的回应会出现在手环日志和诊断导出中，并附带收到的原始字节。" } }, "zh-Hant": { "stringUnit": { "state": "translated", "value": "手環的回應會出現在手環日誌和診斷匯出中，並附上收到的原始位元組。" } }
     } },
     "Last night against your clock": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Letzte Nacht im Vergleich zu deiner inneren Uhr"}},"es":{"stringUnit":{"state":"translated","value":"Anoche frente a tu reloj interno"}},"fr":{"stringUnit":{"state":"translated","value":"La nuit dernière face à votre horloge"}},"it":{"stringUnit":{"state":"translated","value":"La scorsa notte rispetto al tuo orologio"}},"pl":{"stringUnit":{"state":"translated","value":"Ostatnia noc a Twój zegar biologiczny"}},"pt-PT":{"stringUnit":{"state":"translated","value":"A noite passada face ao seu relógio"}},"ru":{"stringUnit":{"state":"translated","value":"Прошлая ночь и ваши биологические часы"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"昨夜与你的生物钟对比"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"昨夜與你的生理時鐘對比"}}}},
     "In sync with your body clock": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Im Einklang mit deiner inneren Uhr"}},"es":{"stringUnit":{"state":"translated","value":"En sintonía con tu reloj interno"}},"fr":{"stringUnit":{"state":"translated","value":"En phase avec votre horloge biologique"}},"it":{"stringUnit":{"state":"translated","value":"In sintonia con il tuo orologio biologico"}},"pl":{"stringUnit":{"state":"translated","value":"Zgodnie z zegarem biologicznym"}},"pt-PT":{"stringUnit":{"state":"translated","value":"Em sintonia com o seu relógio biológico"}},"ru":{"stringUnit":{"state":"translated","value":"В согласии с биологическими часами"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"与生物钟同步"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"與生理時鐘同步"}}}},
@@ -215992,7 +216073,7 @@
     "iCloud Drive": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"iCloud Drive"}},"es":{"stringUnit":{"state":"translated","value":"iCloud Drive"}},"fr":{"stringUnit":{"state":"translated","value":"iCloud Drive"}},"it":{"stringUnit":{"state":"translated","value":"iCloud Drive"}},"pl":{"stringUnit":{"state":"translated","value":"iCloud Drive"}},"pt-PT":{"stringUnit":{"state":"translated","value":"iCloud Drive"}},"ru":{"stringUnit":{"state":"translated","value":"iCloud Drive"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"iCloud 云盘"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"iCloud 雲碟"}}}},
     "iCloud Drive › %@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"iCloud Drive › %@"}},"es":{"stringUnit":{"state":"translated","value":"iCloud Drive › %@"}},"fr":{"stringUnit":{"state":"translated","value":"iCloud Drive › %@"}},"it":{"stringUnit":{"state":"translated","value":"iCloud Drive › %@"}},"pl":{"stringUnit":{"state":"translated","value":"iCloud Drive › %@"}},"pt-PT":{"stringUnit":{"state":"translated","value":"iCloud Drive › %@"}},"ru":{"stringUnit":{"state":"translated","value":"iCloud Drive › %@"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"iCloud 云盘 › %@"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"iCloud 雲碟 › %@"}}}},
     "NOOP (in Files)": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"NOOP (in Dateien)"}},"es":{"stringUnit":{"state":"translated","value":"NOOP (en Archivos)"}},"fr":{"stringUnit":{"state":"translated","value":"NOOP (dans Fichiers)"}},"it":{"stringUnit":{"state":"translated","value":"NOOP (in File)"}},"pl":{"stringUnit":{"state":"translated","value":"NOOP (w Plikach)"}},"pt-PT":{"stringUnit":{"state":"translated","value":"NOOP (em Ficheiros)"}},"ru":{"stringUnit":{"state":"translated","value":"NOOP (в Файлах)"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"NOOP（在“文件”中）"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"NOOP（在「檔案」中）"}}}},
-    "Live heart rate is streaming, but your strap is not fully paired. The encrypted pairing is what carries motion, skin temperature, SpO₂ and respiratory rate — without it, sleep is staged from heart rate alone. Buzz, alarms and history sync need it too.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die Live-Herzfrequenz wird übertragen, aber dein Strap ist nicht vollständig gekoppelt. Die verschlüsselte Kopplung liefert Bewegung, Hauttemperatur, SpO₂ und Atemfrequenz — ohne sie wird der Schlaf allein aus der Herzfrequenz abgeleitet. Auch Buzz, Wecker und Verlaufssynchronisierung brauchen sie."}},"es":{"stringUnit":{"state":"translated","value":"La frecuencia cardíaca en vivo se está transmitiendo, pero tu correa no está totalmente emparejada. El emparejamiento cifrado es el que aporta movimiento, temperatura de la piel, SpO₂ y frecuencia respiratoria: sin él, el sueño se calcula solo a partir de la frecuencia cardíaca. El zumbido, las alarmas y la sincronización del historial también lo necesitan."}},"fr":{"stringUnit":{"state":"translated","value":"La fréquence cardiaque en direct est transmise, mais votre bracelet n'est pas entièrement appairé. C'est l'appairage chiffré qui transporte le mouvement, la température cutanée, la SpO₂ et la fréquence respiratoire — sans lui, le sommeil est estimé à partir de la seule fréquence cardiaque. Le buzz, les alarmes et la synchronisation de l'historique en ont besoin aussi."}},"it":{"stringUnit":{"state":"translated","value":"La frequenza cardiaca live viene trasmessa, ma il tuo strap non è completamente associato. È l'associazione cifrata a trasportare movimento, temperatura della pelle, SpO₂ e frequenza respiratoria — senza di essa il sonno viene stimato dalla sola frequenza cardiaca. Anche buzz, sveglie e sincronizzazione della cronologia ne hanno bisogno."}},"pl":{"stringUnit":{"state":"translated","value":"Tętno na żywo jest przesyłane, ale opaska nie jest w pełni sparowana. To szyfrowane parowanie przenosi ruch, temperaturę skóry, SpO₂ i częstość oddechów — bez niego sen jest wyznaczany wyłącznie z tętna. Wibracje, alarmy i synchronizacja historii też go wymagają."}},"pt-PT":{"stringUnit":{"state":"translated","value":"A frequência cardíaca em direto está a ser transmitida, mas a sua pulseira não está totalmente emparelhada. É o emparelhamento encriptado que transporta movimento, temperatura da pele, SpO₂ e taxa respiratória — sem ele, o sono é calculado apenas a partir da frequência cardíaca. O zumbido, os alarmes e a sincronização do histórico também precisam dele."}},"ru":{"stringUnit":{"state":"translated","value":"Пульс передаётся в реальном времени, но ремешок сопряжён не полностью. Именно зашифрованное сопряжение передаёт движение, температуру кожи, SpO₂ и частоту дыхания — без него сон определяется только по пульсу. Вибрация, будильники и синхронизация истории тоже требуют его."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"实时心率正在传输，但你的手环尚未完全配对。加密配对才能传输动作、皮肤温度、SpO₂ 和呼吸频率——没有它，睡眠只能依据心率推算。震动、闹钟和历史同步同样需要它。"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"即時心率正在傳輸，但你的手環尚未完全配對。加密配對才能傳輸動作、皮膚溫度、SpO₂ 和呼吸頻率——沒有它，睡眠只能依據心率推算。震動、鬧鐘和歷史同步同樣需要它。"}}}},
+    "Live heart rate is streaming, but your strap is not fully paired. The encrypted pairing is what carries motion, skin temperature, SpO₂ and respiratory rate — without it, sleep is staged from heart rate alone. Buzz, alarms and history sync need it too.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die Live-Herzfrequenz wird übertragen, aber dein Strap ist nicht vollständig gekoppelt. Die verschlüsselte Kopplung liefert Bewegung, Hauttemperatur, SpO₂ und Atemfrequenz — ohne sie wird der Schlaf allein aus der Herzfrequenz abgeleitet. Auch Buzz, Wecker und Verlaufssynchronisierung brauchen sie."}},"es":{"stringUnit":{"state":"translated","value":"La frecuencia cardíaca en vivo se está transmitiendo, pero tu correa no está totalmente emparejada. El emparejamiento cifrado es el que aporta movimiento, temperatura de la piel, SpO₂ y frecuencia respiratoria: sin él, el sueño se calcula solo a partir de la frecuencia cardíaca. El zumbido, las alarmas y la sincronización del historial también lo necesitan."}},"fr":{"stringUnit":{"state":"translated","value":"La fréquence cardiaque en direct est transmise, mais votre bracelet n'est pas entièrement appairé. C'est l'appairage chiffré qui transporte le mouvement, la température cutanée, la SpO₂ et la fréquence respiratoire — sans lui, le sommeil est estimé à partir de la seule fréquence cardiaque. Le buzz, les alarmes et la synchronisation de l'historique en ont besoin aussi."}},"it":{"stringUnit":{"state":"translated","value":"La frequenza cardiaca live viene trasmessa, ma il tuo strap non è completamente associato. È l'associazione cifrata a trasportare movimento, temperatura della pelle, SpO₂ e frequenza respiratoria — senza di essa il sonno viene stimato dalla sola frequenza cardiaca. Anche buzz, sveglie e sincronizzazione della cronologia ne hanno bisogno."}},"pl":{"stringUnit":{"state":"translated","value":"Tętno na żywo jest przesyłane, ale opaska nie jest w pełni sparowana. To szyfrowane parowanie przenosi ruch, temperaturę skóry, SpO₂ i częstość oddechów — bez niego sen jest wyznaczany wyłącznie z tętna. Wibracje, alarmy i synchronizacja historii też go wymagają."}},"pt-PT":{"stringUnit":{"state":"translated","value":"A frequência cardíaca em direto está a ser transmitida, mas a sua pulseira não está totalmente emparelhada. É o emparelhamento encriptado que transporta movimento, temperatura da pele, SpO₂ e taxa respiratória — sem ele, o sono é calculado apenas a partir da frequência cardíaca. O zumbido, os alarmes e a sincronização do histórico também precisam dele."}},"ru":{"stringUnit":{"state":"translated","value":"Пульс передаётся в реальном времени, но браслет сопряжён не полностью. Именно зашифрованное сопряжение передаёт движение, температуру кожи, SpO₂ и частоту дыхания — без него сон определяется только по пульсу. Вибрация, будильники и синхронизация истории тоже требуют его."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"实时心率正在传输，但你的手环尚未完全配对。加密配对才能传输动作、皮肤温度、SpO₂ 和呼吸频率——没有它，睡眠只能依据心率推算。震动、闹钟和历史同步同样需要它。"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"即時心率正在傳輸，但你的手環尚未完全配對。加密配對才能傳輸動作、皮膚溫度、SpO₂ 和呼吸頻率——沒有它，睡眠只能依據心率推算。震動、鬧鐘和歷史同步同樣需要它。"}}}},
     "Clear conversation": {"localizations": {
         "en": {"stringUnit": {"state": "translated", "value": "Clear conversation"}},
         "de": {"stringUnit": {"state": "translated", "value": "Unterhaltung löschen"}},
@@ -216049,7 +216130,7 @@
         "it": {"stringUnit": {"state": "translated", "value": "Riepilogo mattutino"}},
         "pl": {"stringUnit": {"state": "translated", "value": "Poranne podsumowanie"}},
         "pt-PT": {"stringUnit": {"state": "translated", "value": "Resumo matinal"}},
-        "ru": {"stringUnit": {"state": "translated", "value": "Утренняя сводка"}},
+        "ru": {"stringUnit": {"state": "translated", "value": "Утренний бриф"}},
         "zh-Hans": {"stringUnit": {"state": "translated", "value": "晨间简报"}},
         "zh-Hant": {"stringUnit": {"state": "translated", "value": "晨間簡報"}}
     } },
@@ -216313,7 +216394,7 @@
         "it": {"stringUnit": {"state": "translated", "value": "%lld delle ultime %lld notti non hanno registrato HRV. Controlla che la fascia sia indossata di notte e si sincronizzi."}},
         "pl": {"stringUnit": {"state": "translated", "value": "%lld z ostatnich %lld nocy nie zarejestrowało HRV. Sprawdź, czy opaska jest noszona w nocy i synchronizuje się."}},
         "pt-PT": {"stringUnit": {"state": "translated", "value": "%lld das últimas %lld noites não registaram HRV. Verifica se usas a fita à noite e se sincroniza."}},
-        "ru": {"stringUnit": {"state": "translated", "value": "%lld из последних %lld ночей не записали ВСР. Проверьте, что ремешок надет ночью и синхронизируется."}},
+        "ru": {"stringUnit": {"state": "translated", "value": "%lld из последних %lld ночей не записали ВСР. Проверьте, что браслет надет ночью и синхронизируется."}},
         "zh-Hans": {"stringUnit": {"state": "translated", "value": "最近 %2$lld 晚中有 %1$lld 晚未记录 HRV。请检查夜间是否佩戴并已同步。"}},
         "zh-Hant": {"stringUnit": {"state": "translated", "value": "最近 %2$lld 晚中有 %1$lld 晚未記錄 HRV。請檢查夜間是否配戴並已同步。"}}
     } },
@@ -216325,7 +216406,7 @@
         "it": {"stringUnit": {"state": "translated", "value": "Ricalcola il °C assoluto per le notti che la finestra di 21 notti non raggiunge mai, con lo stesso funnel della passata di calcolo. Solo riempimento: non sovrascrive mai un valore misurato. Il risultato è nel log della fascia."}},
         "pl": {"stringUnit": {"state": "translated", "value": "Ponownie wylicza bezwzględne °C dla nocy, których nie obejmuje okno 21 nocy, tym samym lejkiem co przebieg oceniający. Tylko uzupełnia: nigdy nie nadpisuje zmierzonej wartości. Wynik znajdziesz w dzienniku opaski."}},
         "pt-PT": {"stringUnit": {"state": "translated", "value": "Volta a derivar o °C absoluto das noites que a janela de 21 noites nunca alcança, com o mesmo funil da passagem de pontuação. Apenas preenche: nunca substitui um valor medido. Vê o resultado no registo da fita."}},
-        "ru": {"stringUnit": {"state": "translated", "value": "Пересчитывает абсолютные °C для ночей, до которых не доходит окно в 21 ночь, тем же алгоритмом, что и обычный расчёт. Только заполняет: измеренное значение никогда не перезаписывается. Результат смотрите в журнале ремешка."}},
+        "ru": {"stringUnit": {"state": "translated", "value": "Пересчитывает абсолютные °C для ночей, до которых не доходит окно в 21 ночь, тем же алгоритмом, что и обычный расчёт. Только заполняет: измеренное значение никогда не перезаписывается. Результат смотрите в журнале браслета."}},
         "zh-Hans": {"stringUnit": {"state": "translated", "value": "用与评分流程相同的漏斗，为 21 晚窗口未覆盖的夜晚重新推导绝对温度（°C）。仅填充：绝不覆盖已测量的值。结果见腕带日志。"}},
         "zh-Hant": {"stringUnit": {"state": "translated", "value": "以與評分流程相同的漏斗，為 21 晚視窗未涵蓋的夜晚重新推導絕對溫度（°C）。僅填充：絕不覆寫已測量的值。結果見腕帶日誌。"}}
     } },
@@ -217262,7 +217343,7 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Отправляет %@ на кольцо. Не проверено на собственном оборудовании NOOP (OURA_PROTOCOL.md §7.5). Режим 0x00 всегда возвращает исходное состояние. Смотрите журнал ремешка, чтобы увидеть последующее чтение статуса функции."
+            "value" : "Отправляет %@ на кольцо. Не проверено на собственном оборудовании NOOP (OURA_PROTOCOL.md §7.5). Режим 0x00 всегда возвращает исходное состояние. Смотрите журнал браслета, чтобы увидеть последующее чтение статуса функции."
           }
         },
         "zh-Hans" : {
@@ -217320,7 +217401,7 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Отправляет %@ на кольцо. Не проверено на собственном оборудовании NOOP (OURA_PROTOCOL.md §7.5). Смотрите журнал ремешка, чтобы увидеть последующее чтение статуса функции."
+            "value" : "Отправляет %@ на кольцо. Не проверено на собственном оборудовании NOOP (OURA_PROTOCOL.md §7.5). Смотрите журнал браслета, чтобы увидеть последующее чтение статуса функции."
           }
         },
         "zh-Hans" : {
@@ -217779,7 +217860,7 @@
         "zh-Hant": {"stringUnit": {"state": "translated", "value": "開啟：你的充能、休息、HRV 和訓練會傳送給服務商，每次訓練包含運動類型、時長、距離和心率。"}}
     } },
         "Strap alarm wake time": { "localizations": {
-          "de": {"stringUnit": {"state": "translated", "value": "Weckzeit des Strap-Alarms"}}, "es": {"stringUnit": {"state": "translated", "value": "Hora de despertar de la alarma de la banda"}}, "fr": {"stringUnit": {"state": "translated", "value": "Heure de réveil de l'alarme du bracelet"}}, "it": {"stringUnit": {"state": "translated", "value": "Ora di sveglia dell'allarme del braccialetto"}}, "pl": {"stringUnit": {"state": "translated", "value": "Godzina budzenia alarmu opaski"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Hora de despertar do alarme da banda"}}, "ru": {"stringUnit": {"state": "translated", "value": "Время подъёма для будильника ремешка"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "手环闹钟的起床时间"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "手環鬧鐘的起床時間"}}
+          "de": {"stringUnit": {"state": "translated", "value": "Weckzeit des Strap-Alarms"}}, "es": {"stringUnit": {"state": "translated", "value": "Hora de despertar de la alarma de la banda"}}, "fr": {"stringUnit": {"state": "translated", "value": "Heure de réveil de l'alarme du bracelet"}}, "it": {"stringUnit": {"state": "translated", "value": "Ora di sveglia dell'allarme del braccialetto"}}, "pl": {"stringUnit": {"state": "translated", "value": "Godzina budzenia alarmu opaski"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Hora de despertar do alarme da banda"}}, "ru": {"stringUnit": {"state": "translated", "value": "Время подъёма для будильника браслета"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "手环闹钟的起床时间"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "手環鬧鐘的起床時間"}}
         } },
         "Your usual wake time": { "localizations": {
           "de": {"stringUnit": {"state": "translated", "value": "Deine übliche Weckzeit"}}, "es": {"stringUnit": {"state": "translated", "value": "Tu hora habitual de despertar"}}, "fr": {"stringUnit": {"state": "translated", "value": "Votre heure de réveil habituelle"}}, "it": {"stringUnit": {"state": "translated", "value": "La tua solita ora di sveglia"}}, "pl": {"stringUnit": {"state": "translated", "value": "Twoja zwykła godzina pobudki"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "A tua hora habitual de acordar"}}, "ru": {"stringUnit": {"state": "translated", "value": "Ваше обычное время подъёма"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "你通常的起床时间"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "你通常的起床時間"}}
@@ -217788,16 +217869,16 @@
           "de": {"stringUnit": {"state": "translated", "value": "Diese Zeit weckt dich nicht. Sie legt nur fest, wann die Abenderinnerung kommt."}}, "es": {"stringUnit": {"state": "translated", "value": "Esta hora no te despierta. Solo decide cuándo llega el recordatorio de la noche."}}, "fr": {"stringUnit": {"state": "translated", "value": "Cette heure ne vous réveille pas. Elle décide seulement quand le rappel du soir se déclenche."}}, "it": {"stringUnit": {"state": "translated", "value": "Questa ora non ti sveglia. Decide solo quando arriva il promemoria serale."}}, "pl": {"stringUnit": {"state": "translated", "value": "Ta godzina Cię nie budzi. Decyduje tylko o tym, kiedy pojawi się wieczorne przypomnienie."}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Esta hora não te acorda. Só decide quando aparece o lembrete da noite."}}, "ru": {"stringUnit": {"state": "translated", "value": "Это время вас не будит. Оно лишь определяет, когда придёт вечернее напоминание."}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "这个时间不会叫醒你，它只决定晚间提醒何时出现。"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "這個時間不會叫醒你，它只決定晚間提醒何時出現。"}}
         } },
         "Your strap alarm is what wakes you, next on %@.": { "localizations": {
-          "de": {"stringUnit": {"state": "translated", "value": "Geweckt wirst du vom Strap-Alarm, das nächste Mal am %@."}}, "es": {"stringUnit": {"state": "translated", "value": "Quien te despierta es la alarma de la banda, la próxima vez el %@."}}, "fr": {"stringUnit": {"state": "translated", "value": "C'est l'alarme du bracelet qui vous réveille, la prochaine fois le %@."}}, "it": {"stringUnit": {"state": "translated", "value": "A svegliarti è l'allarme del braccialetto, la prossima volta %@."}}, "pl": {"stringUnit": {"state": "translated", "value": "Budzi Cię alarm opaski, następnym razem w %@."}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Quem te acorda é o alarme da banda, a próxima vez em %@."}}, "ru": {"stringUnit": {"state": "translated", "value": "Будит вас будильник ремешка, следующий раз в %@."}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "叫醒你的是手环闹钟，下一次在 %@。"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "叫醒你的是手環鬧鐘，下一次在 %@。"}}
+          "de": {"stringUnit": {"state": "translated", "value": "Geweckt wirst du vom Strap-Alarm, das nächste Mal am %@."}}, "es": {"stringUnit": {"state": "translated", "value": "Quien te despierta es la alarma de la banda, la próxima vez el %@."}}, "fr": {"stringUnit": {"state": "translated", "value": "C'est l'alarme du bracelet qui vous réveille, la prochaine fois le %@."}}, "it": {"stringUnit": {"state": "translated", "value": "A svegliarti è l'allarme del braccialetto, la prossima volta %@."}}, "pl": {"stringUnit": {"state": "translated", "value": "Budzi Cię alarm opaski, następnym razem w %@."}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Quem te acorda é o alarme da banda, a próxima vez em %@."}}, "ru": {"stringUnit": {"state": "translated", "value": "Будит вас будильник браслета, следующий раз в %@."}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "叫醒你的是手环闹钟，下一次在 %@。"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "叫醒你的是手環鬧鐘，下一次在 %@。"}}
         } },
         "Set a wake time for specific days (a lie-in at the weekend, say). These times move your strap alarm AND the evening reminder on those days.": { "localizations": {
-          "de": {"stringUnit": {"state": "translated", "value": "Lege für einzelne Tage eine Weckzeit fest (etwa Ausschlafen am Wochenende). Diese Zeiten verschieben an diesen Tagen sowohl den Strap-Alarm als auch die Abenderinnerung."}}, "es": {"stringUnit": {"state": "translated", "value": "Fija una hora de despertar para días concretos (dormir hasta tarde el fin de semana, por ejemplo). Esas horas mueven tanto la alarma de la banda como el recordatorio de la noche en esos días."}}, "fr": {"stringUnit": {"state": "translated", "value": "Définissez une heure de réveil pour certains jours (une grasse matinée le week-end, par exemple). Ces heures décalent à la fois l'alarme du bracelet et le rappel du soir ces jours-là."}}, "it": {"stringUnit": {"state": "translated", "value": "Imposta un'ora di sveglia per giorni specifici (per esempio dormire fino a tardi nel fine settimana). Quelle ore spostano sia l'allarme del braccialetto sia il promemoria serale in quei giorni."}}, "pl": {"stringUnit": {"state": "translated", "value": "Ustaw godzinę pobudki dla wybranych dni (na przykład dłuższy sen w weekend). Te godziny przesuwają w te dni zarówno alarm opaski, jak i wieczorne przypomnienie."}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Define uma hora de acordar para dias específicos (dormir até mais tarde ao fim de semana, por exemplo). Essas horas mudam tanto o alarme da banda como o lembrete da noite nesses dias."}}, "ru": {"stringUnit": {"state": "translated", "value": "Задайте время подъёма для отдельных дней (например, поспать подольше в выходные). В эти дни такое время сдвигает и будильник ремешка, и вечернее напоминание."}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "为特定日期设置起床时间（比如周末睡个懒觉）。这些时间会同时改变那几天的手环闹钟和晚间提醒。"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "為特定日期設定起床時間（例如週末睡個懶覺）。這些時間會同時改變那幾天的手環鬧鐘和晚間提醒。"}}
+          "de": {"stringUnit": {"state": "translated", "value": "Lege für einzelne Tage eine Weckzeit fest (etwa Ausschlafen am Wochenende). Diese Zeiten verschieben an diesen Tagen sowohl den Strap-Alarm als auch die Abenderinnerung."}}, "es": {"stringUnit": {"state": "translated", "value": "Fija una hora de despertar para días concretos (dormir hasta tarde el fin de semana, por ejemplo). Esas horas mueven tanto la alarma de la banda como el recordatorio de la noche en esos días."}}, "fr": {"stringUnit": {"state": "translated", "value": "Définissez une heure de réveil pour certains jours (une grasse matinée le week-end, par exemple). Ces heures décalent à la fois l'alarme du bracelet et le rappel du soir ces jours-là."}}, "it": {"stringUnit": {"state": "translated", "value": "Imposta un'ora di sveglia per giorni specifici (per esempio dormire fino a tardi nel fine settimana). Quelle ore spostano sia l'allarme del braccialetto sia il promemoria serale in quei giorni."}}, "pl": {"stringUnit": {"state": "translated", "value": "Ustaw godzinę pobudki dla wybranych dni (na przykład dłuższy sen w weekend). Te godziny przesuwają w te dni zarówno alarm opaski, jak i wieczorne przypomnienie."}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Define uma hora de acordar para dias específicos (dormir até mais tarde ao fim de semana, por exemplo). Essas horas mudam tanto o alarme da banda como o lembrete da noite nesses dias."}}, "ru": {"stringUnit": {"state": "translated", "value": "Задайте время подъёма для отдельных дней (например, поспать подольше в выходные). В эти дни такое время сдвигает и будильник браслета, и вечернее напоминание."}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "为特定日期设置起床时间（比如周末睡个懒觉）。这些时间会同时改变那几天的手环闹钟和晚间提醒。"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "為特定日期設定起床時間（例如週末睡個懶覺）。這些時間會同時改變那幾天的手環鬧鐘和晚間提醒。"}}
         } },
         "Days you leave alone use the usual wake time above.": { "localizations": {
           "de": {"stringUnit": {"state": "translated", "value": "Tage, die du unangetastet lässt, nutzen die übliche Weckzeit oben."}}, "es": {"stringUnit": {"state": "translated", "value": "Los días que no toques usan la hora habitual de despertar de arriba."}}, "fr": {"stringUnit": {"state": "translated", "value": "Les jours que vous ne touchez pas utilisent l'heure de réveil habituelle ci-dessus."}}, "it": {"stringUnit": {"state": "translated", "value": "I giorni che non tocchi usano la solita ora di sveglia qui sopra."}}, "pl": {"stringUnit": {"state": "translated", "value": "Dni, których nie zmienisz, używają zwykłej godziny pobudki powyżej."}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Os dias que não mexeres usam a hora habitual de acordar acima."}}, "ru": {"stringUnit": {"state": "translated", "value": "Дни, которые вы не меняли, используют обычное время подъёма выше."}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "未改动的日子使用上面的通常起床时间。"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "未更動的日子使用上面的通常起床時間。"}}
         } },
         "Days you leave alone keep your strap alarm at %@, and time the reminder from %@.": { "localizations": {
-          "de": {"stringUnit": {"state": "translated", "value": "Tage, die du unangetastet lässt, behalten den Strap-Alarm um %1$@ und timen die Erinnerung ab %2$@."}}, "es": {"stringUnit": {"state": "translated", "value": "Los días que no toques mantienen la alarma de la banda a las %1$@ y calculan el recordatorio desde las %2$@."}}, "fr": {"stringUnit": {"state": "translated", "value": "Les jours que vous ne touchez pas gardent l'alarme du bracelet à %1$@ et calculent le rappel à partir de %2$@."}}, "it": {"stringUnit": {"state": "translated", "value": "I giorni che non tocchi mantengono l'allarme del braccialetto alle %1$@ e calcolano il promemoria da %2$@."}}, "pl": {"stringUnit": {"state": "translated", "value": "Dni, których nie zmienisz, zachowują alarm opaski o %1$@, a przypomnienie liczą od %2$@."}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Os dias que não mexeres mantêm o alarme da banda às %1$@ e calculam o lembrete a partir das %2$@."}}, "ru": {"stringUnit": {"state": "translated", "value": "В дни, которые вы не меняли, будильник ремешка остаётся на %1$@, а напоминание считается от %2$@."}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "未改动的日子，手环闹钟仍为 %1$@，晚间提醒则从 %2$@ 推算。"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "未更動的日子，手環鬧鐘仍為 %1$@，晚間提醒則從 %2$@ 推算。"}}
+          "de": {"stringUnit": {"state": "translated", "value": "Tage, die du unangetastet lässt, behalten den Strap-Alarm um %1$@ und timen die Erinnerung ab %2$@."}}, "es": {"stringUnit": {"state": "translated", "value": "Los días que no toques mantienen la alarma de la banda a las %1$@ y calculan el recordatorio desde las %2$@."}}, "fr": {"stringUnit": {"state": "translated", "value": "Les jours que vous ne touchez pas gardent l'alarme du bracelet à %1$@ et calculent le rappel à partir de %2$@."}}, "it": {"stringUnit": {"state": "translated", "value": "I giorni che non tocchi mantengono l'allarme del braccialetto alle %1$@ e calcolano il promemoria da %2$@."}}, "pl": {"stringUnit": {"state": "translated", "value": "Dni, których nie zmienisz, zachowują alarm opaski o %1$@, a przypomnienie liczą od %2$@."}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Os dias que não mexeres mantêm o alarme da banda às %1$@ e calculam o lembrete a partir das %2$@."}}, "ru": {"stringUnit": {"state": "translated", "value": "В дни, которые вы не меняли, будильник браслета остаётся на %1$@, а напоминание считается от %2$@."}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "未改动的日子，手环闹钟仍为 %1$@，晚间提醒则从 %2$@ 推算。"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "未更動的日子，手環鬧鐘仍為 %1$@，晚間提醒則從 %2$@ 推算。"}}
         } },
         "Some days have a time of their own, set under the evening reminder below. Next buzz %@.": { "localizations": {
           "de": {"stringUnit": {"state": "translated", "value": "Manche Tage haben eine eigene Zeit, eingestellt unter der Abenderinnerung weiter unten. Nächster Weckruf %@."}}, "es": {"stringUnit": {"state": "translated", "value": "Algunos días tienen su propia hora, fijada en el recordatorio de la noche más abajo. Próximo aviso %@."}}, "fr": {"stringUnit": {"state": "translated", "value": "Certains jours ont leur propre heure, définie sous le rappel du soir ci-dessous. Prochaine vibration %@."}}, "it": {"stringUnit": {"state": "translated", "value": "Alcuni giorni hanno un orario proprio, impostato sotto il promemoria serale qui sotto. Prossima vibrazione %@."}}, "pl": {"stringUnit": {"state": "translated", "value": "Niektóre dni mają własną godzinę, ustawioną przy wieczornym przypomnieniu poniżej. Następna wibracja %@."}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Alguns dias têm hora própria, definida no lembrete da noite abaixo. Próximo aviso %@."}}, "ru": {"stringUnit": {"state": "translated", "value": "У некоторых дней своё время, заданное ниже, у вечернего напоминания. Следующий сигнал %@."}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "有些日子有自己的时间，在下面的晚间提醒中设置。下次震动 %@。"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "有些日子有自己的時間，在下面的晚間提醒中設定。下次震動 %@。"}}
@@ -220105,7 +220186,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Отбой прошлой ночью"
+            "value": "Отход ко сну прошлой ночью"
           }
         },
         "zh-Hans": {
@@ -220889,7 +220970,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Закреплено"
+            "value": "Закреплённое"
           }
         },
         "zh-Hans": {
@@ -222851,7 +222932,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Отбой"
+            "value": "Отход ко сну"
           }
         },
         "zh-Hans": {
@@ -223025,7 +223106,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Обычный отбой"
+            "value": "Обычный отход ко сну"
           }
         },
         "zh-Hans": {
@@ -223339,7 +223420,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Отбой"
+            "value": "Отход ко сну"
           }
         },
         "zh-Hans": {
@@ -223397,7 +223478,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Вариабельность"
+            "value": "ВСР"
           }
         },
         "zh-Hans": {

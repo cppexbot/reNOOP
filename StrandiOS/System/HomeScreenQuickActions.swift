@@ -20,10 +20,11 @@ enum HomeScreenQuickAction: String, CaseIterable {
 
     private var localizedTitle: String {
         switch self {
-        case .liveHeartRate: String(localized: "Live HR")
-        case .startWorkout: String(localized: "Start workout")
-        case .logJournal: String(localized: "Log journal")
-        case .breathe: String(localized: "Breathe")
+        // The names of the screens they open, as Browse lists them (X-2).
+        case .liveHeartRate: String(localized: "Heart Rate")
+        case .startWorkout: String(localized: "Workouts")
+        case .logJournal: String(localized: "Journal")
+        case .breathe: String(localized: "Mindfulness")
         }
     }
 
@@ -31,8 +32,8 @@ enum HomeScreenQuickAction: String, CaseIterable {
         switch self {
         case .liveHeartRate: "waveform.path.ecg"
         case .startWorkout: "figure.run"
-        case .logJournal: "square.and.pencil"
-        case .breathe: "wind"
+        case .logJournal: "book.pages"
+        case .breathe: "lungs"
         }
     }
 
