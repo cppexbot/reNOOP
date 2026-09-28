@@ -117,7 +117,7 @@ private struct LiftAccessoryRow: View {
                 title: shown.exercise,
                 status: shown.status,
                 control: "checkmark",
-                controlLabel: "Next",
+                controlLabel: "Set done",
                 action: { session.advance() },
                 open: { now.expand(.lift) }
             ) {
@@ -151,7 +151,8 @@ private struct IntervalsAccessoryRow: View {
 }
 
 /// One row of the mini-player, laid out as Music's: the artwork slot (here the activity's glyph on Fitness's
-/// green disc), the title over a second line, then a bare glyph button.
+/// green disc), the title over a second line, then a bare glyph button. When the tab bar folds away and the
+/// accessory moves inline beside it, the row drops to one line: the clock and the title.
 private struct RunningAccessoryRow<Clock: View>: View {
     let glyph: String
     let title: String
@@ -162,52 +163,105 @@ private struct RunningAccessoryRow<Clock: View>: View {
     let open: () -> Void
     @ViewBuilder let clock: () -> Clock
 
+    var body: some View {
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, *) {
+            AccessoryPlacementReader { inline in row(inline: inline) }
+        } else {
+            row(inline: false)
+        }
+        #else
+        row(inline: false)
+        #endif
+    }
+
+    private func row(inline: Bool) -> some View {
+        RunningAccessoryLayout(glyph: glyph, title: title, status: status, control: control,
+                               action: action, inline: inline, clock: clock)
+            .contentShape(Rectangle())
+            .onTapGesture(perform: open)
+            // ONE element whose default action opens the recording screen; the control is a named action.
+            // Combined with the nested button, VoiceOver's double-tap could land on pause instead.
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text(status.map { "\(title), \($0)" } ?? title))
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction { open() }
+            .accessibilityAction(named: Text(controlLabel), action)
+            .accessibilityShowsLargeContentViewer { Label(title, systemImage: glyph) }
+    }
+}
+
+#if compiler(>=6.2)
+/// Reads where the tab bar has put the accessory (iOS 26): `.inline` beside a minimised bar, or expanded
+/// above it.
+@available(iOS 26.0, *)
+private struct AccessoryPlacementReader<Content: View>: View {
+    @Environment(\.tabViewBottomAccessoryPlacement) private var placement
+    @ViewBuilder let content: (Bool) -> Content
+
+    var body: some View { content(placement == .inline) }
+}
+#endif
+
+private struct RunningAccessoryLayout<Clock: View>: View {
+    let glyph: String
+    let title: String
+    let status: String?
+    let control: String
+    let action: () -> Void
+    let inline: Bool
+    @ViewBuilder let clock: () -> Clock
+
     @ScaledMetric(relativeTo: .subheadline) private var glyphSize: CGFloat = 14
     @ScaledMetric(relativeTo: .subheadline) private var glyphCircle: CGFloat = 32
+    @ScaledMetric(relativeTo: .subheadline) private var inlineGlyphCircle: CGFloat = 26
     @ScaledMetric(relativeTo: .largeTitle) private var controlSize: CGFloat = 44
+    @ScaledMetric(relativeTo: .body) private var inlineControlSize: CGFloat = 32
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: inline ? 8 : 10) {
             Image(systemName: glyph)
                 .font(.system(size: glyphSize, weight: .semibold))
                 .foregroundStyle(StrandPalette.activityExerciseText)
-                .frame(width: glyphCircle, height: glyphCircle)
+                .frame(width: inline ? inlineGlyphCircle : glyphCircle, height: inline ? inlineGlyphCircle : glyphCircle)
                 .background(Circle().fill(StrandPalette.fitnessCard))
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 0) {
-                Text(title)
-                    .font(StrandFont.pro(15, weight: .semibold))
-                    .foregroundStyle(StrandPalette.textPrimary)
+            if inline {
                 HStack(spacing: 0) {
-                    clock()
-                    if let status {
-                        Text(verbatim: " · \(status)")
-                            .foregroundStyle(StrandPalette.textSecondary)
-                    }
+                    clock().layoutPriority(1)
+                    Text(verbatim: " · \(title)")
+                        .foregroundStyle(StrandPalette.textPrimary)
                 }
-                .font(StrandFont.pro(15))
+                .font(StrandFont.pro(15, weight: .semibold))
+                .lineLimit(1)
+            } else {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(title)
+                        .font(StrandFont.pro(15, weight: .semibold))
+                        .foregroundStyle(StrandPalette.textPrimary)
+                    HStack(spacing: 0) {
+                        clock()
+                        if let status {
+                            Text(verbatim: " · \(status)")
+                                .foregroundStyle(StrandPalette.textSecondary)
+                        }
+                    }
+                    .font(StrandFont.pro(15))
+                }
+                .lineLimit(1)
             }
-            .lineLimit(1)
             Spacer(minLength: 8)
             Button(action: action) {
                 Image(systemName: control)
-                    .font(StrandFont.pro(20, weight: .semibold))
+                    .font(StrandFont.pro(inline ? 17 : 20, weight: .semibold))
                     .foregroundStyle(StrandPalette.textPrimary)
                     .contentTransition(.symbolEffect(.replace))
-                    .frame(width: controlSize, height: controlSize)
+                    .frame(width: inline ? inlineControlSize : controlSize, height: inline ? inlineControlSize : controlSize)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(Text(controlLabel))
         }
         .padding(.leading, 8)
         .padding(.trailing, 4)
-        .contentShape(Rectangle())
-        .onTapGesture(perform: open)
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isButton)
-        .accessibilityAction(named: Text(controlLabel), action)
-        .accessibilityShowsLargeContentViewer { Label(title, systemImage: glyph) }
     }
 }
 

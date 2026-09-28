@@ -31,7 +31,8 @@ struct LiftProgramItemSheet: View {
     @State private var repsText: String = ""
     @State private var weightText: String = ""
     @State private var restText: String = ""
-    @State private var maxRpeText: String = ""
+    /// The ceiling, or nil for none.
+    @State private var maxRpe: Double?
     @State private var note: String = ""
 
     /// The user's own exercise vocabulary, for suggestions and for adopting a known classification.
@@ -55,27 +56,21 @@ struct LiftProgramItemSheet: View {
     @Environment(\.dynamicTypeSize) private var dts
 
     @FocusState private var focused: Field?
-    private enum Field: Hashable { case sets, reps, weight, rest, maxRpe, note }
+    private enum Field: Hashable { case sets, reps, weight, rest, note }
 
     private var trimmedExercise: String {
         exercise.trimmingCharacters(in: .whitespacesAndNewlines)
     }
-    /// The ceiling as typed, when it is one: 1 to 10. A blank field is no ceiling.
-    private var maxRpe: Double? {
-        LiftFormat.number(maxRpeText).flatMap { (1...10).contains($0) ? $0 : nil }
-    }
-    private var maxRpeInvalid: Bool {
-        !maxRpeText.trimmingCharacters(in: .whitespaces).isEmpty && maxRpe == nil
-    }
-    private var canSave: Bool { !trimmedExercise.isEmpty && !maxRpeInvalid }
+    private var canSave: Bool { !trimmedExercise.isEmpty }
 
     private struct Draft: Equatable {
         var exercise: String, primary: LiftMuscle?, secondaries: Set<LiftMuscle>
         var fields: [String]
+        var maxRpe: Double?
     }
     private var draft: Draft {
         Draft(exercise: exercise, primary: primary, secondaries: secondaries,
-              fields: [setsText, repsText, weightText, restText, maxRpeText, note])
+              fields: [setsText, repsText, weightText, restText, note], maxRpe: maxRpe)
     }
     private var hasChanges: Bool { initial.map { $0 != draft } ?? false }
 
@@ -108,16 +103,9 @@ struct LiftProgramItemSheet: View {
                     numberRow("Reps", text: $repsText, integer: true, field: .reps)
                     numberRow("Weight", text: $weightText, unit: LiftFormat.weightUnit(unitSystem), field: .weight)
                     numberRow("Rest (seconds)", text: $restText, integer: true, field: .rest)
-                    numberRow("Max RPE (1–10)", text: $maxRpeText, field: .maxRpe)
+                    LiftRPEPicker(title: "Max RPE", rpe: $maxRpe, stored: item?.targetRpe)
                 } header: {
                     Text("Targets")
-                } footer: {
-                    if maxRpeInvalid {
-                        Text("Max RPE must be between 1 and 10.")
-                            .foregroundStyle(StrandPalette.statusWarning)
-                    } else {
-                        Text("Max RPE is a ceiling: the hardest a set should feel, where 10 means nothing left. It shows grey during the session, and a set you leave unrated saves it as its rating.")
-                    }
                 }
 
                 Section {
@@ -177,10 +165,15 @@ struct LiftProgramItemSheet: View {
         } message: {
             Text("It stops being offered here. Sessions you already logged with it are kept exactly as they are.")
         }
-        .alert("You've saved the most exercises NOOP remembers",
+        // Not an alert that only informs: it leads to the list, where a name is forgotten with a swipe.
+        .alert("Exercise List Is Full",
                isPresented: Binding(get: { vocabularyFullLimit != nil },
                                     set: { if !$0 { vocabularyFullLimit = nil } })) {
-            Button("OK", role: .cancel) { vocabularyFullLimit = nil }
+            Button("Manage Exercises") {
+                vocabularyFullLimit = nil
+                pickingExercise = true
+            }
+            Button("Cancel", role: .cancel) { vocabularyFullLimit = nil }
         } message: {
             Text("Forget one you no longer use and this one will save. Your logged sessions are never affected.")
         }
@@ -233,7 +226,7 @@ struct LiftProgramItemSheet: View {
                 LiftFormat.trim(LiftFormat.display(fromKilograms: $0, system: unitSystem))
             } ?? ""
             restText = item.restSec.map(String.init) ?? ""
-            maxRpeText = item.targetRpe.map { LiftFormat.trim($0) } ?? ""
+            maxRpe = item.targetRpe
             note = item.note ?? ""
         }
         initial = draft

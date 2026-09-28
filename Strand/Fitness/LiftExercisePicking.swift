@@ -125,10 +125,6 @@ struct LiftExerciseList: View {
                 }
             } header: {
                 if trimmed.isEmpty, !vocabulary.isEmpty { Text("Used before") }
-            } footer: {
-                if trimmed.isEmpty {
-                    Text("Type any name you like. NOOP remembers it, with the muscles you give it.")
-                }
             }
         }
         .searchable(text: $query, prompt: Text("Search exercises"))

@@ -33,6 +33,8 @@ struct LiftSessionEditSheet: View {
     @State private var originalSessionRpe = ""
     @State private var saving = false
     @State private var askDiscard = false
+    /// Set when writing the changes failed; the sheet stays open to try again.
+    @State private var saveFailed = false
     /// A weight or reps field whose 0 was emptied when it was focused.
     @State private var clearedZero: Field?
 
@@ -42,7 +44,7 @@ struct LiftSessionEditSheet: View {
     @ScaledMetric(relativeTo: .subheadline) private var setBadgeSize: CGFloat = 30
 
     @FocusState private var focused: Field?
-    private enum Field: Hashable { case weight(String), reps(String), rpe(String), sessionRpe }
+    private enum Field: Hashable { case weight(String), reps(String) }
 
     /// One set's fields, as typed.
     struct SetForm: Equatable {
@@ -74,15 +76,8 @@ struct LiftSessionEditSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    LabeledContent("RPE") {
-                        TextField("", text: Binding(
-                            get: { sessionRpeText },
-                            set: { sessionRpeText = $0.replacingOccurrences(of: ",", with: ".") }),
-                                  prompt: Text(verbatim: "1–10"))
-                            .multilineTextAlignment(.trailing)
-                            .numericKeyboard()
-                            .focused($focused, equals: .sessionRpe)
-                    }
+                    LiftRPEPicker(title: "RPE", rpe: Self.rpe($sessionRpeText),
+                                  stored: LiftFormat.number(originalSessionRpe))
                 } header: {
                     Text("Session")
                 }
@@ -103,6 +98,9 @@ struct LiftSessionEditSheet: View {
             }
             .liftKeyboardDone($focused)
             .discardGuard(hasChanges: hasChanges, isPresented: $askDiscard) { dismiss() }
+            .alert("Couldn't Save Session", isPresented: $saveFailed) {
+                Button("OK", role: .cancel) {}
+            }
         }
         #if os(macOS)
         .frame(minWidth: 520, minHeight: 640)
@@ -186,7 +184,14 @@ struct LiftSessionEditSheet: View {
                                 : String(localized: "Set \(position + 1) — tap to mark it a warm-up"))
             column(weightHeading) { field(.weight(entry.id), text: binding(exercise, entry.id, \.weight)) }
             column("Reps") { field(.reps(entry.id), text: binding(exercise, entry.id, \.reps)) }
-            column("RPE") { field(.rpe(entry.id), text: binding(exercise, entry.id, \.rpe)) }
+            column("RPE") {
+                LiftRPEPicker(title: "RPE", rpe: Self.rpe(binding(exercise, entry.id, \.rpe)),
+                              stored: sets.first(where: { $0.id == entry.id })?.rpe)
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .tint(StrandPalette.textPrimary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
     }
 
@@ -237,7 +242,14 @@ struct LiftSessionEditSheet: View {
         change(&exercises[exercise].entries[i])
     }
 
-    /// Replace a weight or reps field's text with `new` if it is `old`. RPE never holds 0.
+    /// An RPE held as the sheet's text, chosen on the shared picker: the text stays the one form the save
+    /// path parses, and a choice writes it back in the notation the app displays.
+    private static func rpe(_ text: Binding<String>) -> Binding<Double?> {
+        Binding(get: { LiftFormat.number(text.wrappedValue) },
+                set: { text.wrappedValue = $0.map { LiftFormat.trim($0) } ?? "" })
+    }
+
+    /// Replace a weight or reps field's text with `new` if it is `old`.
     @discardableResult
     private func swapText(_ field: Field?, _ old: String, _ new: String) -> Bool {
         let target: (id: String, key: WritableKeyPath<SetForm, String>)
@@ -295,18 +307,25 @@ struct LiftSessionEditSheet: View {
     }
 
     private func save() async {
-        guard !saving, let store = await repo.storeHandle() else { return }
+        guard !saving else { return }
+        guard let store = await repo.storeHandle() else { saveFailed = true; return }
         saving = true
         defer { saving = false }
 
         restoreClearedZero()
         let change = Self.changes(from: sets, to: exercises, system: unitSystem)
-        if !change.upserts.isEmpty { _ = try? await store.upsertLiftSets(change.upserts) }
-        if !change.deletedIds.isEmpty { _ = try? await store.deleteLiftSets(ids: change.deletedIds) }
-        if sessionRpeText != originalSessionRpe {
-            var row = session
-            row.sessionRpe = LiftFormat.number(sessionRpeText)
-            _ = try? await store.upsertLiftSessions([row])
+        // Every write is idempotent (upserts by id, deletes by id), so a retry after a failure is safe.
+        do {
+            if !change.upserts.isEmpty { _ = try await store.upsertLiftSets(change.upserts) }
+            if !change.deletedIds.isEmpty { _ = try await store.deleteLiftSets(ids: change.deletedIds) }
+            if sessionRpeText != originalSessionRpe {
+                var row = session
+                row.sessionRpe = LiftFormat.number(sessionRpeText)
+                _ = try await store.upsertLiftSessions([row])
+            }
+        } catch {
+            saveFailed = true
+            return
         }
         await onSaved()
         dismiss()

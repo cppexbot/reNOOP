@@ -32,6 +32,7 @@ struct LiftSessionDetailSheet: View {
     @State private var loaded = false
     @State private var confirmingDelete = false
     @State private var deleting = false
+    @State private var deleteFailed = false
     @State private var editing = false
     /// Session RPE as stored now. The edit sheet can correct it, and the session load must follow.
     @State private var sessionRpe: Double?
@@ -70,8 +71,8 @@ struct LiftSessionDetailSheet: View {
                             .padding(.top, 24)
                     } else {
                         figuresSection
-                        exercisesSection
                         if !performed.isEmpty {
+                            exercisesSection
                             muscleSection
                             rpeSection
                         }
@@ -101,6 +102,9 @@ struct LiftSessionDetailSheet: View {
         .frame(minWidth: 520, minHeight: 700)
         #endif
         .task { await load() }
+        .alert("Couldn't Delete Session", isPresented: $deleteFailed) {
+            Button("OK", role: .cancel) {}
+        }
         .sheet(isPresented: $editing) {
             LiftSessionEditSheet(session: storedSession, sets: sets) {
                 await load()
@@ -177,15 +181,37 @@ struct LiftSessionDetailSheet: View {
     }
 
     private func deleteSession() async {
-        guard !deleting, let store = await repo.storeHandle() else { return }
+        guard !deleting else { return }
         deleting = true
         defer { deleting = false }
-
-        _ = try? await store.deleteLiftSession(id: session.id)   // cascades to its sets
-        if let workout { await repo.deleteWorkout(workout) }
-
+        do {
+            try await Self.delete(session, workout: workout, repo: repo)
+        } catch {
+            deleteFailed = true
+            return
+        }
         await onChanged()
         dismiss()
+    }
+
+    /// Delete a session, its sets, and the workout it created (see `deleteSection` for why both). Shared
+    /// with the Lift Log's context menu. Throws when the store refuses, leaving the workout in place.
+    @MainActor
+    static func delete(_ session: LiftSessionRow, workout: WorkoutRow?, repo: Repository) async throws {
+        guard let store = await repo.storeHandle() else { throw CocoaError(.fileNoSuchFile) }
+        _ = try await store.deleteLiftSession(id: session.id)   // cascades to its sets
+        let paired: WorkoutRow?
+        if let workout { paired = workout } else { paired = await pairedWorkout(session, store: store, repo: repo) }
+        if let paired { await repo.deleteWorkout(paired) }
+    }
+
+    /// The `workout` row a session is pinned to, by that table's own natural key.
+    @MainActor
+    static func pairedWorkout(_ session: LiftSessionRow, store: WhoopStore, repo: Repository) async -> WorkoutRow? {
+        let rows = (try? await store.workouts(deviceId: repo.deviceId,
+                                              from: session.startTs - 1,
+                                              to: session.startTs + 1, limit: 10)) ?? []
+        return rows.first { $0.startTs == session.startTs && $0.sport == session.sport }
     }
 
     // MARK: - The session figures
@@ -299,15 +325,6 @@ struct LiftSessionDetailSheet: View {
     private var exercisesSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             sectionTitle("Exercises")
-            if performed.isEmpty {
-                Text("No sets were performed. Discarded sets stay under Edit sets as zeros you can fill in.")
-                    .font(StrandFont.pro(15))
-                    .foregroundStyle(StrandPalette.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(16)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(StrandPalette.summaryCard, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
-            }
             ForEach(LiftMetrics.perExercise(performed), id: \.exercise) { summary in
                 exerciseCard(summary)
             }
@@ -493,7 +510,7 @@ struct LiftSessionDetailSheet: View {
     private var rpeSection: some View {
         let p = LiftMetrics.rpeProfile(performed)
         return VStack(alignment: .leading, spacing: 10) {
-            sectionTitle("How hard it felt")
+            sectionTitle("How Hard It Felt")
             VStack(alignment: .leading, spacing: 0) {
                 columns {
                     VStack(alignment: .leading, spacing: 2) {
@@ -520,14 +537,6 @@ struct LiftSessionDetailSheet: View {
                     .accessibilityElement(children: .combine)
                 }
                 .padding(.vertical, 12)
-                if p.unratedSets > 0 {
-                    Divider()
-                    Text(String(localized: "\(p.unratedSets) working sets weren't rated, so the mean is drawn from \(p.ratedSets)."))
-                        .font(StrandFont.pro(13))
-                        .foregroundStyle(StrandPalette.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.vertical, 12)
-                }
             }
             .padding(.horizontal, 16)
             .background(StrandPalette.summaryCard, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
@@ -548,11 +557,7 @@ struct LiftSessionDetailSheet: View {
             sessionRpe = session.sessionRpe
         }
 
-        // The workout row this session is pinned to, by that table's own natural key.
-        let rows = (try? await store.workouts(deviceId: repo.deviceId,
-                                              from: session.startTs - 1,
-                                              to: session.startTs + 1, limit: 10)) ?? []
-        workout = rows.first { $0.startTs == session.startTs && $0.sport == session.sport }
+        workout = await Self.pairedWorkout(session, store: store, repo: repo)
 
         // Previous volume per exercise, for the "vs last time" line.
         var previous: [String: Double] = [:]

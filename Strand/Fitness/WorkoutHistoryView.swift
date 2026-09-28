@@ -8,22 +8,13 @@ import WhoopStore
 
 struct WorkoutHistoryView: View {
     @EnvironmentObject private var repo: Repository
-    @EnvironmentObject private var intelligence: IntelligenceEngine
     @Environment(\.undoManager) private var undoManager
 
     @State private var rows: [WorkoutRow] = []
     @State private var loaded = false
     /// nil = every activity.
     @State private var sportFilter: String?
-    @State private var editing: EditTarget?
-
-    /// `.some(nil)` never happens here: adding lives on the Workouts tab. `isCopy` pre-fills without
-    /// replacing, as `Repository.saveManualWorkout` requires for an imported row.
-    private struct EditTarget: Identifiable {
-        let row: WorkoutRow
-        var isCopy = false
-        let id = UUID()
-    }
+    @State private var editing: WorkoutEditTarget?
 
     private var sports: [String] {
         var counts: [String: Int] = [:]
@@ -69,11 +60,11 @@ struct WorkoutHistoryView: View {
                             .fill(StrandPalette.summaryCard))
                         .listRowSeparator(.hidden)
                         .swipeActions(allowsFullSwipe: false) {
-                            Button(role: .destructive) { delete(row) } label: {
+                            Button(role: .destructive) { WorkoutRowMenu.delete(row, repo: repo, undo: undoManager) } label: {
                                 Label("Delete", systemImage: "trash")
                             }
                         }
-                        .contextMenu { rowMenu(row) }
+                        .contextMenu { WorkoutRowMenu(row: row) { editing = WorkoutEditTarget(row: row, isCopy: $0) } }
                     }
                 } header: {
                     Text(month.title)
@@ -92,22 +83,19 @@ struct WorkoutHistoryView: View {
         .navigationTitle(Text("All Workouts"))
         .overlay {
             if loaded && visible.isEmpty {
-                EmptyStateView(title: Text("No Workouts"), systemImage: "figure.run")
+                EmptyStateView(title: Text("No Workouts"), systemImage: "figure.run") {
+                    if sportFilter != nil {
+                        Button("Show All") { sportFilter = nil }
+                            .tint(StrandPalette.activityExerciseText)
+                    }
+                }
             }
         }
         .task(id: repo.refreshSeq) {
             rows = await repo.workoutRows(days: 4000).sorted { $0.startTs > $1.startTs }
             loaded = true
         }
-        .sheet(item: $editing) { target in
-            ManualWorkoutSheet(editing: target.row) { row, replacing in
-                Task {
-                    await repo.saveManualWorkout(row, replacing: target.isCopy ? nil : replacing)
-                    await intelligence.analyzeRecent()
-                    await repo.refresh()
-                }
-            }
-        }
+        .workoutEditor($editing)
     }
 
     /// Fitness's filter capsules: "All" first, then each activity the history holds, most frequent first.
@@ -132,35 +120,93 @@ struct WorkoutHistoryView: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
                 .background(Capsule().fill(selected ? StrandPalette.activityExerciseText : StrandPalette.summaryCard))
+                // The capsule stays its size; the tap target is the 44 pt minimum around it.
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
+}
 
-    @ViewBuilder private func rowMenu(_ row: WorkoutRow) -> some View {
+// MARK: - Actions
+
+/// What editing a workout opens: the row, and whether to duplicate it rather than replace it (an imported
+/// row, as `Repository.saveManualWorkout` requires).
+struct WorkoutEditTarget: Identifiable {
+    let row: WorkoutRow
+    var isCopy = false
+    let id = UUID()
+}
+
+extension View {
+    /// The manual-workout editor for `target`, saved the way every workout list saves one. `onSaved` runs
+    /// after the save lands (the detail page steps back, its row being replaced).
+    func workoutEditor(_ target: Binding<WorkoutEditTarget?>, onSaved: @escaping () -> Void = {}) -> some View {
+        modifier(WorkoutEditorSheet(target: target, onSaved: onSaved))
+    }
+}
+
+private struct WorkoutEditorSheet: ViewModifier {
+    @Binding var target: WorkoutEditTarget?
+    let onSaved: () -> Void
+    @EnvironmentObject private var repo: Repository
+    @EnvironmentObject private var intelligence: IntelligenceEngine
+
+    func body(content: Content) -> some View {
+        content.sheet(item: $target) { target in
+            ManualWorkoutSheet(editing: target.row) { row, replacing in
+                Task {
+                    await repo.saveManualWorkout(row, replacing: target.isCopy ? nil : replacing)
+                    await intelligence.analyzeRecent()
+                    await repo.refresh()
+                    onSaved()
+                }
+            }
+        }
+    }
+}
+
+/// The actions one workout offers wherever it is shown, so they are the same everywhere: a row's context
+/// menu (All Workouts, Recent) and the ⋯ on its detail page.
+struct WorkoutRowMenu: View {
+    let row: WorkoutRow
+    /// Opens the editor; `true` duplicates the row as a manual one instead of replacing it.
+    let onEdit: (_ isCopy: Bool) -> Void
+    /// After the row is deleted (the detail page steps back).
+    var onDeleted: () -> Void = {}
+
+    @EnvironmentObject private var repo: Repository
+    @Environment(\.undoManager) private var undoManager
+
+    var body: some View {
         if row.sport == "detected" {
-            Menu("Label as…") {
+            Menu {
                 ForEach(WorkoutQuickStart.defaults + ["HIIT", "Yoga", "Hiking", "Tennis"], id: \.self) { sport in
                     Button(WorkoutSource.localizedSport(sport)) {
                         Task { await repo.relabelDetected(row, sport: sport); await repo.refresh() }
                     }
                 }
+            } label: {
+                Label("Label as…", systemImage: "tag")
             }
             Button("Not a Workout", systemImage: "xmark.circle") {
                 Task { await repo.dismissDetected(row); await repo.refresh() }
             }
         } else if WorkoutSource.classify(row.source) == .manual {
-            Button("Edit", systemImage: "pencil") { editing = EditTarget(row: row) }
+            Button("Edit", systemImage: "pencil") { onEdit(false) }
         } else {
-            Button("Duplicate as Manual", systemImage: "plus.square.on.square") {
-                editing = EditTarget(row: row, isCopy: true)
-            }
+            Button("Duplicate as Manual", systemImage: "plus.square.on.square") { onEdit(true) }
         }
-        Button("Delete", systemImage: "trash", role: .destructive) { delete(row) }
+        Button("Delete", systemImage: "trash", role: .destructive) {
+            Self.delete(row, repo: repo, undo: undoManager)
+            onDeleted()
+        }
     }
 
     /// Shake (or Edit ▸ Undo) puts the session and its route back.
-    private func delete(_ row: WorkoutRow) {
-        let undo = undoManager
+    @MainActor
+    static func delete(_ row: WorkoutRow, repo: Repository, undo: UndoManager?) {
         Task {
             let snapshot = await repo.deleteWorkout(row, route: true)
             await repo.refresh()

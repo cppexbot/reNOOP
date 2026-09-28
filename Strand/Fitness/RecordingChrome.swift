@@ -1,7 +1,7 @@
 //  RecordingChrome.swift
 //  NOOP · the pieces every "something is running" screen shares, so a workout, a gym session and an interval
 //  timer look like one app: the Fitness recording screen's large figures, its page dots, and the dark panel
-//  at the bottom — grabber, activity glyph, green clock, a trailing accessory, and three round buttons.
+//  at the bottom — activity glyph, green clock, a trailing accessory, and three round buttons.
 
 import SwiftUI
 import StrandDesign
@@ -97,24 +97,70 @@ struct RecordingPageDots: View {
     }
 }
 
-/// A round control in the panel. `prominent` fills it Exercise green with a black glyph (the main action).
+/// A round control in the panel. `prominent` fills it Exercise green with a black glyph (the main action);
+/// `destructive` sets it in the system red on a red wash, as the Workout app's End. A small one (the top
+/// bar's ⌄, a sheet-sized ✕) is a Liquid Glass circle on iOS 26.
 struct RecordingButton: View {
     let symbol: String
     var size: CGFloat = 76
     var prominent = false
+    var destructive = false
     var tint: Color = .white
     let label: LocalizedStringKey
     let action: () -> Void
 
+    /// The top bar's size and anything like it: glass, not a filled disc.
+    private var isGlass: Bool { size < 60 && !prominent && !destructive }
+
     var body: some View {
+        styled
+            .accessibilityLabel(Text(label))
+            .accessibilityShowsLargeContentViewer { Label(label, systemImage: symbol) }
+            // Capped so the three-button row still fits the screen width.
+            .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+    }
+
+    @ViewBuilder private var styled: some View {
+        #if compiler(>=6.2)
+        if isGlass {
+            if #available(iOS 26.0, macOS 26.0, *) {
+                Button(action: action) { RecordingGlassGlyph(symbol: symbol, size: size, tint: tint) }
+                    .buttonStyle(.glass)
+                    .buttonBorderShape(.circle)
+            } else {
+                plain
+            }
+        } else {
+            plain
+        }
+        #else
+        plain
+        #endif
+    }
+
+    private var plain: some View {
         Button(action: action) {
-            RecordingButtonFace(symbol: symbol, size: size, prominent: prominent, tint: tint)
+            RecordingButtonFace(symbol: symbol, size: size, prominent: prominent,
+                                tint: destructive ? Color.red : tint, wash: destructive ? Color.red : nil)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(Text(label))
-        .accessibilityShowsLargeContentViewer { Label(label, systemImage: symbol) }
-        // Capped so the three-button row still fits the screen width.
-        .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+    }
+}
+
+/// The glyph inside a glass circle: the glass adds its own inset, so the label is sized to land the whole
+/// control on `size`.
+private struct RecordingGlassGlyph: View {
+    let symbol: String
+    let size: CGFloat
+    let tint: Color
+
+    @ScaledMetric(relativeTo: .body) private var glyph: CGFloat = 17
+
+    var body: some View {
+        Image(systemName: symbol)
+            .font(.system(size: glyph, weight: .semibold))
+            .foregroundStyle(tint)
+            .frame(width: max(glyph, size - 16), height: max(glyph, size - 16))
     }
 }
 
@@ -123,6 +169,8 @@ private struct RecordingButtonFace: View {
     let size: CGFloat
     let prominent: Bool
     let tint: Color
+    /// A coloured wash behind the glyph instead of the neutral disc (the red of End).
+    var wash: Color?
 
     @ScaledMetric(relativeTo: .title2) private var smallGlyph: CGFloat = 24
     @ScaledMetric(relativeTo: .largeTitle) private var largeGlyph: CGFloat = 40
@@ -136,12 +184,18 @@ private struct RecordingButtonFace: View {
             .font(.system(size: glyph, weight: .semibold))
             .foregroundStyle(prominent ? StrandPalette.fitnessOnAccent : tint)
             .frame(width: diameter, height: diameter)
-            .background(Circle().fill(prominent ? StrandPalette.activityExerciseText : Color(white: 0.2)))
+            .background(Circle().fill(disc))
             .contentShape(Circle())
+    }
+
+    private var disc: Color {
+        if prominent { return StrandPalette.activityExerciseText }
+        if let wash { return wash.opacity(0.25) }
+        return Color(white: 0.2)
     }
 }
 
-/// The recording panel: grabber, the activity glyph, a clock, a trailing accessory, then three buttons
+/// The recording panel: the activity glyph, a clock, a trailing accessory, then three buttons
 /// with the main one in the middle. Sits flush with the bottom edge like a sheet, as in Fitness.
 struct RecordingPanel<Clock: View, Trailing: View, Leading: View, Center: View, Right: View>: View {
     let glyph: AnyView
@@ -155,10 +209,7 @@ struct RecordingPanel<Clock: View, Trailing: View, Leading: View, Center: View, 
 
     var body: some View {
         VStack(spacing: 18) {
-            Capsule()
-                .fill(.white.opacity(0.3))
-                .frame(width: 36, height: 5)
-                .padding(.top, 8)
+            // No grabber: the panel doesn't drag, and ⌄ minimises it (K-4). The top keeps its old spacing.
             HStack {
                 glyph
                     .frame(width: badgeSize, height: badgeSize)
@@ -177,6 +228,7 @@ struct RecordingPanel<Clock: View, Trailing: View, Leading: View, Center: View, 
             }
         }
         .padding(.horizontal, 20)
+        .padding(.top, 31)
         .padding(.bottom, 20)
         .background(
             UnevenRoundedRectangle(topLeadingRadius: 38, topTrailingRadius: 38, style: .continuous)
@@ -186,33 +238,59 @@ struct RecordingPanel<Clock: View, Trailing: View, Leading: View, Center: View, 
     }
 }
 
-/// The panel's clock face: large rounded digits in Exercise green (or the rest cyan).
+/// The panel's clock face: large rounded digits in Exercise green (or the rest cyan). Paused, it turns the
+/// Workout app's yellow and says so under the digits, so the state is not left to the centre glyph alone.
 struct RecordingClockText: View {
     let text: String
     var tint: Color = StrandPalette.activityExerciseText
+    var paused = false
 
     @ScaledMetric(relativeTo: .largeTitle) private var clockSize: CGFloat = 42
 
     var body: some View {
-        Text(text)
-            .font(.system(size: clockSize, weight: .medium, design: .rounded))
-            .monospacedDigit()
-            .foregroundStyle(tint)
-            .lineLimit(1)
-            .minimumScaleFactor(0.4)
+        VStack(spacing: 0) {
+            Text(text)
+                .font(.system(size: clockSize, weight: .medium, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(paused ? StrandPalette.fitnessTime : tint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.4)
+            if paused {
+                Text("Paused")
+                    .font(StrandFont.pro(13, weight: .semibold))
+                    .textCase(.uppercase)
+                    .foregroundStyle(StrandPalette.fitnessTime)
+            }
+        }
+        // One element, so a caller's label and value describe the clock as a whole.
+        .accessibilityElement(children: .combine)
     }
 }
 
-/// The top row of a recording screen: ⌄ to put the screen away while what it records keeps running.
-struct RecordingTopBar: View {
+/// The top row of a recording screen: ⌄ to put the screen away while what it records keeps running, and an
+/// optional control on the trailing side (the gym session's Undo), so it stays on every page.
+struct RecordingTopBar<Trailing: View>: View {
     let onMinimize: () -> Void
+    @ViewBuilder let trailing: () -> Trailing
+
+    init(onMinimize: @escaping () -> Void, @ViewBuilder trailing: @escaping () -> Trailing) {
+        self.onMinimize = onMinimize
+        self.trailing = trailing
+    }
 
     var body: some View {
         HStack {
             RecordingButton(symbol: "chevron.down", size: 44, label: "Minimize", action: onMinimize)
             Spacer()
+            trailing()
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)
+    }
+}
+
+extension RecordingTopBar where Trailing == EmptyView {
+    init(onMinimize: @escaping () -> Void) {
+        self.init(onMinimize: onMinimize) { EmptyView() }
     }
 }

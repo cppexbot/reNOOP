@@ -36,6 +36,11 @@ struct LiftLogView: View {
     @State private var viewing: SessionDetailTarget?
     /// Exercise lines per program id, for the card subtitle.
     @State private var exerciseCounts: [String: Int] = [:]
+    /// The program or session a context menu asked to delete (nil = no confirmation showing).
+    @State private var deletingProgram: LiftProgramRow?
+    @State private var deletingSession: LiftSessionRow?
+    /// The title of the alert a failed delete raises (nil = none showing).
+    @State private var deleteFailure: String?
 
     @Environment(\.dynamicTypeSize) private var dts
     @ScaledMetric(relativeTo: .largeTitle) private var playSize: CGFloat = 50
@@ -68,7 +73,7 @@ struct LiftLogView: View {
                     // Filling a dozen exercise lines by hand on a phone is the most tedious thing in the
                     // feature; a spreadsheet on a computer does it in a couple of minutes.
                     Button { importing = true } label: {
-                        Label("Import a program", systemImage: "tablecells")
+                        Label("Import a Program", systemImage: "tablecells")
                     }
                 } label: {
                     Image(systemName: "ellipsis")
@@ -91,6 +96,30 @@ struct LiftLogView: View {
         }
         .sheet(item: $viewing) { target in
             LiftSessionDetailSheet(session: target.session) { await load() }
+        }
+        .confirmationDialog("Delete this program?",
+                            isPresented: Binding(get: { deletingProgram != nil },
+                                                 set: { if !$0 { deletingProgram = nil } }),
+                            titleVisibility: .visible) {
+            Button("Delete", role: .destructive) {
+                if let program = deletingProgram { Task { await delete(program) } }
+            }
+            Button("Cancel", role: .cancel) { deletingProgram = nil }
+        } message: {
+            Text("Sessions you already logged from it are kept.")
+        }
+        .confirmationDialog("Delete this session?",
+                            isPresented: Binding(get: { deletingSession != nil },
+                                                 set: { if !$0 { deletingSession = nil } }),
+                            titleVisibility: .visible) {
+            Button("Delete", role: .destructive) {
+                if let session = deletingSession { Task { await delete(session) } }
+            }
+            Button("Cancel", role: .cancel) { deletingSession = nil }
+        }
+        .alert(Text(deleteFailure ?? ""),
+               isPresented: Binding(get: { deleteFailure != nil }, set: { if !$0 { deleteFailure = nil } })) {
+            Button("OK", role: .cancel) { deleteFailure = nil }
         }
     }
 
@@ -148,6 +177,14 @@ struct LiftLogView: View {
             .disabled(empty)
             .opacity(empty ? 0.4 : 1)
             .accessibilityLabel(Text("Start this program"))
+        }
+        .contextMenuShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        // The card's two actions, and the editor's delete, in one place.
+        .contextMenu {
+            Button("Start", systemImage: "play.fill") { Task { await start(program) } }
+                .disabled(empty)
+            Button("Edit", systemImage: "pencil") { editing = ProgramEditTarget(id: program.id, program: program) }
+            Button("Delete", systemImage: "trash", role: .destructive) { deletingProgram = program }
         }
     }
 
@@ -251,13 +288,6 @@ struct LiftLogView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 2)
             .background(StrandPalette.summaryCard, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-            // The band is named and sourced, never phrased as a target NOOP sets for anyone: this is
-            // not a medical device and does not prescribe.
-            Text("Direct sets count once, indirect ones half. The tick marks \(LiftFormat.trim(LiftMetrics.ReferenceDose.hypertrophyMinimumSetsPerWeek)) sets a week, a research reference rather than a target.")
-                .font(StrandFont.pro(13))
-                .foregroundStyle(StrandPalette.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, 4)
         }
     }
 
@@ -348,6 +378,10 @@ struct LiftLogView: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .contextMenuShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .contextMenu {
+                    Button("Delete Session", systemImage: "trash", role: .destructive) { deletingSession = session }
+                }
             }
         }
     }
@@ -357,6 +391,28 @@ struct LiftLogView: View {
             .font(StrandFont.pro(22, weight: .bold))
             .foregroundStyle(StrandPalette.textPrimary)
             .padding(.horizontal, 4)
+    }
+
+    // MARK: - Delete
+
+    private func delete(_ program: LiftProgramRow) async {
+        deletingProgram = nil
+        let failure = String(localized: "Couldn't Delete Program")
+        guard let store = await repo.storeHandle() else { deleteFailure = failure; return }
+        do { _ = try await store.deleteLiftProgram(id: program.id) } catch { deleteFailure = failure; return }
+        await load()
+    }
+
+    /// As the session's own page deletes it: the session, its sets, and the workout it created.
+    private func delete(_ session: LiftSessionRow) async {
+        deletingSession = nil
+        do {
+            try await LiftSessionDetailSheet.delete(session, workout: nil, repo: repo)
+        } catch {
+            deleteFailure = String(localized: "Couldn't Delete Session")
+            return
+        }
+        await load()
     }
 
     // MARK: - Load

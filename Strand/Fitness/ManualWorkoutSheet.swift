@@ -281,7 +281,7 @@ struct ManualWorkoutSheet: View {
 
     private var validationNote: String? {
         guard builtRow == nil else { return nil }
-        if sport.trimmingCharacters(in: .whitespaces).isEmpty { return String(localized: "Enter a sport.") }
+        if sport.trimmingCharacters(in: .whitespaces).isEmpty { return String(localized: "Choose a sport.") }
         if start > Date() { return String(localized: "Start can't be in the future.") }
         // The failure this feature introduces, so it gets its own line rather than the catch-all below.
         if end <= start { return String(localized: "End must be after the start.") }
@@ -293,10 +293,10 @@ struct ManualWorkoutSheet: View {
             return String(localized: "A workout must be at least 1 minute.")
         }
         if !avgHrText.trimmingCharacters(in: .whitespaces).isEmpty, avgHr == nil || !(25...250).contains(avgHr ?? -1) {
-            return String(localized: "Average HR must be 25-250 bpm.")
+            return String(localized: "Average HR must be 25–250 bpm.")
         }
         if !kcalText.trimmingCharacters(in: .whitespaces).isEmpty, kcal == nil || (kcal ?? -1) < 0 || (kcal ?? 0) > 20_000 {
-            return String(localized: "Calories must be 0-20,000.")
+            return String(localized: "Calories must be 0–20,000.")
         }
         if !distanceText.trimmingCharacters(in: .whitespaces).isEmpty,
            distanceMeters == nil || (distanceMeters ?? -1) < 0 || (distanceMeters ?? 0) > 1_000_000 {

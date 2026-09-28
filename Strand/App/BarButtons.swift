@@ -87,3 +87,15 @@ extension View {
             }
     }
 }
+
+extension View {
+    /// The shape a long-press lifts (iOS); macOS menus have no preview, so nothing changes there.
+    @ViewBuilder
+    func contextMenuShape<S: Shape>(_ shape: S) -> some View {
+        #if os(iOS)
+        contentShape(.contextMenuPreview, shape)
+        #else
+        self
+        #endif
+    }
+}

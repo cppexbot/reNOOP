@@ -16,18 +16,24 @@ struct LiveWorkoutView: View {
     @EnvironmentObject private var model: AppModel
     @EnvironmentObject private var repo: Repository
     @EnvironmentObject private var profile: ProfileStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ObservedObject private var motion = NoopMotionState.shared
     // PERF: deliberately does NOT observe `LiveState` — a strap publishes it ~1 Hz and every packet would
     // re-render the whole screen. The sensor rows are a leaf (`SensorFigures`) that owns that observation.
     let onClose: () -> Void
 
     @AppStorage(UnitPrefs.effortScaleKey) private var effortScaleRaw = EffortScale.hundred.rawValue
     private var effortScale: EffortScale { UnitPrefs.resolveEffortScale(effortScaleRaw) }
-    /// Keep the screen awake while recording (#703). Opt-in; the toggle lives in Settings.
-    @AppStorage("workoutKeepScreenOn") private var keepScreenOn = false
+    /// Keep the screen awake while recording (#703). Opt-in; the toggle lives in Settings, and the gym
+    /// session and the interval timer read the same key.
+    @AppStorage(LiveWorkoutView.keepScreenOnKey) private var keepScreenOn = false
     @AppStorage(DayCycleMode.storageKey) private var dayCycleModeRaw = DayCycleMode.sleepOnset.rawValue
     @AppStorage(UnitPrefs.systemKey) private var unitSystemRaw = UnitSystem.metric.rawValue
 
-    /// Ending confirms first (#517), and offers discarding there too, so a stray tap loses nothing.
+    /// The one "Keep screen on" setting every recording screen honours (Settings → Workouts).
+    static let keepScreenOnKey = "workoutKeepScreenOn"
+
+    /// Finishing confirms first (#517), and offers discarding there too, so a stray tap loses nothing.
     @State private var showEndConfirm = false
     /// 0 = figures, 1 = heart-rate zones — the two pages Fitness swipes between.
     @State private var page = 0
@@ -72,12 +78,12 @@ struct LiveWorkoutView: View {
             ScreenIdle.keepAwake(false)
         }
         .task { await loadRings() }
-        .confirmationDialog("End this workout?", isPresented: $showEndConfirm, titleVisibility: .hidden) {
-            Button("End Workout") {
+        .confirmationDialog("Finish Workout", isPresented: $showEndConfirm, titleVisibility: .hidden) {
+            Button("Finish Workout") {
                 model.endWorkout()
                 onClose()
             }
-            Button("Delete Workout", role: .destructive) {
+            Button("Discard Workout", role: .destructive) {
                 model.discardWorkout()
                 onClose()
             }
@@ -99,7 +105,7 @@ struct LiveWorkoutView: View {
                 DistancePaceFigures(recorder: model.gpsRecorder, spacer: true) {
                     effortFigure
                     Spacer(minLength: 8)
-                    LiveFigure(value: (model.activeWorkout?.avgHr ?? 0) > 0 ? "\(model.activeWorkout!.avgHr)" : "--",
+                    LiveFigure(value: (model.activeWorkout?.avgHr ?? 0) > 0 ? "\(model.activeWorkout!.avgHr)" : "—",
                                label: String(localized: "AVERAGE\nHEART RATE"))
                 }
                 SensorFigures()
@@ -147,20 +153,20 @@ struct LiveWorkoutView: View {
 
     private var heartRateFigure: some View {
         HStack(alignment: .lastTextBaseline, spacing: 4) {
-            Text(model.bpm.map { "\($0)" } ?? "--")
+            Text(model.bpm.map { "\($0)" } ?? "—")
                 .font(LiveFigure.numeral(numeralSize))
                 .monospacedDigit()
                 .foregroundStyle(.white)
                 .lineLimit(1)
                 .minimumScaleFactor(0.4)
-                .contentTransition(.numericText())
+                .contentTransition(reduceMotion ? .identity : .numericText())
             Image(systemName: "heart.fill")
                 .font(.system(size: heartSize, weight: .bold))
                 .foregroundStyle(StrandPalette.healthHeart)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text("Heart rate"))
-        .accessibilityValue(Text(model.bpm.map { "\($0) bpm" } ?? "–"))
+        .accessibilityValue(Text(model.bpm.map { "\($0) bpm" } ?? "—"))
     }
 
     // MARK: - Control panel
@@ -171,17 +177,22 @@ struct LiveWorkoutView: View {
             glyph: AnyView(WorkoutTypeIcon(workoutType: model.activeWorkout?.sport ?? WorkoutCatalog.defaultSportName,
                                            size: panelGlyphSize, weight: .semibold, color: StrandPalette.activityExerciseText)),
             clock: {
-                TimelineView(.animation(minimumInterval: 0.05)) { ctx in
-                    let elapsed = model.activeWorkout?.elapsed(at: ctx.date) ?? 0
-                    let s = max(0, Int(elapsed))
-                    RecordingClockText(text: Self.stopwatch(elapsed))
-                        .accessibilityLabel(Text("Elapsed time"))
-                        .accessibilityValue(Text(Duration.seconds(s).formatted(.units(allowed: [.hours, .minutes, .seconds], width: .wide))))
-                        .accessibilityAddTraits(.updatesFrequently)
+                // Hundredths at 20 Hz, as Fitness runs its stopwatch; posed still (Reduce Motion, Low Power,
+                // NOOP's own quiet-motion setting) the clock ticks once a second and drops the hundredths.
+                if motion.poseStill(reduceMotion) {
+                    TimelineView(.periodic(from: Date(timeIntervalSince1970: floor(Date().timeIntervalSince1970)), by: 1)) { ctx in
+                        panelClock(at: ctx.date, paused: paused, hundredths: false)
+                    }
+                } else {
+                    TimelineView(.animation(minimumInterval: 0.05, paused: paused)) { ctx in
+                        panelClock(at: ctx.date, paused: paused, hundredths: true)
+                    }
                 }
             },
             trailing: { ActivityRingsView(rings: rings, diameter: 44).opacity(rings.isEmpty ? 0 : 1) },
-            leading: { RecordingButton(symbol: "xmark", label: "End workout") { showEndConfirm = true } },
+            leading: {
+                RecordingButton(symbol: "xmark", destructive: true, label: "Finish") { showEndConfirm = true }
+            },
             center: {
                 RecordingButton(symbol: paused ? "play.fill" : "pause.fill", size: 112, prominent: paused,
                                 label: paused ? "Resume" : "Pause") { model.toggleWorkoutPause() }
@@ -191,6 +202,16 @@ struct LiveWorkoutView: View {
                     withAnimation { page = page == 0 ? 1 : 0 }
                 }
             })
+    }
+
+    private func panelClock(at date: Date, paused: Bool, hundredths: Bool) -> some View {
+        let elapsed = model.activeWorkout?.elapsed(at: date) ?? 0
+        let spoken = Duration.seconds(max(0, Int(elapsed)))
+            .formatted(.units(allowed: [.hours, .minutes, .seconds], width: .wide))
+        return RecordingClockText(text: Self.stopwatch(elapsed, hundredths: hundredths), paused: paused)
+            .accessibilityLabel(Text("Elapsed time"))
+            .accessibilityValue(Text(verbatim: paused ? "\(spoken), \(String(localized: "Paused"))" : spoken))
+            .accessibilityAddTraits(.updatesFrequently)
     }
 
     private func loadRings() async {
@@ -208,13 +229,18 @@ struct LiveWorkoutView: View {
         ]
     }
 
-    static func stopwatch(_ seconds: TimeInterval) -> String {
+    static func stopwatch(_ seconds: TimeInterval, hundredths: Bool = true) -> String {
         let total = max(0, seconds)
         let whole = Int(total)
-        let hundredths = Int((total - Double(whole)) * 100)
+        guard hundredths else {
+            return whole >= 3600
+                ? String(format: "%d:%02d:%02d", whole / 3600, whole / 60 % 60, whole % 60)
+                : String(format: "%02d:%02d", whole / 60, whole % 60)
+        }
+        let cents = Int((total - Double(whole)) * 100)
         return whole >= 3600
-            ? String(format: "%d:%02d:%02d.%02d", whole / 3600, whole / 60 % 60, whole % 60, hundredths)
-            : String(format: "%02d:%02d.%02d", whole / 60, whole % 60, hundredths)
+            ? String(format: "%d:%02d:%02d.%02d", whole / 3600, whole / 60 % 60, whole % 60, cents)
+            : String(format: "%02d:%02d.%02d", whole / 60, whole % 60, cents)
     }
 }
 

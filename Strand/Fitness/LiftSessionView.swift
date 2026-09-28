@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 import StrandDesign
 import WhoopStore
 
@@ -26,14 +27,26 @@ struct LiftSessionView: View {
     @EnvironmentObject var repo: Repository
     @EnvironmentObject var session: LiftSessionController
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.undoManager) private var undoManager
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// What Undo will take back, named (see `LiftUndoLedger`).
+    @ObservedObject private var undoLedger = LiftUndoLedger.shared
+    /// The one "Keep screen on" setting every recording screen honours (Settings → Workouts): the rest
+    /// timer is a clock to watch, so the screen stays up for it as it does for a workout.
+    @AppStorage(LiveWorkoutView.keepScreenOnKey) private var keepScreenOn = false
 
     /// Called once the session has been written, so the hub can reload.
     let onFinished: () async -> Void
 
     @State private var showingFinish = false
     @State private var confirmingDiscard = false
-    @State private var sessionRpeText = ""
+    @State private var sessionRpe: Double?
     @State private var saving = false
+    /// Set when writing the session failed; the finish sheet stays open to try again.
+    @State private var saveFailed = false
+    /// The id the session is written under, kept across a retry so a second attempt replaces the first
+    /// rather than filing the session twice.
+    @State private var savingSessionId: String?
     /// The two questions finishing can ask. Nil until answered: saving waits for an answer rather than
     /// deciding for the user.
     @State private var unfinishedChoice: UnfinishedChoice?
@@ -58,11 +71,6 @@ struct LiftSessionView: View {
     @Environment(\.dynamicTypeSize) private var dts
     @ScaledMetric(relativeTo: .body) private var panelGlyphSize: CGFloat = 18
 
-    @FocusState private var focused: FocusTarget?
-    private enum FocusTarget: Hashable {
-        case sessionRpe
-    }
-
 
     private var engine: LiftSessionEngine? { session.engine }
 
@@ -73,8 +81,11 @@ struct LiftSessionView: View {
                 // The control panel never scrolls away: at the rack the clock and the one action have to be
                 // where your thumb already is.
                 VStack(spacing: 0) {
-                    // Minimising leaves the session running as the bar above the tab bar.
-                    RecordingTopBar { dismiss() }
+                    // Minimising leaves the session running as the bar above the tab bar. Undo sits on the
+                    // same row, so it is there on both pages.
+                    RecordingTopBar(onMinimize: { dismiss() }) {
+                        if engine.canUndo { undoButton }
+                    }
                     TabView(selection: $page) {
                         nowPage(engine).tag(0)
                         sheet(engine).tag(1)
@@ -87,15 +98,10 @@ struct LiftSessionView: View {
                     controlPanel(engine)
                 }
             } else {
-                VStack(spacing: 10) {
-                    Image(systemName: "dumbbell")
-                        .font(StrandFont.pro(34, weight: .semibold))
-                        .foregroundStyle(StrandPalette.textTertiary)
-                    Text("No session running")
-                        .font(StrandFont.pro(17))
-                        .foregroundStyle(StrandPalette.textSecondary)
+                EmptyStateView(title: Text("No Session"), systemImage: "dumbbell") {
+                    Button("Close") { dismiss() }
+                        .tint(StrandPalette.activityExerciseText)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         #if !os(iOS)
@@ -103,12 +109,32 @@ struct LiftSessionView: View {
         #endif
         .background(Color.black.ignoresSafeArea())
         .preferredColorScheme(.dark)
-        .liftKeyboardDone($focused)
-        .dismissesKeyboardOnTap($focused)
         // Re-read whenever the session's exercises change, so an exercise added mid-session that was
         // done before shows last time's numbers in grey, like every other line.
         .task(id: engine?.plan.map(\.exercise)) { await loadLastTime() }
         .sheet(isPresented: $showingFinish) { finishSheet }
+        .onAppear {
+            undoLedger.attach(session)
+            undoLedger.undoManager = undoManager
+            if keepScreenOn { ScreenIdle.keepAwake(true) }
+        }
+        .onDisappear {
+            undoLedger.undoManager = nil
+            // Always release, even if the toggle was flipped off mid-session.
+            ScreenIdle.keepAwake(false)
+        }
+    }
+
+    /// Undo, saying what it takes back: "Undo Delete Set".
+    private var undoButton: some View {
+        let title = undoLedger.names.last.flatMap { $0.isEmpty ? nil : String(localized: "Undo \($0)") }
+            ?? String(localized: "Undo")
+        return Button { undoLedger.undo(session: session) } label: {
+            Label(title, systemImage: "arrow.uturn.backward")
+                .font(StrandFont.pro(15, weight: .semibold))
+                .lineLimit(1)
+        }
+        .undoButtonStyle()
     }
 
     // MARK: - The page
@@ -141,7 +167,11 @@ struct LiftSessionView: View {
             .scrollContentBackground(.hidden)
             .onChange(of: engine.currentSlot) { slot in
                 guard let slot else { return }
-                withAnimation { proxy.scrollTo(slot.exerciseIndex, anchor: .top) }
+                if reduceMotion {
+                    proxy.scrollTo(slot.exerciseIndex, anchor: .top)
+                } else {
+                    withAnimation { proxy.scrollTo(slot.exerciseIndex, anchor: .top) }
+                }
             }
             .sheet(isPresented: $addingExercise) {
                 LiftSessionExerciseSheet { name, primary, secondaries in
@@ -167,23 +197,18 @@ struct LiftSessionView: View {
         let item = slot.flatMap { engine.planItem(for: $0) }
         return RecordingFigures {
             VStack(alignment: .leading, spacing: 0) {
-                HStack(alignment: .top) {
-                    RecordingHeading(caption: stageCaption(engine), tint: stageTint(engine),
-                                     title: item?.exercise ?? session.programName ?? String(localized: "Session"))
-                    if engine.canUndo {
-                        RecordingButton(symbol: "arrow.uturn.backward", size: 44, label: "Undo") { session.undo() }
-                    }
-                }
-                .padding(.top, 8)
+                RecordingHeading(caption: stageCaption(engine), tint: stageTint(engine),
+                                 title: item?.exercise ?? session.programName ?? String(localized: "Session"))
+                    .padding(.top, 8)
                 Spacer(minLength: 8)
                 stageFigure(engine)
                 Spacer(minLength: 8)
                 if let slot {
                     let v = session.values(of: slot)
-                    LiveFigure(value: v.weightKg.map { LiftFormat.trim(LiftFormat.display(fromKilograms: $0, system: unitSystem)) } ?? "--",
+                    LiveFigure(value: v.weightKg.map { LiftFormat.trim(LiftFormat.display(fromKilograms: $0, system: unitSystem)) } ?? "—",
                                unit: v.weightKg == nil ? "" : weightSymbol, label: "")
                     Spacer(minLength: 8)
-                    LiveFigure(value: v.reps.map(String.init) ?? "--", label: String(localized: "REPS"))
+                    LiveFigure(value: v.reps.map(String.init) ?? "—", label: String(localized: "REPS"))
                     Spacer(minLength: 8)
                 }
                 LiftHeartRateFigure()
@@ -315,7 +340,7 @@ struct LiftSessionView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityValue(Text(recorded ? "Done" : isWorking ? "In progress" : "Not started"))
+        .accessibilityValue(Text(recorded ? "Done" : isWorking ? "In progress" : ""))
         .listRowBackground(isWorking ? StrandPalette.activityExerciseText.opacity(0.16) : nil)
     }
 
@@ -417,8 +442,8 @@ struct LiftSessionView: View {
             },
             trailing: { LiftHeartRate() },
             leading: {
-                RecordingButton(symbol: "xmark", label: "End session") { confirmingEnd = true }
-                    .confirmationDialog("End this session?", isPresented: $confirmingEnd, titleVisibility: .hidden) {
+                RecordingButton(symbol: "xmark", destructive: true, label: "Finish") { confirmingEnd = true }
+                    .confirmationDialog("Finish Session", isPresented: $confirmingEnd, titleVisibility: .hidden) {
                         Button("Finish Session") {
                             unfinishedChoice = nil
                             programChoice = nil
@@ -435,7 +460,8 @@ struct LiftSessionView: View {
                     .disabled(engine.stage == .finished)
             },
             right: {
-                RecordingButton(symbol: page == 0 ? "list.bullet" : "dumbbell", label: "Sets") {
+                RecordingButton(symbol: page == 0 ? "list.bullet" : "dumbbell",
+                                label: page == 0 ? "Sets" : "Current Set") {
                     withAnimation { page = page == 0 ? 1 : 0 }
                 }
             })
@@ -476,16 +502,7 @@ struct LiftSessionView: View {
                 }
 
                 Section {
-                    LabeledContent {
-                        TextField("7", text: $sessionRpeText)
-                            .multilineTextAlignment(.trailing)
-                            .monospacedDigit()
-                            .numericKeyboard()
-                            .focused($focused, equals: .sessionRpe)
-                            .frame(maxWidth: 80)
-                    } label: {
-                        Text("Session RPE (1–10)")
-                    }
+                    LiftRPEPicker(title: "Session RPE", rpe: $sessionRpe)
                 }
 
                 if unfinished > 0 { unfinishedSection(count: unfinished) }
@@ -501,7 +518,7 @@ struct LiftSessionView: View {
                     Button(role: .destructive) {
                         confirmingDiscard = true
                     } label: {
-                        Label("Discard session", systemImage: "trash")
+                        Label("Discard Session", systemImage: "trash")
                             .foregroundStyle(StrandPalette.statusCritical)
                     }
                     .disabled(saving)
@@ -515,7 +532,7 @@ struct LiftSessionView: View {
                     }
                 }
             }
-            .navigationTitle(Text("Finish session"))
+            .navigationTitle(Text("Finish Session"))
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -534,8 +551,10 @@ struct LiftSessionView: View {
         #else
         .frame(minWidth: 460, minHeight: 560)
         #endif
-        .liftKeyboardDone($focused)
         .task { await loadSetCountChanges() }
+        .alert("Couldn't Save Session", isPresented: $saveFailed) {
+            Button("OK", role: .cancel) {}
+        }
     }
 
     /// The session so far, as the Fitness app's Workout Details grid: time, sets and exercises.
@@ -661,14 +680,17 @@ struct LiftSessionView: View {
     }
 
     private func save() async {
-        guard !saving, let store = await repo.storeHandle() else { return }
+        guard !saving else { return }
+        guard let store = await repo.storeHandle() else { saveFailed = true; return }
         saving = true
         defer { saving = false }
 
         session.finish()
         guard let engine = session.engine else { return }
-        let endTs = Int(Date().timeIntervalSince1970)
-        let sessionId = UUID().uuidString
+        // The session ended when it was finished, not when a retry after a failed write went through.
+        let endTs = engine.isFinished ? engine.stageStartedAt : Int(Date().timeIntervalSince1970)
+        let sessionId = savingSessionId ?? UUID().uuidString
+        savingSessionId = sessionId
         // After `finish`, which closes out the running rest: that set's measured rest belongs to it.
         let finished = session.setsToSave(completingUnfinished: unfinishedChoice == .complete)
 
@@ -689,9 +711,8 @@ struct LiftSessionView: View {
             programId: session.programId,
             // Snapshot the name: renaming or deleting the program never rewrites this session.
             programName: session.programName,
-            sessionRpe: LiftFormat.number(sessionRpeText),
+            sessionRpe: sessionRpe,
             note: session.programName)
-        _ = try? await store.upsertLiftSessions([row])
 
         // `ord` is COMPLETION order, which with out-of-order work is not the plan's order — and it
         // is the order that actually happened, which is what a session should read back as. Sets
@@ -709,7 +730,15 @@ struct LiftSessionView: View {
                 isWarmup: s.isWarmup, startTs: s.startTs, endTs: s.endTs,
                 restSec: s.restSec, note: nil)
         }
-        _ = try? await store.upsertLiftSets(rows)
+        // A failed write keeps the sheet open, as it was, to try again — closing it as if it had saved
+        // would lose the session without a word.
+        do {
+            _ = try await store.upsertLiftSessions([row])
+            _ = try await store.upsertLiftSets(rows)
+        } catch {
+            saveFailed = true
+            return
+        }
         await writeProgram(store: store, plan: engine.plan, sets: finished)
 
         // Through the SAME path a manual workout takes, so it inherits overlap dedup, the engine's
@@ -728,6 +757,7 @@ struct LiftSessionView: View {
     /// Close the session down and leave the sheet. Shared by the normal save and the nothing-to-file
     /// path above, so the two cannot drift about what ending a session means.
     private func finishAndDismiss() async {
+        savingSessionId = nil
         session.finishedSaving()
         await repo.refresh()
         await onFinished()
@@ -764,4 +794,124 @@ struct LiftSessionView: View {
     /// The sport every logged session is filed under — the same token the Hevy/Liftosaur importer
     /// uses, so a typed session and an imported one land in one bucket with one icon.
     static let sport = "Strength Training"
+}
+
+// MARK: - Undo, named
+
+/// Names what the gym session's Undo will take back ("Undo Delete Set"), and registers each step with the
+/// screen's undo manager, so shaking the phone undoes it as the button does.
+///
+/// The engine keeps ONE unnamed stack of snapshots and pushes onto it from the session screen, the
+/// minimised bar and the strap alike, so the names cannot come from whoever called. They are read off each
+/// change the engine publishes instead, by the same rules that decide whether it pushed: a set started or
+/// done, a rest ended, a set or an exercise added, a set removed, the session finished. Typing a set's
+/// numbers pushes nothing and names nothing; an undo pops one name. It observes the controller for the
+/// life of the app, because the strap moves the session on while this screen is put away.
+///
+/// A change it cannot name still counts, as a blank name, so a name never describes a step below the one
+/// that will actually be undone; the button then says only "Undo".
+@MainActor
+final class LiftUndoLedger: ObservableObject {
+    static let shared = LiftUndoLedger()
+
+    /// One per undoable step, the latest last. Empty strings are steps without a name.
+    @Published private(set) var names: [String] = []
+    /// The screen's undo manager while the session screen is up; shake-to-undo only applies there.
+    weak var undoManager: UndoManager? {
+        didSet { if undoManager !== oldValue { oldValue?.removeAllActions(withTarget: self) } }
+    }
+
+    private var observation: AnyCancellable?
+    private var last: LiftSessionEngine?
+    private var undoing = false
+
+    /// Starts observing `session`. Idempotent: the controller lives at the app root, and so does this.
+    func attach(_ session: LiftSessionController) {
+        guard observation == nil else { return }
+        last = session.engine
+        // `@Published` delivers every assignment in order, so no two steps merge into one change.
+        observation = session.$engine.sink { [weak self, weak session] engine in
+            guard let self, let session else { return }
+            self.observe(engine, session: session)
+        }
+    }
+
+    /// Undo the latest step, through the undo manager when its top entry is this step so the two stay one
+    /// stack; otherwise directly, dropping the shake entries that would now be out of step.
+    func undo(session: LiftSessionController) {
+        if let manager = undoManager, manager.canUndo, let top = names.last, !top.isEmpty,
+           manager.undoActionName == top {
+            manager.undo()
+        } else {
+            undoManager?.removeAllActions(withTarget: self)
+            perform(session)
+        }
+    }
+
+    private func perform(_ session: LiftSessionController) {
+        guard session.engine?.canUndo == true else { names.removeAll(); return }
+        if !names.isEmpty { names.removeLast() }
+        undoing = true
+        session.undo()
+        undoing = false
+    }
+
+    private func observe(_ engine: LiftSessionEngine?, session: LiftSessionController) {
+        defer { last = engine }
+        guard let engine, let previous = last, previous.startTs == engine.startTs else {
+            // A new session, or none: nothing of the old one can be undone.
+            names.removeAll()
+            undoManager?.removeAllActions(withTarget: self)
+            return
+        }
+        if undoing { return }
+        guard engine.canUndo else { names.removeAll(); return }
+        guard let name = Self.step(from: previous, to: engine) else { return }
+        names.append(name)
+        guard let manager = undoManager, !name.isEmpty else { return }
+        manager.registerUndo(withTarget: self) { ledger in
+            MainActor.assumeIsolated { ledger.perform(session) }
+        }
+        manager.setActionName(name)
+    }
+
+    /// The name of the step between two published states; nil when nothing was pushed (a set's numbers
+    /// typed), "" for a step it cannot name.
+    static func step(from old: LiftSessionEngine, to new: LiftSessionEngine) -> String? {
+        if new.plan.count > old.plan.count { return String(localized: "Add Exercise") }
+        if new.plan.count == old.plan.count {
+            for (before, after) in zip(old.plan, new.plan) where before.targetSets != after.targetSets {
+                return after.targetSets > before.targetSets
+                    ? String(localized: "Add Set") : String(localized: "Delete Set")
+            }
+        }
+        // Everything else that pushes moves the stage or its start; only typed numbers leave both alone.
+        guard new.stage != old.stage || new.stageStartedAt != old.stageStartedAt
+                || new.sets.count != old.sets.count || new.plan != old.plan else { return nil }
+        switch (old.stage, new.stage) {
+        case (.finished, _): return ""
+        case (_, .finished): return String(localized: "Finish Session")
+        case (.working, .resting): return String(localized: "Set Done")
+        case (.resting, .resting): return String(localized: "All Sets Done")
+        case (_, .working): return String(localized: "Start Set")
+        default: return ""
+        }
+    }
+}
+
+private extension View {
+    /// Undo on the dark recording screen: a Liquid Glass capsule on iOS 26, a bordered one before it.
+    @ViewBuilder
+    func undoButtonStyle() -> some View {
+        let styled = self.tint(.white)
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, macOS 26.0, *) {
+            styled.buttonStyle(.glass)
+        } else {
+            styled.buttonStyle(.bordered)
+        }
+        #else
+        styled.buttonStyle(.bordered)
+        #endif
+    }
 }

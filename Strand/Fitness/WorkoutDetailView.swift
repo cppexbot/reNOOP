@@ -15,6 +15,11 @@ struct WorkoutDetailView: View {
 
     @EnvironmentObject private var repo: Repository
     @StateObject private var profile = ProfileStore()
+    @Environment(\.dismiss) private var dismiss
+    /// The workout's own actions, as its row's context menu offers them (`WorkoutRowMenu`).
+    @State private var editing: WorkoutEditTarget?
+    /// The route full size, opened from the preview.
+    @State private var showMap = false
 
     @AppStorage(UnitPrefs.systemKey) private var unitSystemRaw = UnitSystem.metric.rawValue
     @AppStorage(UnitPrefs.distanceSystemKey) private var distanceSystemRaw = ""
@@ -83,6 +88,21 @@ struct WorkoutDetailView: View {
                         .accessibilityLabel(Text("Export route"))
                 }
             }
+            ToolbarItem(placement: .primaryAction) {
+                Menu {
+                    WorkoutRowMenu(row: row, onEdit: { editing = WorkoutEditTarget(row: row, isCopy: $0) },
+                                   onDeleted: { dismiss() })
+                } label: {
+                    Image(systemName: "ellipsis")
+                }
+                .barGlyph()
+                .accessibilityLabel(Text("More"))
+            }
+        }
+        // Saving replaces this row, so the page steps back to the list that shows the new one.
+        .workoutEditor($editing) { dismiss() }
+        .sheet(isPresented: $showMap) {
+            WorkoutRouteMapSheet(points: route, title: WorkoutSource.localizedSport(row.sport))
         }
         .confirmationDialog("Export route", isPresented: $showRouteExport, titleVisibility: .visible) {
             Button("GPX — Strava, Garmin, most apps") { exportRoute(.gpx) }
@@ -326,9 +346,6 @@ struct WorkoutDetailView: View {
                 }
                 .accessibilityElement(children: .combine)
             }
-            Text("Estimated time in each heart rate zone.")
-                .font(StrandFont.pro(13))
-                .foregroundStyle(StrandPalette.textSecondary)
         }
     }
 
@@ -346,16 +363,10 @@ struct WorkoutDetailView: View {
         if let r = heartRateRecovery, r.hasMeasurement {
             VStack(alignment: .leading, spacing: 10) {
                 sectionTitle("Heart Rate Recovery")
-                VStack(alignment: .leading, spacing: 12) {
-                    columns {
-                        recoveryCell("1 min", r.after1Minute)
-                        recoveryCell("2 min", r.after2Minutes)
-                        recoveryCell("5 min", r.after5Minutes)
-                    }
-                    Text("How far your heart rate fell after the workout ended at \(r.endHR) bpm.")
-                        .font(StrandFont.pro(13))
-                        .foregroundStyle(StrandPalette.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                columns {
+                    recoveryCell("1 min", r.after1Minute)
+                    recoveryCell("2 min", r.after2Minutes)
+                    recoveryCell("5 min", r.after5Minutes)
                 }
                 .padding(16)
                 .background(StrandPalette.summaryCard, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
@@ -368,7 +379,7 @@ struct WorkoutDetailView: View {
             Text(label)
                 .font(StrandFont.pro(15))
                 .foregroundStyle(StrandPalette.textSecondary)
-            (Text(drop.map { $0 >= 0 ? "−\($0)" : "+\(-$0)" } ?? "–").font(StrandFont.pro(28, weight: .semibold))
+            (Text(drop.map { $0 >= 0 ? "−\($0)" : "+\(-$0)" } ?? "—").font(StrandFont.pro(28, weight: .semibold))
              + Text(drop == nil ? "" : String(localized: "bpm").uppercased()).font(StrandFont.pro(17, weight: .semibold)))
                 .foregroundStyle(drop == nil ? StrandPalette.textTertiary : StrandPalette.healthHeart)
                 .lineLimit(1)
@@ -384,10 +395,16 @@ struct WorkoutDetailView: View {
         if route.count >= 2 {
             VStack(alignment: .leading, spacing: 10) {
                 sectionTitle("Map")
-                WorkoutRouteMap(points: route)
+                // A still preview; the tap opens the map full size.
+                WorkoutRouteMap(points: route, interactive: false)
                     .frame(height: 240)
+                    .allowsHitTesting(false)
+                    .overlay {
+                        Button { showMap = true } label: { Color.clear.contentShape(Rectangle()) }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(Text("Map of your \(WorkoutSource.localizedSport(row.sport)) route"))
+                    }
                     .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-                    .accessibilityLabel(Text("Map of your \(WorkoutSource.localizedSport(row.sport)) route"))
             }
         }
     }

@@ -287,6 +287,12 @@ struct IntervalRunView: View {
     @ScaledMetric(relativeTo: .largeTitle) private var clockSize: CGFloat = 120
     @ScaledMetric(relativeTo: .body) private var glyphSize: CGFloat = 18
     @State private var confirmingEnd = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// The one "Keep screen on" setting every recording screen honours (Settings → Workouts).
+    @AppStorage(LiveWorkoutView.keepScreenOnKey) private var keepScreenOn = false
+
+    /// Started, not running, not done: the pause the panel names.
+    private var isPaused: Bool { !runner.running && runner.elapsed > 0 && !runner.isFinished }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -304,7 +310,7 @@ struct IntervalRunView: View {
                         .font(.system(size: clockSize, weight: .regular, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(runner.phaseColor)
-                        .contentTransition(.numericText())
+                        .contentTransition(reduceMotion ? .identity : .numericText())
                         .lineLimit(1)
                         .minimumScaleFactor(0.4)
                     GeometryReader { geo in
@@ -312,7 +318,7 @@ struct IntervalRunView: View {
                             Capsule().fill(.white.opacity(0.15))
                             Capsule().fill(runner.phaseColor)
                                 .frame(width: geo.size.width * (runner.isFinished ? 1 : runner.phaseProgress))
-                                .animation(.linear(duration: 1), value: runner.phaseProgress)
+                                .animation(reduceMotion ? nil : .linear(duration: 1), value: runner.phaseProgress)
                         }
                     }
                     .frame(height: 8)
@@ -332,10 +338,13 @@ struct IntervalRunView: View {
                 glyph: AnyView(Image(systemName: "timer")
                     .font(.system(size: glyphSize, weight: .semibold))
                     .foregroundStyle(StrandPalette.activityExerciseText)),
-                clock: { RecordingClockText(text: IntervalTimerRunner.clock(runner.elapsed)) },
+                clock: {
+                    RecordingClockText(text: IntervalTimerRunner.clock(runner.elapsed), paused: isPaused)
+                        .accessibilityLabel(Text("Elapsed time"))
+                },
                 trailing: { EmptyView() },
                 leading: {
-                    RecordingButton(symbol: "xmark", label: "End") {
+                    RecordingButton(symbol: "xmark", destructive: true, label: "Finish") {
                         // A session under way asks first, as the workout's ✕ does; one not started or
                         // already finished has nothing to lose.
                         if runner.elapsed > 0 && !runner.isFinished {
@@ -362,14 +371,16 @@ struct IntervalRunView: View {
         }
         .background(Color.black.ignoresSafeArea())
         .preferredColorScheme(.dark)
-        .confirmationDialog("End Intervals", isPresented: $confirmingEnd, titleVisibility: .hidden) {
-            Button("End Intervals", role: .destructive) { endIntervals() }
+        .confirmationDialog("Finish Intervals", isPresented: $confirmingEnd, titleVisibility: .hidden) {
+            Button("Finish Intervals", role: .destructive) { endIntervals() }
             Button("Cancel", role: .cancel) {}
         }
-        // Keep the screen awake while a session runs (no-op on macOS); onDisappear is the safety net so
-        // leaving mid-run never leaves the idle timer disabled app-wide.
-        .onChangeCompat(of: runner.running) { ScreenIdle.keepAwake($0) }
-        .onAppear { ScreenIdle.keepAwake(runner.running) }
+        // Keep the screen awake while a session runs, when Settings → Workouts → Keep screen on says so, as
+        // a workout and a gym session do (no-op on macOS); onDisappear is the safety net so leaving mid-run
+        // never leaves the idle timer disabled app-wide.
+        .onChangeCompat(of: runner.running) { ScreenIdle.keepAwake(keepScreenOn && $0) }
+        .onChangeCompat(of: keepScreenOn) { ScreenIdle.keepAwake($0 && runner.running) }
+        .onAppear { ScreenIdle.keepAwake(keepScreenOn && runner.running) }
         .onDisappear { ScreenIdle.keepAwake(false) }
         #if os(iOS)
         // iPhone haptics: a different feel per cue, re-firing on every token bump. Fires regardless of strap
@@ -378,7 +389,8 @@ struct IntervalRunView: View {
             switch runner.lastHaptic {
             case .work: return .impact(weight: .heavy)
             case .rest: return .impact(weight: .light)
-            case .tick: return .selection
+            // A countdown tick is an impact, not `.selection`, which means a value being scrubbed.
+            case .tick: return .impact(weight: .light)
             case .done: return .success
             }
         }

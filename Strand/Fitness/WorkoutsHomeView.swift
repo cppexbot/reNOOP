@@ -12,6 +12,7 @@ struct WorkoutsHomeView: View {
 
     @State private var rows: [WorkoutRow] = []
     @State private var addingManual = false
+    @State private var editing: WorkoutEditTarget?
     @Environment(\.dynamicTypeSize) private var dts
 
     /// Trailing days read for the start-card order and Recent, so first paint never sorts a
@@ -73,6 +74,7 @@ struct WorkoutsHomeView: View {
             rows = await repo.workoutRows(days: Self.recentWindowDays)
                 .sorted { $0.startTs > $1.startTs }
         }
+        .workoutEditor($editing)
         .sheet(isPresented: $addingManual) {
             ManualWorkoutSheet { row, replacing in
                 Task {
@@ -113,6 +115,8 @@ struct WorkoutsHomeView: View {
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .contextMenuShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                    .contextMenu { WorkoutRowMenu(row: row) { editing = WorkoutEditTarget(row: row, isCopy: $0) } }
                 }
             }
         }

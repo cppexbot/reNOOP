@@ -31,6 +31,11 @@ struct LiftProgramEditorSheet: View {
     @State private var editingItem: ItemEditTarget?
     @State private var confirmingDelete = false
     @State private var askDiscard = false
+    /// Set when a write failed; the sheet stays open, as it was, to try again.
+    @State private var saveFailed = false
+    @State private var deleteFailed = false
+    /// A new program's id, fixed for the sheet's life so a retry after a failed save cannot file it twice.
+    @State private var newProgramId = UUID().uuidString
     /// What the sheet opened with, to tell an edit from a look.
     @State private var initial = Draft()
     @Environment(\.dynamicTypeSize) private var dts
@@ -144,6 +149,12 @@ struct LiftProgramEditorSheet: View {
             } message: {
                 Text("Sessions you already logged from it are kept.")
             }
+            .alert("Couldn't Save Program", isPresented: $saveFailed) {
+                Button("OK", role: .cancel) {}
+            }
+            .alert("Couldn't Delete Program", isPresented: $deleteFailed) {
+                Button("OK", role: .cancel) {}
+            }
         }
         #if os(macOS)
         .frame(minWidth: 480, minHeight: 600)
@@ -232,12 +243,13 @@ struct LiftProgramEditorSheet: View {
     }
 
     private func save() async {
-        guard canSave, let store = await repo.storeHandle() else { return }
+        guard canSave else { return }
+        guard let store = await repo.storeHandle() else { saveFailed = true; return }
         saving = true
         defer { saving = false }
 
         let now = Int(Date().timeIntervalSince1970)
-        let id = program?.id ?? UUID().uuidString
+        let id = program?.id ?? newProgramId
         let trimmedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
 
         let row = LiftProgramRow(
@@ -249,7 +261,6 @@ struct LiftProgramEditorSheet: View {
             updatedAt: now,
             archived: program?.archived ?? false
         )
-        _ = try? await store.upsertLiftPrograms([row])
 
         // `ord` is the array index: reordering the list is all it takes to reorder the program.
         let ordered = items.enumerated().map { index, item in
@@ -268,15 +279,28 @@ struct LiftProgramEditorSheet: View {
                 note: item.note
             )
         }
-        _ = try? await store.replaceLiftProgramItems(programId: id, items: ordered)
+        // Both writes are by id, so a retry after a failure replaces rather than duplicates.
+        do {
+            _ = try await store.upsertLiftPrograms([row])
+            _ = try await store.replaceLiftProgramItems(programId: id, items: ordered)
+        } catch {
+            saveFailed = true
+            return
+        }
 
         await onSaved()
         dismiss()
     }
 
     private func deleteProgram() async {
-        guard let program, let store = await repo.storeHandle() else { return }
-        _ = try? await store.deleteLiftProgram(id: program.id)
+        guard let program else { return }
+        guard let store = await repo.storeHandle() else { deleteFailed = true; return }
+        do {
+            _ = try await store.deleteLiftProgram(id: program.id)
+        } catch {
+            deleteFailed = true
+            return
+        }
         await onSaved()
         dismiss()
     }

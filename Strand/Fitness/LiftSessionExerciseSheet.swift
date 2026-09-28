@@ -25,6 +25,8 @@ struct LiftSessionExerciseSheet: View {
     @State private var adding = false
     /// Drives the pushed muscles page once a name is picked.
     @State private var confirming = false
+    /// The name the user is about to forget (nil = no confirmation showing).
+    @State private var forgetting: LiftExerciseRow?
 
     private var trimmedExercise: String {
         exercise.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -38,8 +40,9 @@ struct LiftSessionExerciseSheet: View {
                              onPick: { name, known in
                                  if let known { adopt(known) } else { exercise = name }
                                  confirming = true
-                             })
-                .navigationTitle(Text("Add exercise"))
+                             },
+                             onForget: { forgetting = $0 })
+                .navigationTitle(Text("Add Exercise"))
                 #if os(iOS)
                 .navigationBarTitleDisplayMode(.inline)
                 #endif
@@ -60,13 +63,37 @@ struct LiftSessionExerciseSheet: View {
             primary = known.primaryMuscle
             secondaries = Set(known.secondaryMuscles)
         }
-        .alert("You've saved the most exercises NOOP remembers",
+        // Not an alert that only informs: it leads back to the list, where a name is forgotten with a swipe.
+        .alert("Exercise List Is Full",
                isPresented: Binding(get: { vocabularyFullLimit != nil },
                                     set: { if !$0 { vocabularyFullLimit = nil } })) {
-            Button("OK", role: .cancel) { vocabularyFullLimit = nil }
+            Button("Manage Exercises") {
+                vocabularyFullLimit = nil
+                confirming = false
+            }
+            Button("Cancel", role: .cancel) { vocabularyFullLimit = nil }
         } message: {
             Text("Forget one you no longer use and this one will save. Your logged sessions are never affected.")
         }
+        .confirmationDialog(
+            forgetting.map { Text(String(localized: "Forget \($0.name)?")) } ?? Text(""),
+            isPresented: Binding(get: { forgetting != nil },
+                                 set: { if !$0 { forgetting = nil } }),
+            titleVisibility: .visible
+        ) {
+            Button("Forget", role: .destructive) { Task { await forget() } }
+            Button("Cancel", role: .cancel) { forgetting = nil }
+        } message: {
+            Text("It stops being offered here. Sessions you already logged with it are kept exactly as they are.")
+        }
+    }
+
+    /// Forget a name. Logged sets keep their own copy of the name and muscles, so no session changes.
+    private func forget() async {
+        guard let row = forgetting, let store = await repo.storeHandle() else { return }
+        _ = try? await store.deleteLiftExercise(id: row.id)
+        vocabulary.removeAll { $0.id == row.id }
+        forgetting = nil
     }
 
     /// The picked name with its muscles, and the ✓ that adds it.
@@ -74,12 +101,10 @@ struct LiftSessionExerciseSheet: View {
         Form {
             Section {
                 LabeledContent("Exercise", value: trimmedExercise)
-            } footer: {
-                Text("It joins this session with one set, its weight and reps at 0 until you type what you lift. Finishing asks whether the program keeps it.")
             }
             LiftMusclePicker(primary: $primary, secondaries: $secondaries)
         }
-        .navigationTitle(Text("Add exercise"))
+        .navigationTitle(Text("Add Exercise"))
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif

@@ -70,12 +70,6 @@ struct LiftSetEditor: View {
         return steps.contains(originalWeight) ? steps : (steps + [originalWeight]).sorted()
     }
 
-    private var rpeValues: [Double] {
-        let steps = Array(stride(from: 5.0, through: 10.0, by: 0.5))
-        guard let originalRPE, !steps.contains(originalRPE) else { return steps }
-        return (steps + [originalRPE]).sorted()
-    }
-
     private var repValues: [Int] {
         let steps = Array(0...Self.maxReps)
         guard let originalReps, originalReps > Self.maxReps else { return steps }
@@ -112,12 +106,7 @@ struct LiftSetEditor: View {
                 }
 
                 Section {
-                    Picker("RPE", selection: $rpe) {
-                        Text(verbatim: "—").tag(Double?.none)
-                        ForEach(rpeValues, id: \.self) {
-                            Text(LiftFormat.trim($0)).tag(Double?.some($0))
-                        }
-                    }
+                    LiftRPEPicker(title: "RPE", rpe: $rpe, stored: originalRPE)
                     Toggle("Warm-up", isOn: $warmup)
                         .tint(StrandPalette.activityExerciseText)
                 }
@@ -175,5 +164,30 @@ private extension Picker {
         #else
         self
         #endif
+    }
+}
+
+/// RPE, chosen the same way everywhere it is entered — a set, a finished session, a session corrected
+/// later, a program line's ceiling: "—" for none, then 1 to 10 in half steps. A choice rather than a field,
+/// so a rating outside the scale cannot be typed.
+struct LiftRPEPicker: View {
+    let title: LocalizedStringKey
+    @Binding var rpe: Double?
+    /// The value stored before this edit. Kept on the list when it falls between the steps (an imported
+    /// 7.3), so opening an editor never silently re-rounds it.
+    var stored: Double?
+
+    static let steps: [Double] = Array(stride(from: 1.0, through: 10.0, by: 0.5))
+
+    private var values: [Double] {
+        let extra = [stored, rpe].compactMap { $0 }.filter { !Self.steps.contains($0) }
+        return Array(Set(Self.steps + extra)).sorted()
+    }
+
+    var body: some View {
+        Picker(title, selection: $rpe) {
+            Text(verbatim: "—").tag(Double?.none)
+            ForEach(values, id: \.self) { Text(LiftFormat.trim($0)).tag(Double?.some($0)) }
+        }
     }
 }

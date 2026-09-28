@@ -60,7 +60,7 @@ struct LiftHeartRateFigure: View {
 
     var body: some View {
         HStack(alignment: .lastTextBaseline, spacing: 4) {
-            Text(model.bpm.map(String.init) ?? "--")
+            Text(model.bpm.map(String.init) ?? "—")
                 .font(LiveFigure.numeral(numeralSize))
                 .monospacedDigit()
                 .foregroundStyle(.white)

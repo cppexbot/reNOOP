@@ -36,9 +36,7 @@ struct LiftProgramImportSheet: View {
                     preview(parsed)
                 } else {
                     Section {
-                        chooseButton(String(localized: "Choose a file"), systemImage: "doc.badge.plus")
-                    } footer: {
-                        Text("Download the template from the NOOP repository, fill in one row per exercise, then bring the file here. Excel, Numbers, Google Sheets and LibreOffice all work — .xlsx or .csv.")
+                        chooseButton(String(localized: "Choose a File"), systemImage: "doc.badge.plus")
                     }
                 }
                 if let failure {
@@ -143,13 +141,11 @@ struct LiftProgramImportSheet: View {
                 // No count in the heading: the warnings are listed directly beneath it, so the number
                 // adds nothing — and it dodges plural agreement in ten languages.
                 Text("Worth checking")
-            } footer: {
-                Text("These lines still import — anything unclassified can be set in the app.")
             }
         }
 
         Section {
-            chooseButton(String(localized: "Choose a different file"), systemImage: "arrow.triangle.2.circlepath")
+            chooseButton(String(localized: "Choose a Different File"), systemImage: "arrow.triangle.2.circlepath")
         }
     }
 
