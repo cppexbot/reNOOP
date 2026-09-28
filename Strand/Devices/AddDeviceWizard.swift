@@ -1,6 +1,7 @@
 //  AddDeviceWizard.swift
-//  NOOP · Devices → Add Device — pairing as Apple's pairing card does it: one step per sheet, a big device
-//  glyph, a title with at most one line under it, one capsule button, ✕ in the corner.
+//  NOOP · Devices → Add Device — pairing as Apple's pairing card does it: one step per page of the sheet's
+//  own navigation stack (the system back button and swipe back), a big device glyph, a title with at most
+//  one line under it, one capsule button, ✕ in the corner.
 //
 //  Different bands pair completely differently, so the first step asks the device TYPE, then runs the
 //  right scan/register path for it:
@@ -13,15 +14,21 @@
 //  reacts and connects. The wizard never touches BLEManager beyond the AppModel pass-throughs.
 
 import SwiftUI
+import CoreBluetooth   // CBManager.authorization only — the pick step says when Bluetooth is denied
 import StrandDesign
 import WhoopStore
 import OuraProtocol
+#if os(iOS)
+import UIKit           // the Settings URL behind "Open Settings"
+#endif
 
 struct AddDeviceWizard: View {
     @EnvironmentObject var model: AppModel
     @EnvironmentObject var live: LiveState
     @Environment(\.dynamicTypeSize) private var dts
     let onClose: () -> Void
+    /// "Import a File": the host closes the sheet and opens the import page. nil: the sheet just closes.
+    let onImport: (() -> Void)?
 
     // MARK: Flow
 
@@ -70,23 +77,32 @@ struct AddDeviceWizard: View {
         }
     }
 
+    /// A (type, step) deep link for the DEBUG demo host.
     enum Step { case type, prep, pick, confirm }
 
-    /// The Oura factory-reset-and-adopt sub-flow's own step machine (section 2 of the onboarding UX spec).
-    /// The Oura type does NOT use the generic prep/pick/confirm shape: it owns this machine, entered from the
-    /// type list. PARITY: byte-for-byte the same step set + copy as the Android `OuraStep`.
-    ///   - gate     What you get / what you lose + the irreversible red consent gate (or the Advanced key field).
-    ///   - prep     Factory-reset the ring in the Oura app first (single-owner warning).
-    ///   - pick     Live scan + pick a ring; an unreset ring surfaces honestly.
-    ///   - confirm  Detected generation + per-gen capability checklist + the SECOND destructive "Take over" gate.
-    ///   - adopting Honest key-install progress (no fake percent), driven by the live source's adopt phase.
-    ///   - failed   An honest dead-end when adoption fails, with the file-import + Advanced-key fallbacks.
-    enum OuraStep { case gate, prep, pick, confirm, adopting, failed }
+    /// One page of the sheet's navigation stack; the type list is its root. `prep`, `pick`, `confirm` are
+    /// the generic shape; the `oura…` pages are the Oura factory-reset-and-adopt sub-flow (section 2 of the
+    /// onboarding UX spec), entered from the type list. PARITY: the same step set + copy as the Android
+    /// `OuraStep`.
+    ///   - ouraGate     What you get / what you lose + the irreversible red consent gate.
+    ///   - ouraKey      The Advanced "I already have my ring's key" field, pushed from the gate.
+    ///   - ouraPrep     Factory-reset the ring in the Oura app first (single-owner warning).
+    ///   - ouraPick     Live scan + pick a ring; an unreset ring surfaces honestly.
+    ///   - ouraConfirm  Detected generation + per-gen capability checklist + the SECOND destructive
+    ///                  "Take over" gate.
+    ///   - ouraAdopting Honest key-install progress (no fake percent), driven by the live source's adopt phase.
+    ///   - ouraFailed   An honest dead-end when adoption fails, with the file-import + Advanced-key fallbacks.
+    enum Page: Hashable {
+        case prep, pick, confirm
+        case ouraGate, ouraKey, ouraPrep, ouraPick, ouraConfirm, ouraAdopting, ouraFailed
+    }
 
-    @State private var step: Step = .type
+    /// The pages pushed over the type list. The system back button pops them; `didPop` undoes each one's
+    /// side effects (a running scan, a pick).
+    @State private var path: [Page] = []
+    /// `path` as last seen, so a pop by the back button can be told from a push.
+    @State private var seenPath: [Page] = []
     @State private var type: DeviceType?
-    /// The Oura sub-flow step (only meaningful while `type == .oura`). Reset to `.gate` on each Oura entry.
-    @State private var ouraStep: OuraStep = .gate
     /// The destructive "Take over this ring?" confirm alert (the SECOND irreversible gate, after the consent
     /// tick). Mirrors the Android `ouraConfirmAdopt`. Only the standard adopt path raises it; the Advanced
     /// key path is non-destructive and skips it.
@@ -109,8 +125,6 @@ struct AddDeviceWizard: View {
     @State private var nameDraft = ""
     /// The Apple Watch's own setup (Apple Health permissions), opened from the type list.
     @State private var showWatchSetup = false
-    /// After registering, ask whether to make the new device active.
-    @State private var askMakeActive = false
 
     /// The mandatory irreversible-consent gate (Oura factory-reset-and-adopt). The user must tick this
     /// before the wizard will scan, because adoption installs NOOP's key and the Oura app stops working
@@ -142,12 +156,25 @@ struct AddDeviceWizard: View {
     ///   can screenshot one wizard step deterministically (e.g. the Oura onboarding gate) without tapping
     ///   through. nil in production: the wizard starts on the type list. Pre-seeds the `@State` so the first
     ///   render is already on that step.
-    init(live: LiveState, onClose: @escaping () -> Void,
+    init(live: LiveState, onClose: @escaping () -> Void, onImport: (() -> Void)? = nil,
          startAt: (type: DeviceType, step: Step)? = nil) {
         self.onClose = onClose
+        self.onImport = onImport
         if let startAt {
+            let pages: [Page]
+            if startAt.type == .oura {
+                pages = startAt.step == .type ? [] : [.ouraGate]
+            } else {
+                switch startAt.step {
+                case .type:    pages = []
+                case .prep:    pages = [.prep]
+                case .pick:    pages = [.prep, .pick]
+                case .confirm: pages = [.prep, .pick, .confirm]
+                }
+            }
             _type = State(initialValue: startAt.type)
-            _step = State(initialValue: startAt.step)
+            _path = State(initialValue: pages)
+            _seenPath = State(initialValue: pages)
         }
         // Route each throwaway scanner's diagnostics into the SAME exported strap log the active source
         // path uses (issue #421 parity), so a tester's wizard scan, including the Oura discovery scan and
@@ -175,23 +202,12 @@ struct AddDeviceWizard: View {
     }
 
     var body: some View {
-        NavigationStack {
-            content
-                .navigationTitle(Text(verbatim: ""))
-                #if os(iOS)
-                .navigationBarTitleDisplayMode(.inline)
-                #endif
-                .toolbar {
-                    if showBack {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button(action: goBack) { Image(systemName: "chevron.left") }
-                                .barGlyph()
-                                .accessibilityLabel(Text("Back"))
-                        }
-                    }
-                    ToolbarItem(placement: .primaryAction) {
-                        SheetCloseButton { stopAllScans(); onClose() }
-                    }
+        NavigationStack(path: $path) {
+            chrome(typeStep)
+                .navigationDestination(for: Page.self) { page in
+                    chrome(destination(page))
+                        // A key install in flight has no way back.
+                        .navigationBarBackButtonHidden(page == .ouraAdopting)
                 }
         }
         #if os(iOS)
@@ -200,15 +216,16 @@ struct AddDeviceWizard: View {
         #else
         .frame(minWidth: 440, minHeight: 620)
         #endif
+        .onChange(of: path) { newPath in
+            // Only a shrink the wizard didn't make itself — the back button, swipe back — lands here with
+            // pages to undo; `setPath` keeps `seenPath` in step for every programmatic change.
+            if newPath.count < seenPath.count, Array(seenPath.prefix(newPath.count)) == newPath {
+                for page in seenPath[newPath.count...].reversed() { didPop(page) }
+            }
+            seenPath = newPath
+        }
         // Stop whichever scan is live whenever the sheet goes away, so no central keeps scanning.
         .onDisappear { stopAllScans() }
-        // After adding, offer to make the new device active (generic non-Oura paths only).
-        .alert("Make this your active device?", isPresented: $askMakeActive) {
-            Button("Not now", role: .cancel) { finishAdd(makeActive: false) }
-            Button("Make active") { finishAdd(makeActive: true) }
-        } message: {
-            Text("It will provide your live data. You can change this any time.")
-        }
         // The SECOND irreversible gate (after the consent toggle): grants adopt consent and registers the
         // ring active; the live source then runs the one-time key install.
         .alert("Take over this ring?", isPresented: $ouraConfirmAdopt) {
@@ -220,16 +237,16 @@ struct AddDeviceWizard: View {
         // Drive the Adopting step to success (streaming → close) or to the honest Failed step. Only acts
         // while Adopting, so a later steady-state needs-pairing never reopens this.
         .onChange(of: model.ouraAdoptPhase) { phase in
-            guard type == .oura, ouraStep == .adopting else { return }
+            guard type == .oura, path.last == .ouraAdopting else { return }
             switch phase {
             case .streaming:        stopAllScans(); onClose()
-            case .failed:           ouraStep = .failed
+            case .failed:           showOuraFailed()
             case .idle, .installingKey: break
             }
         }
         .onChange(of: model.ouraNeedsPairing) { msg in
-            guard type == .oura, ouraStep == .adopting, msg != nil else { return }
-            ouraStep = .failed
+            guard type == .oura, path.last == .ouraAdopting, msg != nil else { return }
+            showOuraFailed()
         }
         #if os(iOS)
         .sheet(isPresented: $showWatchSetup) {
@@ -241,36 +258,41 @@ struct AddDeviceWizard: View {
     /// The pairing card's height, as the AirPods card rises part-way up the screen.
     private static let cardHeight: CGFloat = 600
 
-    /// Steps that list things take the whole sheet; the rest are a card.
+    /// Pages that list things take the whole sheet; the rest are a card.
     private var isList: Bool {
-        if type == .oura { return ouraStep == .pick || (ouraStep == .gate && ouraAdvancedKeyMode) }
-        return step == .type || step == .pick || type == nil
-    }
-
-    @ViewBuilder private var content: some View {
-        if type == .oura {
-            switch ouraStep {
-            case .gate:     if ouraAdvancedKeyMode { ouraKeyStep } else { ouraGateStep }
-            case .prep:     ouraPrepStep
-            case .pick:     ouraPickStep
-            case .confirm:  ouraConfirmStep
-            case .adopting: ouraAdoptingStep
-            case .failed:   ouraFailedStep
-            }
-        } else {
-            switch step {
-            case .type:    typeStep
-            case .prep:    prepStep
-            case .pick:    pickStep
-            case .confirm: confirmStep
-            }
+        switch path.last {
+        case nil, .pick, .ouraPick, .ouraKey: return true
+        default:                              return false
         }
     }
 
-    /// Back on every step but the first, and never while a ring's key install is in flight.
-    private var showBack: Bool {
-        if type == .oura { return ouraStep != .adopting }
-        return step != .type
+    /// Every page's bar: no title, ✕ in the corner; the system back button on every page but the first.
+    private func chrome<Content: View>(_ content: Content) -> some View {
+        content
+            .navigationTitle(Text(verbatim: ""))
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    SheetCloseButton { stopAllScans(); onClose() }
+                }
+            }
+    }
+
+    @ViewBuilder private func destination(_ page: Page) -> some View {
+        switch page {
+        case .prep:         prepStep
+        case .pick:         pickStep
+        case .confirm:      confirmStep
+        case .ouraGate:     ouraGateStep
+        case .ouraKey:      ouraKeyStep
+        case .ouraPrep:     ouraPrepStep
+        case .ouraPick:     ouraPickStep
+        case .ouraConfirm:  ouraConfirmStep
+        case .ouraAdopting: ouraAdoptingStep
+        case .ouraFailed:   ouraFailedStep
+        }
     }
 
     // MARK: Type
@@ -343,9 +365,9 @@ struct AddDeviceWizard: View {
             ouraKeyDraft = ""
             ouraConfirmAdopt = false
             pickedOura = nil
-            ouraStep = .gate
+            push(.ouraGate)
         } else {
-            step = .prep
+            push(.prep)
         }
     }
 
@@ -356,7 +378,7 @@ struct AddDeviceWizard: View {
             PairingCard(title: typeTitle(type), detail: prepLine(type), art: art(type), beta: type.isExperimental) {
                 PairingButton(title: "Find") {
                     startScan(for: type)
-                    step = .pick
+                    push(.pick)
                 }
             }
         }
@@ -399,7 +421,7 @@ struct AddDeviceWizard: View {
                     pickedHuami = nil
                     nameDraft = strap.name.isEmpty ? typeTitle(type) : strap.name
                     model.stopWhoopScan()
-                    step = .confirm
+                    push(.confirm)
                 } onRescan: {
                     model.presentWhoopScan(model: type.whoopModel ?? .whoop4)
                 }
@@ -409,7 +431,7 @@ struct AddDeviceWizard: View {
                     clearOtherPicks(except: .gymEquipment)
                     nameDraft = machine.name
                     ftmsScanner.stopScan()
-                    step = .confirm
+                    push(.confirm)
                 } onRescan: {
                     ftmsScanner.scan()
                 }
@@ -419,7 +441,7 @@ struct AddDeviceWizard: View {
                     clearOtherPicks(except: type)
                     nameDraft = dev.name
                     huamiScanner.stopScan()
-                    step = .confirm
+                    push(.confirm)
                 } onRescan: {
                     huamiScanner.scan()
                 }
@@ -430,7 +452,7 @@ struct AddDeviceWizard: View {
                     clearOtherPicks(except: type)
                     nameDraft = strap.name
                     hrScanner.stopScan()
-                    step = .confirm
+                    push(.confirm)
                 } onRescan: {
                     hrScanner.scan()
                 }
@@ -456,9 +478,9 @@ struct AddDeviceWizard: View {
     private var confirmStep: some View {
         PairingCard(title: confirmAdvertisedName, detail: nil, art: type.map(art) ?? .heartRateStrap,
                     beta: type?.isExperimental == true) {
-            PairingNameField(text: $nameDraft)
-            PairingButton(title: "Connect") { askMakeActive = true }
-                .disabled(nameDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            PairingNameField(text: $nameDraft, placeholder: confirmAdvertisedName)
+            // An empty name falls back to the advertised one the field shows (`confirmName`).
+            PairingButton(title: "Connect") { finishAdd(makeActive: true) }
         }
     }
 
@@ -495,12 +517,12 @@ struct AddDeviceWizard: View {
             }
             .tint(StrandPalette.settingsRed)
             .padding(.horizontal, 4)
-            PairingButton(title: "Continue") { ouraStep = .prep }
+            PairingButton(title: "Continue") { push(.ouraPrep) }
                 .disabled(!ouraConsented)
             laneLayout {
                 // Keep the Oura app and import a file instead.
-                Button("Import a File") { stopAllScans(); onClose() }
-                Button("I Have a Key") { ouraAdvancedKeyMode = true }
+                Button("Import a File", action: importFile)
+                Button("I Have a Key") { ouraAdvancedKeyMode = true; push(.ouraKey) }
             }
             .font(StrandFont.pro(15))
             .buttonStyle(.plain)
@@ -512,7 +534,7 @@ struct AddDeviceWizard: View {
         PairingCard(title: typeTitle(.oura), detail: prepLine(.oura), art: .ring, beta: true) {
             PairingButton(title: "Find") {
                 startScan(for: .oura)
-                ouraStep = .pick
+                push(.ouraPick)
             }
         }
     }
@@ -531,18 +553,19 @@ struct AddDeviceWizard: View {
                     .font(StrandFont.mono)
                     .autocorrectionDisabled(true)
                     #if os(iOS)
+                    .keyboardType(.asciiCapable)
                     .textInputAutocapitalization(.never)
                     #endif
                     .accessibilityLabel("Ring key, 32 hexadecimal characters")
             } footer: {
                 if !ouraKeyDraft.isEmpty && ouraKeyBytes == nil {
-                    Text("That is not a 32-character hex key.").foregroundStyle(StrandPalette.settingsRed)
+                    Text("Enter 32 characters: 0–9, a–f.").foregroundStyle(StrandPalette.settingsRed)
                 }
             }
             Section {
                 Button("Find") {
                     startScan(for: .oura)
-                    ouraStep = .pick
+                    push(.ouraPick)
                 }
                 .disabled(ouraKeyBytes == nil)
             }
@@ -558,20 +581,17 @@ struct AddDeviceWizard: View {
                          clearOtherPicks(except: .oura)
                          nameDraft = String(localized: "Oura ring")
                          ouraScanner.stopScan()
-                         ouraStep = .confirm
+                         push(.ouraConfirm)
                      },
                      onRescan: { ouraScanner.scan() },
-                     onUseImport: {
-                         ouraScanner.stop()
-                         onClose()
-                     })
+                     onUseImport: importFile)
     }
 
     /// The detected generation, a name, then the adopt action: the red "Take Over" (which raises the
     /// SECOND irreversible confirm) on the standard path, a plain Connect on the non-destructive key path.
     private var ouraConfirmStep: some View {
         PairingCard(title: (pickedOura?.gen ?? .gen3).displayName, detail: nil, art: .ring, beta: true) {
-            PairingNameField(text: $nameDraft)
+            PairingNameField(text: $nameDraft, placeholder: confirmAdvertisedName)
             if ouraAdvancedKeyMode {
                 PairingButton(title: "Connect") { finishAdvancedOura() }
             } else {
@@ -595,12 +615,9 @@ struct AddDeviceWizard: View {
                 .foregroundStyle(StrandPalette.textSecondary)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
-            PairingButton(title: "Try Again") {
-                pickedOura = nil
-                ouraScanner.scan()
-                ouraStep = .pick
-            }
-            Button("Import a File") { ouraScanner.stop(); onClose() }
+            // Back to the ring list, rescanning, as the back button does.
+            PairingButton(title: "Try Again") { setPath(Array(path.dropLast())); didPop(.ouraFailed) }
+            Button("Import a File", action: importFile)
                 .font(StrandFont.pro(15))
                 .buttonStyle(.plain)
                 .foregroundStyle(StrandPalette.accent)
@@ -625,54 +642,50 @@ struct AddDeviceWizard: View {
 
     // MARK: Actions
 
-    private func goBack() {
-        // The Oura type walks its own step machine; back falls out to the type list from the gate.
-        if type == .oura {
-            ouraGoBack()
-            return
-        }
-        switch step {
-        case .type:    break
-        case .prep:    step = .type
-        case .pick:    stopAllScans(); step = .prep
+    private func push(_ page: Page) { setPath(path + [page]) }
+
+    /// Every change the wizard makes to its own stack, so `onChange(of: path)` sees no pop in it.
+    private func setPath(_ pages: [Page]) {
+        seenPath = pages
+        path = pages
+    }
+
+    /// Undo what a page left running once the back button (or swipe) takes it off the stack.
+    private func didPop(_ page: Page) {
+        switch page {
+        case .prep, .ouraPrep:
+            break
+        case .pick:
+            stopAllScans()
         case .confirm:
-            // Re-enter the pick step and restart its scan so the user can choose a different device.
+            // Back on the pick step: restart its scan so the user can choose a different device.
             if let type { startScan(for: type) }
             pickedWhoop = nil; pickedStrap = nil; pickedMachine = nil; pickedHuami = nil; pickedOura = nil
-            step = .pick
+        case .ouraGate:
+            ouraConsented = false
+        case .ouraKey:
+            ouraAdvancedKeyMode = false
+            ouraKeyDraft = ""
+        case .ouraPick:
+            ouraScanner.stop()
+            pickedOura = nil
+        case .ouraConfirm, .ouraAdopting, .ouraFailed:
+            ouraScanner.scan()
+            pickedOura = nil
         }
     }
 
-    /// Back inside the Oura adopt sub-flow. Adopting has no meaningful back (a key install is in flight, and
-    /// `showBack` already hides it there); from Failed, back returns to the pick step to try again, so the
-    /// user is never trapped. Mirrors the Android `ouraGoBack`.
-    private func ouraGoBack() {
-        switch ouraStep {
-        case .gate:
-            // From the Advanced key field, back returns to the standard consent gate; from the standard gate,
-            // back exits to the device-type list.
-            if ouraAdvancedKeyMode {
-                ouraAdvancedKeyMode = false
-                ouraKeyDraft = ""
-            } else {
-                type = nil
-                ouraConsented = false
-            }
-        case .prep:
-            ouraStep = .gate
-        case .pick:
-            ouraScanner.stop()
-            pickedOura = nil
-            ouraStep = ouraAdvancedKeyMode ? .gate : .prep
-        case .confirm:
-            ouraScanner.scan()
-            pickedOura = nil
-            ouraStep = .pick
-        case .adopting, .failed:
-            ouraScanner.scan()
-            pickedOura = nil
-            ouraStep = .pick
-        }
+    /// Adoption failed: the honest dead-end replaces the confirm and progress pages, so back (or Try
+    /// Again) returns to the ring list, never to a key install that already ended.
+    private func showOuraFailed() {
+        let base = path.lastIndex(of: .ouraPick).map { Array(path.prefix(through: $0)) } ?? path
+        setPath(base + [.ouraFailed])
+    }
+
+    /// Keep the device's own app and import its export instead: the host opens the import page.
+    private func importFile() {
+        stopAllScans()
+        if let onImport { onImport() } else { onClose() }
     }
 
     private func startScan(for type: DeviceType) {
@@ -803,7 +816,7 @@ struct AddDeviceWizard: View {
     private func commitOuraAdopt() {
         guard let device = buildOuraDevice() else { onClose(); return }
         stopAllScans()
-        ouraStep = .adopting
+        push(.ouraAdopting)
         model.adoptOuraRing(device)   // grants adopt consent + registers active; never prompts make-active
     }
 
@@ -950,18 +963,26 @@ private struct PairingButton: View {
     }
 }
 
-/// The device's name, editable in place before it's added.
+/// The device's name, editable before it's added: a grouped row with "Name" leading, as a Settings form
+/// lays out a field.
 private struct PairingNameField: View {
     @Binding var text: String
+    let placeholder: String
 
     var body: some View {
-        TextField("Name", text: $text)
-            .font(StrandFont.pro(17))
-            .multilineTextAlignment(.center)
-            .padding(.vertical, 14)
-            .padding(.horizontal, 16)
-            .background(StrandPalette.deviceField, in: Capsule())
-            .accessibilityLabel("Device name")
+        HStack(spacing: 16) {
+            Text("Name")
+                .foregroundStyle(StrandPalette.textPrimary)
+                .accessibilityHidden(true)
+            TextField(text: $text, prompt: Text(verbatim: placeholder)) { Text("Name") }
+                .autocorrectionDisabled()
+                .submitLabel(.done)
+        }
+        .font(StrandFont.pro(17))
+        .padding(.vertical, 11)
+        .padding(.horizontal, 16)
+        .background(StrandPalette.deviceField,
+                    in: RoundedRectangle(cornerRadius: NoopMetrics.cardRadius, style: .continuous))
     }
 }
 
@@ -974,6 +995,7 @@ private struct PickScreen<Rows: View>: View {
     var hint: LocalizedStringKey = "Make sure it's awake and not connected elsewhere."
     let onRescan: () -> Void
     @ViewBuilder var rows: Rows
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         Form {
@@ -982,23 +1004,51 @@ private struct PickScreen<Rows: View>: View {
                     .listRowBackground(Color.clear)
                     .listRowInsets(EdgeInsets())
             }
-            Section {
-                if isEmpty {
-                    HStack(spacing: 10) {
-                        ProgressView()
-                        Text("Searching…").foregroundStyle(StrandPalette.textSecondary)
+            // Denied, the scan can never answer: say why and where to fix it, instead of searching forever.
+            if CBManager.authorization == .denied || CBManager.authorization == .restricted {
+                Section {
+                    Text("Bluetooth is off for NOOP")
+                        .foregroundStyle(StrandPalette.textPrimary)
+                    #if os(iOS)
+                    Button("Open Settings") {
+                        if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
                     }
-                } else {
-                    rows
+                    #endif
                 }
-            } footer: {
-                if isEmpty { Text(hint) }
-            }
-            Section {
-                Button("Search Again", action: onRescan)
+            } else {
+                Section {
+                    if isEmpty {
+                        HStack(spacing: 10) {
+                            ProgressView()
+                            Text("Searching…").foregroundStyle(StrandPalette.textSecondary)
+                        }
+                    } else {
+                        rows
+                    }
+                } footer: {
+                    if isEmpty { PickHint(fallback: hint) }
+                }
+                Section {
+                    Button("Search Again", action: onRescan)
+                }
             }
         }
         .settingsForm()
+    }
+}
+
+/// Under an empty list: the radio's own reason when there is one (Bluetooth off, unsupported), else the
+/// device's hint. Observes `LiveState` on its own, so the 1 Hz strap tick redraws only this line.
+private struct PickHint: View {
+    @EnvironmentObject var live: LiveState
+    let fallback: LocalizedStringKey
+
+    var body: some View {
+        if let reason = live.lastSyncError {
+            Text(verbatim: reason)
+        } else {
+            Text(fallback)
+        }
     }
 }
 

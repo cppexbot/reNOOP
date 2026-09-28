@@ -1,7 +1,8 @@
 //  DevicesView.swift
 //  NOOP · Devices — the paired bands as Bluetooth and the Watch app's "All Watches" list them: the device
-//  glyph, the name, "Connected · 82 %", a checkmark on the active one, then "Add Device". A row opens
-//  the device's page (`DeviceDetailView`), where everything about that one device lives.
+//  glyph, the name, "Connected · 82 %", a checkmark on the active one, then "Add Device". Tapping a row
+//  makes that device the active one; its ⓘ opens the device's page (`DeviceDetailView`), where everything
+//  about that one device lives.
 //
 //  A thin UI over `DeviceRegistry`: every mutation is a registry op, and the `SourceCoordinator` (wired
 //  in AppModel) reacts to the active-device change — this screen never drives BLE itself beyond the calls
@@ -42,6 +43,9 @@ private struct DevicesList: View {
     @EnvironmentObject var live: LiveState
 
     @State private var showAddWizard = false
+    /// The wizard's "Import a File": the sheet closes first, then the import page is pushed here.
+    @State private var importAfterWizard = false
+    @State private var showImport = false
     /// After removing the ACTIVE device with others still paired, ask which one becomes active.
     @State private var pickNewActive = false
 
@@ -67,7 +71,7 @@ private struct DevicesList: View {
             if !current.isEmpty {
                 Section {
                     ForEach(current) { device in
-                        DeviceRow(device: device, readout: .make(device, live: live))
+                        DeviceRow(device: device, readout: .make(device, live: live), onSelect: select(device))
                     }
                 } header: {
                     Text("My Devices")
@@ -88,7 +92,7 @@ private struct DevicesList: View {
             if !removed.isEmpty {
                 Section {
                     ForEach(removed) { device in
-                        DeviceRow(device: device, readout: .make(device, live: live))
+                        DeviceRow(device: device, readout: .make(device, live: live), onSelect: select(device))
                             .opacity(0.6)
                     }
                 } header: {
@@ -100,8 +104,13 @@ private struct DevicesList: View {
         .navigationDestination(for: DeviceRoute.self) { route in
             DeviceDetailView(registry: registry, deviceId: route.id, onRemoved: removedDevice)
         }
-        .sheet(isPresented: $showAddWizard) {
-            AddDeviceWizard(live: live) { showAddWizard = false }
+        // The import page has no pushes of its own, so a flag-driven destination is enough here.
+        .navigationDestination(isPresented: $showImport) { DataSourcesView() }
+        .sheet(isPresented: $showAddWizard, onDismiss: {
+            if importAfterWizard { importAfterWizard = false; showImport = true }
+        }) {
+            AddDeviceWizard(live: live, onClose: { showAddWizard = false },
+                            onImport: { importAfterWizard = true; showAddWizard = false })
                 .environmentObject(model)
                 .environmentObject(live)
         }
@@ -109,7 +118,17 @@ private struct DevicesList: View {
             ForEach(activatable) { device in
                 Button(device.displayName) { registry.setActive(device.id) }
             }
-            Button("Leave none active", role: .cancel) { }
+            Button("Cancel", role: .cancel) { }
+        }
+    }
+
+    /// A row's tap: make that device the active one, as Bluetooth and "All Watches" switch on a tap. An
+    /// import source is never active (I-1), so its row opens its page instead.
+    private func select(_ device: PairedDevice) -> (() -> Void)? {
+        guard !device.isImportSource else { return nil }
+        return {
+            guard device.status != .active else { return }
+            registry.setActive(device.id)
         }
     }
 
@@ -122,44 +141,66 @@ private struct DevicesList: View {
 // MARK: - Row
 
 /// As the Watch app's "All Watches" lists a watch: a checkmark on the active one, the device glyph,
-/// the name over "Connected · 82 %", and ⓘ. The row opens the device's page.
+/// the name over "Connected · 82 %", and ⓘ. The row makes the device active; ⓘ opens its page.
 struct DeviceRow: View {
     let device: PairedDevice
     let readout: DeviceReadout
+    /// The row's tap. nil: the whole row opens the device's page.
+    var onSelect: (() -> Void)? = nil
     @Environment(\.dynamicTypeSize) private var dts
 
     var body: some View {
         ZStack {
-            // The link without its chevron: the row shows ⓘ instead, as the Watch app does.
-            NavigationLink(value: DeviceRoute(id: device.id)) { EmptyView() }.opacity(0)
+            // The value link without its chevron. It takes every tap the row's button doesn't — ⓘ's, and
+            // the whole row's when there is no button — and pushes by value, so the page's own Settings
+            // rows stay on the same path.
+            NavigationLink(value: DeviceRoute(id: device.id)) { EmptyView() }
+                .opacity(0)
+                .accessibilityHidden(true)
             HStack(spacing: 12) {
-                Image(systemName: "checkmark")
-                    .font(StrandFont.pro(17, weight: .semibold))
-                    .foregroundStyle(StrandPalette.accent)
-                    .opacity(readout.isActive ? 1 : 0)
-                    .accessibilityHidden(!readout.isActive)
-                    .accessibilityLabel(Text("Active"))
-                DeviceArtwork(kind: .of(device), size: 56)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(verbatim: device.displayName)
-                        .font(StrandFont.pro(17))
-                        .foregroundStyle(StrandPalette.textPrimary)
-                        .lineLimit(dts.isAccessibilitySize ? nil : 1)
-                    Text(verbatim: readout.statusLine)
-                        .font(StrandFont.pro(15))
-                        .foregroundStyle(StrandPalette.textSecondary)
-                        .lineLimit(dts.isAccessibilitySize ? nil : 1)
+                if let onSelect {
+                    Button(action: onSelect) { summary }
+                        .buttonStyle(.plain)
+                        .accessibilityElement(children: .combine)
+                        .accessibilityAddTraits(readout.isActive ? .isSelected : [])
+                } else {
+                    summary
+                        .accessibilityElement(children: .combine)
+                        .accessibilityAddTraits(.isButton)
                 }
-                Spacer(minLength: 8)
                 Image(systemName: "info.circle")
                     .font(StrandFont.pro(22))
                     .foregroundStyle(StrandPalette.accent)
-                    .accessibilityHidden(true)
+                    .accessibilityElement()
+                    .accessibilityLabel(Text("Details"))
+                    .accessibilityAddTraits(.isButton)
             }
             .padding(.vertical, 6)
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isButton)
+    }
+
+    /// Checkmark, glyph, name and status: everything left of ⓘ.
+    private var summary: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "checkmark")
+                .font(StrandFont.pro(17, weight: .semibold))
+                .foregroundStyle(StrandPalette.accent)
+                .opacity(readout.isActive ? 1 : 0)
+                .accessibilityHidden(true)
+            DeviceArtwork(kind: .of(device), size: 56)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(verbatim: device.displayName)
+                    .font(StrandFont.pro(17))
+                    .foregroundStyle(StrandPalette.textPrimary)
+                    .lineLimit(dts.isAccessibilitySize ? nil : 1)
+                Text(verbatim: readout.statusLine)
+                    .font(StrandFont.pro(15))
+                    .foregroundStyle(StrandPalette.textSecondary)
+                    .lineLimit(dts.isAccessibilitySize ? nil : 1)
+            }
+            Spacer(minLength: 8)
+        }
+        .contentShape(Rectangle())
     }
 }
 

@@ -47,7 +47,7 @@ struct DeviceDetailView: View {
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
-        .modifier(DeviceConfirmAlerts(confirm: $confirm, perform: perform))
+        .modifier(DeviceConfirmDialog(confirm: $confirm, perform: perform))
         .modifier(RebootProbeDialog(target: $rebootProbeTarget))
         .modifier(ExtendedBatteryProbeSheets(target: $batteryProbeTarget))
         .modifier(BodyLocationProbeSheets(target: $bodyLocationProbeTarget))
@@ -80,7 +80,8 @@ struct DeviceDetailView: View {
 
             if device.status == .paired && !device.isImportSource {
                 Section {
-                    Button("Make Active") { confirm = .makeActive(device) }
+                    // Reversible, so no confirmation — as a tap in Bluetooth switches the device.
+                    Button("Make Active") { registry.setActive(device.id) }
                 }
             }
 
@@ -240,7 +241,7 @@ struct DeviceDetailView: View {
                 }
                 Button("Delete Data", role: .destructive) { confirm = .deleteData(device) }
                     .foregroundStyle(StrandPalette.settingsRed)
-                Button("Remove from List", role: .destructive) { confirm = .purge(device) }
+                Button("Remove Device and Data", role: .destructive) { confirm = .purge(device) }
                     .foregroundStyle(StrandPalette.settingsRed)
             } else {
                 if r.isActive && r.isWhoop && (live.connected || live.bonded) {
@@ -255,8 +256,6 @@ struct DeviceDetailView: View {
 
     private func perform(_ c: DeviceConfirm) {
         switch c {
-        case .makeActive(let d):
-            registry.setActive(d.id)
         case .restart:
             model.rebootStrap()
         case .forget(let d):
@@ -344,12 +343,11 @@ struct DeviceDetailView: View {
 // MARK: - Confirmations
 
 enum DeviceConfirm: Identifiable {
-    case makeActive(PairedDevice), restart(PairedDevice), forget(PairedDevice)
+    case restart(PairedDevice), forget(PairedDevice)
     case deleteData(PairedDevice), purge(PairedDevice)
 
     var id: String {
         switch self {
-        case .makeActive(let d): return "active-\(d.id)"
         case .restart(let d): return "restart-\(d.id)"
         case .forget(let d): return "forget-\(d.id)"
         case .deleteData(let d): return "delete-\(d.id)"
@@ -358,20 +356,20 @@ enum DeviceConfirm: Identifiable {
     }
 }
 
-/// One alert for every confirmation on the page, kept out of the page body so the dialog chain
-/// type-checks in its own scope.
-private struct DeviceConfirmAlerts: ViewModifier {
+/// One action sheet for every confirmation on the page, as iOS asks from the bottom before it forgets or
+/// erases, kept out of the page body so the dialog chain type-checks in its own scope.
+private struct DeviceConfirmDialog: ViewModifier {
     @Binding var confirm: DeviceConfirm?
     let perform: (DeviceConfirm) -> Void
 
     func body(content: Content) -> some View {
-        content.alert(title, isPresented: Binding(get: { confirm != nil }, set: { if !$0 { confirm = nil } }),
-                      presenting: confirm) { c in
-            Button("Cancel", role: .cancel) { confirm = nil }
+        content.confirmationDialog(title, isPresented: Binding(get: { confirm != nil }, set: { if !$0 { confirm = nil } }),
+                                   titleVisibility: .visible, presenting: confirm) { c in
             Button(actionTitle(c), role: isDestructive(c) ? .destructive : nil) {
                 confirm = nil
                 perform(c)
             }
+            Button("Cancel", role: .cancel) { confirm = nil }
         } message: { c in
             Text(message(c))
         }
@@ -379,7 +377,6 @@ private struct DeviceConfirmAlerts: ViewModifier {
 
     private var title: LocalizedStringKey {
         switch confirm {
-        case .makeActive: return "Make this your active strap?"
         case .restart: return "Restart this strap?"
         case .forget: return "Forget this device?"
         case .deleteData: return "Delete all of this device's data?"
@@ -390,24 +387,22 @@ private struct DeviceConfirmAlerts: ViewModifier {
 
     private func actionTitle(_ c: DeviceConfirm) -> LocalizedStringKey {
         switch c {
-        case .makeActive: return "Make active"
         case .restart: return "Restart"
         case .forget: return "Forget This Device"
-        case .deleteData: return "Delete data"
-        case .purge: return "Remove"
+        case .deleteData: return "Delete Data"
+        case .purge: return "Remove Device and Data"
         }
     }
 
     private func isDestructive(_ c: DeviceConfirm) -> Bool {
         switch c {
-        case .makeActive, .restart: return false
+        case .restart: return false
         default: return true
         }
     }
 
     private func message(_ c: DeviceConfirm) -> LocalizedStringKey {
         switch c {
-        case .makeActive: return "It provides your live data from now on. Past days stay as they are."
         case .restart: return "It reconnects on its own in about 30 seconds."
         case .forget: return "NOOP stops connecting to it. Its data is kept."
         case .deleteData: return "This can't be undone."
@@ -418,29 +413,47 @@ private struct DeviceConfirmAlerts: ViewModifier {
 
 // MARK: - Name
 
-/// The device's name as its own page, as Settings renames AirPods.
+/// The device's name as its own page, as Settings renames AirPods: one field with a clear button, and an
+/// empty name puts the old one back rather than saving nothing.
 private struct DeviceNamePage: View {
     @ObservedObject var registry: DeviceRegistry
     let device: PairedDevice
     @State private var draft = ""
     @FocusState private var focused: Bool
 
+    private var saved: String { device.nickname ?? device.displayName }
+
     var body: some View {
         Form {
             Section {
-                TextField(text: $draft, prompt: Text(verbatim: device.displayName)) { EmptyView() }
-                    .focused($focused)
-                    .submitLabel(.done)
-                    .onSubmit(save)
+                HStack(spacing: 8) {
+                    TextField(text: $draft, prompt: Text(verbatim: device.displayName)) { Text("Name") }
+                        .focused($focused)
+                        .autocorrectionDisabled()
+                        .submitLabel(.done)
+                        .onSubmit(save)
+                    if focused && !draft.isEmpty {
+                        Button { draft = "" } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(StrandPalette.textTertiary)
+                        }
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel(Text("Clear text"))
+                    }
+                }
             }
         }
         .settingsPage("Name")
-        .onAppear { draft = device.nickname ?? device.displayName; focused = true }
+        .onAppear { draft = saved; focused = true }
         .onDisappear(perform: save)
     }
 
     private func save() {
-        guard draft != (device.nickname ?? device.displayName) else { return }
+        guard !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            draft = saved
+            return
+        }
+        guard draft != saved else { return }
         registry.rename(device.id, to: draft)
     }
 }
