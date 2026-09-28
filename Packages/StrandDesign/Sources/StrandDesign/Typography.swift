@@ -7,8 +7,9 @@ import AppKit
 
 // MARK: - Strand Typography (§9.2)
 //
-// SF Rounded follows the supplied reference's friendly Apple-native geometry. Tabular digits keep live
-// metrics stable, while named text styles retain Dynamic Type scaling. SF Mono remains reserved for logs.
+// Text is SF Pro, as Health sets it; SF Rounded is kept for figures (`rounded`, `number`, `display`), as
+// Fitness sets its metrics (Craft-2). Tabular digits keep live metrics stable, and every named style follows
+// Dynamic Type. SF Mono remains reserved for logs.
 //
 // All numeric styles use `.monospacedDigit()` so live values don't reflow.
 
@@ -61,25 +62,25 @@ public enum StrandFont {
     }
 
     /// Title1 28 / Bold. Scales with Dynamic Type.
-    public static let title1 = Font.system(.title, design: .rounded, weight: .bold)
+    public static let title1 = Font.system(.title, weight: .bold)
 
     /// Title2 22 / Semibold. Scales with Dynamic Type.
-    public static let title2 = Font.system(.title2, design: .rounded, weight: .semibold)
+    public static let title2 = Font.system(.title2, weight: .semibold)
 
     /// Headline 17 / Semibold. Scales with Dynamic Type.
-    public static let headline = Font.system(.headline, design: .rounded, weight: .semibold)
+    public static let headline = Font.system(.headline, weight: .semibold)
 
     /// Body 15 / Regular. Scales with Dynamic Type.
-    public static let body = Font.system(.body, design: .rounded, weight: .regular)
+    public static let body = Font.system(.body, weight: .regular)
 
     /// Subhead 13. Scales with Dynamic Type.
-    public static let subhead = Font.system(.subheadline, design: .rounded, weight: .regular)
+    public static let subhead = Font.system(.subheadline, weight: .regular)
 
     /// Caption 12. Scales with Dynamic Type.
-    public static let caption = Font.system(.caption, design: .rounded, weight: .regular)
+    public static let caption = Font.system(.caption, weight: .regular)
 
     /// Footnote 11. Scales with Dynamic Type.
-    public static let footnote = Font.system(.footnote, design: .rounded, weight: .regular)
+    public static let footnote = Font.system(.footnote, weight: .regular)
 
     /// Overline 11 / Bold, +1.4 tracking (apply `.tracking(1.4)` at use site;
     /// `overlineText(_:)` does it for you). Sparing ALL-CAPS labels. Scales with Dynamic Type.
@@ -87,7 +88,7 @@ public enum StrandFont {
     /// Also the face for compact status copy in constrained chrome (the Today header's sync capsule),
     /// used there WITHOUT the tracking — that is sentence case, not an overline, and the letter-spacing
     /// is what makes an overline read as one.
-    public static let overline = Font.system(.caption2, design: .rounded, weight: .semibold)
+    public static let overline = Font.system(.caption2, weight: .semibold)
 
     /// `overline` at a custom point size — same Helvetica face, weight and Dynamic-Type scaling
     /// (relativeTo `.caption2`), just smaller. Passing 11 returns exactly `.overline`. Lets a caller
