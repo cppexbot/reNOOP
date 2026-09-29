@@ -1,8 +1,12 @@
 {
   "sourceLanguage": "en",
   "strings": {
-    "Core": {"localizations": {"ru": {"stringUnit": {"state": "translated", "value": "Основной"}}, "de": {"stringUnit": {"state": "translated", "value": "Kern"}}, "es": {"stringUnit": {"state": "translated", "value": "Básico"}}, "fr": {"stringUnit": {"state": "translated", "value": "Essentiel"}}, "it": {"stringUnit": {"state": "translated", "value": "Essenziale"}}, "pl": {"stringUnit": {"state": "translated", "value": "Główny"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Essencial"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "核心"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "核心"}}}},
+    "Core": {"localizations": {"ru": {"stringUnit": {"state": "translated", "value": "Базовый"}}, "de": {"stringUnit": {"state": "translated", "value": "Kern"}}, "es": {"stringUnit": {"state": "translated", "value": "Esencial"}}, "fr": {"stringUnit": {"state": "translated", "value": "Lent"}}, "it": {"stringUnit": {"state": "translated", "value": "Principale"}}, "pl": {"stringUnit": {"state": "translated", "value": "Bazowy"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Essencial"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "核心"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "核心"}}}},
     "REM": {"localizations": {"ru": {"stringUnit": {"state": "translated", "value": "Быстрый сон"}}, "de": {"stringUnit": {"state": "translated", "value": "REM"}}, "es": {"stringUnit": {"state": "translated", "value": "REM"}}, "fr": {"stringUnit": {"state": "translated", "value": "Paradoxal"}}, "it": {"stringUnit": {"state": "translated", "value": "REM"}}, "pl": {"stringUnit": {"state": "translated", "value": "REM"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "REM"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "快速动眼"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "快速動眼"}}}},
+    "sleep.chart.awake": {"localizations": {"en": {"stringUnit": {"state": "translated", "value": "Awake"}}, "de": {"stringUnit": {"state": "translated", "value": "Wach"}}, "es": {"stringUnit": {"state": "translated", "value": "Vigilia"}}, "fr": {"stringUnit": {"state": "translated", "value": "Éveil"}}, "it": {"stringUnit": {"state": "translated", "value": "Veglia"}}, "pl": {"stringUnit": {"state": "translated", "value": "Czuwanie"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Acordado"}}, "ru": {"stringUnit": {"state": "translated", "value": "Бодрствование"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "清醒时间"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "清醒"}}}},
+    "sleep.chart.rem": {"localizations": {"en": {"stringUnit": {"state": "translated", "value": "REM"}}, "de": {"stringUnit": {"state": "translated", "value": "REM"}}, "es": {"stringUnit": {"state": "translated", "value": "REM"}}, "fr": {"stringUnit": {"state": "translated", "value": "Sommeil paradoxal"}}, "it": {"stringUnit": {"state": "translated", "value": "REM"}}, "pl": {"stringUnit": {"state": "translated", "value": "REM"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "REM"}}, "ru": {"stringUnit": {"state": "translated", "value": "Быстрый"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "快速动眼睡眠"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "快速動眼期"}}}},
+    "sleep.chart.core": {"localizations": {"en": {"stringUnit": {"state": "translated", "value": "Core"}}, "de": {"stringUnit": {"state": "translated", "value": "Kern"}}, "es": {"stringUnit": {"state": "translated", "value": "Esencial"}}, "fr": {"stringUnit": {"state": "translated", "value": "Lent"}}, "it": {"stringUnit": {"state": "translated", "value": "Principale"}}, "pl": {"stringUnit": {"state": "translated", "value": "Bazowy"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Essencial"}}, "ru": {"stringUnit": {"state": "translated", "value": "Базовый"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "核心睡眠"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "核心睡眠"}}}},
+    "sleep.chart.deep": {"localizations": {"en": {"stringUnit": {"state": "translated", "value": "Deep"}}, "de": {"stringUnit": {"state": "translated", "value": "Tief"}}, "es": {"stringUnit": {"state": "translated", "value": "Profundo"}}, "fr": {"stringUnit": {"state": "translated", "value": "Profond"}}, "it": {"stringUnit": {"state": "translated", "value": "Profondo"}}, "pl": {"stringUnit": {"state": "translated", "value": "Głęboki"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Profundo"}}, "ru": {"stringUnit": {"state": "translated", "value": "Глубокий"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "深度睡眠"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "深睡"}}}},
     "Heart rate": {"localizations": {"ru": {"stringUnit": {"state": "translated", "value": "Пульс"}}, "de": {"stringUnit": {"state": "translated", "value": "Herzfrequenz"}}, "es": {"stringUnit": {"state": "translated", "value": "Frecuencia cardiaca"}}, "fr": {"stringUnit": {"state": "translated", "value": "Fréquence cardiaque"}}, "it": {"stringUnit": {"state": "translated", "value": "Frequenza cardiaca"}}, "pl": {"stringUnit": {"state": "translated", "value": "Tętno"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "Frequência cardíaca"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "心率"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "心率"}}}},
     "average %@": {"localizations": {"ru": {"stringUnit": {"state": "translated", "value": "среднее %@"}}, "de": {"stringUnit": {"state": "translated", "value": "Durchschnitt %@"}}, "es": {"stringUnit": {"state": "translated", "value": "media %@"}}, "fr": {"stringUnit": {"state": "translated", "value": "moyenne %@"}}, "it": {"stringUnit": {"state": "translated", "value": "media %@"}}, "pl": {"stringUnit": {"state": "translated", "value": "średnia %@"}}, "pt-PT": {"stringUnit": {"state": "translated", "value": "média %@"}}, "zh-Hans": {"stringUnit": {"state": "translated", "value": "平均 %@"}}, "zh-Hant": {"stringUnit": {"state": "translated", "value": "平均 %@"}}}},
     "%lld days ago": {
@@ -854,19 +858,19 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Despierto"
+            "value": "Vigilia"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Éveillé"
+            "value": "Éveil"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sveglio"
+            "value": "Veglia"
           }
         },
         "pt-PT": {
@@ -896,7 +900,7 @@
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Obudzony"
+            "value": "Czuwanie"
           }
         }
       }
@@ -1152,7 +1156,7 @@
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Głęboko"
+            "value": "Głęboki"
           }
         }
       }

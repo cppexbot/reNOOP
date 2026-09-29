@@ -374,11 +374,28 @@ public enum StrandPalette {
     public static let summaryAvatarTop    = Color(light: "#A9AEBB", dark: "#8E929E")
     public static let summaryAvatarBottom = Color(light: "#868A96", dark: "#6B6F7A")
     /// Sleep screen (Apple Health idiom): the four stage hues, and the plain page colour the chart sits on.
-    public static let healthSleepAwake = Color(light: "#FF7B6B", dark: "#FF8A7A")
-    public static let healthSleepRem   = Color(light: "#35C3EC", dark: "#5AD1F4")
-    public static let healthSleepCore  = Color(light: "#1F7EFF", dark: "#3D8FFF")
-    public static let healthSleepDeep  = Color(light: "#3B33B5", dark: "#5E57E6")
+    /// Health's own values (iOS 26): Awake and Deep are HealthUI's `sleep_awake` / `sleep_deep_color`
+    /// (Awake converted from Display P3), REM and Core the system cyan and blue.
+    public static let healthSleepAwake = Color(light: "#FF836C", dark: "#FF694E", lightHC: "#DF3317", darkHC: "#FF836C")
+    #if canImport(UIKit) && !os(watchOS)
+    public static let healthSleepRem   = Color(uiColor: .systemCyan)
+    public static let healthSleepCore  = Color(uiColor: .systemBlue)
+    #else
+    public static let healthSleepRem   = Color(light: "#00C0E8", dark: "#3CD3FE")
+    public static let healthSleepCore  = Color(light: "#0088FF", dark: "#0091FF")
+    #endif
+    public static let healthSleepDeep  = Color(light: "#3634A3", dark: "#3634A3", darkHC: "#7E7CFB")
     public static let healthSleepPage  = Color(light: "#FFFFFF", dark: "#000000")
+    /// Health's stages chart: the stage names and row rules (secondary label), the hour grid (that grey at
+    /// 35 %), and the clock under the plot (tertiary label).
+    #if canImport(UIKit) && !os(watchOS)
+    public static let healthChartLabel     = Color(uiColor: .secondaryLabel)
+    public static let healthChartAxisLabel = Color(uiColor: .tertiaryLabel)
+    #else
+    public static let healthChartLabel     = Color(light: "#3C3C4399", dark: "#EBEBF599")
+    public static let healthChartAxisLabel = Color(light: "#3C3C434D", dark: "#EBEBF54D")
+    #endif
+    public static let healthChartGrid      = healthChartLabel.opacity(0.35)
     /// The plain white (dark: black) page Messages and Health's Medications draw on, and the grey card
     /// that sits on it.
     public static let plainPage           = Color(light: "#FFFFFF", dark: "#000000")
@@ -758,6 +775,17 @@ public enum SleepStage: String, CaseIterable, Sendable {
         case .light: return String(localized: "Core", bundle: .module)
         case .deep:  return String(localized: "Deep", bundle: .module)
         case .rem:   return String(localized: "REM", bundle: .module)
+        }
+    }
+
+    /// The row name on the stages chart: Health's own somnogram labels, shorter than `label` in some
+    /// languages ("Быстрый" beside the list's "Быстрый сон").
+    public var chartLabel: String {
+        switch self {
+        case .awake: return String(localized: "sleep.chart.awake", defaultValue: "Awake", bundle: .module)
+        case .light: return String(localized: "sleep.chart.core", defaultValue: "Core", bundle: .module)
+        case .deep:  return String(localized: "sleep.chart.deep", defaultValue: "Deep", bundle: .module)
+        case .rem:   return String(localized: "sleep.chart.rem", defaultValue: "REM", bundle: .module)
         }
     }
 

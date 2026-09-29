@@ -118,8 +118,9 @@ struct SleepMoreDataView: View {
                                     overlayColor: selectedComparison.map(Self.color) ?? StrandPalette.healthHeart)
                 }
             }
-            .frame(height: 300)
-            .padding(.top, NoopMetrics.space3)
+            // Health's plot: four ~67 pt rows and the clock under them, 8 pt below the date.
+            .frame(height: 283)
+            .padding(.top, NoopMetrics.space2)
             .animation(StrandMotion.interactive, value: selectedStage)
             .animation(StrandMotion.interactive, value: selectedComparison)
         }
