@@ -99,3 +99,28 @@ struct SleepScore: Equatable {
         }
     }
 }
+
+extension SleepScore.Part {
+    /// The name on the Sleep Score card: Health's own word where Health has the part.
+    var cardLabel: String {
+        self == .duration ? String(localized: "sleep.score.duration", defaultValue: "Duration") : label
+    }
+}
+
+extension SleepScore {
+    /// The line under the Sleep Score card's parts: the night in one sentence, naming the part that cost it
+    /// the most points, or saying it cost almost none.
+    var sentence: String {
+        guard !imported else { return String(localized: "WHOOP scored this night \(value).") }
+        let lost = parts.map { ($0.part, Double($0.part.maxPoints) * (1 - $0.fraction)) }
+        guard let worst = lost.max(by: { $0.1 < $1.1 }), lost.reduce(0, { $0 + $1.1 }) >= 10 else {
+            return String(localized: "You slept soundly through to morning, and your score was \(value). Excellent!")
+        }
+        switch worst.0 {
+        case .duration: return String(localized: "A longer night would have lifted your score of \(value).")
+        case .interruptions: return String(localized: "Waking in the night held your score to \(value).")
+        case .restorative: return String(localized: "Less deep and REM sleep held your score to \(value).")
+        case .regularity: return String(localized: "Going to bed at an unusual time held your score to \(value).")
+        }
+    }
+}

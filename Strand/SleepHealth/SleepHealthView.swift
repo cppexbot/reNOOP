@@ -1,10 +1,11 @@
 //  SleepHealthView.swift
-//  NOOP · Sleep — the tab root, laid out like the Sleep page of the iOS 26 Health app.
+//  NOOP · Sleep — the tab root, laid out like the Sleep Score page of the iOS 26 Health app.
 //
-//  A ‹ date › pager names the picked night once; its card carries the Sleep score ring, time asleep and
-//  the stages. Then "Show More Sleep Data" (`SleepMoreDataView`: the D / W / M / 6M chart with Stages ·
-//  Amounts · Comparisons), sleep-schedule and vitals tiles two to a row, and Highlights. The ••• menu edits the night, adds a nap and logs sleep marks. The
-//  night data comes from the same `SleepModel` pipeline every other sleep surface reads.
+//  The score card (ring, word, the parts' points, a sentence; swipe for another night, tap for the score's
+//  history), then the Sleep tile (opens `SleepMoreDataView`: the D / W / M / 6M chart with Stages ·
+//  Amounts · Comparisons) beside the Vitals tile (opens `SleepVitalsView`), Highlights, and Options (the
+//  sleep schedule). The ••• menu edits the night, adds a nap and logs sleep marks. The night data comes
+//  from the same `SleepModel` pipeline every other sleep surface reads.
 
 import SwiftUI
 import StrandDesign
@@ -15,19 +16,14 @@ struct SleepHealthView: View {
     @EnvironmentObject private var repo: Repository
     @EnvironmentObject private var live: LiveState
     @EnvironmentObject private var intelligence: IntelligenceEngine
-    @EnvironmentObject private var appModel: AppModel
-    @EnvironmentObject private var behavior: BehaviorStore
-    @AppStorage(UnitPrefs.systemKey) private var unitSystemRaw = UnitSystem.metric.rawValue
-    @AppStorage(UnitPrefs.temperatureKey) private var temperatureRaw = ""
-    @AppStorage(UnitPrefs.skinTempDisplayKey) private var skinTempDisplayRaw = ""
     @Environment(\.scrollToTopSignal) private var scrollToTopSignal
-    @ScaledMetric(relativeTo: .subheadline) private var chevronSize: CGFloat = 14
+    @ScaledMetric(relativeTo: .body) private var chevronSize: CGFloat = 14
 
     @State private var range: SleepRange = Self.initialRange
     /// 0 = the newest night, 1 = the one before, … (days in `navDays`).
     @State private var nightOffset = 0
-    @State private var showNightPicker = false
     @State private var showMoreData = Self.initialShowMore
+    @State private var showAllHighlights = false
     @State private var wakeEdit: WakeEdit?
     @State private var addNap: AddNapSeed?
     @State private var sleepUndo: SleepUndo?
@@ -40,8 +36,6 @@ struct SleepHealthView: View {
     @State private var model: SleepModel?
     @State private var night: Night?
     @State private var entries: [SleepNightEntry] = []
-    /// Bumped on appear so the schedule card re-reads the reminder's per-day times after an edit.
-    @State private var scheduleRevision = 0
 
     private static let topAnchorID = "sleepHealth.top"
 
@@ -61,7 +55,7 @@ struct SleepHealthView: View {
                     Color.clear.frame(height: 0).id(Self.topAnchorID)
                     pageContent
                         .padding(.horizontal, NoopMetrics.screenHPadding)
-                        .padding(.top, NoopMetrics.space3)
+                        .padding(.top, NoopMetrics.space2)
                         .padding(.bottom, NoopMetrics.space8)
                 }
                 #if os(macOS)
@@ -69,32 +63,27 @@ struct SleepHealthView: View {
                 .frame(maxWidth: .infinity)
                 #endif
             }
-            .background(StrandPalette.summaryCanvas.ignoresSafeArea())
+            .background(StrandPalette.sleepScoreCanvas.ignoresSafeArea())
+            .environment(\.summaryCardFill, StrandPalette.sleepScoreCard)
             #if os(iOS)
             .onChange(of: scrollToTopSignal) { _, _ in
                 withAnimation(.easeOut(duration: 0.35)) { proxy.scrollTo(Self.topAnchorID, anchor: .top) }
             }
             #endif
         }
-        .navigationTitle(Text("Sleep"))
+        .navigationTitle(Text("Sleep Score"))
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .toolbar {
             ToolbarItem(placement: .primaryAction) { moreMenu.barGlyph() }
         }
-        .sheet(isPresented: $showMoreData) {
-            SleepMoreDataView(navDays: navDays, habitualMidsleepSec: habitualMidsleepSec,
-                              motionByStart: motionByStart, typicalStageMin: typicalStageMin,
-                              sleepDebtLedger: model?.sleepDebtLedger,
-                              range: range, nightOffset: nightOffset, tab: Self.initialMoreTab)
-                .environmentObject(repo)
-        }
+        .navigationDestination(isPresented: $showMoreData) { moreData }
+        .navigationDestination(isPresented: $showAllHighlights) { allHighlights }
         .sheet(item: $wakeEdit) { edit in editSheet(edit) }
         .sheet(item: $addNap) { seed in napSheet(seed) }
         .refreshable { await repo.refresh() }
         .task(id: repo.refreshSeq) { await load() }
-        .onAppear { scheduleRevision += 1 }
         // The undo stays until ✕ or Undo, never on a timer; leaving the screen puts it away.
         .onDisappear { sleepUndo = nil }
         .onChangeCompat(of: nightOffset) { offset in
@@ -117,24 +106,6 @@ struct SleepHealthView: View {
             }
     }
 
-    private var nightPicker: some View {
-        DatePicker("", selection: Binding(
-            get: { night.map { Date(timeIntervalSince1970: TimeInterval($0.session.endTs)) } ?? Date() },
-            set: { picked in
-                let day = Calendar.current.startOfDay(for: picked)
-                if let idx = navDays.firstIndex(where: { group in
-                    group.last.map { Calendar.current.startOfDay(for: Date(timeIntervalSince1970: TimeInterval($0.endTs))) } == day
-                }) {
-                    nightOffset = idx
-                }
-                showNightPicker = false
-            }
-        ), in: ...Date(), displayedComponents: [.date])
-        .datePickerStyle(.graphical)
-        .labelsHidden()
-        .padding(12)
-    }
-
     // MARK: - Ranges
 
     /// "20 Sep – 26 Sep 2026": the span a range window covers.
@@ -148,16 +119,33 @@ struct SleepHealthView: View {
     // MARK: - Page
 
     private var pageContent: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             if let sleepUndo { undoBanner(sleepUndo) }
             SleepFreshnessNote(latestWakeTs: model?.night.session.endTs)
-            nightPager
             Group {
                 if let night, night.stages.asleep > 0 {
-                    SleepNightCard(score: score(for: night), source: scoreSource(for: night),
-                                   stages: night.stages, bedtime: night.onsetDate,
-                                   wake: Date(timeIntervalSince1970: TimeInterval(night.session.endTs)),
-                                   intervals: nightOffset == 0 ? (model?.intervals ?? night.intervals) : night.intervals)
+                    if let score = score(for: night) {
+                        NavigationLink(value: TabRoute.metric("sleep_performance")) {
+                            SleepScoreCard(score: score)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    HStack(alignment: .top, spacing: 10) {
+                        Button { showMoreData = true } label: {
+                            SleepDurationTile(intervals: nightIntervals(night), onset: night.onsetDate,
+                                              asleepMinutes: night.stages.asleep)
+                        }
+                        .buttonStyle(.plain)
+                        NavigationLink {
+                            SleepVitalsView(vitals: vitals(for: night),
+                                            date: Date(timeIntervalSince1970: TimeInterval(night.session.endTs)))
+                        } label: {
+                            SleepVitalsTile(vitals: vitals(for: night))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    // Both tiles take the taller one's height, as Health's pair does.
+                    .fixedSize(horizontal: false, vertical: true)
                 } else {
                     SummaryCard {
                         Text("No sleep data")
@@ -169,129 +157,26 @@ struct SleepHealthView: View {
             }
             .contentShape(Rectangle())
             .gesture(nightSwipe)
-            Button { showMoreData = true } label: {
-                Text("Show More Sleep Data")
-                    .font(StrandFont.body)
-                    .foregroundStyle(StrandPalette.accent)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, NoopMetrics.space2)
-            }
-            .buttonStyle(.plain)
-            let schedule = scheduleTiles
-            if !schedule.isEmpty {
-                SectionHeader(title: "Sleep Schedule")
-                SleepTileGrid(tiles: schedule)
-            }
-            scheduleSection
-            if let night {
-                // Draws nothing until the body-clock estimate is readable.
-                BodyClockDialSection(actualBedHour: SleepNightDecoding.localClockHour(night.session.effectiveStartTs),
-                                     actualWakeHour: SleepNightDecoding.localClockHour(night.session.endTs))
-            }
-            let vitals = vitalTiles
-            if !vitals.isEmpty {
-                SectionHeader(title: "Vitals")
-                SleepTileGrid(tiles: vitals)
-            }
             highlightsSection
+            optionsSection
         }
     }
 
-    /// ‹ date › — the one place the picked night is named; the arrows step through the nights on record
-    /// and the date opens a calendar.
-    private var nightPager: some View {
-        DayPager(title: night.map { Self.pagerLabel($0.session, offset: nightOffset) } ?? " ",
-                 canGoBack: nightOffset < navDays.count - 1, canGoForward: nightOffset > 0,
-                 onBack: { nightOffset += 1 }, onForward: { nightOffset -= 1 },
-                 backLabel: "Previous night", forwardLabel: "Next night",
-                 showPicker: $showNightPicker) { nightPicker }
+    /// The newest night draws the model's own timeline; an older one its decoded blocks.
+    private func nightIntervals(_ night: Night) -> [SleepInterval] {
+        nightOffset == 0 ? (model?.intervals ?? night.intervals) : night.intervals
     }
 
-    /// "Last Night" for the newest night, else its date.
-    static func pagerLabel(_ session: CachedSleepSession, offset: Int) -> String {
-        offset == 0 ? String(localized: "Last Night") : shortDayLabel(session)
+    private func vitals(for night: Night) -> SleepVitals {
+        SleepVitals.make(rows: repo.days, day: wakeDayKey(night))
     }
 
-    // MARK: - Tiles
-
-    /// The picked night against its need, plus the running debt and regularity. One need throughout: the
-    /// night's own (imported, else personal), the figure "Hours vs needed" reads.
-    private var scheduleTiles: [SleepMetricTile] {
-        let tint = StrandPalette.healthSleepDeep
-        var tiles: [SleepMetricTile] = []
-        if let night, night.stages.asleep > 0,
-           let need = SleepMoreData.needMin(dayKeys: [wakeDayKey(night)], days: repo.days,
-                                            imported: repo.importedSleep) {
-            tiles.append(SleepMetricTile(id: "need", icon: "target", title: String(localized: "sleep.tile.need", defaultValue: "Sleep Need"), tint: tint,
-                                         value: .duration(need),
-                                         caption: String(localized: "\(SleepMoreDataView.percent(night.stages.asleep / need)) of need slept")))
-        }
-        if let model, !model.sleepDebtLedger.nights.isEmpty {
-            let ledger = model.sleepDebtLedger
-            tiles.append(SleepMetricTile(id: "debt", icon: "hourglass", title: String(localized: "Sleep Debt"), tint: tint,
-                                         value: ledger.isDebt ? .duration(ledger.magnitudeMin) : .text(String(localized: "No debt")),
-                                         caption: String(localized: "Last \(ledger.nightCount) nights")))
-        }
-        let recent = entries.suffix(14)
-        if !recent.isEmpty {
-            let bed = recent.map(\.onsetOfNightMin).reduce(0, +) / Double(recent.count)
-            let wake = recent.map(\.wakeOfNightMin).reduce(0, +) / Double(recent.count)
-            tiles.append(SleepMetricTile(id: "bedtime", icon: "moon.stars.fill", title: String(localized: "sleep.tile.bedtime", defaultValue: "Bedtime"),
-                                         tint: tint, value: .text(SleepMoreDataView.clock(minutesOfNight: bed)),
-                                         caption: String(localized: "Up at \(SleepMoreDataView.clock(minutesOfNight: wake))")))
-        }
-        if let pct = model?.consistency.latest {
-            tiles.append(SleepMetricTile(id: "regularity", icon: "clock.arrow.circlepath", title: String(localized: "Regularity"),
-                                         tint: tint, value: .number(Self.percentNumber(pct / 100), unit: "%")))
-        }
-        if let night {
-            let napMin = Self.napMinutes(night)
-            if napMin > 0 {
-                tiles.append(SleepMetricTile(id: "naps", icon: "powersleep", title: String(localized: "Naps"), tint: tint,
-                                             value: .duration(napMin)))
-            }
-        }
-        return tiles
-    }
-
-    /// The picked night's vitals, from its own row.
-    private var vitalTiles: [SleepMetricTile] {
-        guard let night, let row = dailyRow(for: night) else { return [] }
-        var tiles: [SleepMetricTile] = []
-        if let hr = row.restingHr {
-            tiles.append(SleepMetricTile(id: "rhr", icon: "heart.fill", title: String(localized: "Resting HR"),
-                                         tint: StrandPalette.healthHeart,
-                                         value: .number("\(hr)", unit: String(localized: "sleep.unit.bpm", defaultValue: "BPM"))))
-        }
-        if let hrv = row.avgHrv {
-            tiles.append(SleepMetricTile(id: "hrv", icon: "waveform.path.ecg", title: String(localized: "sleep.tile.hrv", defaultValue: "HRV"),
-                                         tint: StrandPalette.healthHeart,
-                                         value: .number("\(Int(hrv.rounded()))", unit: String(localized: "sleep.unit.ms", defaultValue: "ms"))))
-        }
-        if let resp = row.respRateBpm {
-            tiles.append(SleepMetricTile(id: "resp", icon: "lungs.fill", title: String(localized: "sleep.tile.resp", defaultValue: "Respiratory"),
-                                         tint: StrandPalette.healthRespiratory,
-                                         value: .number(resp.formatted(.number.precision(.fractionLength(1)).locale(AppLanguage.activeLocale)),
-                                                        unit: String(localized: "br/min"))))
-        }
-        if let spo2 = row.spo2Pct {
-            tiles.append(SleepMetricTile(id: "spo2", icon: "drop.fill", title: String(localized: "sleep.tile.spo2", defaultValue: "Blood Oxygen"),
-                                         tint: StrandPalette.healthOxygen,
-                                         value: .number(Self.percentNumber(spo2 / 100), unit: "%")))
-        }
-        if let skin = SkinTempDisplay.leadReading(absC: row.skinTempC, devC: row.skinTempDevC,
-                                                  prefer: SkinTempDisplay.Kind(rawValue: skinTempDisplayRaw) ?? .absolute) {
-            tiles.append(SleepMetricTile(id: "skin", icon: "thermometer.medium", title: String(localized: "sleep.tile.skin", defaultValue: "Skin Temp"),
-                                         tint: StrandPalette.healthTemperature,
-                                         value: .number(SkinTempDisplay.numberString(skin.value, kind: skin.kind, fahrenheit: fahrenheit),
-                                                        unit: SkinTempDisplay.unitSymbol(kind: skin.kind, fahrenheit: fahrenheit))))
-        }
-        return tiles
-    }
-
-    /// "85" for 0.85: the number of a percentage, its sign set apart as a unit.
-    static func percentNumber(_ fraction: Double) -> String {
-        "\(Int((fraction * 100).rounded()))"
+    /// The Sleep tile's page: the D / W / M / 6M chart with Stages · Amounts · Comparisons.
+    private var moreData: some View {
+        SleepMoreDataView(navDays: navDays, habitualMidsleepSec: habitualMidsleepSec,
+                          motionByStart: motionByStart, typicalStageMin: typicalStageMin,
+                          sleepDebtLedger: model?.sleepDebtLedger,
+                          range: range, nightOffset: nightOffset, tab: Self.initialMoreTab)
     }
 
     /// The day's blocks outside the bridged main night: its naps (#508, #555).
@@ -304,11 +189,6 @@ struct SleepHealthView: View {
 
     static func napMinutes(_ night: Night) -> Double {
         naps(night).reduce(0) { $0 + Double($1.endTs - $1.effectiveStartTs) / 60 }
-    }
-
-    private var fahrenheit: Bool {
-        UnitPrefs.resolveTemperature(system: UnitSystem(rawValue: unitSystemRaw) ?? .metric,
-                                     override: temperatureRaw) == .fahrenheit
     }
 
     private func wakeDayKey(_ night: Night) -> String {
@@ -325,11 +205,6 @@ struct SleepHealthView: View {
     private func score(for night: Night) -> SleepScore? {
         SleepScore.make(daily: dailyRow(for: night),
                         importedPct: repo.importedSleep[wakeDayKey(night)]?.performancePct)
-    }
-
-    private func scoreSource(for night: Night) -> String {
-        if repo.importedSleep[wakeDayKey(night)]?.performancePct != nil { return String(localized: "Whoop") }
-        return repo.activeDeviceIsOura ? String(localized: "Oura") : String(localized: "On-device")
     }
 
     private var typicalStageMin: [SleepStage: Double] {
@@ -414,46 +289,57 @@ struct SleepHealthView: View {
             .transition(.opacity)
     }
 
-    // MARK: - Your schedule
+    // MARK: - Highlights and options (grouped canvas)
 
-    /// Health's "Your Schedule": the next wake, and the way into the Full Schedule.
-    private var scheduleSection: some View {
-        let _ = scheduleRevision
-        return VStack(alignment: .leading, spacing: 10) {
-            SectionHeader(title: "Your Schedule")
+    /// Health's Sleep highlights: the bedtime and duration claims, then the night's stages.
+    @ViewBuilder private var highlightCards: some View {
+        ForEach(SleepHighlights.make(entries: entries, anchor: Date())) { SleepHighlightCard(highlight: $0) }
+        if let night, night.stages.asleep > 0, !nightIntervals(night).isEmpty {
+            SleepStagesHighlightCard(intervals: nightIntervals(night), onset: night.onsetDate,
+                                     asleepMinutes: night.stages.asleep)
+        }
+    }
+
+    private var highlightsSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionHeader(title: "Highlights", actionTitle: "Show All") { showAllHighlights = true }
+            highlightCards
+        }
+    }
+
+    private var allHighlights: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 10) { highlightCards }
+                .padding(.horizontal, NoopMetrics.screenHPadding)
+                .padding(.vertical, NoopMetrics.space3)
+        }
+        .background(StrandPalette.sleepScoreCanvas.ignoresSafeArea())
+        .environment(\.summaryCardFill, StrandPalette.sleepScoreCard)
+        .navigationTitle(Text("Sleep Highlights"))
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
+    }
+
+    /// Health's Options card: here the way into the sleep schedule.
+    private var optionsSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionHeader(title: "Options")
             NavigationLink(value: TabRoute.sleepSchedule) {
-                SleepNextWakeCard(inputs: SleepScheduleStore.inputs(behavior: behavior, model: appModel),
-                                  trailing: AnyView(fullScheduleRow))
+                SummaryCard(insets: .summaryCardRow) {
+                    HStack {
+                        Text("Sleep Schedule")
+                            .font(StrandFont.body)
+                            .foregroundStyle(StrandPalette.textPrimary)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(StrandFont.pro(chevronSize, weight: .semibold))
+                            .foregroundStyle(StrandPalette.healthChevron)
+                            .accessibilityHidden(true)
+                    }
+                }
             }
             .buttonStyle(.plain)
-        }
-    }
-
-    private var fullScheduleRow: some View {
-        VStack(spacing: 10) {
-            Divider().overlay(StrandPalette.hairline)
-            HStack {
-                Text("Full Schedule & Options")
-                    .font(StrandFont.pro(17))
-                    .foregroundStyle(StrandPalette.textPrimary)
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(StrandFont.pro(chevronSize, weight: .semibold))
-                    .foregroundStyle(StrandPalette.textTertiary)
-                    .accessibilityHidden(true)
-            }
-        }
-    }
-
-    // MARK: - Highlights (grouped canvas)
-
-    @ViewBuilder private var highlightsSection: some View {
-        let highlights = SleepHighlights.make(entries: entries, anchor: Date())
-        if !highlights.isEmpty {
-            VStack(alignment: .leading, spacing: 10) {
-                SectionHeader(title: "Highlights")
-                ForEach(highlights) { SleepHighlightCard(highlight: $0) }
-            }
         }
     }
 
@@ -524,12 +410,6 @@ struct SleepHealthView: View {
     static func clock(_ ts: Int) -> String {
         Date(timeIntervalSince1970: TimeInterval(ts))
             .formatted(.dateTime.hour().minute().locale(AppLanguage.activeLocale))
-    }
-
-    /// "Fri 26 Sep" — the Sleep score card's date.
-    static func shortDayLabel(_ session: CachedSleepSession) -> String {
-        Date(timeIntervalSince1970: TimeInterval(session.endTs))
-            .formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated).locale(AppLanguage.activeLocale))
     }
 
     /// DEBUG screenshot runs open "Show More Sleep Data" with `--sleep-more [stages|amounts|comparisons]`.

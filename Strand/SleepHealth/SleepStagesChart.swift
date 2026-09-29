@@ -32,7 +32,7 @@ struct SleepStagesChart: View {
     /// A vital drawn over the night (x = seconds from onset), scaled to the plot on its own axis.
     var overlay: [SleepComparisonPoint] = []
     var overlayColor: Color = StrandPalette.healthHeart
-    /// A thumbnail for a card: the rows and blocks only, no stage names and no hour axis.
+    /// A thumbnail for a card: the blocks only, no grid, stage names or hour axis.
     var compact = false
 
     static let rowOrder: [SleepStage] = [.awake, .rem, .light, .deep]
@@ -87,6 +87,10 @@ struct SleepStagesChart: View {
     private static let paleOpacity = 0.25
     private static let blockRadius: CGFloat = 4
     private static let filletRadius: CGFloat = 16.0 / 3
+    /// A thumbnail's block fills the middle half of its row: there is no name above it.
+    private var band: (top: CGFloat, bottom: CGFloat) {
+        compact ? (0.25, 0.75) : (Self.blockTop, Self.blockBottom)
+    }
 
     private func drawChart(_ ctx: GraphicsContext, size: CGSize) {
         let axis = chartAxis
@@ -165,9 +169,9 @@ struct SleepStagesChart: View {
         func row(_ stage: SleepStage) -> Int { Self.rowOrder.firstIndex(of: stage) ?? 0 }
         var out: [Block] = intervals.map { interval in
             let x1 = axis.x(interval.start, width: width), x2 = axis.x(interval.end, width: width)
-            let top = (CGFloat(row(interval.stage)) + Self.blockTop) * rowHeight
+            let top = (CGFloat(row(interval.stage)) + band.top) * rowHeight
             let rect = CGRect(x: x1, y: top, width: max(1, x2 - x1),
-                              height: (Self.blockBottom - Self.blockTop) * rowHeight)
+                              height: (band.bottom - band.top) * rowHeight)
             return Block(stage: interval.stage, rect: rect,
                          radius: min(Self.blockRadius, rect.width / 2, rect.height / 2))
         }
@@ -226,7 +230,7 @@ struct SleepStagesChart: View {
                 } else {
                     continue
                 }
-                let r = min(Self.filletRadius, run)
+                let r = min(Self.filletRadius, rowHeight / 4, run)
                 guard r > 0.25 else { continue }
                 if let inX { shape.addPath(Self.fillet(corner: CGPoint(x: inX + h, y: edgeY), dx: 1, dy: dy, r: r)) }
                 if let outX { shape.addPath(Self.fillet(corner: CGPoint(x: outX - h, y: edgeY), dx: -1, dy: dy, r: r)) }
@@ -236,7 +240,7 @@ struct SleepStagesChart: View {
         // The rows' hues down the plot, each pure from its blocks' top edge.
         let stops = Self.rowOrder.enumerated().map { i, stage in
             Gradient.Stop(color: stage.healthColor,
-                          location: (CGFloat(i) + Self.blockTop) / CGFloat(Self.rowOrder.count))
+                          location: (CGFloat(i) + band.top) / CGFloat(Self.rowOrder.count))
         }
         var layer = ctx
         layer.opacity = Self.paleOpacity * (highlight == nil && overlay.isEmpty ? 1 : 0.4)
@@ -264,44 +268,16 @@ struct SleepStagesChart: View {
 
     // MARK: - Card thumbnail
 
+    /// Health's Sleep tile: the blocks in their halos across the card, the night filling the width, no
+    /// grid and no names.
     private func drawThumbnail(_ ctx: GraphicsContext, size: CGSize) {
         let rowHeight = size.height / CGFloat(Self.rowOrder.count)
-        let blockHeight = rowHeight * 0.5
-        let axis = TimeAxis(start: 0, length: span)
-        let line = GraphicsContext.Shading.color(StrandPalette.hairline)
-        for i in 0...Self.rowOrder.count {
-            let y = CGFloat(i) * rowHeight
-            ctx.stroke(Path { $0.move(to: CGPoint(x: 0, y: y)); $0.addLine(to: CGPoint(x: size.width, y: y)) },
-                       with: line, lineWidth: 1)
-        }
-        // Dashed lines on the whole clock hours inside the night.
-        let firstHour = Calendar.current.nextDate(after: onset, matching: DateComponents(minute: 0, second: 0),
-                                                  matchingPolicy: .nextTime)
-        var hour = firstHour.map { $0.timeIntervalSince(onset) } ?? span
-        while hour < span {
-            let x = axis.x(hour, width: size.width)
-            ctx.stroke(Path { $0.move(to: CGPoint(x: x, y: 0)); $0.addLine(to: CGPoint(x: x, y: size.height)) },
-                       with: line, style: StrokeStyle(lineWidth: 1, dash: [2, 3]))
-            hour += 3600
-        }
-        func midY(_ stage: SleepStage) -> CGFloat {
-            (CGFloat(Self.rowOrder.firstIndex(of: stage) ?? 0) + 0.5) * rowHeight
-        }
-        // Connectors first, so the blocks sit on top of them.
-        for (a, b) in zip(intervals, intervals.dropFirst()) where a.stage != b.stage {
-            let x = axis.x(b.start, width: size.width)
-            let y1 = midY(a.stage), y2 = midY(b.stage)
-            let rect = CGRect(x: x - 1.5, y: min(y1, y2), width: 3, height: abs(y2 - y1))
-            let gradient = Gradient(colors: [a.stage.healthColor.opacity(0.35), b.stage.healthColor.opacity(0.35)])
-            ctx.fill(Path(rect), with: .linearGradient(gradient, startPoint: CGPoint(x: x, y: y1),
-                                                       endPoint: CGPoint(x: x, y: y2)))
-        }
-        for interval in intervals {
-            let x1 = axis.x(interval.start, width: size.width), x2 = axis.x(interval.end, width: size.width)
-            let w = max(2, x2 - x1)
-            let rect = CGRect(x: x1, y: midY(interval.stage) - blockHeight / 2, width: w, height: blockHeight)
-            ctx.fill(Path(roundedRect: rect, cornerRadius: min(5, w / 2), style: .continuous),
-                     with: .color(interval.stage.healthColor))
+        let plot = CGRect(origin: .zero, size: size)
+        let blocks = blockRects(axis: TimeAxis(start: 0, length: span), width: size.width, rowHeight: rowHeight)
+        drawPale(ctx, blocks: blocks, plot: plot, rowHeight: rowHeight)
+        for block in blocks {
+            ctx.fill(Path(roundedRect: block.rect, cornerRadius: block.radius, style: .continuous),
+                     with: .color(block.stage.healthColor))
         }
     }
 

@@ -28,7 +28,7 @@ struct SummarySleepCard: View {
                 SummaryCardTitleRow(icon: "bed.double.fill", title: String(localized: "Sleep"),
                                     tint: StrandPalette.healthSleepDeep,
                                     // Health stamps a card with when its value was recorded: the wake time.
-                                    trailing: SleepNightCard.clock(wake))
+                                    trailing: wake.formatted(.dateTime.hour().minute().locale(AppLanguage.activeLocale)))
                 HStack(alignment: .bottom, spacing: 14) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Time Asleep")

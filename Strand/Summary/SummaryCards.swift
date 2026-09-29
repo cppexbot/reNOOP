@@ -17,17 +17,30 @@ struct SummaryCard<Content: View>: View {
     /// `.summaryCardRow` for a card that is one list row.
     var insets: EdgeInsets = .summaryCard
     @ViewBuilder var content: Content
+    @Environment(\.summaryCardFill) private var fill
 
     var body: some View {
         content
             .padding(insets)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(StrandPalette.summaryCard,
-                        in: RoundedRectangle(cornerRadius: Self.radius, style: .continuous))
+            .background(fill, in: RoundedRectangle(cornerRadius: Self.radius, style: .continuous))
             .contentShape(RoundedRectangle(cornerRadius: Self.radius, style: .continuous))
     }
 
     static var radius: CGFloat { 22 }
+}
+
+/// The card colour for a page whose cards sit on a different canvas than the Summary's (Health's Sleep
+/// Score page is a step lighter in dark mode). Set once on the page; every `SummaryCard` under it follows.
+private struct SummaryCardFillKey: EnvironmentKey {
+    static let defaultValue = StrandPalette.summaryCard
+}
+
+extension EnvironmentValues {
+    var summaryCardFill: Color {
+        get { self[SummaryCardFillKey.self] }
+        set { self[SummaryCardFillKey.self] = newValue }
+    }
 }
 
 extension EdgeInsets {

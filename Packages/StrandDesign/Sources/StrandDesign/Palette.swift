@@ -476,11 +476,31 @@ public enum StrandPalette {
     public static let healthZoneLow   = Color(light: "#FF3B30", dark: "#FF453A", lightHC: "#D70015", darkHC: "#FF6961")
     public static let healthZoneMid   = Color(light: "#FFCC00", dark: "#FFD60A", lightHC: "#A17B00", darkHC: "#FFE566")
     public static let healthZoneHigh  = Color(light: "#34C759", dark: "#30D158", lightHC: "#217F39", darkHC: "#6FE08C")
-    /// Sleep score ring: one hue per part of the score, as the Health app's Sleep Score segments.
-    public static let sleepScoreDuration     = Color(light: "#3F6FF5", dark: "#5B86FF")
-    public static let sleepScoreInterruption = Color(light: "#FF7A5C", dark: "#FF8C70")
-    public static let sleepScoreRestorative  = Color(light: "#1FC4B4", dark: "#3ED8C8")
-    public static let sleepScoreRegularity   = Color(light: "#A86CF0", dark: "#BE8CFF")
+    /// Sleep score ring: one hue per part of the score. Duration and Interruptions are Health's own; its
+    /// Bedtime teal marks Regularity, the part that reads bedtime; Deep & REM, which Health has no part
+    /// for, takes a violet beside them.
+    public static let sleepScoreDuration     = Color(light: "#3E62FF", dark: "#4265FF")
+    public static let sleepScoreInterruption = Color(light: "#FF826C", dark: "#FF694E")
+    public static let sleepScoreRestorative  = Color(light: "#A86CF0", dark: "#BE8CFF")
+    public static let sleepScoreRegularity   = Color(light: "#00C8B3", dark: "#00DAC3")
+    /// Health's Sleep Score page: the Sleep title hue, the page and its cards (a step lighter than the
+    /// Summary's in dark mode, as Health draws this page), and the chevron on a card's title.
+    public static let sleepScoreTitle  = Color(light: "#6155F5", dark: "#6D7CFF")
+    public static let sleepScoreCanvas = Color(light: "#F2F2F7", dark: "#1C1C1E")
+    public static let sleepScoreCard   = Color(light: "#FFFFFF", dark: "#2C2C2E")
+    #if canImport(UIKit) && !os(watchOS)
+    public static let healthChevron    = Color(uiColor: .tertiaryLabel)
+    #else
+    public static let healthChevron    = Color(light: "#3C3C434D", dark: "#EBEBF54D")
+    #endif
+    /// Health's Vitals: the typical-range hue and its band, the outlier hue and its band, the grey of a
+    /// night still to come, and the grey high and low zones either side of the band.
+    public static let vitalsTypical     = Color(light: "#3E97F8", dark: "#55AEFF", lightHC: "#186DC9", darkHC: "#55AEFF")
+    public static let vitalsTypicalBand = Color(light: "#9FCBFC", dark: "#2D648E", lightHC: "#9BC1EB", darkHC: "#417093")
+    public static let vitalsOutlier     = Color(light: "#FF6CE5", dark: "#FF6CE5", lightHC: "#CC21B1", darkHC: "#FF6CE5")
+    public static let vitalsOutlierBand = Color(light: "#FFA9E5", dark: "#8E4679", lightHC: "#F09CD7", darkHC: "#915380")
+    public static let vitalsPending     = Color(light: "#AEAEB2", dark: "#636366")
+    public static let vitalsZone        = Color(light: "#E5E5EA", dark: "#3A3A3C")
     /// Settings rows (iOS Settings idiom): the solid rounded squares behind each row's white glyph, in
     /// Apple's system hues.
     public static let settingsGray   = Color(light: "#8E8E93", dark: "#8E8E93")

@@ -1,82 +1,11 @@
 //  SleepPageCards.swift
-//  NOOP · Sleep — the night card that heads the Sleep page: the Sleep score ring (iOS 26 Health's Sleep
-//  Score ring) beside its word and its parts' points under it, then time asleep, time in bed, the
-//  bed → wake span and a thumbnail of the night's stages.
+//  NOOP · Sleep — the Sleep highlight card: the category, the sentence, the two figures and the nights
+//  behind them, as Health sets a Sleep highlight.
 //
-//  Presentation only. The score and the night arrive from the caller, resolved as every other surface
-//  resolves them.
+//  Presentation only. The highlight arrives resolved from the caller.
 
 import SwiftUI
 import StrandDesign
-
-struct SleepNightCard: View {
-    /// nil when the night has no score (no scored row for its day).
-    let score: SleepScore?
-    /// "On-device" / "Whoop" / "Oura": where the score came from.
-    let source: String?
-    let stages: Stages
-    let bedtime: Date
-    let wake: Date
-    /// The night's hypnogram, seconds from `bedtime`; the card draws it as a thumbnail when present.
-    var intervals: [SleepInterval] = []
-
-    @Environment(\.dynamicTypeSize) private var dts
-
-    var body: some View {
-        let stacked = dts.isAccessibilitySize
-        let scoreLayout = stacked
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
-            : AnyLayout(HStackLayout(spacing: 18))
-        SummaryCard {
-            VStack(alignment: .leading, spacing: 14) {
-                if let score {
-                    scoreLayout {
-                        SleepScoreRing(score: score, lineWidth: 12)
-                            .frame(width: 104, height: 104)
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text("Sleep Score")
-                                .font(StrandFont.subhead)
-                                .foregroundStyle(StrandPalette.textSecondary)
-                            Text(SleepScore.word(score.value))
-                                .font(StrandFont.rounded(28, weight: .bold))
-                                .foregroundStyle(StrandPalette.textPrimary)
-                                .lineLimit(stacked ? 2 : 1)
-                                .minimumScaleFactor(0.7)
-                            if let source {
-                                Text(source)
-                                    .font(StrandFont.footnote)
-                                    .foregroundStyle(StrandPalette.textTertiary)
-                            }
-                        }
-                        if !stacked { Spacer(minLength: 0) }
-                    }
-                    if !score.parts.isEmpty {
-                        SleepScoreBreakdown(score: score)
-                    }
-                    Rectangle().fill(StrandPalette.hairline).frame(height: NoopMetrics.hairlineWidth)
-                }
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Time Asleep")
-                        .font(StrandFont.subhead)
-                        .foregroundStyle(StrandPalette.textSecondary)
-                    SleepCardValueText(value: .duration(stages.asleep), size: 34)
-                    Text("In bed \(SleepFormat.duration(minutes: stages.total)) · \(Self.clock(bedtime)) – \(Self.clock(wake))")
-                        .font(StrandFont.subhead)
-                        .foregroundStyle(StrandPalette.textSecondary)
-                }
-                if intervals.count >= 2 {
-                    SleepStagesChart(intervals: intervals, onset: bedtime, compact: true)
-                        .frame(height: 64)
-                }
-            }
-        }
-        .accessibilityElement(children: .combine)
-    }
-
-    static func clock(_ date: Date) -> String {
-        date.formatted(.dateTime.hour().minute().locale(AppLanguage.activeLocale))
-    }
-}
 
 /// A Highlights card as the Health app sets one: the category, the sentence, then two figures side by
 /// side over the nights behind them — grey bars, the average as a line, the newest bar in colour.
@@ -85,7 +14,7 @@ struct SleepHighlightCard: View {
 
     /// The average a night is read against, in grey as Health draws it; the reading itself in the Sleep hue.
     private let averageTint = StrandPalette.textSecondary
-    private let latestTint = StrandPalette.healthSleepDeep
+    private let latestTint = StrandPalette.sleepScoreTitle
 
     @Environment(\.dynamicTypeSize) private var dts
 

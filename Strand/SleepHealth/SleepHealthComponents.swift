@@ -6,11 +6,12 @@ import StrandDesign
 
 // MARK: - Sleep score ring
 
-/// The Health Sleep Score ring: one segment per part of the score, each as long as the points it is
-/// worth, filled as far as the night did on it. A score with no known parts draws one arc.
+/// The Health Sleep Score ring, measured off iOS 26: one thick segment per part of the score, as long as
+/// the points it is worth, with square ends rounded at the corners. A segment's full thickness is its
+/// pale track; the points the night earned fill it from the inner edge outward, so a part at 24 of 30
+/// is a solid band four fifths as thick. A score with no known parts (an imported one) is one segment.
 struct SleepScoreRing: View {
     let score: SleepScore
-    var lineWidth: CGFloat = 14
 
     static func color(_ part: SleepScore.Part) -> Color {
         switch part {
@@ -21,51 +22,91 @@ struct SleepScoreRing: View {
         }
     }
 
+    /// Clockwise from twelve o'clock, as Health sets its parts: Interruptions, then Duration round the
+    /// bottom, the rest up the left.
+    static let order: [SleepScore.Part] = [.interruptions, .duration, .restorative, .regularity]
+    /// The card lists them from Duration onward, round the ring, as Health's legend does.
+    static let legendOrder: [SleepScore.Part] = [.duration, .restorative, .regularity, .interruptions]
+
     var body: some View {
-        Canvas { ctx, size in
-            let r = min(size.width, size.height) / 2 - lineWidth / 2
-            let center = CGPoint(x: size.width / 2, y: size.height / 2)
-            let style = StrokeStyle(lineWidth: lineWidth, lineCap: .round)
-            func arc(_ from: Double, _ to: Double) -> Path {
-                Path { p in
-                    p.addArc(center: center, radius: r, startAngle: .degrees(from), endAngle: .degrees(to),
-                             clockwise: false)
-                }
+        GeometryReader { geo in
+            let d = min(geo.size.width, geo.size.height)
+            ZStack {
+                Canvas { ctx, size in draw(ctx, size: size) }
+                // Health's figure: SF Pro bold at a quarter of the ring's width.
+                Text(verbatim: "\(score.value)")
+                    .font(.system(size: d * 0.25, weight: .bold))
+                    .foregroundStyle(StrandPalette.textPrimary)
+                    .minimumScaleFactor(0.6)
+                    .padding(d * 0.2)
             }
-            guard !score.parts.isEmpty else {
-                ctx.stroke(arc(-90, 270), with: .color(StrandPalette.sleepScoreDuration.opacity(0.2)), style: style)
-                let end = -90 + 360 * min(1, Double(score.value) / 100)
-                ctx.stroke(arc(-90, end), with: .color(StrandPalette.sleepScoreDuration), style: style)
-                return
-            }
-            // Round caps reach half a line past each end, so the gap leaves room for both caps.
-            let capDeg = Double(lineWidth / 2 / max(r, 1)) * 180 / .pi
-            let gap = 2 * capDeg + 5
-            let usable = 360 - gap * Double(score.parts.count)
-            let worth = Double(score.parts.map(\.part.maxPoints).reduce(0, +))
-            var start = -90 + gap / 2
-            for part in score.parts {
-                let span = usable * Double(part.part.maxPoints) / worth
-                let color = Self.color(part.part)
-                ctx.stroke(arc(start, start + span), with: .color(color.opacity(0.22)), style: style)
-                if part.fraction > 0 {
-                    ctx.stroke(arc(start, start + max(0.5, span * part.fraction)), with: .color(color), style: style)
-                }
-                start += span + gap
-            }
+            .frame(width: geo.size.width, height: geo.size.height)
         }
-        .overlay {
-            Text(verbatim: "\(score.value)")
-                .font(StrandFont.number(34, weight: .bold))
-                .foregroundStyle(StrandPalette.textPrimary)
-                .minimumScaleFactor(0.6)
-                .padding(lineWidth + 4)
-        }
-        // The score sits in a fixed ring: it follows Dynamic Type only as far as the ring holds it.
-        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+        .aspectRatio(1, contentMode: .fit)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(String(localized: "Sleep Score")))
         .accessibilityValue(Text(verbatim: Self.spokenValue(score)))
+    }
+
+    // Health's proportions: the band is 40 % of the radius, segments stand 3 pt apart at mid-band and
+    // their corners round at 4.5 pt on a 111 pt ring.
+    private func draw(_ ctx: GraphicsContext, size: CGSize) {
+        let outer = min(size.width, size.height) / 2
+        let thickness = outer * 0.4
+        let inner = outer - thickness
+        let center = CGPoint(x: size.width / 2, y: size.height / 2)
+        let corner = outer * 4.5 / 55.5
+        let gap = Double(3 / (inner + thickness / 2))
+
+        let parts: [(color: Color, worth: Double, fraction: Double)] = score.parts.isEmpty
+            ? [(StrandPalette.sleepScoreDuration, 1, Double(score.value) / 100)]
+            : Self.order.compactMap { part in
+                score.parts.first { $0.part == part }.map {
+                    (Self.color(part), Double(part.maxPoints), min(1, max(0, $0.fraction)))
+                }
+            }
+        let worth = parts.reduce(0) { $0 + $1.worth }
+        let count = Double(parts.count)
+        let usable = 2 * Double.pi - (count > 1 ? gap * count : 0)
+        var start = -Double.pi / 2 + (count > 1 ? gap / 2 : 0)
+        for part in parts {
+            let span = usable * part.worth / worth
+            ctx.fill(Self.sector(center: center, inner: inner, outer: outer, from: start, to: start + span,
+                                 corner: corner),
+                     with: .color(part.color.opacity(0.25)))
+            if part.fraction > 0 {
+                let earned = inner + thickness * part.fraction
+                ctx.fill(Self.sector(center: center, inner: inner, outer: earned, from: start, to: start + span,
+                                     corner: min(corner, (earned - inner) / 2)),
+                         with: .color(part.color))
+            }
+            start += span + (count > 1 ? gap : 0)
+        }
+    }
+
+    /// A ring segment between two radii and two angles (radians, clockwise on screen from 3 o'clock) with
+    /// its four corners rounded.
+    static func sector(center c: CGPoint, inner: CGFloat, outer: CGFloat, from a0: Double, to a1: Double,
+                       corner r: CGFloat) -> Path {
+        func point(_ radius: CGFloat, _ angle: Double) -> CGPoint {
+            CGPoint(x: c.x + radius * CGFloat(cos(angle)), y: c.y + radius * CGFloat(sin(angle)))
+        }
+        // Angular room the corner takes on each arc, kept inside half the segment.
+        let half = (a1 - a0) / 2
+        let dOuter = min(Double(r / max(outer, 1)), half)
+        let dInner = min(Double(r / max(inner, 1)), half)
+        return Path { p in
+            p.move(to: point((inner + outer) / 2, a0))
+            p.addArc(tangent1End: point(outer, a0), tangent2End: point(outer, a0 + dOuter * 2), radius: r)
+            p.addArc(center: c, radius: outer, startAngle: .radians(a0 + dOuter), endAngle: .radians(a1 - dOuter),
+                     clockwise: false)
+            p.addArc(tangent1End: point(outer, a1), tangent2End: point(inner, a1), radius: r)
+            p.addArc(tangent1End: point(inner, a1), tangent2End: point(inner, a1 - dInner * 2), radius: r)
+            p.addArc(center: c, radius: inner, startAngle: .radians(a1 - dInner), endAngle: .radians(a0 + dInner),
+                     clockwise: true)
+            p.addArc(tangent1End: point(inner, a0), tangent2End: point(outer, a0), radius: r)
+            p.closeSubpath()
+        }
     }
 
     /// "72, Duration 38 of 50, Interruptions 17 of 20, …": the score and what each segment holds.
@@ -75,41 +116,5 @@ struct SleepScoreRing: View {
             return "\(part.part.label) \(String(localized: "\(points) of \(part.part.maxPoints)"))"
         }
         return (["\(score.value)"] + parts).joined(separator: ", ")
-    }
-}
-
-// MARK: - Sleep score breakdown
-
-/// The rows under Health's Sleep Score ring: each part's dot in its segment's hue, its name, and the
-/// points it earned out of its worth, with hairlines between. VoiceOver hears the same from the ring.
-struct SleepScoreBreakdown: View {
-    let score: SleepScore
-
-    var body: some View {
-        VStack(spacing: 0) {
-            ForEach(Array(score.parts.enumerated()), id: \.element.id) { index, part in
-                if index > 0 {
-                    Rectangle().fill(StrandPalette.hairline).frame(height: NoopMetrics.hairlineWidth)
-                        .padding(.leading, 20)
-                }
-                HStack(spacing: 10) {
-                    Circle()
-                        .fill(SleepScoreRing.color(part.part))
-                        .frame(width: 10, height: 10)
-                    Text(part.part.label)
-                        .font(StrandFont.pro(17))
-                        .foregroundStyle(StrandPalette.textPrimary)
-                    Spacer(minLength: 8)
-                    if let points = part.points {
-                        Text(verbatim: "\(points)/\(part.part.maxPoints)")
-                            .font(StrandFont.pro(15))
-                            .monospacedDigit()
-                            .foregroundStyle(StrandPalette.textSecondary)
-                    }
-                }
-                .padding(.vertical, 10)
-            }
-        }
-        .accessibilityHidden(true)
     }
 }

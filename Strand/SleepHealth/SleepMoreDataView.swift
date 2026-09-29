@@ -1,5 +1,5 @@
 //  SleepMoreDataView.swift
-//  NOOP · Sleep — "Show More Sleep Data", laid out like the sheet of the same name in the iOS 26 Health app.
+//  NOOP · Sleep — the Sleep data page Health opens from its Sleep tile (iOS 26), pushed from the Sleep page.
 //
 //  D / W / M / 6M picker, time in bed beside time asleep, the stage chart (day) or stage-coloured
 //  bedtime→wake bars (week / month), then Stages · Amounts · Comparisons on the grouped canvas. Picking a
@@ -21,7 +21,6 @@ struct SleepMoreDataView: View {
     let sleepDebtLedger: SleepDebtLedger?
 
     @EnvironmentObject private var repo: Repository
-    @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) private var dts
     @AppStorage(UnitPrefs.systemKey) private var unitSystemRaw = UnitSystem.metric.rawValue
     @AppStorage(UnitPrefs.temperatureKey) private var temperatureRaw = ""
@@ -57,37 +56,28 @@ struct SleepMoreDataView: View {
     private static let stageOrder: [SleepStage] = SleepStagesChart.rowOrder
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 0) {
-                    chartSection
-                        .padding(.horizontal, NoopMetrics.screenHPadding)
-                        .padding(.bottom, NoopMetrics.space5)
-                        .background(alignment: .top) {
-                            StrandPalette.healthSleepPage.padding(.top, -1000)
-                        }
-                    detailSection
-                        .padding(.horizontal, NoopMetrics.screenHPadding)
-                        .padding(.top, NoopMetrics.space5)
-                        .padding(.bottom, NoopMetrics.space8)
-                }
-                #if os(macOS)
-                .frame(maxWidth: 680)
-                .frame(maxWidth: .infinity)
-                #endif
+        ScrollView {
+            VStack(spacing: 0) {
+                chartSection
+                    .padding(.horizontal, NoopMetrics.screenHPadding)
+                    .padding(.bottom, NoopMetrics.space5)
+                    .background(alignment: .top) {
+                        StrandPalette.healthSleepPage.padding(.top, -1000)
+                    }
+                detailSection
+                    .padding(.horizontal, NoopMetrics.screenHPadding)
+                    .padding(.top, NoopMetrics.space5)
+                    .padding(.bottom, NoopMetrics.space8)
             }
-            .background(StrandPalette.summaryCanvas.ignoresSafeArea())
-            .navigationTitle(Text("Sleep"))
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
+            #if os(macOS)
+            .frame(maxWidth: 680)
+            .frame(maxWidth: .infinity)
             #endif
-            .toolbar {
-                // Read-only: nothing to save, so the sheet closes with ✕ rather than a confirming ✓.
-                ToolbarItem(placement: .cancellationAction) { SheetCloseButton { dismiss() } }
-            }
         }
-        #if os(macOS)
-        .frame(minWidth: 560, minHeight: 720)
+        .background(StrandPalette.summaryCanvas.ignoresSafeArea())
+        .navigationTitle(Text("Sleep"))
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
         #endif
         .task(id: navDays.count) { load() }
         .task(id: hrKey) { await loadHeartRate() }
