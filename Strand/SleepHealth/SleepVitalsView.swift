@@ -8,9 +8,12 @@ import StrandDesign
 import StrandAnalytics
 
 struct SleepVitalsView: View {
-    let vitals: SleepVitals
-    /// The night the vitals were read on (its wake time).
+    /// The night's wake-day key ("yyyy-MM-dd") and its wake time.
+    let day: String
     let date: Date
+
+    @EnvironmentObject private var repo: Repository
+    private var vitals: SleepVitals { SleepVitals.make(rows: repo.days, day: day) }
 
     @AppStorage(UnitPrefs.systemKey) private var unitSystemRaw = UnitSystem.metric.rawValue
     @AppStorage(UnitPrefs.temperatureKey) private var temperatureRaw = ""

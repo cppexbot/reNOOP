@@ -248,23 +248,26 @@ struct SleepVitalsBand: View {
 
     var body: some View {
         Canvas { ctx, size in
-            let zone: CGFloat = 6, gap: CGFloat = 6
-            let band = CGRect(x: 0, y: zone + gap, width: size.width, height: size.height - 2 * (zone + gap))
+            let zone: CGFloat = 6, gap: CGFloat = 6, ring: CGFloat = 11
+            // The grey zones sit a ring's radius in from the edges, so a ring drawn on one (an outlier)
+            // stays whole inside the tile.
+            let top = ring / 2, bottom = size.height - ring / 2
+            let band = CGRect(x: 0, y: top + zone / 2 + gap, width: size.width,
+                              height: bottom - top - zone - 2 * gap)
             let zoneColor = GraphicsContext.Shading.color(StrandPalette.vitalsZone)
-            ctx.fill(Path(roundedRect: CGRect(x: 0, y: 0, width: size.width, height: zone), cornerRadius: zone / 2),
-                     with: zoneColor)
-            ctx.fill(Path(roundedRect: CGRect(x: 0, y: size.height - zone, width: size.width, height: zone),
-                          cornerRadius: zone / 2), with: zoneColor)
+            for y in [top, bottom] {
+                ctx.fill(Path(roundedRect: CGRect(x: 0, y: y - zone / 2, width: size.width, height: zone),
+                              cornerRadius: zone / 2), with: zoneColor)
+            }
             ctx.fill(Path(roundedRect: band, cornerRadius: 6, style: .continuous),
                      with: .color(StrandPalette.vitalsTypicalBand.opacity(0.55)))
 
             let slots = CGFloat(SleepVitals.Metric.allCases.count)
-            let ring: CGFloat = 11
             for reading in readings {
                 guard let slot = SleepVitals.Metric.allCases.firstIndex(of: reading.metric) else { continue }
                 let x = size.width * (CGFloat(slot) + 0.5) / slots
                 let p = reading.position
-                let y: CGFloat = p > 1 ? zone / 2 : p < 0 ? size.height - zone / 2
+                let y: CGFloat = p > 1 ? top : p < 0 ? bottom
                     : band.maxY - ring / 2 - 2 - CGFloat(p) * (band.height - ring - 4)
                 let color = reading.isOutlier ? StrandPalette.vitalsOutlier : StrandPalette.vitalsTypical
                 let rect = CGRect(x: x - ring / 2, y: y - ring / 2, width: ring, height: ring)

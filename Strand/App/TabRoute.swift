@@ -37,6 +37,9 @@ enum TabRoute: Hashable {
     case sleepNight(String)
     /// The sleep schedule (Health's Full Schedule): the strap alarm and the bedtime reminder.
     case sleepSchedule
+    /// Health's Vitals page for the night that ended on `day` ("yyyy-MM-dd") at `wakeTs`. A value route,
+    /// not a closure link, so the metric pages it opens push onto the tab's path.
+    case sleepVitals(day: String, wakeTs: Int)
     /// Health's "Show All Health Trends": every metric whose recent readings have clearly moved.
     case trends
     /// The long-horizon training load (CTL / ATL / form), reached from Trends.
@@ -73,6 +76,8 @@ extension View {
             case .intervalTimer: IntervalTimerView()
             case .sleepNight(let day): SleepHealthView(initialWakeDay: day)
             case .sleepSchedule: SleepScheduleView()
+            case .sleepVitals(let day, let wakeTs):
+                SleepVitalsView(day: day, date: Date(timeIntervalSince1970: TimeInterval(wakeTs)))
             case .trends: TrendsView()
             case .trainingLoad: TrainingLoadView()
             }

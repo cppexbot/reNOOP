@@ -136,10 +136,7 @@ struct SleepHealthView: View {
                                               asleepMinutes: night.stages.asleep)
                         }
                         .buttonStyle(.plain)
-                        NavigationLink {
-                            SleepVitalsView(vitals: vitals(for: night),
-                                            date: Date(timeIntervalSince1970: TimeInterval(night.session.endTs)))
-                        } label: {
+                        NavigationLink(value: TabRoute.sleepVitals(day: wakeDayKey(night), wakeTs: night.session.endTs)) {
                             SleepVitalsTile(vitals: vitals(for: night))
                         }
                         .buttonStyle(.plain)
