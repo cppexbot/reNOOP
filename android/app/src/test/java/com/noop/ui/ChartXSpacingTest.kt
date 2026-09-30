@@ -1,7 +1,6 @@
 package com.noop.ui
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -66,26 +65,6 @@ class ChartXSpacingTest {
         assertEquals(0f, f.first(), 1e-6f)
         assertEquals(1f, f.last(), 1e-6f)
         assertTrue(f.zipWithNext().all { (a, b) -> b > a })
-    }
-
-    // --- the day-key conversion ---
-
-    /** All-or-nothing: one unparseable day makes the whole chart fall back rather than mixing rules. */
-    @Test
-    fun `an unparseable day disables date spacing entirely`() {
-        assertNull(
-            dayEpochSeconds(
-                listOf(VitalReading("2026-09-01", 1.0, "d"), VitalReading("nope", 2.0, "d")),
-            ),
-        )
-    }
-
-    @Test
-    fun `parseable days convert to ascending epoch seconds`() {
-        val t = dayEpochSeconds(
-            listOf(VitalReading("2026-09-01", 1.0, "d"), VitalReading("2026-09-03", 2.0, "d")),
-        )
-        assertEquals(listOf(day("2026-09-01"), day("2026-09-03")), t)
     }
 
     /**

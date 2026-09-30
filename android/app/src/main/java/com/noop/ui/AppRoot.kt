@@ -54,6 +54,14 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.noop.R
 import com.noop.push.SelfHostedPushScreen
+import com.noop.ui.metric.ALL_METRICS_ROUTE
+import com.noop.ui.metric.AllMetricsScreen
+import com.noop.ui.metric.MetricAllDataScreen
+import com.noop.ui.metric.MetricCatalog
+import com.noop.ui.metric.MetricDescriptor
+import com.noop.ui.metric.MetricDetailScreen
+import com.noop.ui.metric.metricRoute
+import com.noop.ui.metric.metricRouteForLegacyKey
 
 // MARK: - Navigation model
 //
@@ -75,7 +83,7 @@ internal enum class Destination(val route: String) {
     Browse("browse"),
 
     // Browse rows.
-    Explore("explore?metric={metric}"),
+    AllMetrics(ALL_METRICS_ROUTE),
     Coach("coach"),
     Insights("insights"),
     LabBook("lab_book"),
@@ -89,9 +97,12 @@ internal enum class Destination(val route: String) {
     // Coach settings (#2243), reached only from the strip on the Coach page; it shares Coach's view model.
     CoachSettings("coach_settings"),
     Intervals("intervals"),
-    Stress("stress"),
+    // A metric's page (key, optional source: null opens the freshest source), its All Data list, and the
+    // day by the second (a heart-rate page's option).
+    Metric("metric/{key}?source={source}"),
+    MetricData("metric_data/{key}?source={source}"),
+    FullDay("full_day"),
     Hydration("hydration"),
-    VitalSignsDetail("vital_detail/{key}"),
     AppleHealth("apple_health"),
     Automations("automations"),
     // "Alarms" is the one alarm surface (#766); the route id stays "smart_alarm".
@@ -110,9 +121,15 @@ internal enum class Destination(val route: String) {
     GroundTruthCollector("ground_truth_collector"),
 }
 
-/** The Explore route, opened on one metric's key or (null) on the catalogue's first metric. */
-internal fun exploreRoute(metricKey: String?): String =
-    if (metricKey == null) "explore" else "explore?metric=${android.net.Uri.encode(metricKey)}"
+/** The All Data route of [metric]. */
+private fun metricDataRoute(metric: MetricDescriptor): String =
+    "metric_data/${android.net.Uri.encode(metric.key)}?source=${android.net.Uri.encode(metric.source)}"
+
+/** The key + optional source arguments of the metric routes. */
+private val metricArguments = listOf(
+    navArgument("key") { type = NavType.StringType },
+    navArgument("source") { type = NavType.StringType; nullable = true; defaultValue = null },
+)
 
 /**
  * App shell: a [Scaffold] whose bottom bar is the Material 3 [NavigationBar] of [MainTab], over one
@@ -199,11 +216,12 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                     // The profile avatar pushes Settings on the Summary (iOS: Summary avatar -> Settings).
                     onOpenSettings = { nav.push(Destination.Settings.route) },
                     onOpenHydration = { nav.push(Destination.Hydration.route) },
-                    onOpenStress = { nav.push(Destination.Stress.route) },
+                    // The Stress screen folded into the Stress metric page (iOS parity).
+                    onOpenStress = { nav.push(metricRoute("stress", MetricCatalog.WHOOP)) },
                     // The Health screen is gone (iOS parity); its stale route lands on All Metrics.
-                    onOpenHealth = { nav.push(exploreRoute(null)) },
-                    // Every metric card opens its own detail trend (vital_detail/<key>).
-                    onOpenMetric = { key -> nav.push("vital_detail/$key") },
+                    onOpenHealth = { nav.push(Destination.AllMetrics.route) },
+                    // Every metric card opens that metric's page.
+                    onOpenMetric = { key -> nav.push(metricRouteForLegacyKey(key)) },
                     onOpenStepsCalibration = { nav.push(Destination.StepsCalibration.route) },
                     onOpenSleep = { nav.showTabRoot(MainTab.Sleep) },
                     onOpenCoach = { nav.openCoach() },
@@ -230,11 +248,12 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
             }
 
             // --- Browse rows ---
-            composable(
-                Destination.Explore.route,
-                arguments = listOf(navArgument("metric") { type = NavType.StringType; nullable = true }),
-            ) { entry ->
-                TrendsExploreScreen(viewModel, initialMetricKey = entry.arguments?.getString("metric"))
+            composable(Destination.AllMetrics.route) {
+                AllMetricsScreen(
+                    viewModel,
+                    onBack = { nav.popBackStack() },
+                    onOpenMetric = { nav.push(metricRoute(it.key, it.source)) },
+                )
             }
             composable(Destination.Coach.route) {
                 // A normal push, so Back returns to the conversation (#2243).
@@ -264,13 +283,27 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
 
             // --- Pushed from a screen ---
             composable(Destination.Intervals.route) { IntervalsScreen(viewModel) }
-            composable(Destination.Stress.route) {
-                StressScreen(vm = viewModel, onBreathe = { nav.openInTab(MainTab.Browse, Destination.Breathe.route) })
+            composable(Destination.Metric.route, arguments = metricArguments) { entry ->
+                MetricDetailScreen(
+                    vm = viewModel,
+                    key = entry.arguments?.getString("key").orEmpty(),
+                    source = entry.arguments?.getString("source"),
+                    onBack = { nav.popBackStack() },
+                    onOpenAllData = { nav.push(metricDataRoute(it)) },
+                    onOpenFullDay = { nav.push(Destination.FullDay.route) },
+                    onOpenDataSources = { nav.push(Destination.DataSources.route) },
+                )
             }
+            composable(Destination.MetricData.route, arguments = metricArguments) { entry ->
+                MetricAllDataScreen(
+                    vm = viewModel,
+                    key = entry.arguments?.getString("key").orEmpty(),
+                    source = entry.arguments?.getString("source"),
+                    onBack = { nav.popBackStack() },
+                )
+            }
+            composable(Destination.FullDay.route) { FullDayChartScreen(vm = viewModel, onBack = { nav.popBackStack() }) }
             composable(Destination.Hydration.route) { HydrationScreen(viewModel) }
-            composable(Destination.VitalSignsDetail.route) { entry ->
-                VitalDetailScreen(vm = viewModel, key = entry.arguments?.getString("key").orEmpty())
-            }
             composable(Destination.AppleHealth.route) { AppleHealthScreen(viewModel) }
             composable(Destination.Automations.route) { AutomationsScreen(viewModel) }
             composable(Destination.SmartAlarm.route) { SmartAlarmScreen(viewModel) }

@@ -56,6 +56,10 @@ data class HealthColors(
     // Trend direction and verdict colours that must not follow the wallpaper.
     val positive: Color,
     val warning: Color,
+    // A banded score's three bands (Charge bars on its metric page: below 50, below 70, above).
+    val bandLow: Color,
+    val bandMid: Color,
+    val bandHigh: Color,
 ) {
     /** Zone colour for a 1-based zone index, clamped. */
     fun zone(zone: Int): Color = zones[(zone - 1).coerceIn(0, zones.lastIndex)]
@@ -93,6 +97,9 @@ val LightHealthColors = HealthColors(
     ),
     positive = Color(0xFF1B8F5A),
     warning = Color(0xFF9C6125),
+    bandLow = Color(0xFFC62828),
+    bandMid = Color(0xFFB08400),
+    bandHigh = Color(0xFF1B8F5A),
 )
 
 val DarkHealthColors = HealthColors(
@@ -127,6 +134,9 @@ val DarkHealthColors = HealthColors(
     ),
     positive = Color(0xFF4FDC9A),
     warning = Color(0xFFF0A020),
+    bandLow = Color(0xFFFF6B6B),
+    bandMid = Color(0xFFFFD54F),
+    bandHigh = Color(0xFF4FDC9A),
 )
 
 /** Provided by `NoopTheme`; defaults to the light set so a bare preview still draws. */

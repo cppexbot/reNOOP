@@ -24,7 +24,7 @@ class StressPersonalBaselineSurfaceTest {
 
     @Test
     fun `android detail and Today resolve and analyze the same selected lens`() {
-        val detail = source("android/app/src/main/java/com/noop/ui/StressScreen.kt")
+        val detail = source("android/app/src/main/java/com/noop/ui/metric/MetricStressDay.kt")
         val producer = source("android/app/src/main/java/com/noop/widget/StressWidgetProducer.kt")
         val today = source("android/app/src/main/java/com/noop/ui/TodayScreen.kt")
 
@@ -82,29 +82,26 @@ class StressPersonalBaselineSurfaceTest {
     }
 
     @Test
-    fun `Apple detail and both Today implementations share the selected lens`() {
-        val detail = source("Strand/Screens/StressView.swift")
+    fun `Apple Stress page and the shared producer apply the selected lens`() {
+        // The Stress screen folded into the Stress metric page (Denis 309e5a6c) and the old Today views
+        // are gone, so the page's "Today" card is the one foreground surface left on Apple.
+        val detail = source("Strand/MetricHealth/MetricStressDay.swift")
         val producer = source("Strand/Data/StressDayCurve.swift")
-        val today = source("Strand/Screens/TodayView.swift")
-        val liquidToday = source("Strand/Liquid/LiquidTodayView.swift")
         val widget = source("StrandiOS/Widgets/WidgetPublish.swift")
 
-        assertTrue(detail.contains("let mode = await DaytimeStressMode.selected("))
+        assertTrue(
+            "the Stress page must pass the selected personal-baseline preference",
+            Regex(
+                "StressDayCurve\\.today\\([\\s\\S]*?" +
+                    "personalBaseline:\\s*PuffinExperiment\\.stressPersonalBaselineEnabled",
+            ).containsMatchIn(detail),
+        )
         assertTrue(producer.contains("let mode = await DaytimeStressMode.selected("))
         assertTrue(
             "the shared Apple producer must analyze with the selected mode",
             Regex("DaytimeStress\\.analyze\\([\\s\\S]*?mode:\\s*mode,")
                 .containsMatchIn(producer),
         )
-        for ((name, body) in listOf("TodayView" to today, "LiquidTodayView" to liquidToday)) {
-            assertTrue(
-                "$name must pass the selected personal-baseline preference",
-                Regex(
-                    "StressDayCurve\\.today\\([\\s\\S]*?" +
-                        "personalBaseline:\\s*PuffinExperiment\\.stressPersonalBaselineEnabled",
-                ).containsMatchIn(body),
-            )
-        }
         assertTrue(
             "the Apple producer must keep a memo slot per lens, not one slot carrying the lens",
             producer.contains("memos[personalBaseline]"),

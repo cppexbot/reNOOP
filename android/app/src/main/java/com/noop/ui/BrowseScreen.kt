@@ -53,8 +53,11 @@ import com.noop.ui.m3.M3Dimens
 import com.noop.ui.m3.RowIcon
 import com.noop.ui.m3.SectionHeader
 import com.noop.ui.m3.color
-import com.noop.ui.m3.icon
-import com.noop.ui.m3.metricHueFor
+import com.noop.ui.m3.metricHue
+import com.noop.ui.metric.ALL_METRICS_ROUTE
+import com.noop.ui.metric.AllMetricsCatalog
+import com.noop.ui.metric.MetricCatalog
+import com.noop.ui.metric.metricRoute
 import java.text.Collator
 import java.text.Normalizer
 import java.util.Locale
@@ -64,7 +67,7 @@ import java.util.Locale
 // The fourth tab: every screen outside Summary, Sleep and Workouts, in one searchable list. A docked
 // Material search bar over Health's "Categories" group (the places to read and log data) and a second,
 // headerless group of tools, each alphabetical by its localized title. Typing lists the matching screens
-// first, then the matching metrics of the Explore catalogue in their category hue. Rows push inside the
+// first, then the matching metrics of the metric catalogue in their hue, each opening its metric page. Rows push inside the
 // Browse tab, so a re-tap of the tab pops back here. Settings is not a row: it opens from the Summary avatar.
 
 /** Which group a Browse row sits in: iOS keeps Health's "Categories" card apart from the tools card. */
@@ -81,7 +84,7 @@ internal enum class BrowseDestination(
     val tint: BrowseTint,
     val group: BrowseGroup,
 ) {
-    AllMetrics(exploreRoute(null), R.string.browse_all_metrics, Icons.Filled.GridView, BrowseTint.Oxygen, BrowseGroup.Categories),
+    AllMetrics(ALL_METRICS_ROUTE, R.string.browse_all_metrics, Icons.Filled.GridView, BrowseTint.Oxygen, BrowseGroup.Categories),
     Coach(Destination.Coach.route, R.string.browse_coach, Icons.Filled.AutoAwesome, BrowseTint.Body, BrowseGroup.Categories),
     Journal(Destination.Insights.route, R.string.browse_journal, Icons.AutoMirrored.Filled.MenuBook, BrowseTint.Mind, BrowseGroup.Categories),
     LabResults(Destination.LabBook.route, R.string.browse_lab_results, Icons.AutoMirrored.Filled.Assignment, BrowseTint.Core, BrowseGroup.Categories),
@@ -114,10 +117,17 @@ internal fun <T> sortedByTitle(items: List<T>, locale: Locale, title: (T) -> Str
     return items.sortedWith { a, b -> collator.compare(title(a), title(b)) }
 }
 
+/** One metric Browse search can list: its catalogue key, localized name and score family (for its hue). */
+internal data class BrowseMetricEntry(val key: String, val title: String, val category: String)
+
+/** The metric catalogue as Browse search lists it, one entry per key. */
+internal fun browseMetricEntries(): List<BrowseMetricEntry> =
+    MetricCatalog.all.distinctBy { it.key }.map { BrowseMetricEntry(it.key, it.title, it.category) }
+
 /** What a Browse query found: matching screens first, then matching metrics, each alphabetical. */
 internal data class BrowseSearchResult(
     val screens: List<BrowseDestination>,
-    val metrics: List<ExploreCatalogEntry>,
+    val metrics: List<BrowseMetricEntry>,
 ) {
     val isEmpty: Boolean get() = screens.isEmpty() && metrics.isEmpty()
 }
@@ -131,7 +141,7 @@ internal fun browseSearch(
     locale: Locale,
     coachEnabled: Boolean,
     titleOf: (BrowseDestination) -> String,
-    catalogue: List<ExploreCatalogEntry>,
+    catalogue: List<BrowseMetricEntry>,
 ): BrowseSearchResult {
     val screens = BrowseGroup.entries
         .flatMap { browseRows(it, coachEnabled) }
@@ -158,7 +168,7 @@ fun BrowseScreen(onOpen: (String) -> Unit) {
 
     val titles = BrowseDestination.entries.associateWith { stringResource(it.titleRes) }
     val titleOf: (BrowseDestination) -> String = { titles.getValue(it) }
-    val catalogue = remember { exploreCatalogEntries() }
+    val catalogue = remember(locale) { browseMetricEntries() }
     val trimmed = query.trim()
     val result = remember(trimmed, locale, coachEnabled, titles) {
         if (trimmed.isEmpty()) null else browseSearch(trimmed, locale, coachEnabled, titleOf, catalogue)
@@ -235,13 +245,12 @@ fun BrowseScreen(onOpen: (String) -> Unit) {
                         ListGroup {
                             result.metrics.forEach { metric ->
                                 item { shape ->
-                                    val hue = metricHueFor(metric.key)
                                     BrowseRow(
                                         shape = shape,
                                         title = metric.title,
-                                        icon = hue.icon,
-                                        tint = hue.color,
-                                        onClick = { open(exploreRoute(metric.key)) },
+                                        icon = AllMetricsCatalog.category(metric.key, metric.category).icon,
+                                        tint = metricHue(metric.key, metric.category).color,
+                                        onClick = { open(metricRoute(metric.key)) },
                                     )
                                 }
                             }

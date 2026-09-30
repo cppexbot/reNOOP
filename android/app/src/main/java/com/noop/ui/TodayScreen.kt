@@ -867,7 +867,7 @@ fun TodayScreen(
     var stepsAverage30 by remember { mutableStateOf<Pair<Double?, Int>>(null to 0) }
     LaunchedEffect(days, selectedDayKey, enabledDashboardCards, importedStepsForDay) {
         stepsAverage30 = if (DashboardCard.STEPS_AVERAGE_30 in enabledDashboardCards) {
-            val readings = buildSeriesVitalDetail(viewModel, "steps_est")?.readings.orEmpty()
+            val readings = mergedStepsReadings(viewModel)
             rollingStepsAverage(readings, java.time.LocalDate.parse(selectedDayKey))
         } else null to 0
     }

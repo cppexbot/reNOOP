@@ -1,7 +1,5 @@
 package com.noop.ui
 
-import com.noop.ui.m3.MetricHue
-import com.noop.ui.m3.metricHueFor
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -39,12 +37,12 @@ class BrowseScreenLogicTest {
     )
 
     private val catalogue = listOf(
-        ExploreCatalogEntry("recovery", "Charge"),
-        ExploreCatalogEntry("hrv", "HRV"),
-        ExploreCatalogEntry("rhr", "Resting HR"),
-        ExploreCatalogEntry("resp", "Respiratory Rate"),
-        ExploreCatalogEntry("avg_hr", "Average Heart Rate"),
-        ExploreCatalogEntry("max_hr", "Max Heart Rate"),
+        BrowseMetricEntry("recovery", "Charge", "Charge"),
+        BrowseMetricEntry("hrv", "HRV", "Charge"),
+        BrowseMetricEntry("rhr", "Resting HR", "Charge"),
+        BrowseMetricEntry("resp_rate", "Respiratory Rate", "Charge"),
+        BrowseMetricEntry("avg_hr", "Average Heart Rate", "Heart"),
+        BrowseMetricEntry("max_hr", "Max Heart Rate", "Heart"),
     )
 
     @Test
@@ -114,27 +112,13 @@ class BrowseScreenLogicTest {
     fun searchListsScreensFirstThenMetricsEachAlphabetical() {
         val result = browseSearch("rate", en, coachEnabled = true, titleOf = { englishTitles.getValue(it) }, catalogue = catalogue)
         assertEquals(listOf(BrowseDestination.HeartRate), result.screens)
-        assertEquals(listOf("avg_hr", "max_hr", "resp"), result.metrics.map { it.key })
+        assertEquals(listOf("avg_hr", "max_hr", "resp_rate"), result.metrics.map { it.key })
     }
 
     @Test
     fun searchKeepsOneRowPerMetricKey() {
-        val doubled = catalogue + ExploreCatalogEntry("hrv", "HRV")
+        val doubled = catalogue + BrowseMetricEntry("hrv", "HRV", "Charge")
         val result = browseSearch("hrv", en, coachEnabled = true, titleOf = { englishTitles.getValue(it) }, catalogue = doubled)
         assertEquals(listOf("hrv"), result.metrics.map { it.key })
-    }
-
-    @Test
-    fun metricHuesFollowTheIosRule() {
-        assertEquals(MetricHue.Charge, metricHueFor("recovery"))
-        assertEquals(MetricHue.Effort, metricHueFor("strain"))
-        assertEquals(MetricHue.Heart, metricHueFor("hrv"))
-        assertEquals(MetricHue.Heart, metricHueFor("rhr"))
-        assertEquals(MetricHue.Sleep, metricHueFor("sleep"))
-        assertEquals(MetricHue.Oxygen, metricHueFor("spo2"))
-        assertEquals(MetricHue.Respiratory, metricHueFor("resp"))
-        assertEquals(MetricHue.Nutrition, metricHueFor("protein_g"))
-        assertEquals(MetricHue.Mind, metricHueFor("mood"))
-        assertEquals(MetricHue.Body, metricHueFor("some_unknown_key"))
     }
 }
