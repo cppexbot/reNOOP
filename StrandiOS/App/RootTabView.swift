@@ -107,6 +107,10 @@ struct RootTabView: View {
             case .insightsHub: openInBrowse(.insightsHub)
             case .labBook: openInBrowse(.labBook)
             case .journal: openInBrowse(.journal)
+            // The wake alarm and wind-down live in the Sleep tab's schedule page.
+            case .alarms:
+                selectedTab = 2
+                tabPaths[2] = NavigationPath([TabRoute.sleepSchedule])
             case .coach:
                 // Guarded on the master switch, because this route is reachable with Coach OFF: a brief
                 // notification already sitting in Notification Centre still calls `openCoach()` when it is

@@ -14,6 +14,8 @@ struct WorkoutsSettingsPage: View {
     @AppStorage("workoutKeepScreenOn") private var workoutKeepScreenOn = false
     /// Live-HR Live Activity (Lock Screen + Dynamic Island), iOS only (#336).
     @AppStorage(UnitPrefs.liveActivityKey) private var liveActivityEnabled = true
+    /// The Lift Log session's own Live Activity switch, separate from the heart-rate one.
+    @AppStorage(UnitPrefs.liftLiveActivityKey) private var liftLiveActivityEnabled = true
 
     var body: some View {
         Form {
@@ -24,6 +26,7 @@ struct WorkoutsSettingsPage: View {
                 Toggle("Keep screen on", isOn: $workoutKeepScreenOn)
                 #if os(iOS)
                 Toggle("Heart rate in Dynamic Island", isOn: $liveActivityEnabled)
+                Toggle("Gym session in Dynamic Island", isOn: $liftLiveActivityEnabled)
                 #endif
             }
         }

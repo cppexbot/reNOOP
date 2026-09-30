@@ -24,9 +24,75 @@ enum BatteryNotifier {
     /// Which alert the standing notification is, so clearing the stale "charged" note never pulls a
     /// low-battery warning that replaced it.
     private static let kindKey = "batteryKind"
-    private enum Kind: String { case low, full, runtime, critical, bedtime }
+    private enum Kind: String { case low, full, runtime, critical, bedtime, stale }
     /// The per-alert ids older builds posted under; cleared with the full note so none outlives the change.
     private static let legacyIds = ["battery-low", "battery-full", "battery-runtime", "battery-critical", "battery-bedtime"]
+    /// The banked reading `onStrapNotSeen` last warned about, as its epoch SECONDS (#2556). Keyed on the
+    /// reading rather than a flag so one stale value cannot re-notify on every wake, while a NEWER low
+    /// reading still counts as a new fact. Absent means never.
+    private static let staleAlertedTsKey = "behavior.batteryStaleAlertedTs"
+
+    /// Whether a strap NOBODY has heard from is worth warning about (#2556).
+    ///
+    /// `BatteryAlertPolicy` can only judge a percentage the app actually received, and both its crossings
+    /// run off the live connection, so a strap that drains while disconnected crosses 15 and 12 unseen and
+    /// the wearer gets nothing. That is not hypothetical on an unbonded 5/MG, where a link can average under
+    /// two minutes.
+    ///
+    /// This reads the LAST BANKED reading instead, which is already durable in the `battery` table. It
+    /// therefore states something weaker and must say so: "last seen at 11 percent, six hours ago", never
+    /// "your strap is at 11 percent". The app has not seen the strap since; it does not know what it is at
+    /// now.
+    ///
+    /// Deliberately silent while connected: the live crossings own that case, and two readouts of one fact
+    /// must not be able to disagree.
+    ///
+    /// Twin of Kotlin `StaleBatteryAlertPolicy`.
+    enum StaleBatteryAlertPolicy {
+        /// How long out of contact before a low last reading is worth raising.
+        static let staleAfterSeconds = 2 * 60 * 60
+
+        struct Decision: Equatable {
+            let fire: Bool
+            let ageSeconds: Int
+        }
+
+        /// How long ago, as a compact label: "6h", "3d".
+        ///
+        /// Deliberately plural-free. "6 hours ago" needs a plural rule in every locale to avoid printing
+        /// "1 hours", and the age here is never below the two-hour window anyway, so the compact form
+        /// carries the same meaning for none of the cost. Shared with the Kotlin twin so the two
+        /// notifications cannot word the same fact differently.
+        static func ageLabel(_ seconds: Int) -> String {
+            let hours = seconds / 3600
+            return hours >= 48 ? "\(hours / 24)d" : "\(hours)h"
+        }
+
+        private static let no = Decision(fire: false, ageSeconds: 0)
+
+        /// `alertedForTs` is the reading this already fired for, persisted, so one stale value cannot
+        /// re-notify on every app open. Keyed on the READING's timestamp rather than a boolean: a newer low
+        /// reading is a new fact and deserves its own alert.
+        static func evaluate(lastSocPct: Int?,
+                             lastTsSec: Int?,
+                             lastCharging: Bool?,
+                             nowSec: Int,
+                             connected: Bool,
+                             alertedForTs: Int?,
+                             lowThreshold: Int = BatteryAlertPolicy.lowThreshold,
+                             staleAfterSeconds: Int = staleAfterSeconds) -> Decision {
+            if connected { return no }
+            guard let lastSocPct, let lastTsSec else { return no }
+            // Only a CONFIRMED charging reading suppresses, matching the live policy: unknown still warns.
+            if lastCharging == true { return no }
+            if lastSocPct > lowThreshold { return no }
+            let age = nowSec - lastTsSec
+            // A reading from the future is a clock problem, not a stale strap. Never warn on it.
+            if age < staleAfterSeconds { return no }
+            if alertedForTs == lastTsSec { return no }
+            return Decision(fire: true, ageSeconds: age)
+        }
+    }
 
     /// Pure crossing-with-hysteresis policy, identical on macOS/iOS and Android (#368). The two
     /// `*Alerted` flags are PERSISTED, so they survive process death — and the 25% re-arm band means
@@ -146,6 +212,37 @@ enum BatteryNotifier {
                  title: String(localized: "Strap Battery Low"),
                  body: String(localized: "\(BatteryEstimator.label(hours: remainingHours)) left. Charge it tonight."))
         }
+    }
+
+    /// Warn that a strap last seen LOW has not been heard from since (#2556). Twin of Kotlin
+    /// `BatteryAlertNotifier.onStrapNotSeen`.
+    ///
+    /// The live crossings need a connection, so a strap that drains out of range is never judged at all.
+    /// This reads the last BANKED reading instead, which is why the copy says "when reNOOP last heard from
+    /// it" rather than naming a current percentage: the app has not seen the strap since and does not know
+    /// what it is at now.
+    static func onStrapNotSeen(lastSocPct: Int?,
+                               lastTsSec: Int?,
+                               lastCharging: Bool?,
+                               nowSec: Int,
+                               connected: Bool,
+                               enabled: Bool) {
+        guard enabled else { return }
+        let d = UserDefaults.standard
+        let decision = StaleBatteryAlertPolicy.evaluate(
+            lastSocPct: lastSocPct,
+            lastTsSec: lastTsSec,
+            lastCharging: lastCharging,
+            nowSec: nowSec,
+            connected: connected,
+            alertedForTs: d.object(forKey: staleAlertedTsKey) as? Int)
+        guard decision.fire, let lastSocPct, let lastTsSec else { return }
+        let age = StaleBatteryAlertPolicy.ageLabel(decision.ageSeconds)
+        post(.stale,
+             title: String(localized: "WHOOP last seen low"),
+             body: String(localized: "\(lastSocPct)% when reNOOP last heard from it, \(age) ago. Charge it before tonight."))
+        // Persisted AFTER posting, keyed on the reading, so a failed post retries on the next wake.
+        d.set(lastTsSec, forKey: staleAlertedTsKey)
     }
 
     /// CRITICAL low-battery escalation — the second alert below the 15% one (#368 fires at

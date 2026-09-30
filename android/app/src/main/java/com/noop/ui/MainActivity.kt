@@ -1234,6 +1234,19 @@ object NoopPrefs {
         of(context).edit().putString(KEY_ILLNESS_LAST_NOTIFIED_DAY, day).apply()
     }
 
+    /** Whether the illness banner was RAISED at the last evaluation, persisted so the clear-to-raised
+     *  edge survives process death. It used to live only in memory (a service field and a StateFlow
+     *  that starts null), so every cold start re-armed the edge and the once-a-day gate then allowed a
+     *  fresh notification about an alert that had not transitioned at all (#2586). */
+    const val KEY_ILLNESS_WAS_RAISED = "noop.illnessWasRaised"
+
+    fun illnessWasRaised(context: Context): Boolean =
+        of(context).getBoolean(KEY_ILLNESS_WAS_RAISED, false)
+
+    fun setIllnessWasRaised(context: Context, raised: Boolean) {
+        of(context).edit().putBoolean(KEY_ILLNESS_WAS_RAISED, raised).apply()
+    }
+
     /** Battery alerts, low (≤15%) + charge-complete (100%) strap notifications (#368, thanks @ujix).
      *  Default ON; gated here and behind the OS notification permission. */
     const val KEY_BATTERY_ALERTS = "noop.batteryAlerts"
@@ -1268,6 +1281,18 @@ object NoopPrefs {
 
     fun setBatteryLowAlerted(context: Context, alerted: Boolean) {
         of(context).edit().putBoolean(KEY_BATTERY_LOW_ALERTED, alerted).apply()
+    }
+
+    /** The banked reading `onStrapNotSeen` last warned about, as its epoch SECONDS (#2556). Keyed on the
+     *  reading rather than a boolean so one stale value cannot re-notify on every app open, while a NEWER
+     *  low reading still counts as a new fact. 0 means never. */
+    const val KEY_BATTERY_STALE_ALERTED_TS = "noop.batteryStaleAlertedTs"
+
+    fun batteryStaleAlertedTs(context: Context): Long? =
+        of(context).getLong(KEY_BATTERY_STALE_ALERTED_TS, 0L).takeIf { it > 0L }
+
+    fun setBatteryStaleAlertedTs(context: Context, ts: Long) {
+        of(context).edit().putLong(KEY_BATTERY_STALE_ALERTED_TS, ts).apply()
     }
 
     fun batteryFullAlerted(context: Context): Boolean =
@@ -1412,6 +1437,16 @@ object NoopPrefs {
         of(context).edit().putBoolean(KEY_EFFORT_RESCORE_DONE, true).apply()
     }
 
+    /** Full-history sleep wear repair is marked only after the source rescore returns successfully. */
+    const val KEY_SLEEP_WEAR_RESCORE_DONE = "intelligence.sleepWearRescore.v1.done"
+
+    fun sleepWearRescoreDone(context: Context): Boolean =
+        of(context).getBoolean(KEY_SLEEP_WEAR_RESCORE_DONE, false)
+
+    fun setSleepWearRescoreDone(context: Context) {
+        of(context).edit().putBoolean(KEY_SLEEP_WEAR_RESCORE_DONE, true).apply()
+    }
+
     /** Whether the one-shot #547 implausible-timestamp heal has run. Set true once it completes so the
      *  on-upgrade purge of bad-strap-clock rows (far-past / future-dated) never re-runs. Re-running is
      *  harmless (the deletes are idempotent), but the flag avoids the work on every launch. */
@@ -1479,6 +1514,18 @@ object NoopPrefs {
      *  than writing to a key that belongs to no device. */
     fun setLastSyncAtFor(context: Context, peripheralId: String?, epochSec: Long) {
         val key = com.noop.ble.lastSyncPrefKey(peripheralId) ?: return
+        of(context).edit().putLong(key, epochSec).apply()
+    }
+
+    /** This strap's own newest banked-record timestamp, keyed by BLE address — see
+     *  [com.noop.ble.strapClockPrefKey]. 0 when this strap has never reported a range. */
+    fun strapNewestRecordTsFor(context: Context, peripheralId: String?): Long =
+        com.noop.ble.strapClockPrefKey(peripheralId)?.let { of(context).getLong(it, 0L) } ?: 0L
+
+    /** Stamp a range reply against the strap that sent it. A blank address writes nothing rather than
+     *  writing to a key that belongs to no device. */
+    fun setStrapNewestRecordTsFor(context: Context, peripheralId: String?, epochSec: Long) {
+        val key = com.noop.ble.strapClockPrefKey(peripheralId) ?: return
         of(context).edit().putLong(key, epochSec).apply()
     }
 

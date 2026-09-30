@@ -333,9 +333,9 @@ internal fun restPendingSync(
 }
 
 /**
- * The honest live-recording state of the strap, for the Today/Live chip. Derived from the BLE connection
- * + last-sync timestamp so people always know it's working, or know it isn't and why. Mirrors Swift
- * `RecordingState` 1:1 (same three cases, same [title] / [detail] copy, same [tone]).
+ * The honest live-recording state of the strap. Derived from the BLE connection and last-sync
+ * timestamp. Mirrors Swift `RecordingState` (same cases, [title] / [detail] copy, and [tone]).
+ * Android Today has no recording-status chip; the scan control is its current connection affordance.
  */
 sealed class RecordingState {
     /** The strap is connected and saving data live. */

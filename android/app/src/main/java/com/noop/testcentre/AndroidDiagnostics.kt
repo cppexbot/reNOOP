@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.os.BatteryManager
 import android.os.Build
 import android.os.PowerManager
+import com.noop.BuildConfig
 
 /**
  * The Android environment-header block (spec section 3.4), bringing Android to the same shape as the iOS
@@ -17,6 +18,22 @@ import android.os.PowerManager
  * gracefully, never fabricates a value it can't read.
  */
 object AndroidDiagnostics {
+
+    /**
+     * `App:     <version> (<tier>) build <code> <applicationId>` for every export header.
+     *
+     * The applicationId was missing (#2553, Apple twin in `LiveState.appIdentityLine`). It is not decoration
+     * here: the id varies across the four builds this project ships (`com.noop.whoop`, plus `.debug`,
+     * `.staging` and `.demo` suffixes), and `.staging` is a SIDE-INSTALL, so a wearer can be running prod and
+     * staging at once. Two exports from that phone otherwise differ only by tier, and the id is what says
+     * which install produced the log.
+     *
+     * One property rather than three copies: the three header builders each wrote this line out themselves,
+     * which is how a field lands in one export and not the others.
+     */
+    val appIdentityLine: String
+        get() = "App:     ${BuildConfig.VERSION_NAME} (${BuildConfig.TIER}) " +
+            "build ${BuildConfig.VERSION_CODE} ${BuildConfig.APPLICATION_ID}"
 
     /** Aux rows read for one night's SpO2-candidate line (#112). Twin of the Swift
      *  `DebugDataDiagnostics.spo2CandidateAuxLimit`. */
@@ -580,8 +597,17 @@ object AndroidDiagnostics {
 
     /** Alarm state for the debug export: the configured wake + the last arm's sent-vs-strap-reports (#34), so
      *  a "didn't buzz" report shows whether the strap accepted the time. Reads persisted prefs (written by
-     *  WhoopBleClient.armStrapAlarm + the GET_ALARM_TIME readback). Best-effort. */
-    fun alarmLines(context: Context): List<String> = buildList {
+     *  WhoopBleClient.armStrapAlarm + the GET_ALARM_TIME readback). Best-effort.
+     *
+     *  [activePeripheralId] and [clockPairedCount] attribute the strap-clock verdict to the active strap,
+     *  the same way Firmware and Last sync are in [strapAndDataLines]. Passed in rather than read here
+     *  because the registry accessors suspend and this builder does not; defaulted so a caller with no
+     *  registry to hand still gets every other alarm line. */
+    fun alarmLines(
+        context: Context,
+        activePeripheralId: String? = null,
+        clockPairedCount: Int = 1,
+    ): List<String> = buildList {
         add("─".repeat(40))
         add("Alarm")
         runCatching {
@@ -595,8 +621,13 @@ object AndroidDiagnostics {
                     val exp = com.noop.ble.PuffinExperiment.from(context).isEnabled
                     // displayName, not a literal: this block spelled it "WHOOP 5.0/MG" while the enum (and
                     // the header a few lines up) says "WHOOP 5.0 / MG", so one export disagreed with itself.
+                    // Name the switch a reader can actually find. #2464 was filed because the Alarms copy
+                    // sent a wearer to "Experimental" in Settings, which is neither where nor what the gate
+                    // is; the copy and the refusal logs were corrected in #2484 / #2488 and this line was
+                    // missed, so a wearer reading their own strap log was still sent after the old name.
                     add(
-                        "Model: ${com.noop.ble.WhoopModel.WHOOP5_MG.displayName} · experimental: " +
+                        "Model: ${com.noop.ble.WhoopModel.WHOOP5_MG.displayName} · " +
+                            "Protocol probes (Test Centre): " +
                             if (exp) "on" else "off → firmware alarm NOT armed",
                     )
                 }
@@ -605,7 +636,23 @@ object AndroidDiagnostics {
             }
             // #4: strap clock health — a reset/stale OR future-dated clock (the #34 / #928 causes) breaks
             // the alarm even when armed.
-            val newest = p.getLong("strap.newestRecordTs", 0L)
+            //
+            // Attributed to THIS strap, the same way Firmware and Last sync above are. The global key
+            // reported whichever strap last answered a range reply, so a two-strap capture asserted
+            // "20d behind wall (reset/stale — alarm unreliable)" about an active 5/MG that had banked
+            // nothing at all; the 20 days belonged to a 4.0 last seen 20 days earlier. A verdict about
+            // one strap's alarm must not be computed from another strap's clock.
+            val newest = com.noop.ble.resolveStrapClockTs(
+                perDevice = com.noop.ui.NoopPrefs.strapNewestRecordTsFor(context, activePeripheralId),
+                legacyGlobal = p.getLong("strap.newestRecordTs", 0L),
+                pairedCount = clockPairedCount,
+            ) ?: 0L
+            if (newest <= 0L && clockPairedCount > 1) {
+                // Say why there is no verdict, rather than printing nothing and leaving the reader to
+                // assume the clock was checked and found fine.
+                add("Strap clock: not known for this strap (no range reply recorded against it; the " +
+                    "legacy shared reading is not attributable with $clockPairedCount straps paired)")
+            }
             if (newest > 0L) {
                 val behind = System.currentTimeMillis() / 1000L - newest
                 add(when {
@@ -652,9 +699,21 @@ object AndroidDiagnostics {
                     if (reportedAt > 0L) rl += " · read ${relTime(System.currentTimeMillis() - reportedAt)}"
                     add(rl)
                     // The bytes the epoch was decoded from: what tells a stored stale alarm from a misdecode.
-                    p.getString("alarm.lastReportedRaw", null)
-                        ?.takeIf { it.isNotBlank() }
-                        ?.let { add("Readback frame: $it") }
+                    // #1707 started banking the frame on 2026-08-28, so a readback taken before that has an
+                    // epoch and no frame. Printing nothing there read as "the frame was checked and was
+                    // fine", and a 2045 readback in a 2026-09-28 capture cost a trip through git history to
+                    // explain. Say which of the two it is, the way the strap-clock verdict above says why it
+                    // abstains rather than printing no line at all.
+                    val reportedRaw = p.getString("alarm.lastReportedRaw", null)?.takeIf { it.isNotBlank() }
+                    add(
+                        if (reportedRaw != null) {
+                            "Readback frame: $reportedRaw"
+                        } else {
+                            "Readback frame: not stored (this readback predates the frame capture, or the " +
+                                "write failed), so a genuinely-stored stale alarm cannot be told from a " +
+                                "misdecode of a fixed response field here"
+                        },
+                    )
                 } else add("Strap reports: (no readback)")
             } else add("Last arm: never")
             // #1: did the strap actually fire? (STRAP_DRIVEN_ALARM_EXECUTED)
@@ -671,8 +730,21 @@ object AndroidDiagnostics {
      *  guarded per-section so it never throws into the export. */
     suspend fun dynamicLines(context: Context): List<String> =
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+            // Resolved HERE because the registry accessors suspend and alarmLines is a plain builder. An
+            // unreadable or empty registry counts as ONE strap, matching the Apple twin: at a literal 0 the
+            // legacy shared reading would be refused (it is trusted only at exactly 1) and the "not known"
+            // branch would not fire either, so the clock line would vanish for everyone whose registry read
+            // failed, which is strictly worse than the shared reading it replaced.
+            val clockRows = runCatching {
+                (context.applicationContext as? com.noop.NoopApplication)?.deviceRegistry?.all().orEmpty()
+            }.getOrDefault(emptyList())
+            val clockActiveId = runCatching {
+                (context.applicationContext as? com.noop.NoopApplication)?.deviceRegistry?.activeDeviceId()
+            }.getOrNull()
+            val clockAddr = clockRows.firstOrNull { it.id == clockActiveId }?.peripheralId
+            val clockPaired = maxOf(1, clockRows.size)
             strapAndDataLines(context) + funnelLines(context) + workoutSourceLines(context) +
-                dailyDataLines(context) + alarmLines(context) + circadianLines(context)
+                dailyDataLines(context) + alarmLines(context, clockAddr, clockPaired) + circadianLines(context)
         }
 
     /**

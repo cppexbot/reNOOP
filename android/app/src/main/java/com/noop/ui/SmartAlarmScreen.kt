@@ -154,8 +154,7 @@ fun SmartAlarmScreen(vm: AppViewModel) {
             if (enabled && !canSchedule) {
                 RowDividerLocal()
                 Text(
-                    uiString(R.string.l10n_smart_alarm_screen_noop_doesn_t_have_permission_to_5b67cef0) +
-                        " Tap to allow it in system settings.",
+                    uiString(R.string.l10n_smart_alarm_screen_noop_doesn_t_have_permission_to_5b67cef0),
                     style = NoopType.footnote,
                     color = Palette.statusWarning,
                     modifier = Modifier
@@ -271,7 +270,7 @@ private fun StrapAlarmCard(vm: AppViewModel) {
     val live = vm.live.collectAsStateWithLifecycle().value
     // The firmware alarm is EXPERIMENTAL on a WHOOP 5/MG: it only arms when Experimental probes are on,
     // otherwise enabling it silently arms nothing (#111), so the UI says so instead of promising a wake.
-    val experimentalOn = PuffinExperiment.from(context).isEnabled
+    val protocolProbesOn = PuffinExperiment.from(context).isEnabled
 
     NoopCard(padding = 20.dp, tint = if (smartAlarm) Palette.accent else null) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -317,19 +316,19 @@ private fun StrapAlarmCard(vm: AppViewModel) {
                     onSetOverride = { dow, minutes -> vm.setSmartAlarmDayOverride(dow, minutes) },
                 )
                 RowDividerLocal()
-                if (live.whoop5Detected && !experimentalOn) {
+                if (live.whoop5Detected && !protocolProbesOn) {
                     Text(
-                        uiString(R.string.l10n_smart_alarm_screen_your_whoop_5_mg_won_t_75029bae) +
-                            " Experimental). Right now your wake time is saved but the strap is NOT armed.",
+                        uiString(R.string.l10n_smart_alarm_screen_your_whoop_5_mg_won_t_75029bae),
                         style = NoopType.footnote, color = Palette.statusWarning,
                     )
                 } else if (live.whoop5Detected) {
-                    // 5/MG with Experimental ON: the strap IS armed (experimental rev-4 payload) but a
-                    // strap-driven wake has NEVER been captured on 5/MG, so the "confirmed on 4.0" copy must
-                    // NOT show here (#864 honesty). Byte-identical wording to the Swift SmartAlarmView twin.
+                    // 5/MG with Protocol probes ON: the rev-4 command arms the strap. One wake was
+                    // captured on an MG (#864) and one reported on a 5.0 without a log (#2464);
+                    // neither repeated, so the copy simplifies both to "reported" and promises none.
+                    // Byte-identical wording to the Swift SmartAlarmView twin.
                     Text(
                         if (live.bonded)
-                            "Armed on the strap itself with the experimental 5/MG command. A strap-driven wake is still unconfirmed on 5/MG on our side (confirmed only on WHOOP 4.0), so keep a backup alarm for anything you truly can't miss."
+                            uiString(R.string.smart_alarm_5mg_armed_experimental)
                         else
                             "Connect your strap to arm this; it's set on the strap's own firmware alarm. Confirmed working on WHOOP 4.0; still experimental on 5.0 and MG. Keep a backup alarm for anything you truly can't miss.",
                         style = NoopType.footnote, color = Palette.textTertiary,
@@ -533,16 +532,11 @@ private fun ExplanationCard() {
                 Text(uiString(R.string.l10n_smart_alarm_screen_how_the_smart_wake_works_8cf34930), style = NoopType.headline, color = Palette.textPrimary)
             }
             Text(
-                uiString(R.string.l10n_smart_alarm_screen_while_you_re_inside_the_window_8700ca3b) +
-                    " sleep sits near your nightly low and stays steady; when your heart rate lifts above " +
-                    "that (a sign you're sleeping more lightly or starting to stir), NOOP wakes you a " +
-                    "little early so you come up from a lighter phase.",
+                uiString(R.string.l10n_smart_alarm_screen_while_you_re_inside_the_window_8700ca3b),
                 style = NoopType.footnote, color = Palette.textSecondary,
             )
             Text(
-                uiString(R.string.l10n_smart_alarm_screen_this_is_a_coarse_cue_from_d6bbabe7) +
-                    " isn't streaming (Bluetooth off, not worn, app killed), no early wake happens and the " +
-                    "guaranteed alarm at the window's end still wakes you.",
+                uiString(R.string.l10n_smart_alarm_screen_this_is_a_coarse_cue_from_d6bbabe7),
                 style = NoopType.footnote, color = Palette.textTertiary,
             )
         }

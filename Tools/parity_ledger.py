@@ -2558,8 +2558,15 @@ def build_compact_baseline(result: ScanResult) -> dict:
         if finding.rule in HARD_FINDING_RULES:
             continue
         if finding.rule not in BASELINE_REASONS:
+            if finding.rule.startswith("add-unpaired-"):
+                raise ValueError(
+                    f"finding {finding.identity} is source drift against the checked-in twin map, "
+                    "not compact-baseline debt; add an exact typed disposition for the "
+                    "platform-qualified authority identity, then run --refresh-derived"
+                )
             raise ValueError(
-                f"finding {finding.identity} has no reviewed compact-baseline disposition"
+                f"finding {finding.identity} cannot enter the compact baseline; "
+                "resolve the source or authority drift before refreshing derived snapshots"
             )
         grouped[(finding.rule, _finding_domain(finding.path))].append(finding.identity)
     return {
@@ -2815,6 +2822,11 @@ def main(argv: list[str] | None = None) -> int:
             print("\nActionable source drift:")
             for item in actionable:
                 print(f"  {item.output()}")
+            print(
+                "These pipe-separated finding identities are diagnostics, not typed-disposition "
+                "identities. For an intentional one-sided declaration, use its platform-qualified "
+                "authority identity in the registry, then run --refresh-derived."
+            )
         print(f"\nScanned {_summary(result)}")
         return 1
 

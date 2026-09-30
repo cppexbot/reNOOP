@@ -98,6 +98,8 @@ private struct HrTraceShape: Shape {
 
 struct HeartRateWidgetView: View {
     let entry: HeartRateEntry
+    private let scaleWidth: CGFloat = 28
+    private let scaleGap: CGFloat = 6
 
     /// Pruned on the way OUT as well as on the way in, matching the Kotlin twin. A widget rendered
     /// hours after the last publish would otherwise draw a trace whose newest point is long stale, under
@@ -149,7 +151,7 @@ struct HeartRateWidgetView: View {
             }
 
             if !series.isEmpty {
-                HStack(alignment: .top, spacing: 6) {
+                HStack(alignment: .top, spacing: scaleGap) {
                     HrTraceChart(series: series, accent: accent)
                     // A scale of one repeated number says nothing the headline has not, so it waits for
                     // a range — the same rule the Android twin follows.
@@ -166,9 +168,11 @@ struct HeartRateWidgetView: View {
                                 if index < ticks.count - 1 { Spacer(minLength: 0) }
                             }
                         }
+                        .frame(width: scaleWidth)
                     }
                 }
                 HrTimeAxis(series: series)
+                    .padding(.trailing, stats.map { $0.max > $0.min } == true ? scaleWidth + scaleGap : 0)
             }
 
             Spacer(minLength: 0)

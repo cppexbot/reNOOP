@@ -451,9 +451,7 @@ object BatteryEstimator {
         ) {
             return BedtimeAlertDecision(false, alerted, null)
         }
-        // Bedtime = midsleep - half the typical night, CIRCULAR so a 03:30 midsleep on an 8 h night is
-        // a 23:30 bedtime rather than a negative one.
-        val bedtimeSec = floorMod(habitualMidsleepSec - (sleepHours * 1800).roundToInt(), secondsPerDay)
+        val bedtimeSec = bedtimeSec(habitualMidsleepSec, sleepHours)
         val hoursUntilBedtime = floorMod(bedtimeSec - nowSecOfDay, secondsPerDay) / 3600.0
         // Outside the pre-bed window — including the moment bedtime passes, when `hoursUntilBedtime`
         // wraps to ~24 — the gate RE-ARMS. That wrap is what makes this once-per-NIGHT rather than
@@ -472,6 +470,18 @@ object BatteryEstimator {
         // must still be able to fire (mirrors [runtimeAlert]'s contract).
         return BedtimeAlertDecision(fire, if (fire) true else alerted, runway)
     }
+
+    /** Half the typical night in whole seconds: the distance from learned midsleep to bedtime, and from
+     *  midsleep to wake. The ONE place that rounding lives, so every reader of the learned night derives
+     *  the same edges. Callers guard `sleepHours > 0`; the Swift twin is `BatteryEstimator.halfNightSec`. */
+    fun halfNightSec(sleepHours: Double): Int = (sleepHours * 1800).roundToInt()
+
+    /** Learned bedtime as local seconds-of-day: midsleep minus half the typical night, CIRCULAR so a
+     *  03:30 midsleep on an 8 h night is a 23:30 bedtime rather than a negative one. Shared by
+     *  [bedtimeAlert] so every reader of the learned night agrees on when it starts. The Swift twin is
+     *  `BatteryEstimator.bedtimeSec`. */
+    fun bedtimeSec(midsleepSec: Int, sleepHours: Double): Int =
+        floorMod(midsleepSec - halfNightSec(sleepHours), secondsPerDay)
 
     private const val secondsPerDay = 86_400
 

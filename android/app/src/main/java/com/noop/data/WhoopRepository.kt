@@ -580,7 +580,20 @@ class WhoopRepository(
                 // Counts stay separate; the canonical observation owns this key's order and provenance.
                 dao.promoteWhoop5RrSource(row.deviceId, row.ts, row.rrMs, row.seq, row.ord!!, row.srcChannel)
             }
+            if (rrIds[index] == -1L && row.srcChannel == RrSourceChannel.WHOOP4_HISTORICAL.code) {
+                dao.promoteWhoop4HistoricalRr(row.deviceId, row.ts, row.rrMs, row.seq, row.ord!!)
+            }
         }
+        // #2371: mark the strap's 500 ms fill beats in this batch's window. The batch's heart rate was written
+        // above, so the same-second rate the rule reads is already in the table. Only a batch that carries a
+        // 500 ms WHOOP 5 beat pays for the statement. iOS runs the same statement from `WhoopStore.insert`.
+        val fillTs = rrRows.filter {
+            it.rrMs == 500 && (it.srcChannel == RrSourceChannel.WHOOP5_HISTORICAL.code ||
+                it.srcChannel == RrSourceChannel.WHOOP5_STANDARD.code)
+        }.map { it.ts }
+        val fillFrom = fillTs.minOrNull()
+        val fillTo = fillTs.maxOrNull()
+        if (fillFrom != null && fillTo != null) dao.flagWhoop5RrFill(deviceId, fillFrom, fillTo)
         val evIds = if (streams.events.isEmpty()) emptyList() else
             dao.insertEvents(streams.events.map { EventRow(deviceId, it.ts, it.kind, it.payloadJSON) })
         val batIds = if (streams.battery.isEmpty()) emptyList() else
@@ -1154,12 +1167,32 @@ class WhoopRepository(
         if (deviceIds.isEmpty()) emptyList()
         else mergeHrByTs(deviceIds.map { dao.hrSamples(it, from, to, limit) })
 
-    /** Count and newest timestamp of measured HR per source [hrSamplesUnion] reads, as one string: an
-     *  index-only witness of whether a window's heart rate changed, without fetching a row. */
+    /** Count and newest timestamp of measured HR per source [hrSamplesUnion] reads, as one opaque string:
+     *  an index-only witness of whether a window's heart rate changed, without fetching a row.
+     *
+     * A fingerprint narrower than the read it guards is worse than none: it would serve a cached result
+     * after a backfill landed rows under an alias id, which is exactly the id set [hrSamplesUnion] exists
+     * to cover (#908, a re-added strap banking under its own fresh id). So this walks the same ids rather
+     * than the bare [activeDeviceId].
+     *
+     * Cost is one COUNT plus one MAX per id via [hrFingerprintWindow], index range walks that materialise
+     * no rows, against the full per-day row fetches a caller would otherwise repeat. Compared only to
+     * itself in memory, so the format is free to change, and no caller persists it. The Swift
+     * `Repository.hrFingerprintUnion` is a twin in ROLE only, encoding the same facts differently; there
+     * is no byte-identity contract between them and no oracle asserting one.
+     *
+     * The single union witness for both callers (#2566): the cycle load cache in
+     * [com.noop.analytics.PhysiologicalStepCycleEngine] and the daytime stress lens memo in
+     * [com.noop.ui.selectedDaytimeStressMode]. Two of these that were free to disagree is what #2566
+     * removed, so route a new caller here rather than adding a third.
+     */
     suspend fun hrUnionFingerprint(activeDeviceId: String, from: Long, to: Long): String {
+        // An explicit loop rather than joinToString: the per-id read suspends and that builder's lambda
+        // is not a suspend function.
         val parts = ArrayList<String>()
         for (id in rawWhoopSourceIds(activeDeviceId)) {
-            parts += "$id=${dao.countHrInWindow(id, from, to)}:${dao.maxHrTsInWindow(id, from, to)}"
+            val (count, maxTs) = hrFingerprintWindow(id, from, to)
+            parts += "$id=$count:$maxTs"
         }
         return parts.joinToString(",")
     }
@@ -1381,6 +1414,10 @@ class WhoopRepository(
     suspend fun rrIntervalsForDevice(deviceId: String, from: Long, to: Long,
                                      limit: Int = DEFAULT_LIMIT,
                                      unlabelledAliasOfWhoop5: Boolean = false): List<RrInterval> = transactor.run {
+        // A WHOOP 4 reads its labelled type-47 history OR its unlabelled standard-BLE feed, never both
+        // spliced together: they overlap, and the pair over-counts coverage the same way two Oura
+        // channels did.
+        //
         // A ring record served twice is stored twice: each connection anchors on its own SyncTime, so
         // the second copy lands a second or two off the first and misses the row key instead of
         // colliding with it (#2456). Collapsed HERE rather than at one scorer, so every SCORING reader
@@ -1390,9 +1427,21 @@ class WhoopRepository(
         // That is the point of a raw export, and it is the evidence the duplication was diagnosed from,
         // so a diagnostic export and the app can legitimately disagree on beat counts.
         OuraRedrainCollapse.withoutRedrainedRuns(
-            if (isWhoop5RrSource(deviceId, unlabelledAliasOfWhoop5)) dao.whoop5RrIntervals(deviceId, from, to, limit)
-            else dao.rrIntervals(deviceId, from, to, limit)
+            when {
+                isWhoop5RrSource(deviceId, unlabelledAliasOfWhoop5) ->
+                    dao.whoop5RrIntervals(deviceId, from, to, limit)
+                isWhoop4RrSource(deviceId) || dao.hasWhoop4HistoricalRrSource(deviceId) ->
+                    dao.whoop4RrIntervals(deviceId, from, to, limit)
+                else -> dao.rrIntervals(deviceId, from, to, limit)
+            }
         )
+    }
+
+    /** Whether the device registry CONFIRMS this owner is a WHOOP 4, so its type-47 history is scorable. */
+    private suspend fun isWhoop4RrSource(deviceId: String): Boolean {
+        val owner = dao.pairedDevice(deviceId)
+        return com.noop.protocol.DeviceFamily.confirmedRegistryFamily(owner?.model, owner?.brand) ==
+            com.noop.protocol.DeviceFamily.WHOOP4
     }
 
     /** R-R beats over active strap + canonical history. Exact duplicate beats are removed with the
@@ -2049,8 +2098,8 @@ class WhoopRepository(
 
     /** ALL imported sleep BLOCKS across every registered WHOOP (active first, archived included,
      *  canonical last), keeping every session
-     *  per day (a nap + a main night both survive) and dropping only EXACT-duplicate (startTs, endTs)
-     *  blocks recorded under both union ids , active strap FIRST so it keeps the surviving copy. The
+     *  per day (a nap + a main night both survive) and collapsing near-identical nights
+     *  recorded under different union ids, active strap FIRST so it keeps the surviving copy. The
      *  Sleep tab's chevron walk reads this instead of the single canonical id, so a night recorded under
      *  a re-added strap's fresh id still surfaces (the downstream per-day imported-wins split is the
      *  caller's, exactly as before). Mirrors Swift Repository.unionSleepSessions. */
@@ -2059,7 +2108,7 @@ class WhoopRepository(
         dedupSleepBlocks(rawWhoopSourceIds(deviceId).flatMap { dao.sleepSessions(it, from, to, limit) })
 
     /** The COMPUTED ("-noop") twin of [sleepSessionsUnion]: all computed sleep blocks across the computed
-     *  union ids, exact-duplicate blocks dropped (active's computed sibling first). Mirrors Swift
+     *  union ids, near-identical nights collapsed (active's computed sibling first). Mirrors Swift
      *  Repository.unionComputedSleepSessions. */
     suspend fun computedSleepSessionsUnion(deviceId: String, from: Long, to: Long, limit: Int = DEFAULT_LIMIT):
         List<SleepSession> {
@@ -2495,14 +2544,28 @@ class WhoopRepository(
             return byDay.values.sortedBy { it.day }
         }
 
-        /** Drop sleep blocks sharing an identical (startTs, endTs) , the same physical night recorded
-         *  under two #814 union ids , keeping the FIRST seen (the callers pass active-strap-first lists,
-         *  so the active copy survives). Genuinely distinct blocks (a nap + a main night) are preserved.
+        /** Keep the active source's copy of a night when another source recorded nearly the same interval.
+         *  A majority of BOTH intervals must overlap, preserving a short nap inside a long night.
+         *  Separate blocks from one source remain distinct, including split sleeps.
          *  Pure companion form so the JVM tests exercise it without Room ([ResolverUnionTest]). Mirrors
          *  Swift Repository.dedupBlocks. (#1008) */
         internal fun dedupSleepBlocks(sessions: List<SleepSession>): List<SleepSession> {
             val seen = HashSet<Pair<Long, Long>>()
-            return sessions.filter { seen.add(it.startTs to it.endTs) }
+            val kept = ArrayList<SleepSession>()
+            for (session in sessions) {
+                if (!seen.add(session.startTs to session.endTs)) continue
+                val duplicate = kept.any { other ->
+                    if (session.deviceId == other.deviceId) return@any false
+                    val overlap = minOf(session.endTs, other.endTs) -
+                        maxOf(session.effectiveStartTs, other.effectiveStartTs)
+                    val duration = session.endTs - session.effectiveStartTs
+                    val otherDuration = other.endTs - other.effectiveStartTs
+                    duration > 0 && otherDuration > 0 &&
+                        overlap > duration / 2 && overlap > otherDuration / 2
+                }
+                if (!duplicate) kept.add(session)
+            }
+            return kept
         }
 
         /** True when [replacing] is stored under a DIFFERENT primary key than the row about to be written,
@@ -2801,7 +2864,7 @@ class WhoopRepository(
             for (list in lists) for (beat in list) {
                 byBeat.putIfAbsent(BeatKey(beat.ts, beat.rrMs, beat.seq), beat)
             }
-            if (byBeat.values.any { it.srcChannel in 5..7 }) {
+            if (byBeat.values.any { it.srcChannel in 5..7 || it.srcChannel == 8 }) {
                 // Kotlin's stable sort preserves owner precedence and captured within-second order.
                 return byBeat.values.sortedBy { it.ts }
             }

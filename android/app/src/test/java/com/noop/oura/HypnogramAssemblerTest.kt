@@ -33,7 +33,7 @@ class HypnogramAssemblerTest {
         assertEquals(10_000L, laid.last().ts + 30)
     }
 
-    // MARK: - #1246 unwritten (0xFF) epochs excluded, real codes stay timed. Twin of Swift.
+    // MARK: - Unwritten (0xFF) gaps keep time; trailing padding does not. Twin of Swift.
 
     @Test
     fun unwrittenEpochsDroppedButRealCodesKeepFullSequenceTimes_middleGap() {
@@ -55,6 +55,42 @@ class HypnogramAssemblerTest {
         assertTrue(laid.none { it.phase.unwritten })
         assertEquals(listOf(9_640L, 9_670L, 9_700L, 9_730L), laid.take(4).map { it.ts })
         assertEquals(listOf(9_880L, 9_910L, 9_940L, 9_970L), laid.takeLast(4).map { it.ts })
+    }
+
+    @Test
+    fun trailingPadDoesNotShiftWrittenCodesOrInteriorGap() {
+        val real1 = phases(listOf(OuraSleepStage.DEEP, OuraSleepStage.LIGHT, OuraSleepStage.REM, OuraSleepStage.AWAKE), 1000)
+        val gap = (0 until 4).map { OuraSleepPhase(ringTimestamp = 1001, index = it, stage = OuraSleepStage.AWAKE, unwritten = true) }
+        val real2 = phases(listOf(OuraSleepStage.LIGHT, OuraSleepStage.DEEP, OuraSleepStage.REM, OuraSleepStage.LIGHT), 1002)
+        val pad = (0 until 4).map { OuraSleepPhase(ringTimestamp = 1003, index = it, stage = OuraSleepStage.AWAKE, unwritten = true) }
+        val burst = OuraHypnogramBurst(listOf(
+            OuraHypnogramRecord(1000, real1),
+            OuraHypnogramRecord(1001, gap),
+            OuraHypnogramRecord(1002, real2),
+            OuraHypnogramRecord(1003, pad),
+        ))
+        val laid = burst.codesWithTimes(endUnixSeconds = 10_000)
+        assertEquals(listOf(9_640L, 9_670L, 9_700L, 9_730L, 9_880L, 9_910L, 9_940L, 9_970L), laid.map { it.ts })
+        assertEquals(10_000L, laid.last().ts + 30)
+    }
+
+    @Test
+    fun laterPassWithTailPadRemainsMoreCompleteAfterOnsetClip() {
+        val onset = 20_360L
+        val earlier = OuraHypnogramBurst(listOf(OuraHypnogramRecord(
+            1000, phases(List(988) { OuraSleepStage.LIGHT }, 1000),
+        )))
+        val pad = (0 until 40).map { OuraSleepPhase(ringTimestamp = 1002, index = it, stage = OuraSleepStage.AWAKE, unwritten = true) }
+        val later = OuraHypnogramBurst(listOf(
+            OuraHypnogramRecord(1001, phases(List(1000) { OuraSleepStage.LIGHT }, 1001)),
+            OuraHypnogramRecord(1002, pad),
+        ))
+        val first = earlier.codesWithTimes(endUnixSeconds = 50_000, sleepStartUnixSeconds = onset)
+        val final = later.codesWithTimes(endUnixSeconds = 50_360, sleepStartUnixSeconds = onset)
+        assertEquals(988, first.size)
+        assertEquals(1000, final.size)
+        assertEquals(onset, final.first().ts)
+        assertEquals(50_360L, final.last().ts + 30)
     }
 
     @Test

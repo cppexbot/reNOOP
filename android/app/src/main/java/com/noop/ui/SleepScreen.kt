@@ -26,7 +26,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
@@ -43,11 +45,13 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.foundation.lazy.rememberLazyListState
+import kotlinx.coroutines.ensureActive
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import com.noop.data.DailyMetric
 import com.noop.data.HrBucket
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -188,6 +192,7 @@ private fun SleepFreshnessNote(status: SleepFreshnessStatus, chunks: Int) {
 fun SleepScreen(
     vm: AppViewModel,
     onOpenJournal: () -> Unit = {},
+    onOpenAlarms: () -> Unit = {},
 ) {
     val days by vm.recentDays.collectAsStateWithLifecycle()
     // Whether the ACTIVE strap is an Oura ring, off the canonical brand table (not an "oura" literal) — so
@@ -231,6 +236,9 @@ fun SleepScreen(
     // mergeSleep but WITHOUT the per-night collapse). Keyed on `days` so a sync/import (which always
     // rewrites dailyMetric too) reloads; these reads have no Flow. (#160, #170)
     var sleeps by remember { mutableStateOf<List<SleepSession>>(emptyList()) }
+    var loadedSleepDays by remember { mutableStateOf<List<DailyMetric>?>(null) }
+    var loadedSleepStrap by remember { mutableStateOf<String?>(null) }
+    val sleepRowsReady = loadedSleepDays == days && loadedSleepStrap == vm.activeStrapId
     // Durable deleted-night markers. Unlike the 7-second Undo banner these remain reachable after the
     // session row is gone, giving each suppressed window a "Recompute this night" escape hatch (#515).
     var dismissedSleeps by remember { mutableStateOf<List<DismissedSleep>>(emptyList()) }
@@ -240,8 +248,10 @@ fun SleepScreen(
     // `sleeps` in place WITHOUT touching `days`, so it must not reset the browse — keeping the
     // user on the night they just edited. (#160)
     var nightOffset by remember { mutableIntStateOf(0) }
-    LaunchedEffect(days) {
-        sleeps = runCatching {
+    LaunchedEffect(days, vm.activeStrapId) {
+        loadedSleepDays = null
+        val strap = vm.activeStrapId
+        val loaded = runCatching {
             val now = System.currentTimeMillis() / 1000L
             // Read the ACTIVE-strap ∪ canonical "my-whoop" union (#814/#1008), not the canonical id
             // alone: after a strap remove+re-add live nights land under the fresh "whoop-<uuid>" id, so
@@ -249,8 +259,8 @@ fun SleepScreen(
             // union-joined surface moved on (the #1014/#1009 stuck-sleep divergence, in the OTHER
             // direction). Exact-duplicate (startTs, endTs) blocks recorded under both ids are dropped;
             // naps/split blocks survive. Single-device installs collapse to one id, byte-identical.
-            val imported = vm.repo.sleepSessionsUnion(vm.activeStrapId, 0L, now)
-            val computed = vm.repo.computedSleepSessionsUnion(vm.activeStrapId, 0L, now)
+            val imported = vm.repo.sleepSessionsUnion(strap, 0L, now)
+            val computed = vm.repo.computedSleepSessionsUnion(strap, 0L, now)
             // Key by the LOCAL wake-day (#304), matching WhoopRepository.mergeSleep — a UTC key
             // mis-attributed a UTC+ user's early-morning wake to yesterday. REUSE the existing
             // dayString(ts, offsetSec) overload; do not add a new one (it clashes on the JVM).
@@ -265,7 +275,11 @@ fun SleepScreen(
             WhoopRepository.mergeSleepRichness(imported, computed) { localEndDay(it.endTs) }
                 .sortedBy { it.effectiveStartTs }
         }.getOrDefault(emptyList())
+        kotlinx.coroutines.currentCoroutineContext().ensureActive()
+        sleeps = loaded
         nightOffset = 0
+        loadedSleepDays = days
+        loadedSleepStrap = strap
     }
 
     // Read the active∪canonical management union so a marker created before a strap re-add remains
@@ -528,6 +542,29 @@ fun SleepScreen(
     }
     val display = remember(model, night) { heroDisplay(model, night) }
 
+    val resultSnapshot = if (night != null && display != null) SleepResultSnapshot(
+        scope = "${vm.activeStrapId}:${(night.heroGroup.ifEmpty { listOf(night.session) }).map { it.deviceId }.distinct().sorted().joinToString(",")}:${night.dayKey}",
+        onset = night.heroOnsetTs ?: night.session.effectiveStartTs,
+        wake = night.heroWakeTs ?: night.session.endTs,
+        asleepMinutes = display.stages.asleep,
+        edited = night.session.userEdited || night.heroGroup.any { it.userEdited },
+    ) else null
+    val changeTracker = remember(vm.activeStrapId, nightOffset, resultSnapshot?.scope) { SleepResultChangeTracker() }
+    var resultChanged by remember(vm.activeStrapId, nightOffset, resultSnapshot?.scope) { mutableStateOf(false) }
+    var resultRevision by remember(vm.activeStrapId, nightOffset, resultSnapshot?.scope) { mutableIntStateOf(0) }
+    LaunchedEffect(resultSnapshot, sleepRowsReady, freshnessLive.analyzing, changeTracker) {
+        if (changeTracker.observe(resultSnapshot, sleepRowsReady && !freshnessLive.analyzing)) {
+            resultChanged = true
+            resultRevision++
+        }
+    }
+    LaunchedEffect(resultRevision, changeTracker) {
+        if (resultChanged) {
+            kotlinx.coroutines.delay(8_000)
+            resultChanged = false
+        }
+    }
+
     val sleepFreshness = remember(sleeps, freshnessLive) {
         val zone = ZoneId.systemDefault()
         val now = Instant.now().atZone(zone)
@@ -648,6 +685,14 @@ fun SleepScreen(
                 )
             }
         }
+        if (resultChanged) {
+            item {
+                DataPendingNote(
+                    title = stringResource(R.string.sleep_result_updated_title),
+                    body = stringResource(R.string.sleep_result_updated_message),
+                )
+            }
+        }
         sleepFreshness?.let { status ->
             item { SleepFreshnessNote(status, backfillNote ?: 0) }
         }
@@ -658,6 +703,7 @@ fun SleepScreen(
             item {
                 SleepEmptyState()
             }
+            item { SleepAlarmsEntry(onOpenAlarms) }
         } else {
             // REST HERO — a scenic indigo backdrop with the night's sleep-performance score as a
             // layered BevelGauge (Rest gradient), else a big rounded hours-slept headline. Mirrors the
@@ -677,6 +723,7 @@ fun SleepScreen(
                     overline = nightLabel,
                 )
             }
+            item { SleepAlarmsEntry(onOpenAlarms) }
             // #sleep-layout: a compact "Arrange" affordance (the same Tune entry Today uses) opens the
             // reorder / show-hide sheet. Pinned just above the arrangeable cards.
             item {
@@ -954,6 +1001,19 @@ fun SleepScreen(
                 }
               }
             }
+        }
+    }
+}
+
+/** The existing alarm settings, reachable from Sleep with or without recorded nights. */
+@Composable
+private fun SleepAlarmsEntry(onOpenAlarms: () -> Unit) {
+    NoopCard(modifier = Modifier.clickable(onClick = onOpenAlarms), tint = Palette.restColor) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Metrics.gap)) {
+            Icon(Icons.Filled.Alarm, contentDescription = null, tint = Palette.restColor)
+            Text(stringResource(R.string.nav_alarms), style = NoopType.headline, color = Palette.textPrimary,
+                 modifier = Modifier.weight(1f))
+            Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = Palette.textTertiary)
         }
     }
 }
@@ -2022,7 +2082,7 @@ private const val STAGE_ROW_SMOOTH_SEC = 90.0
 
 /**
  * iOS #988 port — the WHOOP-style per-stage timeline stack that replaces the flat hypnogram strip
- * for real-stage nights. Four tappable rows in WHOOP order (AWAKE · LIGHT · DEEP · REM), each a
+ * for real-stage nights. Four tappable rows in chart-depth order (AWAKE · REM · LIGHT · DEEP), each a
  * hatched full-night track with solid segments on the shared onset→wake axis; MotionStrip and the
  * clock-label axis sit under the rows on the SAME timeline; a fixed-height insight slot closes the
  * stack. The rows ARE the legend — no dot row, no footer. Mirrors SleepView.stageTimeline.
@@ -2052,9 +2112,9 @@ internal fun StageTimeline(
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space8)) {
         listOf(
             Triple("Awake", s.awake, Palette.sleepAwake),
+            Triple("REM", s.rem, Palette.sleepREM),
             Triple("Light", s.light, Palette.sleepLight),
             Triple("Deep", s.deep, Palette.sleepDeep),
-            Triple("REM", s.rem, Palette.sleepREM),
         ).forEach { (label, minutes, color) ->
             StageTimelineRow(
                 label = label,

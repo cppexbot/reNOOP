@@ -294,6 +294,7 @@ struct RootView: View {
             // The iOS widgets' routes (`WidgetLink`). macOS has no widget to raise them; mapped for completeness.
             case .today, .stress: selection = .today
             case .heartRate: selection = .live
+            case .alarms: selection = .smartAlarm
             case nil: break
             }
             if dest != nil { router.requestedDestination = nil }

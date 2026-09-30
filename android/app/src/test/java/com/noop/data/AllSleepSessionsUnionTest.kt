@@ -35,6 +35,18 @@ class AllSleepSessionsUnionTest {
         device("whoop-new", "active", 3),
     )
 
+    @Test
+    fun activeRingNightWinsOverOverlappingImportedWhoopNight() = runBlocking {
+        val start = System.currentTimeMillis() / 1000L - 86_400L
+        val ring = SleepSession(deviceId = "oura-ring", startTs = start, endTs = start + 38_400)
+        val imported = SleepSession(deviceId = "my-whoop", startTs = start + 574, endTs = start + 37_976)
+        val repo = WhoopRepository(proxyDao(mapOf("oura-ring" to listOf(ring), "my-whoop" to listOf(imported))))
+
+        val sessions = repo.allSleepSessionsUnion("oura-ring")
+
+        assertEquals(listOf("oura-ring"), sessions.map { it.deviceId })
+    }
+
     private fun proxyDao(rows: Map<String, List<SleepSession>>): WhoopDao =
         Proxy.newProxyInstance(
             WhoopDao::class.java.classLoader,

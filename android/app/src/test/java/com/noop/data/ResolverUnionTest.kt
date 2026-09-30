@@ -16,8 +16,8 @@ import org.junit.Test
  *      orphaned the canonical history (and a caller passing the canonical default orphaned the live id).
  *      Fixed by appending the canonical pair, mirroring Swift Repository.sourceCandidates.
  *   2. [WhoopRepository.dedupSleepBlocks] , the union sleep reads ([WhoopRepository.sleepSessionsUnion] /
- *      habitualMidsleepSec) concatenate active + canonical blocks and must drop only EXACT-duplicate
- *      (startTs, endTs) twins, active copy surviving. Mirrors Swift Repository.dedupBlocks.
+ *      habitualMidsleepSec) concatenate active + canonical blocks and collapse near-identical
+ *      nights across sources, active copy surviving. Mirrors Swift Repository.dedupBlocks.
  *
  * These exercise the PURE companion seams only (no Room, plain JVM), complementing [ReadSpineUnionTest],
  * which covers the daily-metric union ids/merge. Stuck-sleep cluster: #1014 / #1009.
@@ -91,7 +91,7 @@ class ResolverUnionTest {
         )
     }
 
-    // --- dedupSleepBlocks: the sleep-block union's exact-twin drop ---
+    // --- dedupSleepBlocks: the sleep-block union's cross-source overlap collapse ---
 
     private fun block(source: String, start: Long, end: Long) =
         SleepSession(deviceId = source, startTs = start, endTs = end)
@@ -126,17 +126,30 @@ class ResolverUnionTest {
         assertEquals(3, deduped.size)
     }
 
-    /** A block sharing only its START (an end-drifted re-detection) is NOT a twin , both survive, since
-     *  the dedup keys on the exact (startTs, endTs) pair, matching Swift's "\(startTs)-\(endTs)" key. */
+    /** A near-identical cross-source night retains the active copy when its end drifts. */
     @Test
-    fun sameStartDifferentEndIsNotATwin() {
+    fun sameStartDifferentEndKeepsActiveCopy() {
         val deduped = WhoopRepository.dedupSleepBlocks(
             listOf(
                 block(reAdded, 1_750_000_000L, 1_750_028_800L),
                 block(canonical, 1_750_000_000L, 1_750_030_000L),
             ),
         )
-        assertEquals(2, deduped.size)
+        assertEquals(listOf(reAdded), deduped.map { it.deviceId })
+    }
+
+    @Test
+    fun overlappingNightDropsImportedTwinButKeepsNapsAndSameSourceBlocks() {
+        val deduped = WhoopRepository.dedupSleepBlocks(
+            listOf(
+                block("oura-ring", 100_000, 138_400),
+                block("oura-ring", 101_000, 137_000),
+                block(canonical, 100_574, 137_976),
+                block(canonical, 145_000, 148_600),
+                block(canonical, 120_000, 123_600),
+            ),
+        )
+        assertEquals(listOf(100_000L, 101_000L, 145_000L, 120_000L), deduped.map { it.startTs })
     }
 
     // --- mergeComputedSeriesUnion: the computed metricSeries day-union (#349) ---
