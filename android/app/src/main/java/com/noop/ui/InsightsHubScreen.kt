@@ -165,7 +165,7 @@ private fun MoversSection(
                 Text(
                     uiString(R.string.l10n_insights_hub_screen_not_enough_overlap_between_your_journal_0ebdd7a2) +
                         " ${outcome.outcomeName.lowercase(Locale.US)} yet. Keep logging. Each behaviour " +
-                        "needs days both with and without it before NOOP can read its effect.",
+                        "needs days both with and without it before reNOOP can read its effect.",
                     style = NoopType.subhead,
                     color = Palette.textTertiary,
                 )

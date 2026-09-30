@@ -194,7 +194,7 @@ private fun WidgetContent(snap: WidgetSnapshot, dark: Boolean) {
                         ClockFormat.hourMinutePattern(ClockPrefs.uses24Hour(androidx.glance.LocalContext.current)),
                         java.util.Locale.getDefault(),
                     ).format(Date(snap.updatedAtMs))
-                else -> "Open NOOP to connect"
+                else -> "Open reNOOP to connect"
             },
             style = TextStyle(color = textSecondary, fontSize = 11.sp),
         )

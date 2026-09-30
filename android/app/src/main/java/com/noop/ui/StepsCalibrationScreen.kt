@@ -268,7 +268,7 @@ private fun NoMotionNote() {
             }
             Text(
                 uiString(R.string.l10n_steps_calibration_screen_we_re_not_seeing_any_motion_6ac8e092) +
-                    " banked motion history, so your strap needs to sync that history before NOOP has " +
+                    " banked motion history, so your strap needs to sync that history before reNOOP has " +
                     "anything to count.",
                 style = NoopType.subhead,
                 color = Palette.textSecondary,

@@ -1669,7 +1669,7 @@ private fun VitalsSection(
             Text(
                 text = uiString(R.string.l10n_health_screen_spo_respiratory_rate_and_skin_temperature_0ae0ad8f) +
                     " aggregates from your most recent imported day; resting HR and HRV update daily. " +
-                    "Once NOOP has 14 nights of history, in-range compares each vital to your own " +
+                    "Once reNOOP has 14 nights of history, in-range compares each vital to your own " +
                     "baseline (approximate, not medical advice); until then typical adult ranges apply.",
                 style = NoopType.footnote,
                 color = Palette.textTertiary,

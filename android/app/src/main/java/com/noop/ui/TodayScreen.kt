@@ -2938,7 +2938,7 @@ private fun LiquidWordmark() {
         horizontalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        "NOOP".forEach { ch ->
+        "reNOOP".forEach { ch ->
             Text(
                 ch.toString(),
                 style = NoopType.number(16f, weight = FontWeight.Bold)

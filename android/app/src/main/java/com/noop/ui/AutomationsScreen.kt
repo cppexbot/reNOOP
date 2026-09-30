@@ -392,13 +392,13 @@ private fun NapDetectionSection(viewModel: AppViewModel) {
         icon = Icons.Filled.Bedtime,
         title = uiString(R.string.l10n_automations_screen_nap_detection_ca2dedf5),
         blurb = "Spots a likely daytime nap from the strap's motion and heart rate on each history sync, " +
-            "then asks you to confirm it. Inferred and approximate: NOOP never adds a nap to your sleep " +
+            "then asks you to confirm it. Inferred and approximate: reNOOP never adds a nap to your sleep " +
             "without your OK.",
         active = enabled,
     ) {
         ToggleRow(
             label = uiString(R.string.l10n_automations_screen_detect_short_naps_bbfd136d),
-            help = "When a sync shows a quiet, settled stretch in the day, NOOP offers it here for you to keep or skip.",
+            help = "When a sync shows a quiet, settled stretch in the day, reNOOP offers it here for you to keep or skip.",
             checked = enabled,
             onChange = {
                 viewModel.setNapDetectionEnabled(it)

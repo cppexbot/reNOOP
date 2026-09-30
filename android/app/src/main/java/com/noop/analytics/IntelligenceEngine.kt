@@ -3261,7 +3261,7 @@ object IntelligenceEngine {
         val meanLog = if (inBedBpms.isEmpty()) "nil"
             else Math.round(inBedBpms.sum().toDouble() / inBedBpms.size).toString()
         return "rhr day=$day floor=$floor nightMean=$meanLog inBedSamples=${inBedBpms.size} " +
-            "(floor = WHOOP-style lowest-sustained = NOOP RHR; mean = sleeping-HR-app number)"
+            "(floor = WHOOP-style lowest-sustained = reNOOP RHR; mean = sleeping-HR-app number)"
     }
 
     /**

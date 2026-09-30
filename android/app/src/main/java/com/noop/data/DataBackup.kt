@@ -260,7 +260,7 @@ object DataBackup {
         // connection (WAL allows concurrent readers). Twin of the Apple writeVerifiedBackupZip.
         sqliteQuickCheckFailure(dbFile)?.let { complaint ->
             throw IOException(
-                "Couldn't export: the NOOP database failed its integrity check, so a backup of it " +
+                "Couldn't export: the reNOOP database failed its integrity check, so a backup of it " +
                     "would not restore. Export the WHOOP-format CSV instead to save what's still " +
                     "readable. (SQLite: ${readableComplaint(complaint)})"
             )
@@ -379,7 +379,7 @@ object DataBackup {
         try {
             val read = resolver.openInputStream(uri)?.use { readFully(it, header) }
                 ?: return ImportResult.Failed("Could not open the chosen file.")
-            if (read < 4) return ImportResult.Failed("That file is not a NOOP backup.")
+            if (read < 4) return ImportResult.Failed("That file is not a reNOOP backup.")
         } catch (e: IOException) {
             return ImportResult.Failed("Could not read the chosen file: ${e.message}")
         }
@@ -415,7 +415,7 @@ object DataBackup {
                     )
                 }
                 StageResult.NOT_A_BACKUP -> return ImportResult.Failed(
-                    "That file is not a NOOP backup - it doesn't look like a .noopbak archive or a SQLite database."
+                    "That file is not a reNOOP backup - it doesn't look like a .noopbak archive or a SQLite database."
                 )
             }
         } catch (e: IOException) {
@@ -428,7 +428,7 @@ object DataBackup {
         if (!isValidSqliteHeader(tempSqlite)) {
             tempSqlite.delete()
             tempSettings.delete()
-            return ImportResult.Failed("The backup archive doesn't contain a valid NOOP database.")
+            return ImportResult.Failed("The backup archive doesn't contain a valid reNOOP database.")
         }
 
         // 3b. Origin check (parity with the Apple side's GRDB-origin rejection). The SQLite magic
@@ -443,8 +443,8 @@ object DataBackup {
                 return rejectForeign(
                     tempSqlite,
                     tempSettings,
-                    "This isn't a NOOP backup from this app. It looks like a backup from the Mac or " +
-                        "iOS NOOP app (it carries that platform's migration bookkeeping). Restoring it here " +
+                    "This isn't a reNOOP backup from this app. It looks like a backup from the Mac or " +
+                        "iOS reNOOP app (it carries that platform's migration bookkeeping). Restoring it here " +
                         "would strand your store. To move your history across platforms, export the " +
                         "WHOOP-format CSV on the other device (Settings → Export data) and import that here.",
                 )
@@ -453,8 +453,8 @@ object DataBackup {
                     return rejectForeign(
                         tempSqlite,
                         tempSettings,
-                        "This isn't a NOOP backup from this app. It's missing the database bookkeeping a " +
-                            "NOOP backup carries (it looks like another app's database). Restoring it would " +
+                        "This isn't a reNOOP backup from this app. It's missing the database bookkeeping a " +
+                            "reNOOP backup carries (it looks like another app's database). Restoring it would " +
                             "strand your store.",
                     )
                 }

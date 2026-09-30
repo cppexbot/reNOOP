@@ -120,7 +120,7 @@ object RhythmConsent {
         "Variation is normal and often benign" to
             "Beat-to-beat timing varies for many ordinary reasons: breathing, movement, an imperfect optical reading, or the occasional extra or skipped beat that most healthy people have.",
         "It is not a substitute for a professional" to
-            "If you feel unwell or are worried about your heart, contact a qualified professional; in an emergency, your local emergency service. Do not rely on NOOP.",
+            "If you feel unwell or are worried about your heart, contact a qualified professional; in an emergency, your local emergency service. Do not rely on reNOOP.",
         "Everything stays on your device" to
             "All of this is computed on your own device from data you already have. No heartbeat data leaves it.",
     )

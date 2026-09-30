@@ -500,7 +500,7 @@ fun InsightsScreen(vm: AppViewModel, onOpenInsightsHub: () -> Unit = {}) {
             // No journal yet, explain, without dead-ending on a paid export.
             DataPendingNote(
                 title = uiString(R.string.l10n_insights_screen_insights_read_your_journal_and_outcomes_6ec8aaf9),
-                body = "Log behaviours above. After a few days of answers, NOOP ranks how each " +
+                body = "Log behaviours above. After a few days of answers, reNOOP ranks how each " +
                     "one moves your recovery, HRV and sleep. Importing a WHOOP export (which " +
                     "includes its journal) backfills history instantly.",
             )

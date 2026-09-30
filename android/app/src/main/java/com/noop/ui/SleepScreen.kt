@@ -1049,7 +1049,7 @@ private fun SleepUndoBanner(undo: SleepUndoState, onUndo: () -> Unit) {
     val message = when {
         undo.fromEdit -> uiString(R.string.l10n_sleep_screen_sleep_outside_the_new_times_was_6229881e)
         session.userEdited -> "Sleep deleted."
-        else -> "Sleep deleted. NOOP won't detect sleep between $startText and $endText again."
+        else -> "Sleep deleted. reNOOP won't detect sleep between $startText and $endText again."
     }
     NoopCard(tint = Palette.restColor) {
         Row(

@@ -703,7 +703,7 @@ private fun TypeStep(onPick: (DeviceType) -> Unit) {
         TypeRow(Icons.Filled.Watch, DeviceType.Whoop5MG.title, "Newer WHOOP band with live data and history sync") {
             onPick(DeviceType.Whoop5MG)
         }
-        TypeRow(Icons.Filled.Watch, DeviceType.Whoop4.title, "NOOP's primary, fully-supported band") {
+        TypeRow(Icons.Filled.Watch, DeviceType.Whoop4.title, "reNOOP's primary, fully-supported band") {
             onPick(DeviceType.Whoop4)
         }
         TypeRow(Icons.Filled.FavoriteBorder, DeviceType.HrStrap.title, "Polar, Wahoo, Coospo, Garmin HRM, Amazfit Helio broadcast") {
@@ -922,31 +922,31 @@ private fun prepInstructions(type: DeviceType): List<String> = when (type) {
     DeviceType.Whoop4 -> listOf(
         "Put your WHOOP 4.0 on your wrist and make sure it's awake.",
         "Make sure it's NOT connected to the official WHOOP app right now.",
-        "NOOP will look for it nearby.",
+        "reNOOP will look for it nearby.",
     )
     DeviceType.Whoop5MG -> listOf(
         "WHOOP 5.0 / MG bonds to one device at a time, so unpair it from the official WHOOP app first.",
         "Put the band into pairing mode, on your wrist and awake.",
-        "NOOP will look for it nearby.",
+        "reNOOP will look for it nearby.",
     )
     DeviceType.HrStrap -> listOf(
         "Wake your strap. Put it on, or dampen the contacts.",
         "Make sure it isn't connected to another app (a bike computer, the brand's own app…).",
-        "NOOP will look for it nearby.",
+        "reNOOP will look for it nearby.",
     )
     DeviceType.GymEquipment -> listOf(
         "Wake the machine. Start pedalling, walking or rowing so it powers on its Bluetooth.",
         "Make sure it isn't already connected to another app (Zwift, the gym's app, a bike computer…).",
-        "NOOP looks for machines that broadcast the standard Bluetooth Fitness Machine service.",
+        "reNOOP looks for machines that broadcast the standard Bluetooth Fitness Machine service.",
     )
     DeviceType.Amazfit -> listOf(
         "Wake your Amazfit / Zepp band and make sure it isn't connected to the Zepp app right now.",
-        "NOOP reads live heart rate when the band exposes it. Some bands need a pairing we can't do yet. If so, we'll say so honestly.",
+        "reNOOP reads live heart rate when the band exposes it. Some bands need a pairing we can't do yet. If so, we'll say so honestly.",
         "Experimental: this is best-effort. If live doesn't work, you can export from Zepp and import the file.",
     )
     DeviceType.MiBand -> listOf(
         "Wake your Mi Band and make sure it isn't connected to the Mi Fitness / Zepp Life app right now.",
-        "NOOP reads live heart rate on bands that don't require pairing. Newer bands need an auth handshake we can't do yet.",
+        "reNOOP reads live heart rate on bands that don't require pairing. Newer bands need an auth handshake we can't do yet.",
         "Experimental: if your band needs pairing, we'll tell you honestly rather than show a fake reading.",
     )
     DeviceType.Garmin -> com.noop.ble.GarminBroadcast.broadcastHint
@@ -959,7 +959,7 @@ private fun prepInstructions(type: DeviceType): List<String> = when (type) {
  *  em-dashes; matches the iOS copy. */
 private val ouraPrepInstructions: List<String> = listOf(
     "Open the official Oura app and remove this ring (Oura calls it \"factory reset\" or \"unpair and " +
-        "reset\"). This wipes the ring's owner so NOOP can take it over.",
+        "reset\"). This wipes the ring's owner so reNOOP can take it over.",
     "Keep the ring on the charger or on your finger so it stays awake.",
     "Make sure the Oura app is fully closed. A ring answers one owner at a time.",
     "When the ring is reset and waking, tap Scan below.",
@@ -1102,7 +1102,7 @@ private fun OuraGateStep(
         OuraAmberPanel(
             "Beta. Read this first.",
             "Local Oura support is new and we cannot test every ring here. It may not connect on your " +
-                "ring, and it can change between updates. NOOP never makes up a number. If something does " +
+                "ring, and it can change between updates. reNOOP never makes up a number. If something does " +
                 "not work, it will tell you plainly.",
         )
 
@@ -1118,11 +1118,11 @@ private fun OuraGateStep(
             Overline("What you get")
             OuraBulletList(
                 listOf(
-                    "Your ring talks to NOOP only, fully offline, no Oura account.",
+                    "Your ring talks to reNOOP only, fully offline, no Oura account.",
                     "Live heart rate, and HRV when the ring can measure it.",
                     "Overnight sleep staging, resting heart rate, skin-temperature trend, motion and " +
                         "battery, read straight off the ring.",
-                    "NOOP's own Charge, Effort and Rest, computed on your device from published methods.",
+                    "reNOOP's own Charge, Effort and Rest, computed on your device from published methods.",
                 ),
             )
             Overline("What you lose")
@@ -1130,7 +1130,7 @@ private fun OuraGateStep(
                 listOf(
                     "The Oura app and your Oura account stop working with this ring. This is the point. " +
                         "You are replacing Oura.",
-                    "Oura's own Readiness and Sleep scores. NOOP does not copy them. It computes its own.",
+                    "Oura's own Readiness and Sleep scores. reNOOP does not copy them. It computes its own.",
                     "Anything that needs Oura's cloud (web dashboard, Oura's coaching, shared circles).",
                     "Likely your Oura warranty and support, because the ring is no longer paired to Oura. " +
                         "Treat this as permanent.",
@@ -1206,8 +1206,8 @@ private fun OuraAdvancedKeyStep(
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         OuraAmberPanel(
             "For power users.",
-            "If you extracted your ring's 16-byte key from a previous Oura setup, NOOP can talk to the " +
-                "ring with that key WITHOUT resetting it, so the Oura app keeps working too. NOOP does not " +
+            "If you extracted your ring's 16-byte key from a previous Oura setup, reNOOP can talk to the " +
+                "ring with that key WITHOUT resetting it, so the Oura app keeps working too. reNOOP does not " +
                 "extract keys for you and cannot help you find one. If you do not know what this means, go " +
                 "back and use the standard setup or file import.",
         )
@@ -1477,7 +1477,7 @@ private fun OuraFailedStep(reason: String?, onTryAgain: () -> Unit, onUseFileImp
         Text(
             reason ?: "The most common cause is the ring was not fully reset in the Oura app, or the Oura " +
                 "app is still running. Reset the ring again, force-quit Oura, then try once more. If it keeps " +
-                "failing, your ring may be a generation NOOP cannot adopt yet. You can still use file import.",
+                "failing, your ring may be a generation reNOOP cannot adopt yet. You can still use file import.",
             style = NoopType.subhead,
             color = Palette.textSecondary,
         )

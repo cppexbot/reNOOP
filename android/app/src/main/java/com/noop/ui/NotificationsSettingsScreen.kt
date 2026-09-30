@@ -275,7 +275,7 @@ fun NotificationsSettingsScreen(vm: AppViewModel) {
         AlertSection(
             icon = Icons.Filled.NotificationsActive,
             title = uiString(R.string.l10n_notifications_settings_screen_wrist_alerts_75581d51),
-            blurb = "When on, NOOP taps your wrist for the apps you pick below, so you can leave " +
+            blurb = "When on, reNOOP taps your wrist for the apps you pick below, so you can leave " +
                 "your phone and still feel what matters.",
         ) {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -427,7 +427,7 @@ fun NotificationsSettingsScreen(vm: AppViewModel) {
             FormToggleRow(
                 label = uiString(R.string.l10n_notifications_settings_screen_all_other_apps_51a8af2c),
                 help = "Also buzz for apps that aren't in the lists above (e.g. BeReal). Android " +
-                    "doesn't let NOOP see every installed app, so this is how you cover the rest. " +
+                    "doesn't let reNOOP see every installed app, so this is how you cover the rest. " +
                     "Can be chatty; quiet hours and \"only when worn\" still apply.",
                 checked = allOtherApps,
                 onChange = {
@@ -480,7 +480,7 @@ fun NotificationsSettingsScreen(vm: AppViewModel) {
             icon = Icons.Filled.NotificationsActive,
             title = uiString(R.string.l10n_notifications_settings_screen_daily_reports_c1a22a74),
             blurb = "Optional phone notifications, off by default. These arrive after your strap syncs " +
-                "and NOOP scores the data, so they land soon after, not the exact second you wake or " +
+                "and reNOOP scores the data, so they land soon after, not the exact second you wake or " +
                 "finish a workout. Everything is worked out on this phone.",
         ) {
             FormToggleRow(
@@ -497,7 +497,7 @@ fun NotificationsSettingsScreen(vm: AppViewModel) {
             FormToggleRow(
                 label = uiString(R.string.l10n_notifications_settings_screen_post_workout_summary_13e488f5),
                 help = "When a new workout syncs in, a notification with its Effort, duration and average " +
-                    "heart rate. Shows up after the session reaches NOOP on the next sync.",
+                    "heart rate. Shows up after the session reaches reNOOP on the next sync.",
                 checked = postWorkoutReport,
                 onChange = {
                     postWorkoutReport = it
@@ -512,7 +512,7 @@ fun NotificationsSettingsScreen(vm: AppViewModel) {
             FormToggleRow(
                 label = uiString(R.string.l10n_notifications_settings_screen_optimal_strain_reached_2862ec2b),
                 help = "Once a day, a notification when your Effort reaches the low end of today's optimal " +
-                    "strain range (from your recovery). Posts after your strap syncs and NOOP scores the day.",
+                    "strain range (from your recovery). Posts after your strap syncs and reNOOP scores the day.",
                 checked = strainTargetReport,
                 onChange = {
                     strainTargetReport = it
@@ -589,7 +589,7 @@ private fun CallsCard(
                 RowDivider()
                 FormToggleRow(
                     label = uiString(R.string.l10n_notifications_settings_screen_phone_calls_b79420d9),
-                    help = "Needs Phone permission; NOOP never reads numbers or call logs.",
+                    help = "Needs Phone permission; reNOOP never reads numbers or call logs.",
                     checked = phoneCallsEnabled,
                     enabled = masterEnabled,
                     onChange = onPhoneCallsEnabled,

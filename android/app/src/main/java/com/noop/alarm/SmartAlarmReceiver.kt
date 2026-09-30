@@ -91,7 +91,7 @@ class SmartAlarmReceiver : BroadcastReceiver() {
                 "Smart alarm",
                 NotificationManager.IMPORTANCE_HIGH,
             ).apply {
-                description = "The phone wake alarm NOOP fires inside your chosen wake window."
+                description = "The phone wake alarm reNOOP fires inside your chosen wake window."
                 enableVibration(true)
                 vibrationPattern = longArrayOf(0, 600, 400, 600, 400, 600)
                 setBypassDnd(true)   // a wake alarm should sound through Do Not Disturb

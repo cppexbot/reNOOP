@@ -88,7 +88,7 @@ fun ConnectionHelp(viewModel: AppViewModel, modifier: Modifier = Modifier) {
                 done = !whoopInstalled,
                 title = uiString(R.string.l10n_connection_help_close_the_official_whoop_app_768d7d17),
                 body = "Your strap only pairs with ONE app at a time. If the WHOOP app is connected, " +
-                    "NOOP can't reach the strap. Force stop it (swiping it out of recents isn't enough).",
+                    "reNOOP can't reach the strap. Force stop it (swiping it out of recents isn't enough).",
                 actionLabel = if (whoopInstalled) "Open WHOOP app, then Force stop" else "WHOOP app isn't installed",
                 enabled = whoopInstalled,
                 onAction = { openAppInfo(context, WHOOP_PACKAGE) },
@@ -107,7 +107,7 @@ fun ConnectionHelp(viewModel: AppViewModel, modifier: Modifier = Modifier) {
                 done = permGranted,
                 title = uiString(R.string.l10n_connection_help_allow_nearby_devices_f7c74880),
                 body = if (permGranted) "Permission granted."
-                else "On Android 12+, \"Nearby devices\" is the Bluetooth permission. NOOP needs it to find your strap.",
+                else "On Android 12+, \"Nearby devices\" is the Bluetooth permission. reNOOP needs it to find your strap.",
                 actionLabel = if (!permGranted) "Grant permission" else null,
                 enabled = !permGranted,
                 onAction = { permLauncher.launch(perms) },
