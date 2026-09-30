@@ -1289,15 +1289,11 @@ fun ScreenScaffold(
         Column(
             modifier = columnModifier
                 .verticalScroll(rememberScrollState())
-                // #1836: the bar's height is added to the CONTENT's bottom padding, not to the screen's
-                // layout. That distinction is the whole overlay: the screen reaches the bottom edge so its
-                // backdrop paints behind and around the glass, while the scrolling content still stops
-                // clear of the bar. Zero when the overlay is off, so the slot layout is untouched.
                 .padding(
                     start = 28.dp,
                     end = 28.dp,
                     top = topPadding,
-                    bottom = 28.dp + BottomBarStyleStore.barHeightForContent(),
+                    bottom = 28.dp,
                 ),
             // #765: one shared inter-card spacing token (was a bare `20.dp`), so the eager + lazy scaffolds
             // and every screen through them keep the SAME uniform gap between top-level cards.

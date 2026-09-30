@@ -149,7 +149,7 @@ class MainActivity : ComponentActivity() {
         // Decode the optional custom background image (if set) + its toggles before first composition so
         // the backdrop is right from the first frame on every tab. No-op when no image is set.
         BackgroundImageStore.load(this)
-        BottomBarStyleStore.load(this)   // #1836: bottom-bar layout choice, default the shipped slot
+        CoachEnabledStore.load(this)   // the AI Coach master switch, read before first composition
 
         setContent {
             NoopTheme {
@@ -742,20 +742,6 @@ object NoopPrefs {
     fun setAppIconNavy(context: Context, navy: Boolean) {
         of(context).edit().putBoolean(KEY_APP_ICON_NAVY, navy).apply()
     }
-
-    /** #1839: hide the overlay bottom bar while scrolling down, restore it on scrolling up. Default
-     *  ON (#1841). Only meaningful with the overlay layout, where the bar sits over content. */
-    const val KEY_BOTTOM_BAR_AUTO_HIDE = "noop.bottomBarAutoHide"
-
-    /** #1836 follow-up: the bar's glass alpha, as one of eight steps. See [com.noop.ui.alphaForOpacityStep]. */
-    const val KEY_BOTTOM_BAR_OPACITY_STEP = "noop.bottomBarOpacityStep"
-
-    /** #1836 follow-up: how much bigger the bar is drawn, one of [com.noop.ui.BOTTOM_BAR_SCALES]. */
-    const val KEY_BOTTOM_BAR_SCALE = "noop.bottomBarScale"
-
-    /** #1836: draw the bottom bar as an overlay (glass over the screen's backdrop) instead of a reserved
-     *  Scaffold slot. Default ON (#1841), after the overlay was confirmed on a device. */
-    const val KEY_OVERLAY_BOTTOM_BAR = "noop.overlayBottomBar"
 
     /** #1821: Clock format ("system" / "twelveHour" / "twentyFourHour"). Shares its stored vocabulary
      *  with the Apple @AppStorage binding via [com.noop.analytics.ClockFormatPreference]. */

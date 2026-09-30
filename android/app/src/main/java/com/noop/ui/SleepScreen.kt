@@ -359,6 +359,8 @@ fun SleepScreen(
     // the edge auto-scroll velocity SleepReorderableSection's onDrag computed. Persistence is on drop
     // (onDrop below), not here — this only updates the in-memory order live.
     val sleepListState = rememberLazyListState()
+    // A re-tap of this tab while it is already at its root scrolls back to the top (iOS convention).
+    OnScrollToTop { sleepListState.animateScrollToItem(0) }
     val sleepSectionDrag = remember { SleepSectionDragState() }
     val sleepDragActive = sleepSectionDrag.key != null
     LaunchedEffect(sleepDragActive) {

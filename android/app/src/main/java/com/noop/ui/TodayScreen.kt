@@ -318,8 +318,8 @@ fun TodayScreen(
     onOpenCoupled: () -> Unit = {},
     /** #1862: open Coach, optionally with a question the Today launcher already collected. */
     onOpenCoach: (String?) -> Unit = {},
-    // The "workout in progress" indicator card routes to Live and re-opens the in-exercise overlay. Defaulted
-    // to a no-op so the call site stays compiling; AppRoot binds it to openActiveWorkout() + nav.navigate(Live).
+    // The "workout in progress" indicator card re-opens the running workout's recording. Defaulted to a no-op
+    // so the call site stays compiling; AppRoot shows the Workouts tab with the recording presented over it.
     onOpenActiveWorkout: () -> Unit = {},
     // The liquid header battery ring taps through to Devices (iOS parity: the battery ring → router.openDevices()).
     // Defaulted to fall back to Settings so the call site stays compiling; AppRoot binds it to the Devices route.
@@ -520,6 +520,8 @@ fun TodayScreen(
     // onDrag alone only fires while the finger moves) and applies the edge auto-scroll velocity that
     // TodayReorderableSection's onDrag computed.
     val todayListState = rememberLazyListState()
+    // A re-tap of this tab while it is already at its root scrolls back to the top (iOS convention).
+    OnScrollToTop { todayListState.animateScrollToItem(0) }
     val sectionDrag = remember { TodaySectionDragState() }
     val sectionDragActive = sectionDrag.key != null
     LaunchedEffect(sectionDragActive) {
@@ -1630,11 +1632,11 @@ fun TodayScreen(
             // order; its item simply reappears when eligible.
             val visibleDashboardCards = enabledDashboardCards.filter {
                     (it != DashboardCard.HYDRATION || hydrationEnabled) &&
-                        // Coach off is not just "no tab": the launcher card is the OTHER way into
-                        // the AI, and leaving it on Today would offer a feature the wearer has just
+                        // Coach off is not just "no Browse row": the launcher card is the OTHER way
+                        // into the AI, and leaving it on Today would offer a feature the wearer has just
                         // switched off. Same shape as the hydration gate, so a card the wearer had
                         // added keeps its place in the saved order and returns when Coach comes back.
-                        (it != DashboardCard.COACH || BottomBarStyleStore.coachEnabled)
+                        (it != DashboardCard.COACH || CoachEnabledStore.enabled)
             }
             val sectionVisible = when (section) {
                 TodaySection.LIVE_SESSION ->

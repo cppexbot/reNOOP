@@ -10,7 +10,6 @@
     <string name="nav_today">Hoje</string>
     <string name="nav_intelligence">Inteligência</string>
     <string name="nav_coupled_view">Vista acoplada</string>
-    <string name="nav_live">Em direto</string>
     <string name="nav_intervals">Intervalos</string>
     <string name="nav_sleep">Sono</string>
     <string name="sleep_status_calculating_title">A calcular o sono da noite passada…</string>
@@ -21,37 +20,22 @@
     <string name="sleep_status_waiting_body">Liga a bracelete e sincroniza o histórico. A reNOOP calculará a noite quando os dados noturnos chegarem.</string>
     <string name="sleep_status_not_detected_title">O sono da noite passada não foi detetado</string>
     <string name="sleep_status_not_detected_body">A sincronização terminou, mas a reNOOP não conseguiu identificar com confiança um período de sono. Mantém a bracelete ligada e sincroniza novamente; a noite anterior abaixo continua a ser o teu último sono detetado.</string>
-    <string name="nav_breathe">Respirar</string>
     <string name="nav_stress">Stress</string>
     <string name="nav_workouts">Treinos</string>
     <string name="nav_trends">Tendências</string>
     <string name="nav_coach">Treinador</string>
-    <string name="nav_insights_hub">O que te move</string>
-    <string name="nav_insights">Análises</string>
     <string name="nav_explore">Explorar</string>
     <string name="nav_compare">Comparar</string>
     <string name="nav_health">Saúde</string>
-    <string name="nav_hydration">Hidratação</string>
-    <string name="nav_vital_signs">Sinais vitais</string>
-    <string name="nav_lab_book">Caderno de laboratório</string>
     <string name="nav_rhythm">Ritmo</string>
     <string name="nav_apple_health">Apple Health</string>
     <string name="nav_automations">Automatizações</string>
     <string name="nav_alarms">Alarmes</string>
-    <string name="nav_devices">Dispositivos</string>
     <string name="nav_noop_limitations">Limitações do reNOOP</string>
     <string name="nav_data_sources">Fontes de dados</string>
-    <string name="nav_backup_sync">Cópia de segurança e sincronização</string>
     <string name="nav_fused_record">Os teus dados, fundidos</string>
     <string name="nav_notifications">Notificações</string>
     <string name="nav_support">Suporte</string>
-    <string name="nav_settings">Definições</string>
-    <string name="nav_test_centre">Centro de testes</string>
-    <string name="nav_more">Mais</string>
-    <string name="more_group_insights">Análises</string>
-    <string name="more_group_body">Corpo</string>
-    <string name="more_group_data">Dados</string>
-    <string name="more_group_app">App</string>
     <string name="action_live_hr">FC em direto</string>
     <string name="action_start_workout">Iniciar treino</string>
     <string name="action_log_journal">Registar no diário</string>
@@ -212,8 +196,6 @@
     <string name="l10n_add_device_wizard_we_could_not_take_over_this_fec1ce93">Não poderíamos assumir este anel.</string>
     <string name="l10n_add_device_wizard_whoop_5_0_mg_support_is_e452e686">O suporte ao WHOOP 5.0/MG é mais recente e ainda experimental no reNOOP.</string>
     <string name="l10n_add_device_wizard_whoop_is_noop_s_primary_fully_ac6fa33b">WHOOP é a banda principal e totalmente suportada do reNOOP. Outras gamas de frequência cardíaca transmitem a frequência cardíaca e a VFC em direto, mas não os dados de sono e recuperação mais profundos do WHOOP.</string>
-    <string name="l10n_app_root_more_4bab2d8f">Mais</string>
-    <string name="l10n_app_root_moregroupchevron_b2b36ec6">moreGroupChevron</string>
     <string name="l10n_apple_health_screen_apple_health_b19b87da">Apple Health</string>
     <string name="l10n_apple_health_screen_no_readings_recorded_05018b26">Nenhuma leitura registada.</string>
     <string name="l10n_apple_health_screen_nothing_imported_yet_f457cdbe">Nada importado ainda</string>
@@ -779,9 +761,7 @@
     <string name="l10n_settings_screen_12_hour_41c18ba0">12 horas</string>
     <string name="l10n_settings_screen_24_hour_18e86819">24 horas</string>
     <string name="l10n_settings_screen_advancedchevron_f22dfa01">avançadoChevron</string>
-    <string name="l10n_settings_screen_bottom_bar_overlay_f257c96f">Sobreposição da barra inferior</string>
     <string name="l10n_settings_screen_clock_04f6b3ea">Relógio</string>
-    <string name="l10n_settings_screen_hide_bar_when_scrolling_b077d9f3">Ocultar a barra ao deslocar</string>
     <string name="l10n_settings_screen_note_a2481d6c">· %1$s</string>
     <string name="l10n_settings_screen_repo_note_0a694b50">%1$s, %2$s</string>
     <string name="l10n_skin_temp_cards_screen_cycle_awareness_ffb94783">Consciência do ciclo</string>
@@ -1338,7 +1318,6 @@
     <string name="l10n_app_changelog_your_scores_build_over_a_few_41388c54">A tua pontuação aumenta ao longo de algumas noites</string>
     <string name="l10n_app_changelog_your_whole_day_s_heart_rate_e57593f8">A frequência cardíaca do teu dia inteiro, no painel</string>
     <string name="l10n_app_changelog_your_whoop_journal_in_insights_clearer_88f5e21b">O teu diário WHOOP no Insights, métricas mais claras</string>
-    <string name="l10n_app_root_this_section_is_on_the_way_ca7c4a32">Esta secção está a caminho.</string>
     <string name="l10n_app_root_updates_c76d1807">Atualizações</string>
     <string name="l10n_coach_screen_coach_b32c9ad3">Treinador</string>
     <string name="l10n_compare_screen_remove_title_ddb5361c">Remover %1$s</string>
@@ -2698,11 +2677,6 @@
     <string name="settings_day_cycle_midnight">00:00</string>
     <string name="settings_day_cycle_sleep_description">Predefinição. O ciclo segue o início do sono principal detetado. Se os dados de sono estiverem em falta ou não forem fiáveis, é usada a meia-noite local.</string>
     <string name="settings_day_cycle_midnight_description">Usa um dia civil local convencional das 00:00 às 00:00.</string>
-    <string name="l10n_settings_screen_bottom_bar_f84098a9">Barra inferior</string>
-    <string name="l10n_settings_screen_how_the_navigation_bar_looks_f186b099">O aspeto da barra de navegação — o seu tamanho e quanto do ecrã se vê através dela.</string>
-    <string name="l10n_settings_screen_bar_size_2304bfbb">Tamanho da barra</string>
-    <string name="l10n_settings_screen_bar_transparency_3f648fbb">Transparência da barra</string>
-    <string name="l10n_settings_screen_how_see_through_the_bar_is_ddb0c208">Quão transparente é a barra. O nível mais ténue continua a mostrar o contorno, por isso pode sempre ser encontrada.</string>
 
     <!-- Coach screen -->
     <string name="coach_clear_conversation_confirm">Apagar conversa?</string>
@@ -2812,4 +2786,22 @@
     <string name="data_sources_whoop_live_subtitle">Emparelha diretamente com a tua bracelete via Bluetooth: sem aplicação WHOOP, sem cloud. A bracelete também pode anunciar a frequência cardíaca como um sensor Bluetooth padrão.</string>
     <string name="data_sources_band_broadcast_description">Transmite a frequência cardíaca em direto da bracelete por Bluetooth para Garmin, Zwift ou equipamento de ginásio.</string>
     <string name="whoop4_direct_broadcast_explainer">O teu WHOOP 4.0 pode transmitir a frequência cardíaca diretamente. Abre Fontes de dados e utiliza «Transmitir frequência cardíaca da bracelete» para Zwift, Peloton, Garmin ou equipamento de ginásio. Em alternativa, podes utilizar «Transmitir FC deste telemóvel» quando necessário.</string>
+    <string name="nav_summary">Resumo</string>
+    <string name="nav_browse">Explorar</string>
+    <string name="browse_categories">Categorias</string>
+    <string name="browse_all_metrics">Todas as métricas</string>
+    <string name="browse_coach">Treinador</string>
+    <string name="browse_journal">Diário</string>
+    <string name="browse_lab_results">Resultados laboratoriais</string>
+    <string name="browse_trends">Tendências</string>
+    <string name="browse_what_moves_you">O que te move</string>
+    <string name="browse_devices">Dispositivos</string>
+    <string name="browse_heart_rate">Frequência cardíaca</string>
+    <string name="browse_mindfulness">Mindfulness</string>
+    <string name="browse_search_placeholder">Pesquisar no reNOOP</string>
+    <string name="browse_no_results">Sem resultados para «%1$s»</string>
+    <string name="browse_no_results_hint">Verifique a ortografia ou experimente outra pesquisa.</string>
+    <string name="workouts_more_options">Mais opções</string>
+    <string name="settings_group_app">App</string>
+    <string name="settings_group_data">Dados</string>
 </resources>

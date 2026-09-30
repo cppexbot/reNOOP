@@ -157,7 +157,7 @@ import kotlin.math.roundToInt
  * an empty window auto-widens to the next larger range, exactly like the macOS screen.
  */
 @Composable
-fun WorkoutsScreen(vm: AppViewModel) {
+fun WorkoutsScreen(vm: AppViewModel, onOpenIntervals: () -> Unit = {}) {
     // The ViewModel owns the loaded rows now (ALL sources incl. detected, dismissed-filtered) so a
     // mutation (add / edit / relabel / dismiss / delete) republishes the list and the screen updates.
     val allRows by vm.workouts.collectAsState()
@@ -259,9 +259,31 @@ fun WorkoutsScreen(vm: AppViewModel) {
     val skyCtx = androidx.compose.ui.platform.LocalContext.current
     val showDayCycleBackground = remember { NoopPrefs.showDayCycleBackground(skyCtx) }
     val skyBehindCards = remember { NoopPrefs.skyBehindCards(skyCtx) }
+    // Hoisted so a re-tap of the Workouts tab at its root scrolls back to the top.
+    val workoutsListState = androidx.compose.foundation.lazy.rememberLazyListState()
+    OnScrollToTop { workoutsListState.animateScrollToItem(0) }
+    // The toolbar overflow (iOS Workouts "..." menu): Intervals, which lost its More entry with the old shell.
+    var overflowOpen by remember { mutableStateOf(false) }
     LazyScreenScaffold(
         title = uiString(R.string.l10n_workouts_screen_workouts_ccb58b22),
         subtitle = "Every session, threaded together.",
+        listState = workoutsListState,
+        trailing = {
+            Box {
+                IconButton(onClick = { overflowOpen = true }) {
+                    Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.workouts_more_options))
+                }
+                DropdownMenu(expanded = overflowOpen, onDismissRequest = { overflowOpen = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.nav_intervals)) },
+                        onClick = {
+                            overflowOpen = false
+                            onOpenIntervals()
+                        },
+                    )
+                }
+            }
+        },
         // LIQUID SKY BACKDROP (the pilot pattern — LiquidScreenSky.kt): the time-of-day liquid sky settles
         // into the theme canvas behind the header + top rows (bled full-width up behind the status bar via
         // the scaffold's topBackground plumbing), and the cards float OVER it on the flat surface below. The

@@ -1511,26 +1511,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val _lastWorkout = MutableStateFlow<WorkoutRow?>(null)
     val lastWorkout: StateFlow<WorkoutRow?> = _lastWorkout.asStateFlow()
 
-    /** One-shot: the Today "workout in progress" indicator card raises this (via [openActiveWorkout]) so the
-     *  Live screen presents the in-exercise overlay for an ALREADY-RUNNING workout. The overlay normally only
-     *  opens at workout start (StartWorkoutSheet), so this is the single path that re-opens it for a session
-     *  already in flight, the Android analogue of iOS NavRouter.presentActiveWorkout. LiveScreen consumes it
-     *  on appear via [consumeActiveWorkoutRequest]; a normal Live visit never raises it, so it is inert. */
-    private val _presentActiveWorkout = MutableStateFlow(false)
-    val presentActiveWorkout: StateFlow<Boolean> = _presentActiveWorkout.asStateFlow()
-
-    /** Raise the one-shot so the Live screen opens the in-exercise overlay on its next appearance. AppRoot
-     *  also navigates to the Live destination; together that is one tap from the Today indicator card. */
-    fun openActiveWorkout() { _presentActiveWorkout.value = true }
-
-    /** Consume the one-shot (called by LiveScreen on appear). Returns true exactly once per raise, and ONLY
-     *  while a workout is actually active, so a stale flag can never open an empty overlay. */
-    fun consumeActiveWorkoutRequest(): Boolean {
-        if (!_presentActiveWorkout.value) return false
-        _presentActiveWorkout.value = false
-        return _activeWorkout.value != null
-    }
-
     /** Durable store for an in-flight NON-GPS workout (#529). The GPS path is already process-durable via
      *  [GpsSession] + the foreground service; a non-GPS session lived only in [_activeWorkout], so an OS
      *  kill mid-session lost it. We snapshot non-GPS sessions to SharedPreferences on start + each sample

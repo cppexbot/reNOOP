@@ -1290,3 +1290,45 @@ private val ONBOARDING_SEX_OPTIONS = listOf(
     OnboardingSexOption("female", R.string.onboarding_female),
     OnboardingSexOption("nonbinary", R.string.onboarding_other),
 )
+
+/**
+ * BrandMark — the NOOP logo glyph at a small in-app size: an OPEN recovery ring (≈80%
+ * arc, round caps, starting at −90° / 12 o'clock, clockwise) in the gold gradient with a
+ * solid gold core dot at the centre. This is the same brand glyph the RecoveryRing hero
+ * carries (the "O" of NOOP), shrunk for in-app use (the onboarding welcome) so the logo reads in
+ * app. CLEAN/flat per the v3 restraint brief — no bloom, no halo, just the gradient ring.
+ * Token-only (gold gradient + hairline track); decorative, so it carries no content label.
+ */
+@Composable
+internal fun BrandMark(size: androidx.compose.ui.unit.Dp = 22.dp) {
+    androidx.compose.foundation.Canvas(modifier = Modifier.size(size)) {
+        val stroke = this.size.minDimension * 0.13f          // ~2px-equivalent at 22dp
+        val radius = (this.size.minDimension - stroke) / 2f
+        val topLeft = androidx.compose.ui.geometry.Offset(center.x - radius, center.y - radius)
+        val arcSize = androidx.compose.ui.geometry.Size(radius * 2f, radius * 2f)
+        val capStroke = androidx.compose.ui.graphics.drawscope.Stroke(
+            width = stroke,
+            cap = androidx.compose.ui.graphics.StrokeCap.Round,
+        )
+
+        // Faint full-ring track (navy hairline) behind the open arc.
+        drawCircle(
+            color = Palette.hairline.copy(alpha = 0.5f),
+            radius = radius,
+            center = center,
+            style = capStroke,
+        )
+        // Open recovery-ring arc: ~80% (288°), −90° start (12 o'clock), clockwise.
+        drawArc(
+            color = Palette.chargeColor,
+            startAngle = -90f,
+            sweepAngle = 288f,
+            useCenter = false,
+            topLeft = topLeft,
+            size = arcSize,
+            style = capStroke,
+        )
+        // Solid WHITE "on-device core" dot at the centre (green ring + white core — iOS parity, no gold).
+        drawCircle(color = Color.White, radius = stroke * 0.62f, center = center)
+    }
+}

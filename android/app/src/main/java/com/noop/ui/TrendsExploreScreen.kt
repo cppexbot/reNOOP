@@ -211,6 +211,23 @@ private val knownSeriesMetrics: Map<String, MetricSpec> = mapOf(
         Palette.metricPurple, true, 0),
 )
 
+/** One metric of the static Explore catalogue, as Browse search lists it: its key and localized title. */
+internal data class ExploreCatalogEntry(val key: String, val title: String)
+
+/** The static catalogue (built-in columns, then the known series-backed metrics), for Browse search. */
+internal fun exploreCatalogEntries(): List<ExploreCatalogEntry> =
+    (builtInMetrics + knownSeriesMetrics.values).map { ExploreCatalogEntry(it.key, it.title) }
+
+/**
+ * The source a known series-backed key is written under when nothing has been discovered yet: the
+ * nutrition import and the mood check-in keep their own source ids; heart-rate series live on the strap.
+ */
+private fun defaultSeriesSource(key: String): String? = when (key) {
+    "calories_in", "protein_g", "carbs_g", "fat_g" -> NutritionCsvImporter.SOURCE_ID
+    "mood" -> MoodStore.MOOD_DEVICE_ID
+    else -> null
+}
+
 // MARK: - A loaded series point (day string + value), oldest first.
 
 private data class SeriesPoint(val day: String, val value: Double)
@@ -237,8 +254,12 @@ private fun statOf(values: List<Double>): Stat {
 
 // MARK: - Screen
 
+/**
+ * Explore, opened on [initialMetricKey] when a Browse search result asked for one metric (null opens the
+ * catalogue's first metric, as the All Metrics row does).
+ */
 @Composable
-fun TrendsExploreScreen(vm: AppViewModel) {
+fun TrendsExploreScreen(vm: AppViewModel, initialMetricKey: String? = null) {
     // The Deep Timeline (#575) is presented INLINE from Explore , no NavHost route needed, so this stays
     // self-contained in the Explore entry-point file. System back / the in-screen reset returns here.
     var showDeepTimeline by remember { mutableStateOf(false) }
@@ -305,14 +326,20 @@ fun TrendsExploreScreen(vm: AppViewModel) {
                     seriesSource = src,
                 )
             }
-        builtInMetrics + extras
+        val discovered = builtInMetrics + extras
+        // A known series metric opened from Browse search may have nothing stored yet. Keep it selectable so
+        // the page names the metric that was asked for, over its import note, instead of falling to Charge.
+        val requested = initialMetricKey
+            ?.takeIf { key -> discovered.none { it.key == key } }
+            ?.let { key -> knownSeriesMetrics[key]?.copy(seriesKey = key, seriesSource = defaultSeriesSource(key)) }
+        if (requested != null) discovered + requested else discovered
     }
 
     // Effort display scale (#268) , carried on the selected spec so the Effort column's value + unit
     // follow the toggle through every read-out (hero, footer stats, Y-axis). Display-only.
     val effortScale = UnitPrefs.effortScale(LocalContext.current)
 
-    var selectedKey by remember { mutableStateOf(builtInMetrics.first().key) }
+    var selectedKey by remember { mutableStateOf(initialMetricKey ?: builtInMetrics.first().key) }
     var range by remember { mutableStateOf(ExploreRange.Month) }
     val selected = (metrics.firstOrNull { it.key == selectedKey } ?: metrics.first())
         .copy(effortScale = effortScale)
