@@ -279,7 +279,7 @@ private struct WelcomeStep: View {
 
     var body: some View {
         SetupPage(isFirst: true,
-                  title: String(localized: "Welcome to NOOP"),
+                  title: String(localized: "Welcome to reNOOP"),
                   message: String(localized: "Your strap's data, kept only on \(Platform.deviceNounPhrase)."),
                   art: { BrandMark(size: 82) },
                   tray: { SetupButton(title: "Get Started", action: next) })
@@ -399,7 +399,7 @@ private struct ScanStep: View {
             return String(localized: "Your strap is bonded and ready to stream.")
         }
         if bluetoothDenied {
-            return String(localized: "Bluetooth is off for NOOP.")
+            return String(localized: "Bluetooth is off for reNOOP.")
         }
         if notFound {
             // #130: 5.0/MG bonds to one host at a time, so the WHOOP app holding it hides it from a scan.

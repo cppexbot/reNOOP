@@ -152,7 +152,7 @@ final class LiftSessionController: ObservableObject {
     func resumeSaved(from defaults: UserDefaults = .standard) {
         guard !isActive, let snapshot = LiftSessionPersistence.load(from: defaults) else { return }
         resume(from: snapshot)
-        log("Lift Log: session picked up again after NOOP restarted")
+        log("Lift Log: session picked up again after reNOOP restarted")
     }
 
     /// Rehydrate an interrupted session found on disk. Does NOT present the sheet: the session comes

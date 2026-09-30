@@ -47,7 +47,7 @@ struct AboutSettingsPage: View {
             Section {
                 Button("What's new") { showWhatsNew = true }
                     .foregroundStyle(StrandPalette.textPrimary)
-                Button("How NOOP works") { showHowNoopWorks = true }
+                Button("How reNOOP works") { showHowNoopWorks = true }
                     .foregroundStyle(StrandPalette.textPrimary)
                 Link(destination: URL(string: "https://github.com/ryanbr/noop")!) {
                     Text(verbatim: "GitHub").foregroundStyle(StrandPalette.textPrimary)
@@ -90,7 +90,7 @@ struct AboutSettingsPage: View {
                 Text("Built on")
             }
         }
-        .settingsPage("About NOOP")
+        .settingsPage("About reNOOP")
         .sheet(isPresented: $showWhatsNew) { WhatsNewView(onClose: { showWhatsNew = false }) }
         .sheet(isPresented: $showHowNoopWorks) { HowNoopWorksView(onClose: { showHowNoopWorks = false }) }
     }

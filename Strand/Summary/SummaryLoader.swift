@@ -17,6 +17,10 @@ struct SummarySnapshot {
     var metrics: SummaryMetricInputs?
     /// Trailing 7-day values (oldest → newest) keyed by `SummaryMetricReading.seriesKey`.
     var series: [String: [Double]] = [:]
+    /// The same week one slot per day (nil where a day has no value), for the Fitness tiles' day columns.
+    var dailySeries: [String: [Double?]] = [:]
+    /// The week's day keys, oldest → newest, the slots of `dailySeries`.
+    var weekKeys: [String] = []
     var highlights: [SummaryHighlight] = []
 }
 
@@ -178,8 +182,9 @@ enum SummaryLoader {
                                  [prev?.kcal, r.activeKcal].compactMap { $0 }.max())
         }
         let weightByDay = Dictionary(weightSeries.map { ($0.day, $0.value) }, uniquingKeysWith: { _, last in last })
-        func week(_ value: (String) -> Double?) -> [Double] { windowKeys.compactMap(value) }
-        snap.series = [
+        func week(_ value: (String) -> Double?) -> [Double?] { windowKeys.map(value) }
+        snap.weekKeys = windowKeys
+        snap.dailySeries = [
             "hrv": week { rowByDay[$0]?.avgHrv },
             "rhr": week { rowByDay[$0]?.restingHr.map(Double.init) },
             "spo2": week { rowByDay[$0]?.spo2Pct },
@@ -194,6 +199,7 @@ enum SummaryLoader {
             // Today's bar is the live Effort the rings show, not the row the daily pass last stored.
             "effort": week { $0 == tkey ? snap.effort : rowByDay[$0]?.strain },
         ]
+        snap.series = snap.dailySeries.mapValues { $0.compactMap { $0 } }
 
         snap.highlights = SummaryHighlight.from(ReadinessEngine.evaluate(days: days, today: day?.day))
         return snap

@@ -44,6 +44,9 @@ enum TabRoute: Hashable {
     case trends
     /// The long-horizon training load (CTL / ATL / form), reached from Trends.
     case trainingLoad
+    /// Settings, pushed from the Summary's profile circle. Its own pages push `SettingsPage` values, so
+    /// a stack that hosts this route registers `.settingsDestinations()` too.
+    case settings
 }
 
 extension View {
@@ -80,6 +83,7 @@ extension View {
                 SleepVitalsView(day: day, date: Date(timeIntervalSince1970: TimeInterval(wakeTs)))
             case .trends: TrendsView()
             case .trainingLoad: TrainingLoadView()
+            case .settings: SettingsView()
             }
         }
     }

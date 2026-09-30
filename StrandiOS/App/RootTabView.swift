@@ -198,6 +198,8 @@ struct RootTabView: View {
                 // Summary uses the native large title + glass toolbar (Health); the others draw their own.
                 .toolbar(showsNavigationBar ? .automatic : .hidden, for: .navigationBar)
                 .tabRouteDestinations()
+                // Settings (pushed from the Summary's profile circle) pushes its pages as SettingsPage values.
+                .settingsDestinations()
         }
         // Drive this tab's root scroll-to-top on an at-root re-tap (#198 follow-up).
         .environment(\.scrollToTopSignal, scrollSignal)

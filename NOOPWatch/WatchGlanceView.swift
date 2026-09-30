@@ -128,7 +128,7 @@ struct WatchGlanceView: View {
             Image(systemName: "iphone.gen3")
                 .font(.system(size: 28))
                 .foregroundStyle(StrandPalette.textTertiary)
-            Text("Open NOOP on your iPhone to sync")
+            Text("Open reNOOP on your iPhone to sync")
                 .font(StrandFont.subhead)
                 .foregroundStyle(StrandPalette.textSecondary)
                 .multilineTextAlignment(.center)

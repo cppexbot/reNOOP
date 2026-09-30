@@ -8,7 +8,7 @@ USAGE:
   whoop-optical-experiment [--compact] [--settling-seconds N] FILE
   cat puffin-deepbuffers.jsonl | whoop-optical-experiment
 
-Reads NOOP's append-only deep-buffer JSONL, attributes each v20 frame using its strap timestamp
+Reads reNOOP's append-only deep-buffer JSONL, attributes each v20 frame using its strap timestamp
 (not delayed log-arrival time), and emits a JSON report containing per-phase block/header/channel
 statistics plus adjacent-phase deltas. It does not assign LED wavelengths or calculate SpO2/BP.
 The CLI excludes the first 10 seconds after each marker by default so physical transitions do not

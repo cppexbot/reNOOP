@@ -59,7 +59,7 @@ public enum RouteExporter {
         let times = interpolatedTimes(route.count, startTs, endTs)
         var s = ""
         s += "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-        s += "<gpx version=\"1.1\" creator=\"NOOP\" xmlns=\"http://www.topografix.com/GPX/1/1\">\n"
+        s += "<gpx version=\"1.1\" creator=\"reNOOP\" xmlns=\"http://www.topografix.com/GPX/1/1\">\n"
         s += "  <metadata>\n    <time>\(iso(startTs))</time>\n  </metadata>\n"
         s += "  <trk>\n"
         s += "    <name>\(xmlEscape(displaySport(canon)))</name>\n"

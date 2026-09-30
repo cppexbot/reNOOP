@@ -112,7 +112,7 @@ struct DeviceReadsView: View {
                 }
             }
         }
-        .settingsPage("What NOOP Reads")
+        .settingsPage("What reNOOP Reads")
     }
 
     /// Width of each strap column, shared by the header and the marks so they line up. Its text is capped

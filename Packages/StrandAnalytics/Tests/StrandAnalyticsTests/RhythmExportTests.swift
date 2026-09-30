@@ -24,7 +24,7 @@ final class RhythmExportTests: XCTestCase {
                                    windows: [steady, occasional, .unreadable(nBeats: 10)])
         let lines = csv.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
 
-        XCTAssertTrue(lines[0].hasPrefix("# NOOP Rhythm export"))
+        XCTAssertTrue(lines[0].hasPrefix("# reNOOP Rhythm export"))
         XCTAssertTrue(csv.contains("NOT a diagnosis"))
         XCTAssertTrue(csv.contains(
             "# summary: readableWindows=2 steady=1 occasional=1 varied=0 "

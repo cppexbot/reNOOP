@@ -147,7 +147,7 @@ public struct RecoveryRing: View {
     /// sits clear above BevelGauge's centred number.
     private var wordmark: some View {
         let size = diameter * 0.052
-        return Text("NOOP")
+        return Text("reNOOP")
             .font(StrandFont.rounded(size, weight: .bold))
             .tracking(size * 0.34)                 // ≈ .34em
             .foregroundStyle(StrandPalette.textTertiary)

@@ -62,7 +62,7 @@ enum PendingIntents {
 /// Record a timestamped "moment" — the iOS analogue of the strap double-tap "mark a moment" action.
 struct MarkMomentIntent: AppIntent {
     static var title: LocalizedStringResource = "Mark a Moment"
-    static var description = IntentDescription("Record a timestamped moment in NOOP.")
+    static var description = IntentDescription("Record a timestamped moment in reNOOP.")
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
         PendingIntents.append(.markMoment, at: Date())
@@ -92,7 +92,7 @@ struct BuzzStrapIntent: AppIntent {
 /// running in a background-launched app is refused by ActivityKit.
 struct SyncStrapIntent: LiveActivityIntent {
     static var title: LocalizedStringResource = "Sync Strap"
-    static var description = IntentDescription("Pull your WHOOP strap's stored history into NOOP now.")
+    static var description = IntentDescription("Pull your WHOOP strap's stored history into reNOOP now.")
     static var openAppWhenRun = false
 
     @MainActor
@@ -100,9 +100,9 @@ struct SyncStrapIntent: LiveActivityIntent {
         switch await AppModel.startStrapSyncFromShortcut() {
         case .started:               return .result(dialog: "Syncing your strap.")
         case .alreadyRunning:        return .result(dialog: "Your strap is already syncing.")
-        case .willSyncWhenConnected: return .result(dialog: "NOOP is connecting to your strap and will sync as soon as it's ready.")
-        case .strapNotReady:         return .result(dialog: "Your strap isn't connected to NOOP yet, so the sync didn't start.")
-        case .notStarted:            return .result(dialog: "NOOP couldn't start the sync. Open NOOP to see the strap log.")
+        case .willSyncWhenConnected: return .result(dialog: "reNOOP is connecting to your strap and will sync as soon as it's ready.")
+        case .strapNotReady:         return .result(dialog: "Your strap isn't connected to reNOOP yet, so the sync didn't start.")
+        case .notStarted:            return .result(dialog: "reNOOP couldn't start the sync. Open reNOOP to see the strap log.")
         }
     }
 }
@@ -112,7 +112,7 @@ struct SyncStrapIntent: LiveActivityIntent {
 /// the app handles the actual network call using the user's saved key.
 struct AskCoachIntent: AppIntent {
     static var title: LocalizedStringResource = "Ask Coach"
-    static var description = IntentDescription("Ask your NOOP Coach a question about your recovery, sleep, or training.")
+    static var description = IntentDescription("Ask your reNOOP Coach a question about your recovery, sleep, or training.")
     static var openAppWhenRun = true
 
     /// The question to ask, populated by Siri from the user's spoken phrase.

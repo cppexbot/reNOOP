@@ -93,14 +93,14 @@ enum AppChangelog {
             title: "Choose a 12-hour clock, sleep from straps that bank no motion, and a strap log that stops guessing",
             date: "September 2026",
             items: [
-                "**Pick the clock you read times in (#1821).** Settings → Appearance now offers System, 12-hour or 24-hour. It defaults to System, so nothing changes unless you ask — and System now means your phone's own 24-hour switch, which NOOP was previously ignoring in favour of your region's default. A reader in a 24-hour country who prefers 12-hour had no way to say so.",
-                "**Sleep from a strap that records no motion (#1801).** A WHOOP 5/MG that never pairs banks no movement data, and sleep detection is built on stillness — so those nights scored as nothing at all. NOOP can now find a night from heart rate alone and stage it. It is display-only by design: an HR-only night never feeds your resting heart rate or HRV baselines, because it has not earned that.",
+                "**Pick the clock you read times in (#1821).** Settings → Appearance now offers System, 12-hour or 24-hour. It defaults to System, so nothing changes unless you ask — and System now means your phone's own 24-hour switch, which reNOOP was previously ignoring in favour of your region's default. A reader in a 24-hour country who prefers 12-hour had no way to say so.",
+                "**Sleep from a strap that records no motion (#1801).** A WHOOP 5/MG that never pairs banks no movement data, and sleep detection is built on stillness — so those nights scored as nothing at all. reNOOP can now find a night from heart rate alone and stage it. It is display-only by design: an HR-only night never feeds your resting heart rate or HRV baselines, because it has not earned that.",
                 "**A charged strap is no longer told to charge (#1818).** The 1970/71 clock warning offered one remedy regardless of battery, so people at 100% were sent round a loop they had already run. It now says something true for a strap that is already charged, and asks for the log that can actually explain it.",
                 "**The coach can see your sleep stages (#1816).** It was answering that it had no access to them, because deep, REM and light minutes were never in what it was given. They are now, along with sleep efficiency.",
-                "**Back up a database larger than NOOP would restore (#1807).** Export warns when an archive is past the 2 GiB restore ceiling instead of writing it silently, and a restore can be allowed through rather than refused outright.",
+                "**Back up a database larger than reNOOP would restore (#1807).** Export warns when an archive is past the 2 GiB restore ceiling instead of writing it silently, and a restore can be allowed through rather than refused outright.",
                 "**Home-screen widget corrections (#1795, thanks @Sneheth; #1799).** The heart-rate and HRV values sat under each other's icons on Apple. Both platforms' widgets now also read properly aloud, with the value spoken rather than the raw number.",
                 "**Live workout no longer stacks two timers (#1814), and the steps card stops asking for the half you already gave it (#1815).**",
-                "**A strap log that reports rather than assumes (#1809, thanks @supremesynergy; #1823).** Every disconnect now records how long the link held and whether the strap sent anything at all, and the clock exchange quotes what the strap actually answered. NOOP used to write \"clock synced\" the moment it queued the write, before any reply existed — so a log could insist the clock was set while the screen said 1970/71.",
+                "**A strap log that reports rather than assumes (#1809, thanks @supremesynergy; #1823).** Every disconnect now records how long the link held and whether the strap sent anything at all, and the clock exchange quotes what the strap actually answered. reNOOP used to write \"clock synced\" the moment it queued the write, before any reply existed — so a log could insist the clock was set while the screen said 1970/71.",
                 "**Oura rings with no name, and Android's heart-rate logging (#1797, thanks @pipiche38; #1796, thanks @kvnloo).**",
             ]
         ),
@@ -109,11 +109,11 @@ enum AppChangelog {
             title: "A WHOOP 5 that stays connected, your body clock on the Sleep screen, and a Journal that knows No from nothing",
             date: "September 2026",
             items: [
-                "**The WHOOP 5.0 and MG stop dropping every few seconds (#1635, thanks @Zebsi235).** A handshake the strap never answers was knocking a perfectly good link down about every five seconds, all day. NOOP now recognises a strap that will not complete that handshake, stops attempting it, and holds the link instead — live heart rate keeps streaming rather than restarting forever. Tapping Connect costs one reconnect now, not five.",
+                "**The WHOOP 5.0 and MG stop dropping every few seconds (#1635, thanks @Zebsi235).** A handshake the strap never answers was knocking a perfectly good link down about every five seconds, all day. reNOOP now recognises a strap that will not complete that handshake, stops attempting it, and holds the link instead — live heart rate keeps streaming rather than restarting forever. Tapping Connect costs one reconnect now, not five.",
                 "**Your body clock, on the Sleep screen (#1722, #1723, #1729, #1733).** A 24-hour dial showing when your body actually wants to sleep, and a chronotype read from your own nights rather than a questionnaire. It says what it used and refuses to guess when it cannot see enough.",
                 "**Nights read straighter (#1717, #1734, #1741, #1755, #1782).** A night that only partly downloaded is no longer scored as if it were whole. Sleep that arrives in fragments is stitched back together when your heart rate says you stayed asleep through the gap. And sleep debt is now a number you can act on tonight.",
                 "**A day you never logged is not a day you answered No (#322).** Journal insights compared days you ticked against every other day — including the ones you simply did not open the app. They now compare Yes days against No days only, so an untracked week stops quietly counting against you.",
-                "**NOOP tells you when there is a new version (#1674, #1675).** Both platforms now notice a release and say so, on by default, checked directly against the release feed with nothing else sent.",
+                "**reNOOP tells you when there is a new version (#1674, #1675).** Both platforms now notice a release and say so, on by default, checked directly against the release feed with nothing else sent.",
                 "**Health Connect asks for one category at a time (#1509, thanks @kavemang).** Recovery, Activity and Body composition are chosen before Android's prompt appears, so you grant what you meant to. Existing installs keep exactly what they already had.",
             ]
         ),
@@ -124,7 +124,7 @@ enum AppChangelog {
             items: [
                 "**Pick how Effort is scored (#1562, #1563).** Banister TRIMP is now wired end to end and selectable, so Effort can follow the method you trust rather than the one that happened to ship. A workout is also scored against the same HRmax as the day containing it (#1565).",
                 "**The phone stops re-scoring all night (#1557, #1559).** A background re-score that could not finish used to restart from the beginning, forever. It now runs where it can complete, and the diagnostics say which pass ran and why — so days that quietly refused to compute now compute.",
-                "**The Oura ring is allowed to sleep (#1526, #1550, thanks @pipiche38).** Live-HR daytime mode was being held open whenever nobody was looking at the app, blocking the ring's own overnight sleep suite. NOOP now hands the ring back out of daytime mode, on suspend and on teardown.",
+                "**The Oura ring is allowed to sleep (#1526, #1550, thanks @pipiche38).** Live-HR daytime mode was being held open whenever nobody was looking at the app, blocking the ring's own overnight sleep suite. reNOOP now hands the ring back out of daytime mode, on suspend and on teardown.",
                 "**Sleep reads straighter (#1551, #1552, thanks @bartmuskala).** The Classic view draws the night's heart-rate line, and the stage breakdown is ramp-aware with the redundant legend gone.",
                 "**Pause or discard a live workout, and SDNN on Android (#1533, #1535, thanks @bhelm).** Live workouts gain pause and discard controls, and the SDNN index that was iOS-only is now on both platforms.",
                 "**Your strap's device key stays out of the strap log (#1610).** A WHOOP 4.0 identity response carries the strap serial and its device key side by side; the log now reports the structure and withholds the key, so a log attached to an issue no longer publishes it.",
@@ -136,8 +136,8 @@ enum AppChangelog {
             date: "August 2026",
             items: [
                 "**Training load — CTL, ATL and form (#1423, #1425).** A Trends card tracks fitness, fatigue and the balance between them, so a hard block and the recovery it needs are both visible.",
-                "**A VO₂max without measuring your waist (#1391).** If NOOP knows your resting heart rate it can estimate VO₂max from age and sex alone, and it says which method it used rather than presenting one number as if there were only one way to get it.",
-                "**Much less battery spent re-scoring (#1005, thanks @bartmuskala).** A per-day cache stops NOOP recomputing days whose data hasn't changed — the single biggest background drain on Android — and \"Low refresh\" now offers hourly syncing at any charge.",
+                "**A VO₂max without measuring your waist (#1391).** If reNOOP knows your resting heart rate it can estimate VO₂max from age and sex alone, and it says which method it used rather than presenting one number as if there were only one way to get it.",
+                "**Much less battery spent re-scoring (#1005, thanks @bartmuskala).** A per-day cache stops reNOOP recomputing days whose data hasn't changed — the single biggest background drain on Android — and \"Low refresh\" now offers hourly syncing at any charge.",
                 "**Apple Health write-back and hourly steps (#1432, thanks @MikaSchultes; #1429).** Workouts can flow back into Apple Health automatically, and iPhone steps import hour by hour with a 90-day backfill.",
                 "**More of the Oura ring read honestly (thanks @pipiche38).** The ring's own breath rate is shown as instrumentation (#1384, #1450), its skin-temp gate now fits a ring's independently-clocked sensors (#1467), and Rhythm says \"no data\" outright on hardware that cannot produce the reading (#1360).",
             ]
@@ -151,19 +151,19 @@ enum AppChangelog {
                 "**Compare and switch between straps (#1300).** A two-strap comparison card correlates two straps you own, and a switcher flips which one is active — without ever mixing their data.",
                 "**More honest HRV and sleep.** An over-counted night's HRV reading is now captioned \"unverified\" (#1118); sleep debt is measured against your personalized need (#1348); and duplicate/​phantom Oura sleep nights are collapsed (#1284).",
                 "**More of your Oura ring decoded (#1384, #1359, thanks @pipiche38).** The ring's own breath rate and step features are decoded and shown as instrumentation — read off the ring, never scored.",
-                "**Polish language, and a truthful empty state.** NOOP now speaks Polish (#1250), and the experimental Rhythm view says \"no data\" honestly when a device can't support the reading (#1360).",
+                "**Polish language, and a truthful empty state.** reNOOP now speaks Polish (#1250), and the experimental Rhythm view says \"no data\" honestly when a device can't support the reading (#1360).",
             ]
         ),
         Release(
             version: "10.0.0",
-            title: "Make NOOP yours — theme colours and custom backgrounds, forty more sports with GPS routes, and a calorie heatmap",
+            title: "Make reNOOP yours — theme colours and custom backgrounds, forty more sports with GPS routes, and a calorie heatmap",
             date: "August 2026",
             items: [
-                "**Make NOOP yours (#1171, #1172, #1177, #1234).** Pick a chrome accent — Mint, WHOOP Blue, or a custom colour from a full HSV picker — save a named theme preset that coordinates the accent, charts, backdrop and cards together, and set your own photo as the background behind every tab.",
+                "**Make reNOOP yours (#1171, #1172, #1177, #1234).** Pick a chrome accent — Mint, WHOOP Blue, or a custom colour from a full HSV picker — save a named theme preset that coordinates the accent, charts, backdrop and cards together, and set your own photo as the background behind every tab.",
                 "**Forty-plus more sports, with distance and GPS routes (#1273, #1274, #1202, #1238).** The workout picker gains dozens of sports; a manual workout takes a distance; a GPS workout records live distance and pace; and a finished route exports to GPX or FIT.",
                 "**A 13-week active-calorie heatmap (#1240).** A calendar of your recent effort on the Workouts screen, on both platforms.",
                 "**Choose how the sleep chart looks (#1129, #1283, #1291).** Classic, Fill, Garmin Fill, or Ribbon, each with a colour-coded stage legend, on iPhone, Android and Mac.",
-                "**Pick the app's language (#1181).** A language setting independent of the phone, so NOOP can speak a different language than the rest of your device.",
+                "**Pick the app's language (#1181).** A language setting independent of the phone, so reNOOP can speak a different language than the rest of your device.",
             ]
         ),
         Release(
@@ -183,7 +183,7 @@ enum AppChangelog {
             title: "Water and caffeine from Apple Health, a sharper Effort score, and an Oura resting-heart-rate fix",
             date: "July 2026",
             items: [
-                "**Water and caffeine import themselves (#949).** Log a drink in Apple Health or Health Connect and it shows up in NOOP, kept in its own row so it can never overwrite what you typed by hand. iPhone will ask permission once for the two new data types.",
+                "**Water and caffeine import themselves (#949).** Log a drink in Apple Health or Health Connect and it shows up in reNOOP, kept in its own row so it can never overwrite what you typed by hand. iPhone will ask permission once for the two new data types.",
                 "**Effort is measured more honestly (#963, #983).** Every heart-rate sample is now weighted by its own gap rather than the window's first one, and a saved workout is scored against your measured resting heart rate instead of a hardcoded 60. Your Effort numbers will move — in either direction — including for past days.",
                 "**Oura days no longer spike to 90+ resting heart rate (#375).** A nap or a short fragment could outrank the real night and claim the whole day's numbers. Re-import your Oura history to correct days already stored.",
                 "**Sleep staging can't jump from awake to deep (#348).** A transition no scorer should ever emit is now forbidden outright, which is the part of a larger staging change that survived a clean benchmark.",
@@ -219,9 +219,9 @@ enum AppChangelog {
             title: "Optimal-strain alerts, faster history sync, and a wave of accuracy fixes",
             date: "July 2026",
             items: [
-                "**\"Optimal strain reached\" alert (#593).** Turn it on and NOOP buzzes once when your day's effort hits the optimal range for your recovery — off by default, and only for the day you're actually building.",
-                "**Strap pack voltage in Devices (#592).** NOOP now shows your strap's measured pack voltage next to the battery percent — a truer read of what's actually left.",
-                "**Faster history sync (experimental, #533).** Opt-in toggles let NOOP ask the strap for a quicker connection during a history offload, so a deep backlog catches up in fewer syncs.",
+                "**\"Optimal strain reached\" alert (#593).** Turn it on and reNOOP buzzes once when your day's effort hits the optimal range for your recovery — off by default, and only for the day you're actually building.",
+                "**Strap pack voltage in Devices (#592).** reNOOP now shows your strap's measured pack voltage next to the battery percent — a truer read of what's actually left.",
+                "**Faster history sync (experimental, #533).** Opt-in toggles let reNOOP ask the strap for a quicker connection during a history offload, so a deep backlog catches up in fewer syncs.",
                 "**More accurate steps, workouts and sleep.** Second-strap workouts fill in heart rate again (#512), Today steps count from the right source (#551), foot-sport step totals are no longer halved (#568), and a deleted sleep window can be recomputed (#526).",
                 "**Fixes across the app.** iPhone asks for notification permission during onboarding (#591), pull-to-sync shows a steady \"Syncing…\" (#590), Oura interval imports decode correctly (#511), and the morning recap won't double-fire (#567).",
             ]
@@ -231,7 +231,7 @@ enum AppChangelog {
             title: "German, French & Spanish, pull-to-sync on Today, and a wave of polish",
             date: "July 2026",
             items: [
-                "**NOOP now speaks German, French and Spanish (#453).** The whole app — every screen and label — is translated across iPhone, Mac and Android, so it reads in your language end to end.",
+                "**reNOOP now speaks German, French and Spanish (#453).** The whole app — every screen and label — is translated across iPhone, Mac and Android, so it reads in your language end to end.",
                 "**Pull to sync on Today (#334).** Pull down on the Today screen to ask your strap for a fresh history sync — on iPhone, Mac and Android. It only fires when the strap is connected and ready, and the sync status keeps you posted.",
                 "**The day-cycle sky shows behind your cards by default.** The Today background now extends behind the whole scroll out of the box; turn it off in Settings if you prefer the flat canvas.",
                 "**Trend charts show the date when you inspect them (#492).** Tap or scrub a point on an Android trend chart and it shows the date beside the value now, matching iPhone and Mac.",
@@ -243,12 +243,12 @@ enum AppChangelog {
             title: "Power saving that protects your strap, a Gemini-powered coach on Android, and richer metric detail",
             date: "July 2026",
             items: [
-                "**Power saving that looks after your strap (#477).** A new Settings → Power saving section eases how hard NOOP works your WHOOP when the strap's own battery is running low: it syncs less often and pauses the always-on background HRV stream, so the band lasts longer until you can charge it. You pick the strap-battery level it kicks in at; it's off by default and never runs while the strap is charging. iPhone, Mac and Android.",
+                "**Power saving that looks after your strap (#477).** A new Settings → Power saving section eases how hard reNOOP works your WHOOP when the strap's own battery is running low: it syncs less often and pauses the always-on background HRV stream, so the band lasts longer until you can charge it. You pick the strap-battery level it kicks in at; it's off by default and never runs while the strap is charging. iPhone, Mac and Android.",
                 "**The AI Coach now runs Google Gemini on Android too (#400).** Android gains the native Gemini coach that iPhone and Mac already had, so your model choice and coaching work the same on every platform. On-device and opt-in as before — nothing is sent anywhere unless you turn it on and add your own key.",
                 "**Richer metric detail (#430, #432, #433, #435).** Key Metrics gains a Detailed-tiles option with tap-to-open trend detail, and every metric's detail timeline gets selectable windows — 1 day, 2 days, up to 3 months, a year, or All — matched across iPhone, Mac and Android.",
-                "**Keep NOOP running overnight on Android (#386).** An opt-in toggle that guides you through exempting NOOP from your phone maker's aggressive background-kill, so an overnight re-score isn't silently stopped. NOOP also now catches up a killed overnight score the moment you open it.",
+                "**Keep reNOOP running overnight on Android (#386).** An opt-in toggle that guides you through exempting reNOOP from your phone maker's aggressive background-kill, so an overnight re-score isn't silently stopped. reNOOP also now catches up a killed overnight score the moment you open it.",
                 "**More accurate sleep.** Elevated heart rate on a motionless wrist no longer scores as awake (#462), split nights report the whole night's Asleep total and hypnogram (#345), and a sleep-staging tune that was over-calling \"awake\" for healthy sleepers in the field is reverted (#431).",
-                "**WHOOP 5.0 / MG motion, decoded (#423).** For research, NOOP now decodes the strap's 100 Hz 6-axis motion buffer and can capture the high-rate sensor buffers behind the scenes — the groundwork for real activity detection on the 5.0/MG. Thanks vishk23 and tanarchytan.",
+                "**WHOOP 5.0 / MG motion, decoded (#423).** For research, reNOOP now decodes the strap's 100 Hz 6-axis motion buffer and can capture the high-rate sensor buffers behind the scenes — the groundwork for real activity detection on the 5.0/MG. Thanks vishk23 and tanarchytan.",
             ]
         ),
         Release(
@@ -257,7 +257,7 @@ enum AppChangelog {
             date: "July 2026",
             items: [
                 "**See your strap syncing at a glance (#245).** The Today screen now shows a small sync chip for everyone — a spinner with a live count while your strap's history downloads, and when it last synced the rest of the time — so you can tell it's working without opening the Live screen. iPhone, Mac and Android.",
-                "**A clear warning when your strap's clock is wrong (#324).** A strap whose clock is set far in the future had NOOP quietly importing nothing from it; NOOP now says plainly that the clock is off and how to fix it — fully charge the strap to 100%, then power-cycle it. iPhone, Mac and Android.",
+                "**A clear warning when your strap's clock is wrong (#324).** A strap whose clock is set far in the future had reNOOP quietly importing nothing from it; reNOOP now says plainly that the clock is off and how to fix it — fully charge the strap to 100%, then power-cycle it. iPhone, Mac and Android.",
                 "**Smart wake alarm arms more reliably (#34).** On WHOOP 4.0 the firmware wake alarm is now set only once the strap connection has fully settled, so the alarm time reliably reaches the strap instead of being sent before the link was ready. Thanks digitalerdude.",
                 "**Tidier menus (#336).** Removed settings that appeared in two places at once, renamed the two \"Broadcast heart rate\" toggles so you can tell them apart (strap broadcast for Garmin/ANT vs. broadcasting from your phone), and moved developer-only controls into the Test Centre. Nothing lost its home. Thanks tanarchytan.",
                 "**Complete German translation (#326).** German text that was missing across charts, shared screens and the Apple Watch app is filled in, so German users no longer see English fragments mid-screen. Thanks digitalerdude.",
@@ -272,7 +272,7 @@ enum AppChangelog {
                 "**Sleep nights no longer go missing (#268).** Nights with a few brief heart-rate spikes were being dropped as \"no sleep recorded\" — those nights are recovered now. Thanks tanarchytan.",
                 "**Sleep times and totals read right after an edit (#259).** A corrected bedtime no longer shows the wrong hour on the Sleep tab, and a night can never read as more sleep than time in bed.",
                 "**Imported rides count toward Effort (#137).** On a day you didn't wear the strap, an imported GPX / TCX / FIT ride's real heart rate now lights that day's Effort ring instead of being ignored.",
-                "**Low-battery heads-up (#250).** NOOP warns you when your strap has roughly a day of charge left, on iPhone, Mac and Android. Thanks vishk23.",
+                "**Low-battery heads-up (#250).** reNOOP warns you when your strap has roughly a day of charge left, on iPhone, Mac and Android. Thanks vishk23.",
                 "**Automatic sync no longer stalls (#266).** A strap whose clock briefly read ahead could stop syncing and freeze the battery reading until you reconnected; it now recovers on its own. Thanks digitalerdude.",
             ]
         ),
@@ -281,9 +281,9 @@ enum AppChangelog {
             title: "Restart your strap, lighter on battery, and Health Connect on Android 13",
             date: "July 2026",
             items: [
-                "**Restart your strap from NOOP (#166).** A new *Restart strap* option on the connected band in Devices — a clean way to reboot a misbehaving strap without the official app. Confirmation-gated, keeps your data, and shows a *Reconnecting…* state while it comes back. iPhone, Mac and Android.",
-                "**Lighter on battery (Android) (#228).** NOOP stops re-polling the strap on a fixed cadence once it keeps banking nothing, and backs off the reconnect churn when another app is holding the band — so the strap and phone last longer. Thanks tanarchytan.",
-                "**Health Connect works on Android 13 (#226).** NOOP now appears in Health Connect's app-permissions list on Android 13, so you can grant access and import your data. Android 14+ was already fine.",
+                "**Restart your strap from reNOOP (#166).** A new *Restart strap* option on the connected band in Devices — a clean way to reboot a misbehaving strap without the official app. Confirmation-gated, keeps your data, and shows a *Reconnecting…* state while it comes back. iPhone, Mac and Android.",
+                "**Lighter on battery (Android) (#228).** reNOOP stops re-polling the strap on a fixed cadence once it keeps banking nothing, and backs off the reconnect churn when another app is holding the band — so the strap and phone last longer. Thanks tanarchytan.",
+                "**Health Connect works on Android 13 (#226).** reNOOP now appears in Health Connect's app-permissions list on Android 13, so you can grant access and import your data. Android 14+ was already fine.",
                 "**Auto-detected workouts save now (Android) (#214).** Tapping *Save* on a \"looks like a workout\" suggestion was silently dropped mid-save; it now saves, shows up in your workouts, and stops re-prompting the same window.",
             ]
         ),
@@ -338,11 +338,11 @@ enum AppChangelog {
             title: "Faster, and fewer sharp edges",
             date: "July 2026",
             items: [
-                "**NOOP runs natively on Intel Macs again.** The macOS build is a true universal binary, so it launches and runs at full speed on both Apple-silicon and Intel Macs.",
-                "**Back up on iPhone without fighting the folder picker.** Backup & Sync now offers *Use NOOP's own folder* — a one-tap backup saved inside NOOP and visible in the Files app, for when iOS won't let you pick a folder.",
+                "**reNOOP runs natively on Intel Macs again.** The macOS build is a true universal binary, so it launches and runs at full speed on both Apple-silicon and Intel Macs.",
+                "**Back up on iPhone without fighting the folder picker.** Backup & Sync now offers *Use reNOOP's own folder* — a one-tap backup saved inside reNOOP and visible in the Files app, for when iOS won't let you pick a folder.",
                 "**The Settings screen fits your screen again.** A control that could push Settings off the edge (most visibly in German, or at larger text sizes) is fixed.",
                 "**Snappier sleep and recovery analysis.** The nightly re-score reads your data in far fewer database round-trips, and the app carries lighter scene art.",
-                "**Your phone backup alarm no longer depends on wrist alerts.** If you set a smart alarm, the backup notification is scheduled even if you never turned wrist alerts on — and NOOP now warns you when a strap keeps refusing the alarm time.",
+                "**Your phone backup alarm no longer depends on wrist alerts.** If you set a smart alarm, the backup notification is scheduled even if you never turned wrist alerts on — and reNOOP now warns you when a strap keeps refusing the alarm time.",
             ]
         ),
         Release(
@@ -350,7 +350,7 @@ enum AppChangelog {
             title: "Clearer sync status",
             date: "July 2026",
             items: [
-                "**A finished sync no longer looks like a failure.** After your strap hands over its history, NOOP could flash a \"no banked history — charge to 100%\" warning even though it had just offloaded hundreds of records. That false alarm is gone — a caught-up sync now reads as caught up.",
+                "**A finished sync no longer looks like a failure.** After your strap hands over its history, reNOOP could flash a \"no banked history — charge to 100%\" warning even though it had just offloaded hundreds of records. That false alarm is gone — a caught-up sync now reads as caught up.",
             ]
         ),
         Release(
@@ -377,7 +377,7 @@ enum AppChangelog {
             title: "Backup restore fixed, plus appearance controls",
             date: "July 2026",
             items: [
-                "**Restoring a backup works again.** A good backup could fail to restore with a database error; NOOP now reads it correctly during its safety check, so your snapshots restore.",
+                "**Restoring a backup works again.** A good backup could fail to restore with a database error; reNOOP now reads it correctly during its safety check, so your snapshots restore.",
                 "**Card transparency.** Settings → Appearance now lets you dial how see-through the cards are — solid to clear, saved and applied live.",
                 "**Sky behind cards.** An optional setting extends the day-cycle sky behind the whole Today screen, so it shows through transparent cards.",
                 "**More useful bug reports.** The shared strap log now includes your strap + data state and the sleep-analysis funnels, so a report arrives with the detail to fix it.",
@@ -411,7 +411,7 @@ enum AppChangelog {
             title: "Coupled view, workouts rebuilt, journal numbers",
             date: "July 2026",
             items: [
-                "**Coupled view.** An optional one-glance day screen: recovery, day strain on the 0 to 21 scale, and sleep together. Turn it on as a card in Customise. It is a different lens on NOOP's own scores, nothing is recomputed.",
+                "**Coupled view.** An optional one-glance day screen: recovery, day strain on the 0 to 21 scale, and sleep together. Turn it on as a card in Customise. It is a different lens on reNOOP's own scores, nothing is recomputed.",
                 "**Workout list, rebuilt on iPhone.** All Sessions is a proper compact list now, with sport, source and search filters and a merge tool to split or join your own sessions. Merges keep the real active time and re-derive effort. Imported history stays read only. Android gets the same filters and merge.",
                 "**Numbers in your journal.** Journal items can hold a number with a unit (caffeine in mg, alcohol in units) instead of only yes or no, and those numbers feed the what-moves-your-recovery ranking. Items group into tidy sections, and renaming a custom item keeps its history.",
                 "**Band sleep state (beta).** For WHOOP 5.0 and MG, the band's own sleep-state signal now reaches a track in the Deep Timeline and a column in the raw sensor export, and it can gently confirm the on-device sleep detection. It is beta because the codes are still being confirmed against real nights, so it never overrides your derived sleep.",
@@ -433,7 +433,7 @@ enum AppChangelog {
                 "**Charge and Rest stop sticking on an old night.** A strap with a drifting clock could re-bank the same night twice and pin your scores to the stale copy. Duplicates are now caught, cleaned up and re-scored automatically.",
                 "**The Buzz Strap shortcut buzzes again.** One-shot buzzes now use the exact sequence the strap is known to answer, delivered as acknowledged writes so a busy connection can't silently drop them.",
                 "**Widgets keep up.** The iPhone widget refreshes during long sessions instead of freezing at the last app open, and the Apple Watch gets fresher snapshots within its update budget.",
-                "**NOOP en español, and in Chinese.** On iPhone and Mac, Spanish and Chinese (Simplified and Traditional) are complete, and Italian is refreshed. Community-contributed, with thanks. Android translations are on the roadmap.",
+                "**reNOOP en español, and in Chinese.** On iPhone and Mac, Spanish and Chinese (Simplified and Traditional) are complete, and Italian is refreshed. Community-contributed, with thanks. Android translations are on the roadmap.",
                 "**And a pile more.** Bowling in the sports list, workout cards keep even heights, the ring labels center properly, clearer guidance when a signing profile lacks the Health permission, and a guard against straps whose clock claims to be in the future.",
             ]),
         Release(
@@ -483,8 +483,8 @@ enum AppChangelog {
             title: "Local Oura ring support: use your Oura ring with no Oura app (beta)",
             date: "June 2026",
             items: [
-                "**Local Oura ring support (beta).** NOOP can now read an Oura ring directly over Bluetooth, fully on-device, so you can use the ring with no Oura app, no account and no cloud. It reads heart rate, HRV, SpO2, skin temperature and sleep stages off the ring and runs NOOP's own Charge and Rest scoring, not Oura's. Works on Oura Ring 3, 4 and 5, with per-generation capabilities.",
-                "**How setup works.** Pairing factory-resets the ring and adopts it locally, which is recoverable: if NOOP cannot take it over, you just re-pair it in the Oura app. This is early beta and may not work on every ring yet, so there is also an Advanced bring-your-own-key path and a file-import fallback.",
+                "**Local Oura ring support (beta).** reNOOP can now read an Oura ring directly over Bluetooth, fully on-device, so you can use the ring with no Oura app, no account and no cloud. It reads heart rate, HRV, SpO2, skin temperature and sleep stages off the ring and runs reNOOP's own Charge and Rest scoring, not Oura's. Works on Oura Ring 3, 4 and 5, with per-generation capabilities.",
+                "**How setup works.** Pairing factory-resets the ring and adopts it locally, which is recoverable: if reNOOP cannot take it over, you just re-pair it in the Oura app. This is early beta and may not work on every ring yet, so there is also an Advanced bring-your-own-key path and a file-import fallback.",
             ]),
         Release(
             version: "7.4.1",
@@ -527,7 +527,7 @@ enum AppChangelog {
             items: [
                 "**Your scores stop pretending an old night is today's.** When the strap had not banked a fresh night yet, the dashboard could still show a recent score under \"Last night\". A recent carry now reads \"Last night\" honestly, and anything older is clearly relabelled \"Latest sleep\" with its date, so a number is never passed off as today's. We also stopped the strap log shouting \"no banked history, fully charge it\" right after a sync that actually worked, and tightened how between-fragment awake time is counted so the sleep total adds up. (#779, #783, #777, #705)",
                 "**The dashboard freeze on big histories, properly fixed this time.** If you had imported a large history, opening Today could still hitch while the strap offloaded in the background. The data store now serves the dashboard's reads at the same time as the sync writes instead of queuing behind them, so it stays responsive. (#755)",
-                "**The strap behaves better when a pairing goes wrong.** A WHOOP 5 or MG that keeps refusing the secure bond no longer loops forever trying to reconnect: NOOP backs off, tells you why, and stops draining the battery. Haptics now reliably stop when you end a breathing session or disconnect, and a strap with a corrupted clock is caught and explained instead of dropping data on the wrong day. (#750, #747, #769, #773)",
+                "**The strap behaves better when a pairing goes wrong.** A WHOOP 5 or MG that keeps refusing the secure bond no longer loops forever trying to reconnect: reNOOP backs off, tells you why, and stops draining the battery. Haptics now reliably stop when you end a breathing session or disconnect, and a strap with a corrupted clock is caught and explained instead of dropping data on the wrong day. (#750, #747, #769, #773)",
                 "**A pile of smaller fixes.** The Today charge ring and rest tile no longer overlap on iPhone; the pinned Stress card stays in step with its detail page; the onboarding units picker (metric vs imperial) works again; the two alarm entries in Settings are tidied into one place; the calibration copy across the app now agrees on one number instead of three; more sports presets (padel, pickleball, martial arts, skiing and more); and a full French translation. (#762, #753, #781, #766, #784, #768, #778)",
                 "**Found one of these still biting you? Use the Test Centre.** Settings has a test mode for each of these areas now. Turn on the one that matches, reproduce it, and export a clean report in one tap, so the next fix is aimed at the exact thing that broke for you.",
             ]),
@@ -536,7 +536,7 @@ enum AppChangelog {
             title: "The Test Centre: help us fix YOUR specific problem",
             date: "June 2026",
             items: [
-                "**New: a Test Centre in Settings (iPhone, Mac and Android).** Every diagnostic and logging control now lives in one place, and you can opt into a test mode for the exact thing that is not working: Sleep, Battery, your scores (Charge and HRV), Connection and sync, Workouts, Steps, Imports, or the app's smoothness. Turn the mode on, use NOOP as normal, then export a clean report and attach it to a GitHub issue with one tap. Instead of guessing from \"it's broken\", we get the exact reason it broke, so the fix lands faster.",
+                "**New: a Test Centre in Settings (iPhone, Mac and Android).** Every diagnostic and logging control now lives in one place, and you can opt into a test mode for the exact thing that is not working: Sleep, Battery, your scores (Charge and HRV), Connection and sync, Workouts, Steps, Imports, or the app's smoothness. Turn the mode on, use reNOOP as normal, then export a clean report and attach it to a GitHub issue with one tap. Instead of guessing from \"it's broken\", we get the exact reason it broke, so the fix lands faster.",
                 "**Your data stays yours.** Every test mode runs on your device, the exported report is redacted and you review it before you share it, and nothing ever uploads on its own. This is how an early community test app should work: you pick the issue you care about, and your report drives the fix.",
             ]),
         Release(
@@ -544,7 +544,7 @@ enum AppChangelog {
             title: "A smoother dashboard on big histories, and a clearer Smart Alarm",
             date: "June 2026",
             items: [
-                "**The dashboard stays responsive while your strap syncs (iPhone and Mac).** If you've imported a large history (a WHOOP export plus Apple Health), the Today screen could freeze for several seconds when you opened it or returned to the tab, and stutter when you scrolled, all while the strap was offloading its history in the background. NOOP now paints the day's data instantly and runs the heavy history reads without fighting the sync, so it stays smooth. (#755)",
+                "**The dashboard stays responsive while your strap syncs (iPhone and Mac).** If you've imported a large history (a WHOOP export plus Apple Health), the Today screen could freeze for several seconds when you opened it or returned to the tab, and stutter when you scrolled, all while the strap was offloading its history in the background. reNOOP now paints the day's data instantly and runs the heavy history reads without fighting the sync, so it stays smooth. (#755)",
                 "**\"Smart Alarm\" is no longer two different things sharing one name.** It showed up twice in Settings. The strap's silent wake alarm keeps the name Smart Alarm; the evening reminder is now \"Wind-Down\" (iPhone and Mac), and the phone-based smart wake is now \"Wake Window\" (Android). (#730)",
                 "**What's New is up to date again.** The changelog had quietly stopped updating after 7.0.1, so this screen was showing old notes even on the latest build. Fixed, you're reading the proof.",
             ]),
@@ -568,10 +568,10 @@ enum AppChangelog {
             ]),
         Release(
             version: "7.2.0",
-            title: "New: use an Apple Watch with NOOP",
+            title: "New: use an Apple Watch with reNOOP",
             date: "June 2026",
             items: [
-                "**NOOP now works with your Apple Watch, no WHOOP needed.** Strap on the watch you already own and NOOP turns it into a recovery-and-strain tracker. Your Charge, Effort and Rest rings and live heart rate show right on your wrist, with a watch-face complication so your Charge is one glance away. Your phone stays the brain: it reads the watch's own health data and works out recovery from it, all offline, and a score it hasn't earned yet shows a dash rather than a fake number.",
+                "**reNOOP now works with your Apple Watch, no WHOOP needed.** Strap on the watch you already own and reNOOP turns it into a recovery-and-strain tracker. Your Charge, Effort and Rest rings and live heart rate show right on your wrist, with a watch-face complication so your Charge is one glance away. Your phone stays the brain: it reads the watch's own health data and works out recovery from it, all offline, and a score it hasn't earned yet shows a dash rather than a fake number.",
                 "**It's iPhone only and brand new.** There's no Mac or Android twin, and it's early, so expect some rough edges and tell us what you find. For now the watch app installs by building from source in Xcode, so it's signed properly onto your own watch.",
             ]),
         Release(
@@ -579,7 +579,7 @@ enum AppChangelog {
             title: "Board Sweep: battery days-left, browse past weeks, breathing cues, and a pile of fixes",
             date: "June 2026",
             items: [
-                "**New: \"~X days left\" on your strap battery.** NOOP watches how fast the band is discharging and tells you roughly how many days are left, right on the Today battery badge. All on-device, nothing logged.",
+                "**New: \"~X days left\" on your strap battery.** reNOOP watches how fast the band is discharging and tells you roughly how many days are left, right on the Today battery badge. All on-device, nothing logged.",
                 "**New: browse previous weeks in Trends.** Flick back through your Weekly Trends history week by week, instead of only seeing the current one.",
                 "**New: breathing cues.** An optional audio pacer for the breathing exercise, with a ring that breathes along with you. It stays quiet when your phone is on silent.",
                 "**A stack of connection and sleep fixes.** Straps that said \"connected\" but sent no data now connect properly, sleep on the WHOOP 5 and MG no longer over-counts time awake, the Sleep tab shows the right bedtime (and editing it actually moves it), and Trends \"Rest\" matches the number on Today.",
@@ -610,7 +610,7 @@ enum AppChangelog {
                 "**Experimental Sleep Staging V2 actually re-stages your nights now.** Turning it on was only re-staging nights you'd hand-edited, so most of your sleep looked unchanged. It now re-stages every night, so the new staging shows up across your history the moment you switch it on.",
                 "**WHOOP 4.0 steps calibration moves on.** The steps estimate could get stuck saying it needed more days even once it had them, so it never finished calibrating. It now advances and locks in your personal coefficient as soon as there's enough to learn from.",
                 "**Manual workouts on a WHOOP 5/MG record heart rate again.** A workout you started by hand on a 5/MG could finish with no heart rate and fail to save. It now captures your heart rate through the session and saves the workout properly.",
-                "**A wildly out-of-range imported HRV no longer shows a nonsense headline.** An imported HRV value that was far outside any believable range could drive a silly \"way over baseline\" headline. NOOP now ignores the impossible value instead of building a verdict on it.",
+                "**A wildly out-of-range imported HRV no longer shows a nonsense headline.** An imported HRV value that was far outside any believable range could drive a silly \"way over baseline\" headline. reNOOP now ignores the impossible value instead of building a verdict on it.",
                 "**The About screen shows the right version.** The version pill in Settings → About now reads the app's real version, so it can't drift out of date again.",
             ]),
         Release(
@@ -618,9 +618,9 @@ enum AppChangelog {
             title: "Everything: a whole new look, hydration, automatic workout detection, and smarter sleep",
             date: "June 2026",
             items: [
-                "**A whole new look.** NOOP has been redesigned from the ground up - flat, clean colour rings, a day-cycle scene that moves with your day, and a Today screen you can customise to show what matters to you. The same fresh look lands on iPhone, Mac and Android together.",
+                "**A whole new look.** reNOOP has been redesigned from the ground up - flat, clean colour rings, a day-cycle scene that moves with your day, and a Today screen you can customise to show what matters to you. The same fresh look lands on iPhone, Mac and Android together.",
                 "**New: Hydration tracking.** Opt in and log your water through the day with a simple tap, set a daily target, and see how you're doing at a glance. Off by default - turn it on in Settings.",
-                "**New: Automatic workout detection.** Opt in and NOOP spots a likely workout from your heart rate and motion and offers it for a one-tap add, so a session you forgot to start doesn't go unrecorded. Nothing is logged without you confirming it. Off by default.",
+                "**New: Automatic workout detection.** Opt in and reNOOP spots a likely workout from your heart rate and motion and offers it for a one-tap add, so a session you forgot to start doesn't go unrecorded. Nothing is logged without you confirming it. Off by default.",
                 "**Experimental: Sleep Staging V2.** A new on-device sleep stager you can switch on to try a sharper deep/REM/light breakdown. Clearly labelled experimental while we prove it against real nights.",
                 "**Sleep marks.** Tap to mark when you turned in and when you woke, so you keep your own record of bedtime and wake alongside what the strap worked out.",
                 "**Plus a batch of fixes** across sync, scoring and the screens you use every day.",
@@ -632,7 +632,7 @@ enum AppChangelog {
             items: [
                 "**The Deep Timeline can reach your other days now.** It used to only ever show today, so if today was still syncing it looked empty even though your history was right there. It now lets you step back through previous days, and it opens on your most recent day with data instead of a blank today. Thanks @ruedigermunz (#597).",
                 "**Manual workouts fill in their numbers straight away.** When you add a workout over a window your strap was recording, its average and peak heart rate, strain and calories now appear immediately from your strap data instead of after the next background pass. On Android you can also set the exact start date and time now, matching the iPhone and Mac. Thanks @virajshoor, @pilleuspulcher-blip (#598).",
-                "**Storage clean-up that actually reclaims it.** A failed or retried Apple Health import could strand a multi-gigabyte unzipped copy that the Storage screen never saw, so it kept showing a huge footprint. NOOP now recognises and sweeps those leftovers automatically on launch, and the Clean up button reclaims them too. Thanks @exzanimo (#590).",
+                "**Storage clean-up that actually reclaims it.** A failed or retried Apple Health import could strand a multi-gigabyte unzipped copy that the Storage screen never saw, so it kept showing a huge footprint. reNOOP now recognises and sweeps those leftovers automatically on launch, and the Clean up button reclaims them too. Thanks @exzanimo (#590).",
                 "**Russian is here.** Full Russian translation across the app. Thanks @Te1man (#594).",
                 "**Coach tables on Android.** When the AI Coach answers with a small comparison table, Android now renders it as a proper grid like the Mac and iPhone do, instead of raw text. Thanks @Divad27 (#593).",
             ]),
@@ -641,7 +641,7 @@ enum AppChangelog {
             title: "Fix: imported phone steps were being double-counted",
             date: "June 2026",
             items: [
-                "**Your imported steps add up properly now.** If you wear an Apple Watch as well as carrying your iPhone, Apple Health stores both their step counts for the same walk. NOOP was adding them together, so a busy day could read close to double the real number, which also threw off the steps calibration. It now does what the Health app does: it counts each source on its own and keeps the higher one, so a 7,000-step day reads 7,000, not 14,000. Re-import your Apple Health export after updating to clean up past days. Thanks @bringiton321 (#589).",
+                "**Your imported steps add up properly now.** If you wear an Apple Watch as well as carrying your iPhone, Apple Health stores both their step counts for the same walk. reNOOP was adding them together, so a busy day could read close to double the real number, which also threw off the steps calibration. It now does what the Health app does: it counts each source on its own and keeps the higher one, so a 7,000-step day reads 7,000, not 14,000. Re-import your Apple Health export after updating to clean up past days. Thanks @bringiton321 (#589).",
             ]),
         Release(
             version: "6.2.0",
@@ -653,7 +653,7 @@ enum AppChangelog {
                 "**WHOOP 5.0 is honest about sync now.** A connected 5.0 that's streaming live heart rate but hasn't offloaded history no longer says \"not connected\" - it says history sync is still experimental on the 5.0, and it stops the battery-draining reconnect loop while it waits (#580).",
                 "**Storage, cleaned up.** Fixed an iPhone bug where importing an Apple Health export could quietly balloon the app's storage by leaving a duplicate behind, and added a Storage screen so you can see what's using space and clear it safely. Thanks @exzanimo (#590).",
                 "**Clearer steps, alarms and Mac.** Steps now tells you exactly how many more days it needs to calibrate (and shows your imported phone steps directly), the Mac explains that R22 deep data needs an iPhone or Android, and inactivity nudges and your smart alarm can now also reach you as a phone notification. Thanks @bringiton321, @hkuehl, @artur01-code (#589, #587, #577).",
-                "**Tighter sleep dates.** A WHOOP with a wandering clock could re-send records stamped with wrong dates and scramble which night was which. NOOP now checks each record against the strap's own data range and drops the impossible ones (#547).",
+                "**Tighter sleep dates.** A WHOOP with a wandering clock could re-send records stamped with wrong dates and scramble which night was which. reNOOP now checks each record against the strap's own data range and drops the impossible ones (#547).",
                 "**Android polish + a share card.** No more black band under the camera notch (thanks @cooki371, @Divad27), profile photos import the right way up, Fitbit imports are faster, and the strap scan backs off to save battery during reconnects (thanks @ryanbr). Plus a new share card overlaying your Charge, Effort and Rest on a photo (#559).",
                 "**Spot HRV won't fake it.** An on-demand HRV reading now refuses to give a number when too much of the capture was noise, instead of showing you a shaky one. Thanks @ryanbr (#585).",
             ]),
@@ -669,9 +669,9 @@ enum AppChangelog {
             title: "A big one: smarter sleep, naps, more devices, and a load of fixes",
             date: "June 2026",
             items: [
-                "**Sleep got smarter and more honest.** A night split by a wake-up is now counted in full instead of just one fragment. A bad-clock strap can no longer pass off a 12-hour block as one night. A still morning right after you wake is no longer mistaken for a second sleep. And when the deep/REM split can't be trusted on a quiet night, NOOP says so instead of guessing. Your own hand-edits to a night also win over an imported value now.",
-                "**Naps, spotted on your device.** Opt in and NOOP notices a likely nap from your motion and offers it for a one-tap add. Nothing is logged automatically, and it never touches your real sleep scores. Thanks @cbarrado.",
-                "**WHOOP 4.0 sleep on older firmware.** Straps on an older offload layout that used to bank nothing now hand over the motion NOOP needs to stage sleep. Thanks airtonzanon for the captures.",
+                "**Sleep got smarter and more honest.** A night split by a wake-up is now counted in full instead of just one fragment. A bad-clock strap can no longer pass off a 12-hour block as one night. A still morning right after you wake is no longer mistaken for a second sleep. And when the deep/REM split can't be trusted on a quiet night, reNOOP says so instead of guessing. Your own hand-edits to a night also win over an imported value now.",
+                "**Naps, spotted on your device.** Opt in and reNOOP notices a likely nap from your motion and offers it for a one-tap add. Nothing is logged automatically, and it never touches your real sleep scores. Thanks @cbarrado.",
+                "**WHOOP 4.0 sleep on older firmware.** Straps on an older offload layout that used to bank nothing now hand over the motion reNOOP needs to stage sleep. Thanks airtonzanon for the captures.",
                 "**More at a glance.** A new 2x2 Android home-screen widget shows Charge, Effort and Rest together, plus optional morning-recap and post-workout notifications, both off by default and no AI involved.",
                 "**Caffeine cutoff and per-day alarms.** Set a \"no caffeine after\" time with a gentle late-intake nudge (thanks @mvanhorn), and set different smart-alarm wake times per weekday (thanks @MumiZed).",
                 "**WHOOP 4.0 gets more.** Broadcast your heart rate out from a 4.0, not just a 5.0; a clearer steps calibration; and honest \"what your strap can and can't read\" copy instead of bare dashes. On Android, removing a device now properly releases the Bluetooth link so the band can re-pair.",
@@ -682,26 +682,26 @@ enum AppChangelog {
             title: "Date-hygiene fix for straps with a bad clock",
             date: "June 2026",
             items: [
-                "**Fixed: a WHOOP with a bad internal clock could scramble your dashboard.** If your strap's clock or flash got into a bad state, it could hand NOOP records stamped with wrong dates, sometimes years off, sometimes in the future. NOOP now sanity-checks every record's timestamp as it comes in and drops anything implausible, so a misbehaving strap can no longer make the same sleep repeat across days or show a future date as your last night. If your data already got scrambled, updating cleans it up automatically and re-scores once. Thanks to pikapik487 for the detailed logs that pinned this down.",
+                "**Fixed: a WHOOP with a bad internal clock could scramble your dashboard.** If your strap's clock or flash got into a bad state, it could hand reNOOP records stamped with wrong dates, sometimes years off, sometimes in the future. reNOOP now sanity-checks every record's timestamp as it comes in and drops anything implausible, so a misbehaving strap can no longer make the same sleep repeat across days or show a future date as your last night. If your data already got scrambled, updating cleans it up automatically and re-scores once. Thanks to pikapik487 for the detailed logs that pinned this down.",
             ]),
         Release(
             version: "6.0.2",
             title: "Sleep, properly sorted, and an app that explains itself",
             date: "June 2026",
             items: [
-                "**Your night is your night.** We rebuilt how NOOP decides which sleep is your main one. It now scores every sleep block on how much you actually slept and how close it was to your usual hours (which NOOP learns from your own history), so a long sleep that started at an odd time is no longer filed away as a nap, and the Sleep tab and your recovery scores always land on the same night. This was a from-scratch rework, not a patch, grounded in real strap logs and the sleep-staging research.",
-                "**The app explains itself now.** Tap the info on a sleep block to see exactly why it's your main sleep or a nap. Your Charge, Effort and Rest tiles tell you when they're still calibrating (and how many nights are left), when they're showing last night's number, or when they simply need the strap, instead of a bare dash. A Recording chip shows when the strap is actually connected and saving data. And a small badge on each number shows whether NOOP worked it out on your device or imported it from WHOOP or Apple Health.",
-                "**New: a \"How NOOP works\" page.** Tucked in Settings, a short plain-English read on how your sleep is sorted, how your scores build over your first couple of weeks, what \"recording\" means, and where your numbers come from.",
+                "**Your night is your night.** We rebuilt how reNOOP decides which sleep is your main one. It now scores every sleep block on how much you actually slept and how close it was to your usual hours (which reNOOP learns from your own history), so a long sleep that started at an odd time is no longer filed away as a nap, and the Sleep tab and your recovery scores always land on the same night. This was a from-scratch rework, not a patch, grounded in real strap logs and the sleep-staging research.",
+                "**The app explains itself now.** Tap the info on a sleep block to see exactly why it's your main sleep or a nap. Your Charge, Effort and Rest tiles tell you when they're still calibrating (and how many nights are left), when they're showing last night's number, or when they simply need the strap, instead of a bare dash. A Recording chip shows when the strap is actually connected and saving data. And a small badge on each number shows whether reNOOP worked it out on your device or imported it from WHOOP or Apple Health.",
+                "**New: a \"How reNOOP works\" page.** Tucked in Settings, a short plain-English read on how your sleep is sorted, how your scores build over your first couple of weeks, what \"recording\" means, and where your numbers come from.",
                 "**Help us get your sleep exactly right.** If your sleep still looks off after this, please open an issue on GitHub with a strap log and the dates it's wrong. That is the single fastest way for us to pin your case. There's a full write-up of the research behind this rework if you want the detail.",
             ]),
         Release(
             version: "6.0.0",
-            title: "NOOP grows up: it's not just for WHOOP anymore",
+            title: "reNOOP grows up: it's not just for WHOOP anymore",
             date: "June 2026",
             items: [
-                "**Your WHOOP is no longer the only thing that works.** NOOP now reads standard Bluetooth chest straps and arm bands (like the Polar H10) for live heart rate and HRV, connects to gym machines over the standard FTMS profile (treadmills, bikes, rowers, cross-trainers), and reads standard running and cycling sensors for live speed, cadence and power during a workout. Your WHOOP support is exactly as it was.",
-                "**Bring your history with you, fully offline.** Import your own data export from Oura, Fitbit or Garmin and NOOP pulls in sleep, resting heart rate, HRV and steps wherever the file has them. It never talks to their cloud, and their own readiness or sleep scores stay reference only. Your NOOP scores are recomputed from the raw signals, never copied. GPX, TCX and FIT workout files import too.",
-                "**Broadcast your heart rate out.** Turn on Broadcast in Data Sources and NOOP re-shares your strap's heart rate as a standard Bluetooth HR sensor, so a treadmill, Zwift or Peloton can read it. Local Bluetooth only, nothing leaves your device. Off by default.",
+                "**Your WHOOP is no longer the only thing that works.** reNOOP now reads standard Bluetooth chest straps and arm bands (like the Polar H10) for live heart rate and HRV, connects to gym machines over the standard FTMS profile (treadmills, bikes, rowers, cross-trainers), and reads standard running and cycling sensors for live speed, cadence and power during a workout. Your WHOOP support is exactly as it was.",
+                "**Bring your history with you, fully offline.** Import your own data export from Oura, Fitbit or Garmin and reNOOP pulls in sleep, resting heart rate, HRV and steps wherever the file has them. It never talks to their cloud, and their own readiness or sleep scores stay reference only. Your reNOOP scores are recomputed from the raw signals, never copied. GPX, TCX and FIT workout files import too.",
+                "**Broadcast your heart rate out.** Turn on Broadcast in Data Sources and reNOOP re-shares your strap's heart rate as a standard Bluetooth HR sensor, so a treadmill, Zwift or Peloton can read it. Local Bluetooth only, nothing leaves your device. Off by default.",
                 "**Experimental: more bands, and we need your help testing them.** A clearly-labeled Experimental tier in Add a device covers Amazfit / Zepp (Helio included), Xiaomi Mi Band, Garmin (via Broadcast HR) and an Oura ring probe. These are best-effort and can't be hardware-verified by us, so they're opt-in and honest about what they can do. None of them ever makes up a number. If you have one, turn it on and send us a debug log.",
                 "**GPS workout routes on iPhone and Mac.** Outdoor runs, rides, walks and hikes now record a route with distance, pace and a map, matching Android. Recording keeps going while the screen is off.",
                 "**Take a spot HRV reading any time**, plus a new **Recalibrate baselines** button in Settings to cleanly restart your Charge build-up if your first week got thrown off. Your history stays. And a simple **caffeine log** with a rough still-active estimate.",
@@ -716,9 +716,9 @@ enum AppChangelog {
                 "**Your Sleep tab shows your actual night now**, not an afternoon nap that happened to end later. Days with a nap get a clear Main / Nap(s) / Total split so you can see what made up your Rest. (#518)",
                 "**Rest is more honest about deep sleep.** A night with normal REM but barely any deep used to still score in the 90s. It now reflects a low-deep night properly, without inventing stages we can't actually measure.",
                 "**Charge settles in days, not weeks.** Your recovery baseline used to take 2 to 3 weeks to learn, and one high early reading could hold Charge down the whole time. It finds your real baseline fast now. And there's a new **Recalibrate Charge baseline** button under **Settings → Recovery** if you ever want to reset it and re-learn from tonight. Your data isn't deleted.",
-                "**No more \"New data added\" spam.** The Updates inbox used to repeat that every time NOOP re-scored your recent days in the background, even on an old import with nothing new. Now it tells you once, only when a genuinely newer day lands. (#521)",
+                "**No more \"New data added\" spam.** The Updates inbox used to repeat that every time reNOOP re-scored your recent days in the background, even on an old import with nothing new. Now it tells you once, only when a genuinely newer day lands. (#521)",
                 "**A real sport picker on workouts.** Add, edit or start a session and pick from a named list (Padel included), with free text still there for anything that isn't on it. (#519)",
-                "**New: a daily auto-export of your strap log (iPhone & Mac).** Turn it on under **Settings → Diagnostics**, pick a time, and NOOP saves a timestamped copy once a day, so a log is waiting for a bug report without you remembering to grab it. Off by default, stays on your device. On Mac it runs while NOOP is open; on iPhone it fires when iOS next wakes the app near your time, not to the exact minute. Android already had this. (#510)",
+                "**New: a daily auto-export of your strap log (iPhone & Mac).** Turn it on under **Settings → Diagnostics**, pick a time, and reNOOP saves a timestamped copy once a day, so a log is waiting for a bug report without you remembering to grab it. Off by default, stays on your device. On Mac it runs while reNOOP is open; on iPhone it fires when iOS next wakes the app near your time, not to the exact minute. Android already had this. (#510)",
                 "**Android: double-tap your strap to do something.** Pick from Nothing, Buzz back, Mark a moment, Log a sleep mark, or Buzz the time, with a Test button. Same as iPhone and Mac now.",
                 "**Android: clearer help when a WHOOP 5/MG won't pair.** Instead of looping silently it now shows the steps to fix it (close the official WHOOP app, hold the band until the lights flash blue, Forget This Device). (#78)",
                 "Plus the home-screen widgets and the iOS Live Activity say Charge instead of Recovery now, workout durations stop clipping on the Today tiles (Android, #332), and updating through AltStore no longer fails partway.",
@@ -728,15 +728,15 @@ enum AppChangelog {
             title: "Updates check GitHub again",
             date: "June 2026",
             items: [
-                "**NOOP is back on GitHub** - and so is **Check for updates**. The in-app update check and the **Settings → About** \"project home\" link now point at github.com/NoopApp/noop again, where releases live (noop.fans stays as a mirror). It's still on-device and only runs when you tap - nothing about you is ever sent.",
+                "**reNOOP is back on GitHub** - and so is **Check for updates**. The in-app update check and the **Settings → About** \"project home\" link now point at github.com/NoopApp/noop again, where releases live (noop.fans stays as a mirror). It's still on-device and only runs when you tap - nothing about you is ever sent.",
             ]),
         Release(
             version: "5.2.5",
             title: "WHOOP 5/MG re-pairing fix",
             date: "June 2026",
             items: [
-                "**Fixed: removing a WHOOP from Devices now actually releases it.** Before, NOOP kept reconnecting to a removed strap and held it connected - so a 5/MG could never enter pairing mode, which blocked re-pairing a strap that got stuck. Remove now stops reconnecting, drops the link and frees the strap. (iPhone & Mac.) (#78)",
-                "**Clearer help when a 5/MG won't bond.** If the strap keeps refusing the secure pairing, NOOP now tells you exactly how to free and re-pair it (close the WHOOP app, pairing mode, forget in Bluetooth) rather than a misleading \"transient\" message. (#78)",
+                "**Fixed: removing a WHOOP from Devices now actually releases it.** Before, reNOOP kept reconnecting to a removed strap and held it connected - so a 5/MG could never enter pairing mode, which blocked re-pairing a strap that got stuck. Remove now stops reconnecting, drops the link and frees the strap. (iPhone & Mac.) (#78)",
+                "**Clearer help when a 5/MG won't bond.** If the strap keeps refusing the secure pairing, reNOOP now tells you exactly how to free and re-pair it (close the WHOOP app, pairing mode, forget in Bluetooth) rather than a misleading \"transient\" message. (#78)",
             ]),
         Release(
             version: "5.2.4",
@@ -750,8 +750,8 @@ enum AppChangelog {
             title: "WHOOP 5/MG connection fix",
             date: "June 2026",
             items: [
-                "**Fixed (WHOOP 5/MG): opening \"Add a WHOOP\" could drop a working strap and get stuck on \"connecting\".** If your 5/MG was connected and streaming, presenting the scan tore down the live connection - and the strap could then loop on \"connecting\" instead of re-bonding (with haptics going quiet). NOOP now keeps a live same-family connection while it scans for nearby straps. (iPhone & Mac.) (#74)",
-                "**Clearer guidance when a reconnect briefly hiccups.** If a strap NOOP *just* bonded to momentarily refuses on a reconnect, it no longer wrongly tells you it's \"still paired to the WHOOP app\" - it recovers quietly instead. (#74)",
+                "**Fixed (WHOOP 5/MG): opening \"Add a WHOOP\" could drop a working strap and get stuck on \"connecting\".** If your 5/MG was connected and streaming, presenting the scan tore down the live connection - and the strap could then loop on \"connecting\" instead of re-bonding (with haptics going quiet). reNOOP now keeps a live same-family connection while it scans for nearby straps. (iPhone & Mac.) (#74)",
+                "**Clearer guidance when a reconnect briefly hiccups.** If a strap reNOOP *just* bonded to momentarily refuses on a reconnect, it no longer wrongly tells you it's \"still paired to the WHOOP app\" - it recovers quietly instead. (#74)",
             ]),
         Release(
             version: "5.2.2",
@@ -774,12 +774,12 @@ enum AppChangelog {
             title: "Connection & sleep fixes - a focused tune-up",
             date: "June 2026",
             items: [
-                "**Fixed (WHOOP 5/MG): pairing could get stuck and the buzz go silent.** If your strap had been re-paired or reset, NOOP could latch onto an old Bluetooth identity, fail to finish the secure bond and loop forever - which also stopped haptics. NOOP now notices a strap that *is* bonding fine and switches to it. (iPhone, Mac & Android.)",
-                "**Fixed (WHOOP 4.0 on some Androids): stuck on \"finishing the secure handshake\".** On phones whose Bluetooth double-fires the connection setup (seen on OnePlus), pairing could wedge with no way out - NOOP now bounces and retries automatically instead of hanging.",
+                "**Fixed (WHOOP 5/MG): pairing could get stuck and the buzz go silent.** If your strap had been re-paired or reset, reNOOP could latch onto an old Bluetooth identity, fail to finish the secure bond and loop forever - which also stopped haptics. reNOOP now notices a strap that *is* bonding fine and switches to it. (iPhone, Mac & Android.)",
+                "**Fixed (WHOOP 4.0 on some Androids): stuck on \"finishing the secure handshake\".** On phones whose Bluetooth double-fires the connection setup (seen on OnePlus), pairing could wedge with no way out - reNOOP now bounces and retries automatically instead of hanging.",
                 "**Fixed (Android): the Sleep tab could get stuck on a single night.** The date arrows now step by day, so newer nights show up and the arrows behave.",
                 "**Fixed (Mac): the Breathe session opened from Stress had no close button** - added a **Done** button so you're never trapped.",
                 "**Fixed: the strap battery badge could overlap the date** in the home header. Tidied up - the battery still shows on your dashboard. (iPhone & Android.)",
-                "**Smarter reconnect when your strap's out of range** - NOOP backs off gradually instead of rescanning on a fixed timer (easier on battery), and reconnects instantly the moment you tap Connect. Thanks to **ryanbr** for the contribution. (Android - matches iPhone & Mac.)",
+                "**Smarter reconnect when your strap's out of range** - reNOOP backs off gradually instead of rescanning on a fixed timer (easier on battery), and reconnects instantly the moment you tap Connect. Thanks to **ryanbr** for the contribution. (Android - matches iPhone & Mac.)",
             ]),
         Release(
             version: "5.1.2",
@@ -798,7 +798,7 @@ enum AppChangelog {
             items: [
                 "**A cleaner home.** The bottom bar is now four tidy tabs - **Today · Trends · Sleep · More** - and the quick-action **+** has moved up to the top-right of your home screen, balancing your profile on the left. Same actions (start a workout, log your journal, breathe), much less clutter.",
                 "**A new Updates inbox.** Tap the **bell** in the top-right to see what's new - fresh readings and history that landed, what's-new notes, and any home cards you've tucked away. A small gold badge shows when there's something unread. Hit the **×** on a home card to send it to the inbox, and pull it back any time with **Restore to Today**.",
-                "**Make it yours - a profile photo.** Tap your profile (top-left) → **Settings → Profile photo** and choose a picture. It shows on your home screen and stays **only on your device** - NOOP is offline, so it's never uploaded.",
+                "**Make it yours - a profile photo.** Tap your profile (top-left) → **Settings → Profile photo** and choose a picture. It shows on your home screen and stays **only on your device** - reNOOP is offline, so it's never uploaded.",
                 "**Cleaner, crisper design.** We blended the glass-and-material look, dialled back the glow across the whole app for sharper lines, evened up the spacing around the little pill toggles, and onboarding now shows up front that you can switch **Light · Dark · System** whenever you like (**Settings → Appearance**).",
                 "**Same look on every device.** The refreshed layout and approach land on Mac, iPhone and Android together.",
             ]),
@@ -814,15 +814,15 @@ enum AppChangelog {
             ]),
         Release(
             version: "5.0.0",
-            title: "v5 - the raw-signal release: NOOP reads the signal, on your device, free",
+            title: "v5 - the raw-signal release: reNOOP reads the signal, on your device, free",
             date: "June 2026",
             items: [
-                "**The big idea.** Everyone else shows you a score their cloud computed, behind a subscription. NOOP reads your strap's raw signals - beat-to-beat timing, red/IR PPG, motion, skin temperature - and does all the maths on your own device, free and offline. And it's the only one that can actually breathe you back down. Seven new things below, plus a tidier home: everything now lives under five places - **Today · What Moves You · Health · Devices & Sources · Settings**.",
+                "**The big idea.** Everyone else shows you a score their cloud computed, behind a subscription. reNOOP reads your strap's raw signals - beat-to-beat timing, red/IR PPG, motion, skin temperature - and does all the maths on your own device, free and offline. And it's the only one that can actually breathe you back down. Seven new things below, plus a tidier home: everything now lives under five places - **Today · What Moves You · Health · Devices & Sources · Settings**.",
                 "**Haptic biofeedback - the strap that breathes you down.** Your wrist motor can now pace your breathing with the screen off. Find your personal calm pace (open **Breathe → Resonance → Find your resonance pace**, pick the ~13-min or ~7-min sweep), then breathe to the buzz. Mid-stress, tap **Calm me · 3 min** for a felt metronome just below your heart rate. Optional passive check-ins: **Settings → Automations → Stress check-ins (haptic)** (off by default).",
-                "**What Moves You.** A ranked, lag-aware read of what actually moves *your* recovery - from your own journal and outcomes, not population averages. Log alcohol or late caffeine with an amount and NOOP fits a personal dose-response curve, then in the evening tells you what one more drink tends to cost tomorrow's Charge. Open **What Moves You** (the wand in the sidebar / Insights).",
+                "**What Moves You.** A ranked, lag-aware read of what actually moves *your* recovery - from your own journal and outcomes, not population averages. Log alcohol or late caffeine with an amount and reNOOP fits a personal dose-response curve, then in the evening tells you what one more drink tends to cost tomorrow's Charge. Open **What Moves You** (the wand in the sidebar / Insights).",
                 "**Skin-temperature suite.** Three features off the one signal WHOOP already streams: cycle-phase **awareness** (opt-in, on-device, never contraception or a fertility predictor), a **Body clock** jet-lag/shift helper, and a smarter illness **Heads-up** that cross-checks your journal so a night out doesn't cry wolf. Find them in **Health → Skin temperature**; turn cycle awareness on there, illness watch under **Settings → Automations**.",
-                "**Your Data, Fused.** If you wear more than one band, NOOP now shows one honest record - best source wins per metric, with the source named on every number and conflicts flagged, never silently averaged. Open **Your Data, Fused** from **Health** or Data Sources. A single WHOOP just shows a clean plain record.",
-                "**Lab Book - your own private logbook.** Type in your bloods, blood pressure, scan values or doctor's-visit notes (or import a CSV), see each marker's trend, and line a marker up against a wearable signal with **Compare with a signal**. It's a notebook, not a medical service - NOOP stores and lines up the numbers *you* enter, never tests, reads or diagnoses them, and it all stays on your device. Open **Health → Lab Book**.",
+                "**Your Data, Fused.** If you wear more than one band, reNOOP now shows one honest record - best source wins per metric, with the source named on every number and conflicts flagged, never silently averaged. Open **Your Data, Fused** from **Health** or Data Sources. A single WHOOP just shows a clean plain record.",
+                "**Lab Book - your own private logbook.** Type in your bloods, blood pressure, scan values or doctor's-visit notes (or import a CSV), see each marker's trend, and line a marker up against a wearable signal with **Compare with a signal**. It's a notebook, not a medical service - reNOOP stores and lines up the numbers *you* enter, never tests, reads or diagnoses them, and it all stays on your device. Open **Health → Lab Book**.",
                 "**Rhythm (experimental).** A picture of your beat-to-beat timing - a Poincaré scatter with plain descriptive stats. It's a visualisation, not a verdict: not an ECG, not a diagnosis, can't detect any heart condition. Off by default behind a consent screen: **Settings → Rhythm → Turn on Rhythm**.",
                 "**A smarter, still-private AI Coach.** The opt-in bring-your-own-key Coach can now optionally reason over your on-device patterns and Lab Book markers - summaries only, nothing raw ever leaves your device. Turn it on in **Coach** with **Also share my patterns & Lab Book** (off by default; your key, your choice of provider).",
             ]),
@@ -866,7 +866,7 @@ enum AppChangelog {
                 "**Cleaner Settings on a WHOOP 4.0** - the 5/MG-only experimental controls are hidden when you're on a 4.0 (your strap model is detected automatically). (#22.)",
                 "**Faster overnight catch-up** after your phone's been off - a strap that drip-feeds its history now drains back-to-back instead of stalling between chunks. (#25.)",
                 "**Bounded local storage** - the experimental raw-capture buffers are now size-capped. (#27.)",
-                "**Apple Health body composition** - NOOP now reads your weight, body-fat %, lean mass and BMI from Apple Health on iPhone. (Thanks @h3ld3r - #20.)",
+                "**Apple Health body composition** - reNOOP now reads your weight, body-fat %, lean mass and BMI from Apple Health on iPhone. (Thanks @h3ld3r - #20.)",
             ]),
         Release(
             version: "4.6.2",
@@ -878,18 +878,18 @@ enum AppChangelog {
             ]),
         Release(
             version: "4.6.1",
-            title: "NOOP has a new home",
+            title: "reNOOP has a new home",
             date: "June 2026",
             items: [
-                "**NOOP now lives at noop.fans.** After the project's GitHub was taken offline, NOOP moved to its own independent home - code, releases, the wiki and issues. **Settings → About** now links straight there, and **Check for updates** reads from the new home (if GitHub ever comes back it'll be kept as a mirror). Nothing on your device changed and everything keeps working - this just points the app at where the project lives now. Keeping it online costs real money, so if NOOP is useful to you, please consider a donation. #KeepNOOPAlive",
+                "**reNOOP now lives at noop.fans.** After the project's GitHub was taken offline, reNOOP moved to its own independent home - code, releases, the wiki and issues. **Settings → About** now links straight there, and **Check for updates** reads from the new home (if GitHub ever comes back it'll be kept as a mirror). Nothing on your device changed and everything keeps working - this just points the app at where the project lives now. Keeping it online costs real money, so if reNOOP is useful to you, please consider a donation. #KeepNOOPAlive",
             ]),
         Release(
             version: "4.6.0",
             title: "Editable naps, a richer Trends report, and better debug export",
             date: "June 2026",
             items: [
-                "**Naps are now editable - and stay their own thing.** You can edit a detected nap's start and end times (NOOP re-stages it from your raw data and the correction sticks through future syncs), and manually add a nap the strap missed, right from the Sleep screen. Naps are always tracked as separate sessions from your main sleep, so the awake time between them is never mislabelled as light sleep. (#508)",
-                "**Trends report adds Workouts and Stress.** The exportable Trends report now leads with a **Workouts** row (your activity count over the range) and a **Stress** row (NOOP's 0-3 daily autonomic-load trend), each with its own averages and a measured-vs-computed note, alongside recovery, sleep, HRV and the rest. (#457)",
+                "**Naps are now editable - and stay their own thing.** You can edit a detected nap's start and end times (reNOOP re-stages it from your raw data and the correction sticks through future syncs), and manually add a nap the strap missed, right from the Sleep screen. Naps are always tracked as separate sessions from your main sleep, so the awake time between them is never mislabelled as light sleep. (#508)",
+                "**Trends report adds Workouts and Stress.** The exportable Trends report now leads with a **Workouts** row (your activity count over the range) and a **Stress** row (reNOOP's 0-3 daily autonomic-load trend), each with its own averages and a measured-vs-computed note, alongside recovery, sleep, HRV and the rest. (#457)",
                 "**Better on-device debug export** (for the tinkerers): the in-app strap log now keeps a rolling **24 hours** (up from ~1h), exported logs and raw captures get a **date-stamped filename** so shares don't overwrite each other, and a new one-tap **\"Export raw + log\"** hands over both as a matched pair. (#510, thanks j0b-dev & maddognik for pushing the protocol work.)",
             ]),
         Release(
@@ -913,7 +913,7 @@ enum AppChangelog {
             date: "June 2026",
             items: [
                 "**WHOOP 4.0: a real night is no longer dropped.** The off-wrist guard added in 4.5.0 could mistake a 4.0's sparse, motion-reconstructed sleep heart-rate for time off the wrist and skip the whole night. It now only treats heart-rate gaps as \"off-wrist\" when your heart-rate is dense enough for a gap to actually mean something - so 4.0 nights track again, while the strap-on-a-desk case it was meant to catch still works. *(Thanks Mindfulpaths for catching it - #507.)*",
-                "**WHOOP 5/MG: steps are accurate now.** The strap's step counter is a *running total*, not a per-reading count - adding it up the old way could over-report steps many times over. NOOP now reads the full counter and adds only the real increases, so your daily step number is sane. It also reads a simple still / walking / running activity signal from the same data, with no cloud. *(Thanks j0b-dev for the analysis - #276 / #316.)*",
+                "**WHOOP 5/MG: steps are accurate now.** The strap's step counter is a *running total*, not a per-reading count - adding it up the old way could over-report steps many times over. reNOOP now reads the full counter and adds only the real increases, so your daily step number is sane. It also reads a simple still / walking / running activity signal from the same data, with no cloud. *(Thanks j0b-dev for the analysis - #276 / #316.)*",
             ]),
         Release(
             version: "4.5.2",
@@ -927,15 +927,15 @@ enum AppChangelog {
             title: "Sleep: keep real nights when the strap comes off",
             date: "June 2026",
             items: [
-                "A quick refinement to yesterday's off-wrist sleep fix. NOOP now only discards a sleep block when **most of it** (half or more) is off-wrist, rather than dropping it for any off-wrist gap at all. So a real night where you take the strap off shortly after waking is kept in full, while a strap left sitting still on a desk all day is still correctly ignored. *(Thanks to community contributor j0b-dev for the sharper approach.)*",
+                "A quick refinement to yesterday's off-wrist sleep fix. reNOOP now only discards a sleep block when **most of it** (half or more) is off-wrist, rather than dropping it for any off-wrist gap at all. So a real night where you take the strap off shortly after waking is kept in full, while a strap left sitting still on a desk all day is still correctly ignored. *(Thanks to community contributor j0b-dev for the sharper approach.)*",
             ]),
         Release(
             version: "4.5.0",
             title: "WHOOP 5/MG deep-sync decode + sleep & workout fixes",
             date: "June 2026",
             items: [
-                "**More of your WHOOP 5/MG history now syncs.** Some nights were stored by the strap in newer record layouts (internally \"v20/v21\") that NOOP didn't recognise yet, so they were skipped and showed up as empty. Those now decode - so more of your 5/MG history comes through. We also pull richer detail from the existing records (higher-precision heart rate, step cadence, an extra skin-temperature channel) and corrected the skin-temperature scale so worn readings land where they should. *(Thanks to community contributor j0b-dev for the captured-frame analysis behind this.)*",
-                "**Sleep: no more daytime false sleep.** Time with the strap off your wrist - on the charger, or sat at a desk - could occasionally be logged as sleep. NOOP now spots those gaps (a long stretch with no real heart-rate signal, or an explicit off-wrist marker) and won't count them as sleep, day or night.",
+                "**More of your WHOOP 5/MG history now syncs.** Some nights were stored by the strap in newer record layouts (internally \"v20/v21\") that reNOOP didn't recognise yet, so they were skipped and showed up as empty. Those now decode - so more of your 5/MG history comes through. We also pull richer detail from the existing records (higher-precision heart rate, step cadence, an extra skin-temperature channel) and corrected the skin-temperature scale so worn readings land where they should. *(Thanks to community contributor j0b-dev for the captured-frame analysis behind this.)*",
+                "**Sleep: no more daytime false sleep.** Time with the strap off your wrist - on the charger, or sat at a desk - could occasionally be logged as sleep. reNOOP now spots those gaps (a long stretch with no real heart-rate signal, or an explicit off-wrist marker) and won't count them as sleep, day or night.",
                 "**Sleep: fixed a 6 PM wake-time clamp.** On some past nights your wake time could be reported as exactly 6 PM - an artefact of the read window ending there, not your real wake. Past nights now read through the full day so your true wake time shows.",
                 "**Workouts: Average HR always matches the trace.** A workout's Average HR is now always computed from the exact heart-rate samples behind the graph and zones, so the number and the chart can never drift apart.",
                 "Fixed a build warning and repaired the macOS/iOS download links for the 4.4.0 release.",
@@ -952,7 +952,7 @@ enum AppChangelog {
             title: "Light theme tuning",
             date: "June 2026",
             items: [
-                "**Light got dialled in.** Based on early feedback it was leaning too gold, so the chrome - links, the selected range pill, header accents - now uses the deep brand **blue** on Light, with **gold kept for what it means** (the Charge/recovery rings and the action button). Cards now sit on a slightly **deeper warm canvas with a stronger shadow**, so they stand out more. And on **Mac**, a sidebar glitch where the NOOP lockup overlapped the navigation list is fixed. Dark is untouched.",
+                "**Light got dialled in.** Based on early feedback it was leaning too gold, so the chrome - links, the selected range pill, header accents - now uses the deep brand **blue** on Light, with **gold kept for what it means** (the Charge/recovery rings and the action button). Cards now sit on a slightly **deeper warm canvas with a stronger shadow**, so they stand out more. And on **Mac**, a sidebar glitch where the reNOOP lockup overlapped the navigation list is fixed. Dark is untouched.",
             ]),
         Release(
             version: "4.3.1",
@@ -963,10 +963,10 @@ enum AppChangelog {
             ]),
         Release(
             version: "4.3.0",
-            title: "Light theme - NOOP in warm paper & gold",
+            title: "Light theme - reNOOP in warm paper & gold",
             date: "June 2026",
             items: [
-                "**NOOP now has a full Light theme, and you can switch any time.** Settings → Appearance lets you pick **System** (follow your phone/Mac), **Light**, or **Dark**. The new Light look is \"warm paper & gold\" - a soft warm-white canvas with crisp navy-ink text and the signature gold deepened so it stays legible on white. Every surface was re-done for it, not just inverted: the ring gauges, frosted cards (now lifted with a soft shadow instead of a glow), charts, the scenic hero, the home-screen widget and even the status bar all adapt. Dark stays exactly as it was. Same data, same layout - your choice of finish.",
+                "**reNOOP now has a full Light theme, and you can switch any time.** Settings → Appearance lets you pick **System** (follow your phone/Mac), **Light**, or **Dark**. The new Light look is \"warm paper & gold\" - a soft warm-white canvas with crisp navy-ink text and the signature gold deepened so it stays legible on white. Every surface was re-done for it, not just inverted: the ring gauges, frosted cards (now lifted with a soft shadow instead of a glow), charts, the scenic hero, the home-screen widget and even the status bar all adapt. Dark stays exactly as it was. Same data, same layout - your choice of finish.",
             ]),
         Release(
             version: "4.2.13",
@@ -974,14 +974,14 @@ enum AppChangelog {
             date: "June 2026",
             items: [
                 "**Effort now explains a calm-day zero instead of just showing \"0.0\".** Effort is *cardiovascular* load - it only builds while your heart rate is up in your effort zone (roughly the top half of your heart-rate reserve, often ~120 bpm and above). On a genuinely easy day your heart rate never gets there, so the honest answer really is near zero - the same way a WHOOP low-strain day reads low. The number was right, but a bare \"0.0\" looked broken, so Today now adds a short line explaining it. We also fixed the WHOOP 5.0/MG case where Effort could sit un-scored for hours: the 5.0/MG sends live heart rate far less often than a 4.0, and the gauge needed a fixed *number* of readings before it would score - now it scores once it has enough *time* of heart-rate coverage, so a steady 5.0/MG stream counts and the gauge stops falling back to a stale value. Effort still only rewards real exertion - nothing is invented. Thanks @darylbleach and @phsycology (#482, #480).",
-                "**History from a long-drained strap lands on the right day again.** When a WHOOP's internal clock had fully reset - it sat uncharged so long its clock fell back to around 1970 - syncing its stored history could date every night decades into the future, silently wiping sleep and recovery from your timeline. NOOP now keeps the real timestamps in that case. Thanks @cataboysbusiness-debug (#471).",
+                "**History from a long-drained strap lands on the right day again.** When a WHOOP's internal clock had fully reset - it sat uncharged so long its clock fell back to around 1970 - syncing its stored history could date every night decades into the future, silently wiping sleep and recovery from your timeline. reNOOP now keeps the real timestamps in that case. Thanks @cataboysbusiness-debug (#471).",
             ]),
         Release(
             version: "4.2.10",
             title: "Week in Review is honest about a half-finished week",
             date: "June 2026",
             items: [
-                "**The Week in Review summary no longer claims a \"steady week\" when you're only a day or two in.** Early in the week NOOP can't honestly call a week-over-week trend - but the summary used to read \"a steady week, nothing moved\" while the change chips right above it showed big percentage swings off those same one or two days. Now, when the current week is still sparse, the summary says something like \"Only 2 days into this week so far - too early to call a week-over-week trend yet,\" so the words match what the numbers can actually tell you. A full week with genuinely flat metrics still reads as steady. Thanks @pikapik487 (#463).",
+                "**The Week in Review summary no longer claims a \"steady week\" when you're only a day or two in.** Early in the week reNOOP can't honestly call a week-over-week trend - but the summary used to read \"a steady week, nothing moved\" while the change chips right above it showed big percentage swings off those same one or two days. Now, when the current week is still sparse, the summary says something like \"Only 2 days into this week so far - too early to call a week-over-week trend yet,\" so the words match what the numbers can actually tell you. A full week with genuinely flat metrics still reads as steady. Thanks @pikapik487 (#463).",
             ]),
         Release(
             version: "4.2.9",
@@ -1016,7 +1016,7 @@ enum AppChangelog {
             title: "Trends report explains its scores",
             date: "June 2026",
             items: [
-                "**The shareable Trends report now spells out where each number comes from.** A new \"How to read this\" legend flags HRV, Resting HR and Sleep as *measured* from the strap, and makes clear that **Recovery and Strain are NOOP's own on-device scores, not clinical measures** - so it's safe to hand the PDF to a doctor or coach without your scores being mistaken for lab values. Thanks @subscriptiondestroyer (#457).",
+                "**The shareable Trends report now spells out where each number comes from.** A new \"How to read this\" legend flags HRV, Resting HR and Sleep as *measured* from the strap, and makes clear that **Recovery and Strain are reNOOP's own on-device scores, not clinical measures** - so it's safe to hand the PDF to a doctor or coach without your scores being mistaken for lab values. Thanks @subscriptiondestroyer (#457).",
             ]),
         Release(
             version: "4.2.4",
@@ -1030,7 +1030,7 @@ enum AppChangelog {
             title: "Deep history backlog drains without manual taps",
             date: "June 2026",
             items: [
-                "**Fixed a sync that stalled after one night and needed a strap-tap to continue.** If your strap had been fully discharged (or carried a previous owner's history), it could offload just one night per connection and then sit idle until you physically tapped it. The strap was reporting a stale \"newest record\" timestamp that read as *older* than data NOOP had already saved, so the catch-up logic wrongly stopped. NOOP now keeps draining as long as the strap is actually handing over real records and its trim cursor is advancing - so a deep backlog clears in back-to-back passes on its own. Thanks @claypilat (#451); this also fixes the manual-re-trigger half of #364.",
+                "**Fixed a sync that stalled after one night and needed a strap-tap to continue.** If your strap had been fully discharged (or carried a previous owner's history), it could offload just one night per connection and then sit idle until you physically tapped it. The strap was reporting a stale \"newest record\" timestamp that read as *older* than data reNOOP had already saved, so the catch-up logic wrongly stopped. reNOOP now keeps draining as long as the strap is actually handing over real records and its trim cursor is advancing - so a deep backlog clears in back-to-back passes on its own. Thanks @claypilat (#451); this also fixes the manual-re-trigger half of #364.",
             ]),
         Release(
             version: "4.2.2",
@@ -1044,7 +1044,7 @@ enum AppChangelog {
             title: "Optional inactivity nudge",
             date: "June 2026",
             items: [
-                "**A gentle move reminder, if you want one.** Turn it on in Settings → Automations and NOOP will buzz your strap after you've been sitting still too long (your threshold, default 45 min), within hours you choose (default 9-5), with a re-nudge cooldown you set. It's **off by default**, runs entirely from the motion already on your strap, and respects your quiet hours and only-when-worn settings. Thanks @cbarrado (#419).",
+                "**A gentle move reminder, if you want one.** Turn it on in Settings → Automations and reNOOP will buzz your strap after you've been sitting still too long (your threshold, default 45 min), within hours you choose (default 9-5), with a re-nudge cooldown you set. It's **off by default**, runs entirely from the motion already on your strap, and respects your quiet hours and only-when-worn settings. Thanks @cbarrado (#419).",
             ]),
         Release(
             version: "4.2.0",
@@ -1054,7 +1054,7 @@ enum AppChangelog {
                 "**Tap a workout to open it in full.** Every session now has a detail view - its heart-rate curve over the workout, time in each HR zone, duration, avg/max HR, and the Effort it added - so you can actually look back at a session, not just see it in a list. Thanks @andreasc1 (#410).",
                 "**Activity Cost: learn what each activity actually costs your recovery.** A new Insights section correlates your tagged activities with the next morning's Charge - \"sessions like this usually cost you about N points and take about D days to bounce back\" - measured against your own untouched rest-day baseline, with a confidence level so it only speaks up once it's seen enough. Thanks @subscriptiondestroyer (#439).",
                 "**Shareable trends report.** Export a clean one-page PDF of your recovery, sleep, HRV, resting HR and strain over a range you choose (30 days to all-time) - for a doctor, a coach, or your own records. Entirely on-device, shared through the system share sheet. Thanks @subscriptiondestroyer (#436).",
-                "**Last night syncs sooner.** When a deep backlog is still draining, NOOP now keeps the sync going while you're connected instead of stopping and waiting 15 minutes between bursts - so recent nights arrive in far fewer sessions. There's also a **Sync now** button to kick a backfill on demand. Thanks @idkwargwanbear (#364).",
+                "**Last night syncs sooner.** When a deep backlog is still draining, reNOOP now keeps the sync going while you're connected instead of stopping and waiting 15 minutes between bursts - so recent nights arrive in far fewer sessions. There's also a **Sync now** button to kick a backfill on demand. Thanks @idkwargwanbear (#364).",
                 "**Weight from Health Connect now shows in Compare** (Android) - a Health-Connect-only weight history was invisible there before. (#443)",
             ]),
         Release(
@@ -1069,10 +1069,10 @@ enum AppChangelog {
             title: "Estimated steps for your WHOOP 4.0",
             date: "June 2026",
             items: [
-                "**Steps on a WHOOP 4.0 - estimated, and calibrated to *you*.** A WHOOP 4.0 doesn't send a step count over Bluetooth, so NOOP now *estimates* your daily steps from the strap's own motion and calibrates that estimate against your phone's step count (Apple Health / Health Connect) - learning a coefficient personal to your gait and how the band rides. It's honest about what it is: an **estimate**, never a pretend pedometer - shown with an \"est.\" marker, and \"—\" when there isn't enough movement to say.",
+                "**Steps on a WHOOP 4.0 - estimated, and calibrated to *you*.** A WHOOP 4.0 doesn't send a step count over Bluetooth, so reNOOP now *estimates* your daily steps from the strap's own motion and calibrates that estimate against your phone's step count (Apple Health / Health Connect) - learning a coefficient personal to your gait and how the band rides. It's honest about what it is: an **estimate**, never a pretend pedometer - shown with an \"est.\" marker, and \"—\" when there isn't enough movement to say.",
                 "**A Steps calibration screen** (Settings → Profile → Steps estimate): see your estimate next to your phone's real count side-by-side, how confident the fit is, and a **manual dial** to tune it to you, with a live preview. No phone steps to calibrate against? Set the dial by hand.",
                 "Where you do have a real phone step count, that always wins - the estimate only fills the days your phone didn't cover.",
-                "**Generic heart-rate straps now actually connect.** A Polar / Wahoo / Coospo strap you made active was being *discovered* but never *connected to* - so it sat there with no live data. Fixed: NOOP now connects straight to your selected strap. Thanks @pilleuspulcher-blip (#421).",
+                "**Generic heart-rate straps now actually connect.** A Polar / Wahoo / Coospo strap you made active was being *discovered* but never *connected to* - so it sat there with no live data. Fixed: reNOOP now connects straight to your selected strap. Thanks @pilleuspulcher-blip (#421).",
                 "**The strap log is now safe to share.** It no longer exposes your WHOOP's serial or Bluetooth MAC addresses - they're masked automatically, so you can paste a diagnostic log on GitHub without leaking identifiers. Thanks @maddognik (#445).",
             ]),
         Release(
@@ -1116,10 +1116,10 @@ enum AppChangelog {
             title: "Your Fitness Age, Vitality & Body Age",
             date: "June 2026",
             items: [
-                "**Fitness Age - a weekly number for how fit your heart is.** NOOP now estimates your **Fitness Age** from your resting heart rate and recent activity, and shows it against your real age - “35, four years younger than your calendar age.” Built on the published Nes/HUNT VO₂max model. Tap **“How accurate is this?”** to see exactly which of your inputs went in, grouped by what each one unlocks - we’re honest that it’s a fitness comparison, not a biological age.",
+                "**Fitness Age - a weekly number for how fit your heart is.** reNOOP now estimates your **Fitness Age** from your resting heart rate and recent activity, and shows it against your real age - “35, four years younger than your calendar age.” Built on the published Nes/HUNT VO₂max model. Tap **“How accurate is this?”** to see exactly which of your inputs went in, grouped by what each one unlocks - we’re honest that it’s a fitness comparison, not a biological age.",
                 "**Vitality + Body Age - your longevity number.** A weekly **0-100 Vitality** score and a **Body Age in years**, built the way WHOOP’s Healthspan is: your resting HR, sleep duration + regularity, HRV, and activity, each weighed against published all-cause-mortality research, then turned into “how old your habits make your body.” It even tells you the **one thing helping most** and the **one holding you back**. A wellness trend - **never** a clinical or medical age.",
-                "**Optional: see your estimated VO₂max.** Add your waist measurement in Settings and NOOP will also show an estimated VO₂max alongside your Fitness Age. (Your Fitness Age itself never needs it.)",
-                "**Honest by design.** Every new number carries a ± band and a plain “this is a wellness estimate, not a clinical age” line. These build over a week or two of wear and sharpen as NOOP learns your baseline.",
+                "**Optional: see your estimated VO₂max.** Add your waist measurement in Settings and reNOOP will also show an estimated VO₂max alongside your Fitness Age. (Your Fitness Age itself never needs it.)",
+                "**Honest by design.** Every new number carries a ± band and a plain “this is a wellness estimate, not a clinical age” line. These build over a week or two of wear and sharpen as reNOOP learns your baseline.",
             ]),
         Release(
             version: "3.9.1",
@@ -1127,7 +1127,7 @@ enum AppChangelog {
             date: "June 2026",
             items: [
                 "**Mac & iPhone reconnect on their own.** If your strap briefly dropped out of range (or a connection attempt failed mid-handshake), the app used to just sit there until you reconnected by hand. It now keeps retrying on its own with a gentle back-off, and stops the moment it's back. Thanks @phsycology (#414).",
-                "**Android: GPS workouts write back to Health Connect.** Workouts you track in NOOP weren't being saved to Health Connect - we'd never asked for the exercise-write permission, so the system quietly dropped them. Fixed; you'll be asked once to allow exercise + distance. Thanks @andreasc1 (#412).",
+                "**Android: GPS workouts write back to Health Connect.** Workouts you track in reNOOP weren't being saved to Health Connect - we'd never asked for the exercise-write permission, so the system quietly dropped them. Fixed; you'll be asked once to allow exercise + distance. Thanks @andreasc1 (#412).",
                 "**Raw sensor export no longer runs out of memory.** Exporting the raw-sensor CSV from a busy 24 hours could fail with an out-of-memory error. It now streams straight to the file as it goes, so it works no matter how much data you've gathered. Thanks @maddognik (#406).",
                 "**Android: sleep stage breakdown reads cleanly.** The stage-breakdown figures under the sleep chart no longer wrap onto a second line and clip against the card edge (#406).",
                 "**WHOOP 4.0: no more phantom deep-data counter.** The experimental deep-data packet counter is a WHOOP 5/MG feature - it no longer ticks up on a 4.0, where those packets mean something else (#346).",
@@ -1138,18 +1138,18 @@ enum AppChangelog {
             title: "Manage several WHOOP straps - and see what each band does",
             date: "June 2026",
             items: [
-                "**Manage several WHOOP straps.** Got more than one WHOOP - a couple of 4.0s, a 5.0, or a mix? NOOP now tells them apart and lets you **pair, switch, rename and remove** each one from the **Devices** screen. Only one strap is ever active at a time, and your history is never mixed between devices.",
+                "**Manage several WHOOP straps.** Got more than one WHOOP - a couple of 4.0s, a 5.0, or a mix? reNOOP now tells them apart and lets you **pair, switch, rename and remove** each one from the **Devices** screen. Only one strap is ever active at a time, and your history is never mixed between devices.",
                 "**A guided way to add a device.** “Add a device” now **asks what you're adding** - WHOOP 5.0/MG, WHOOP 4.0, or a heart-rate strap - and walks you through the right pairing steps for that band (a 5/MG pairs differently from a 4.0).",
                 "**The Live screen points to your devices.** The live console now shows **which band is active** and has a **Manage devices** shortcut, so it's obvious where to go to pair or switch straps.",
-                "**Every device card now says what it actually does.** Each band shows **what it captures and what NOOP uses it for** - so it's clear at a glance that, say, a 5/MG reports steps while a 4.0 doesn't. We also made the labels honest: no “Blood oxygen” where NOOP can't read an SpO₂ percentage off the strap (it never can - a real % only comes from a WHOOP CSV import), and skin temp / respiration are marked as the on-device estimates they are.",
+                "**Every device card now says what it actually does.** Each band shows **what it captures and what reNOOP uses it for** - so it's clear at a glance that, say, a 5/MG reports steps while a 4.0 doesn't. We also made the labels honest: no “Blood oxygen” where reNOOP can't read an SpO₂ percentage off the strap (it never can - a real % only comes from a WHOOP CSV import), and skin temp / respiration are marked as the on-device estimates they are.",
             ]),
         Release(
             version: "3.8.0",
             title: "Connect a heart-rate strap (early access)",
             date: "June 2026",
             items: [
-                "**A new Devices screen.** NOOP can now read more than just a WHOOP. Pair a **standard Bluetooth heart-rate strap** - Polar, Wahoo, Coospo, a Garmin HRM, or the Amazfit Helio's heart-rate broadcast - for **live heart rate + HRV**. Manage everything under **Devices**: see what's paired, switch which strap is active, rename or remove one.",
-                "**WHOOP stays the primary, fully-supported band.** Other straps are an early, opt-in addition - they stream live HR + HRV, but not WHOOP's deeper sleep, recovery and strain. Only one strap is ever active at a time, and NOOP never mixes data from two devices.",
+                "**A new Devices screen.** reNOOP can now read more than just a WHOOP. Pair a **standard Bluetooth heart-rate strap** - Polar, Wahoo, Coospo, a Garmin HRM, or the Amazfit Helio's heart-rate broadcast - for **live heart rate + HRV**. Manage everything under **Devices**: see what's paired, switch which strap is active, rename or remove one.",
+                "**WHOOP stays the primary, fully-supported band.** Other straps are an early, opt-in addition - they stream live HR + HRV, but not WHOOP's deeper sleep, recovery and strain. Only one strap is ever active at a time, and reNOOP never mixes data from two devices.",
                 "**Early and experimental.** This is the first build that talks to non-WHOOP straps, so the live connection is still being proven on real hardware - pair one, tell us how it goes, and grab a strap log if it misbehaves. Your WHOOP setup is completely unchanged.",
             ]),
         Release(
@@ -1167,7 +1167,7 @@ enum AppChangelog {
             items: [
                 "**Step calibration goes further:** on a WHOOP 5/MG the strap's motion counter can over-report steps by 20× or more, and the calibration dial used to stop at 4×. It now goes all the way to **30×**, and the +/− control takes bigger jumps the higher you go - so you can dial in a large correction in a few taps instead of dozens. Thanks @exzanimo (#132).",
                 "**Insights “By Day” stays smooth with years of history:** tapping **All** with a big imported history used to build every day at once and could freeze the app. The list now renders only what's on screen, so it scrolls smoothly no matter how many days you've imported. Small histories look and feel identical. Thanks @maddognik (#345).",
-                "**Honest Apple Health guidance on free sideloads:** if you installed NOOP with a free Apple ID (AltStore / Sideloadly), the build can't be granted Apple Health access at all - so instead of pointing you to a Settings screen NOOP can never appear in, it now tells you straight and routes you to the file-import / Shortcuts path. Properly-signed installs are unchanged. Thanks @exzanimo (#348).",
+                "**Honest Apple Health guidance on free sideloads:** if you installed reNOOP with a free Apple ID (AltStore / Sideloadly), the build can't be granted Apple Health access at all - so instead of pointing you to a Settings screen reNOOP can never appear in, it now tells you straight and routes you to the file-import / Shortcuts path. Properly-signed installs are unchanged. Thanks @exzanimo (#348).",
                 "**Better odds of unlocking newer straps:** the on-device archive that collects undecoded history frames (so new firmware layouts can be reverse-engineered) now keeps a guaranteed sample of **each distinct layout version**, so a rare new one - WHOOP 4.0 v19, 5/MG v20/v21 - can't be crowded out before we can study it. Thanks @airtonzanon and everyone sending logs (#344).",
             ]),
         Release(
@@ -1175,7 +1175,7 @@ enum AppChangelog {
             title: "A fresh look - new gold-on-navy icon",
             date: "June 2026",
             items: [
-                "**New app icon (everywhere):** a bolder take on the Titanium & Gold mark - a thick **gold recovery ring + core** on deep navy, across iPhone, Mac and Android (and the in-app logo). Same NOOP, sharper identity.",
+                "**New app icon (everywhere):** a bolder take on the Titanium & Gold mark - a thick **gold recovery ring + core** on deep navy, across iPhone, Mac and Android (and the in-app logo). Same reNOOP, sharper identity.",
                 "**Android - sleep corrections now stick:** bringing Android up to iPhone/Mac - when you hand-correct a night's bed/wake times, the correction now **survives the next strap sync** instead of quietly reverting (the edited night is no longer re-derived over, and editing the bedtime no longer risks a duplicate row).",
             ]),
         Release(
@@ -1183,7 +1183,7 @@ enum AppChangelog {
             title: "Hand-correct your sleep times + smaller backups",
             date: "June 2026",
             items: [
-                "**Sleep (iPhone/Mac):** auto-detection sometimes reads the wrong bed or wake time - now you can fix it. Tap the **pencil** on the Sleep tab to correct a night's **Asleep / Woke** times, and NOOP re-stages the night from the raw sensor data over your corrected window. The correction **sticks** - a later strap sync won't quietly revert it. (For an imported WHOOP-export night, the displayed times update but its recovery/performance stay as WHOOP recorded them.) Thanks @claypilat (#395).",
+                "**Sleep (iPhone/Mac):** auto-detection sometimes reads the wrong bed or wake time - now you can fix it. Tap the **pencil** on the Sleep tab to correct a night's **Asleep / Woke** times, and reNOOP re-stages the night from the raw sensor data over your corrected window. The correction **sticks** - a later strap sync won't quietly revert it. (For an imported WHOOP-export night, the displayed times update but its recovery/performance stay as WHOOP recorded them.) Thanks @claypilat (#395).",
                 "**Smaller, shareable backups:** exporting your data now produces a compressed **`.noopbak`** file - typically **80-90% smaller** (a 100 MB+ backup becomes ~10-20 MB), small enough to AirDrop, message or email. iPhone, Mac and Android all read each other's, and your older uncompressed backups still import fine. Thanks @ujix (#396).",
             ]),
         Release(
@@ -1207,7 +1207,7 @@ enum AppChangelog {
             title: "Strap battery alerts",
             date: "June 2026",
             items: [
-                "New: NOOP can now alert you when your WHOOP's battery runs **low (15% or below)** or finishes **charging (100%)** - a simple system notification so you don't get caught out before bed. It fires at most once per discharge and once per charge (a small re-arm band means a battery hovering near 15% won't nag you), and it's on by default - turn it off any time under Settings → Automations. All three platforms. Thanks @ujix (#368).",
+                "New: reNOOP can now alert you when your WHOOP's battery runs **low (15% or below)** or finishes **charging (100%)** - a simple system notification so you don't get caught out before bed. It fires at most once per discharge and once per charge (a small re-arm band means a battery hovering near 15% won't nag you), and it's on by default - turn it off any time under Settings → Automations. All three platforms. Thanks @ujix (#368).",
             ]),
         Release(
             version: "3.2.0",
@@ -1223,7 +1223,7 @@ enum AppChangelog {
             items: [
                 "Smart alarm: it now re-arms every day, so a strap that stays connected keeps waking you past the first morning (iPhone, Mac and Android). On WHOOP 5/MG the strap's firmware alarm correctly stays behind the Experimental toggle until it's confirmed. Thanks @vulnix0x4 (#376, #379).",
                 "More honest numbers: workout calories now count sparse heart-rate streams properly without ever over-counting your whole day; heart-rate zones are no longer inflated by a gap when the strap is off your wrist; daytime stress no longer false-alarms from your overnight sleep; and the recovery baseline reads your imported data cleanly. Thanks @vulnix0x4 (#360, #366, #357, #387).",
-                "Bluetooth & live HR: WHOOP 5/MG keeps decoding correctly after iOS relaunches NOOP in the background, and the Lock-Screen / Dynamic-Island live heart rate now ends when the strap disconnects instead of freezing on a stale number. Thanks @vulnix0x4 (#378, #386).",
+                "Bluetooth & live HR: WHOOP 5/MG keeps decoding correctly after iOS relaunches reNOOP in the background, and the Lock-Screen / Dynamic-Island live heart rate now ends when the strap disconnects instead of freezing on a stale number. Thanks @vulnix0x4 (#378, #386).",
                 "Your data is safer: a failed import now keeps your existing data instead of risking an empty database, and the AI Coach never sends an API key you saved for one provider to a different one. Thanks @vulnix0x4 (#383, #385).",
                 "Accessibility & polish: the breathing orb honours Reduce Motion, the 24-hour heart-rate chart reads out in VoiceOver, text scales with Dynamic Type, the day navigator has bigger tap targets, and Sleep/Stress times follow your device's 12/24-hour and language settings. The Today screen also stays smooth while live heart rate streams. Thanks @vulnix0x4 (#359, #362, #381, #363, #361, #388, #358).",
                 "Android: workout rows are now tappable with a detail sheet, and the sleep-consistency tile no longer reads a false 0% - thanks @ujix (#370, #367). The Rest confidence dot now matches iPhone/Mac (#373). Plus an accurate Mac menu-bar live-feed toggle, and \"What's New\" no longer gets skipped after an update that also refreshes the Terms (#390, #389).",
@@ -1240,15 +1240,15 @@ enum AppChangelog {
             title: "Bluetooth stream + Apple Health sync fixes",
             date: "June 2026",
             items: [
-                "Fixed: a corrupt or mis-aligned Bluetooth frame could wedge the live data stream until you reconnected - NOOP now spots an impossible frame length and resyncs to the next real frame instead of stalling. Thanks @vulnix0x4 (#374).",
-                "Fixed (iPhone): the two-way Apple Health sync was reading its OWN written-back values back in as \"Apple Health\" data - which could make your strap and Apple Health plot the same line, and skew the Apple-Health average if you also wear a watch. It now excludes NOOP's own samples on read, and a failed sync no longer reports a false \"success\". Thanks @vulnix0x4 (#375).",
+                "Fixed: a corrupt or mis-aligned Bluetooth frame could wedge the live data stream until you reconnected - reNOOP now spots an impossible frame length and resyncs to the next real frame instead of stalling. Thanks @vulnix0x4 (#374).",
+                "Fixed (iPhone): the two-way Apple Health sync was reading its OWN written-back values back in as \"Apple Health\" data - which could make your strap and Apple Health plot the same line, and skew the Apple-Health average if you also wear a watch. It now excludes reNOOP's own samples on read, and a failed sync no longer reports a false \"success\". Thanks @vulnix0x4 (#375).",
             ]),
         Release(
             version: "3.0.1",
             title: "Cleaner score rings + a few fixes",
             date: "June 2026",
             items: [
-                "Changed: removed the small gold dot in the centre of the Charge / Recovery rings, behind the number - at the v3 launch a few of you (rightly) said it crowded the read-out. The clean ring + number + micro-NOOP wordmark stay; the dot now lives only in the standalone logo.",
+                "Changed: removed the small gold dot in the centre of the Charge / Recovery rings, behind the number - at the v3 launch a few of you (rightly) said it crowded the read-out. The clean ring + number + micro-reNOOP wordmark stay; the dot now lives only in the standalone logo.",
                 "Fixed: Steps on Today now prefer your strap's own on-device step count (WHOOP 5/MG) over Apple Health, matching Android - so strap-only users see their steps without importing anything. Thanks @netizentryingtofitin (#276).",
                 "Fixed: a real overnight sleep that runs late, or has a brief morning stir then drifts back to sleep, no longer truncates your wake time to late morning (\"woke at noon\"). Your true wake time is kept. Thanks @vulnix0x4 (#353).",
                 "Fixed (Android): the HR-zone coaching toggle now actually persists and buzzes your strap when you cross into your top zone - and again as you recover - closing the gap with Mac/iPhone. It was previously a preview-only stub. Thanks @cbarrado (#350).",
@@ -1258,7 +1258,7 @@ enum AppChangelog {
             title: "A whole new look - \"Titanium & Gold\"",
             date: "June 2026",
             items: [
-                "New: NOOP's biggest redesign yet - \"Titanium & Gold\". A deep-navy canvas, a warm gold accent, brushed-titanium detail and a per-domain colour world (blue sleep, amber strain, teal HRV, burnt-orange stress), in Helvetica, across iPhone, Android and Mac.",
+                "New: reNOOP's biggest redesign yet - \"Titanium & Gold\". A deep-navy canvas, a warm gold accent, brushed-titanium detail and a per-domain colour world (blue sleep, amber strain, teal HRV, burnt-orange stress), in Helvetica, across iPhone, Android and Mac.",
                 "New: a brand-new machined-titanium app icon with a gold core - plus a Settings → App Icon toggle to switch to a darker \"blued-titanium\" version.",
                 "New: a refreshed in-app brand mark on the splash, onboarding and navigation.",
                 "Polish: a consistency pass across every screen - tidier cards, cleaner date selectors (no more dark-yellow blocks), smoother transitions, and a tab bar where the centre \"+\" sits in its own space. Live heart rate now lives on the \"+\" quick-actions menu.",
@@ -1303,7 +1303,7 @@ enum AppChangelog {
             title: "Export your raw sensor data (CSV)",
             date: "June 2026",
             items: [
-                "New (experimental): Settings now has an Export raw sensor data (CSV) button - it dumps the decoded per-sample streams NOOP already stores (heart rate, R-R, accelerometer, the motion/step counter, SpO2/PPG and events) for the last 24h as a plain CSV. It's for tinkerers: prototype your own sleep / activity / VBT algorithms on real data, no BLE coding needed. On-device only, nothing leaves your phone unless you share it. Thanks @maddognik / @alacore (#322/#276).",
+                "New (experimental): Settings now has an Export raw sensor data (CSV) button - it dumps the decoded per-sample streams reNOOP already stores (heart rate, R-R, accelerometer, the motion/step counter, SpO2/PPG and events) for the last 24h as a plain CSV. It's for tinkerers: prototype your own sleep / activity / VBT algorithms on real data, no BLE coding needed. On-device only, nothing leaves your phone unless you share it. Thanks @maddognik / @alacore (#322/#276).",
             ]),
         Release(
             version: "2.17.1",
@@ -1364,11 +1364,11 @@ enum AppChangelog {
             title: "The new look everywhere - plus sleep, Effort & Bluetooth fixes",
             date: "June 2026",
             items: [
-                "The new look, everywhere: every screen now wears NOOP's premium dark design - scenic backdrops, glowing ring gauges and frosted per-domain cards across Sleep, Recovery, Stress, Workouts, Live, Health, Trends, Insights, Breathe, Coach and Settings, on Mac, iPhone and Android.",
+                "The new look, everywhere: every screen now wears reNOOP's premium dark design - scenic backdrops, glowing ring gauges and frosted per-domain cards across Sleep, Recovery, Stress, Workouts, Live, Health, Trends, Insights, Breathe, Coach and Settings, on Mac, iPhone and Android.",
                 "Fixed (sleep day): if you fall asleep before midnight and wake before ~4am in a timezone other than UTC, Today now shows last night's sleep instead of the night before. Thanks @maddognik (#304).",
-                "Fixed (sleep detection): on WHOOP 5.0 a full night is no longer chopped into tiny fragments and dropped - NOOP now holds the night together from your heart rate when motion data is sparse. Thanks @umarXBT (#308).",
+                "Fixed (sleep detection): on WHOOP 5.0 a full night is no longer chopped into tiny fragments and dropped - reNOOP now holds the night together from your heart rate when motion data is sparse. Thanks @umarXBT (#308).",
                 "Fixed (Effort scale): the Effort gauge on Today, Live and Workouts now follows your 0-100 / 0-21 preference instead of always showing 0-21, and older imported days are re-scored onto the 0-100 axis. Thanks @maddognik (#313).",
-                "Fixed (Android Bluetooth): turning Bluetooth off - or flight mode - no longer leaves NOOP showing a phantom \"connected\" or crashing on the next buzz; it now cleanly shows disconnected and reconnects when Bluetooth returns. Thanks @pilleuspulcher-blip (#314).",
+                "Fixed (Android Bluetooth): turning Bluetooth off - or flight mode - no longer leaves reNOOP showing a phantom \"connected\" or crashing on the next buzz; it now cleanly shows disconnected and reconnects when Bluetooth returns. Thanks @pilleuspulcher-blip (#314).",
             ]),
         Release(
             version: "2.14.1",
@@ -1382,7 +1382,7 @@ enum AppChangelog {
             title: "A beautiful new look",
             date: "June 2026",
             items: [
-                "NOOP has a **gorgeous new design** - deeper, calmer, more premium. A dark blue-black canvas, **layered ring gauges** for your Charge, Effort and Rest scores with glowing accents, **frosted tinted cards**, and a refreshed Today. Same data, same on-device privacy - it just looks the way it always should have. More screens get the full treatment over the coming updates.",
+                "reNOOP has a **gorgeous new design** - deeper, calmer, more premium. A dark blue-black canvas, **layered ring gauges** for your Charge, Effort and Rest scores with glowing accents, **frosted tinted cards**, and a refreshed Today. Same data, same on-device privacy - it just looks the way it always should have. More screens get the full treatment over the coming updates.",
             ]),
         Release(
             version: "2.13.0",
@@ -1391,7 +1391,7 @@ enum AppChangelog {
             items: [
                 "New: a **WHOOP-style Overview chart** on Today - your 24-hour heart rate now carries a sleep band, your Charge at wake, your Effort now, and a glyph at each workout's peak. Thanks @rad182.",
                 "New: the **Sleep** screen now shows your **asleep and woke times** at a glance. Thanks @vulnix0x4.",
-                "New (iPhone): **two-way Apple Health** you can actually turn on - enable it on the Apple Health screen and your NOOP recovery, HRV, resting HR and more flow to Health (now including strap-only users), with the Apple Health screen finally populating. Thanks @vulnix0x4.",
+                "New (iPhone): **two-way Apple Health** you can actually turn on - enable it on the Apple Health screen and your reNOOP recovery, HRV, resting HR and more flow to Health (now including strap-only users), with the Apple Health screen finally populating. Thanks @vulnix0x4.",
                 "New (iPhone): a proper **accessibility pass** - VoiceOver reads the charts, tiles and controls, **Reduce Motion** is respected throughout, and touch targets meet the 44pt minimum. Thanks @vulnix0x4.",
                 "New (iPhone): **pull-to-refresh** on the main screens, the **screen stays awake** plus **haptics** during Breathe and Interval sessions, a **Siri & Shortcuts** screen, a readable iPad layout, and background strap reconnect via CoreBluetooth state restoration.",
                 "Fixed (iPhone): Apple Health workout counts, secondary screens now refresh after a sync, the Compare chart is readable by touch, 'Mark a Moment' stamps the right time, and a long list of platform-correct copy + layout polish. Thanks @vulnix0x4 and @khalilkm01.",
@@ -1401,25 +1401,25 @@ enum AppChangelog {
             title: "Continuous HRV capture - sharper overnight HRV, recovery and sleep",
             date: "June 2026",
             items: [
-                "New (opt-in): **Continuous HRV capture.** Your strap streams dense beat-to-beat heart-rate variability in the clear - but apps usually only listen while a live screen is open, so overnight, when HRV, recovery and sleep need it most, the data goes quiet. Turn this on (**Settings → Strap**) and NOOP keeps the stream open in the background, banking roughly an interval a second all night for much sharper overnight HRV, recovery and sleep - especially on WHOOP 5.0/MG. It uses more battery, so it's off by default and entirely your call. Big thanks to @Extazian, whose reverse-engineering proved this is reachable without touching anything encrypted.",
+                "New (opt-in): **Continuous HRV capture.** Your strap streams dense beat-to-beat heart-rate variability in the clear - but apps usually only listen while a live screen is open, so overnight, when HRV, recovery and sleep need it most, the data goes quiet. Turn this on (**Settings → Strap**) and reNOOP keeps the stream open in the background, banking roughly an interval a second all night for much sharper overnight HRV, recovery and sleep - especially on WHOOP 5.0/MG. It uses more battery, so it's off by default and entirely your call. Big thanks to @Extazian, whose reverse-engineering proved this is reachable without touching anything encrypted.",
             ]),
         Release(
             version: "2.11.1",
             title: "Fix: your day now follows your timezone, not UTC",
             date: "June 2026",
             items: [
-                "Fixed: on phones away from UTC - most of the world - the dashboard could appear to **freeze partway through the day**: new steps and readings stopped showing even though the strap was syncing perfectly. NOOP was filing each day by UTC midnight instead of *your* local midnight, so once your clock crossed the UTC boundary, fresh data landed in the next day's bucket where the screen wasn't looking. NOOP now buckets every day by your local day, everywhere. Thanks @Meriquium (#277).",
+                "Fixed: on phones away from UTC - most of the world - the dashboard could appear to **freeze partway through the day**: new steps and readings stopped showing even though the strap was syncing perfectly. reNOOP was filing each day by UTC midnight instead of *your* local midnight, so once your clock crossed the UTC boundary, fresh data landed in the next day's bucket where the screen wasn't looking. reNOOP now buckets every day by your local day, everywhere. Thanks @Meriquium (#277).",
             ]),
         Release(
             version: "2.11.0",
             title: "A smart wake alarm, live workout mode, an editable Today, and lifting imports",
             date: "June 2026",
             items: [
-                "New (Android): a **smart wake alarm** - set a wake window and NOOP wakes you on a lighter sleep phase inside it, with a guaranteed alarm at the end of the window. The guaranteed wake is a real OS alarm that fires even if Bluetooth drops or the app is closed. Thanks @subscriptiondestroyer (#207).",
+                "New (Android): a **smart wake alarm** - set a wake window and reNOOP wakes you on a lighter sleep phase inside it, with a guaranteed alarm at the end of the window. The guaranteed wake is a real OS alarm that fires even if Bluetooth drops or the app is closed. Thanks @subscriptiondestroyer (#207).",
                 "New: an evening **wind-down nudge** on every platform - a gentle reminder, timed from your usual wake time and sleep need, that it's time to start winding down. (A sideloaded iPhone/Mac app can't sound a dependable wake alarm, so those get the nudge, not the wake alarm.)",
                 "New: **live workout mode** - a full-screen in-exercise view with big live heart rate, your current HR zone, elapsed time and live effort. Thanks @subscriptiondestroyer (#238).",
                 "New: **editable Key Metrics** - choose which tiles appear on Today and reorder them to taste. Thanks @umarXBT (#251).",
-                "New: an **Effort scale toggle** - show Effort on NOOP's 0-100 axis or WHOOP's familiar 0-21 Day-Strain axis, everywhere it appears. Display-only; your stored data is unchanged. Thanks @umarXBT (#268).",
+                "New: an **Effort scale toggle** - show Effort on reNOOP's 0-100 axis or WHOOP's familiar 0-21 Day-Strain axis, everywhere it appears. Display-only; your stored data is unchanged. Thanks @umarXBT (#268).",
                 "Improved: the **sleep hypnogram is smoother** - brief sub-3-minute stage flecks merge into their neighbours so the graph reads cleanly, biased toward the lighter stage so it never inflates Deep or REM. Thanks @umarXBT (#274).",
                 "New: **import your lifting log** from Hevy (CSV) or Liftosaur (JSON) - each workout lands as a Strength session with an honest training volume-load (weight × reps), kept separate from your heart-rate Effort. On-device, nothing uploaded. Thanks @marceauboul and @maddognik (#272/#232).",
             ]),
@@ -1446,9 +1446,9 @@ enum AppChangelog {
                 "New (Android): the Sleep screen gains in-app bed/wake-time editing - fix a mis-detected night and every metric recomputes live - plus Hours-vs-Needed and Sleep-Consistency cards, night-by-night navigation, and tappable metric details. Thanks @ujix.",
                 "New: log journal entries for **tomorrow**, not just today and yesterday - today's activities inform tomorrow's recovery. Thanks @Eph00n (#237).",
                 "Fixed (iPhone): the Explore list could appear empty even though the data was there - it now renders immediately with a brief 'scanning' hint instead of a blank list. Thanks @sebastianwoo (#199).",
-                "Improved: body vitals now show which source each reading came from (your WHOOP, NOOP's own computation, or Apple Health) and merge them field-by-field instead of letting one source blank the others. Thanks @khalilkm01.",
+                "Improved: body vitals now show which source each reading came from (your WHOOP, reNOOP's own computation, or Apple Health) and merge them field-by-field instead of letting one source blank the others. Thanks @khalilkm01.",
                 "New (Android): tap-and-drag to inspect the Stress chart, and a cleaner Explore metric picker. Thanks @ujix.",
-                "New: an optional, read-only local access package (MCP) for power users who want to query their own on-device NOOP data from local tools - opt-in, nothing leaves the device. Thanks @khalilkm01.",
+                "New: an optional, read-only local access package (MCP) for power users who want to query their own on-device reNOOP data from local tools - opt-in, nothing leaves the device. Thanks @khalilkm01.",
                 "Also fixed a heart-rate-ingest crash on startup that a community ADB log surfaced. Thanks @maddognik (#224).",
             ]),
         Release(
@@ -1457,8 +1457,8 @@ enum AppChangelog {
             date: "June 2026",
             items: [
                 "Fixed (Android): the Insights tab crashed for anyone with journal entries - a text-matching pattern used a flag that works on a computer but not on Android’s engine, so it threw the moment you opened Insights. Fixed. Thanks @pilleuspulcher-blip and @maddognik (#224/#267).",
-                "New (Android): if NOOP ever crashes, the details are now saved into the strap log you share - so a crash that only happens on your device can actually be diagnosed (#33).",
-                "More accurate HRV: the heart-rate variability NOOP computes from a session now discards stray, irregular beats before averaging - the same cleaning the rest of its HRV maths already does - so a noisy WHOOP 5/MG optical reading no longer comes out inflated. Thanks @frazzle28 (#262/#235).",
+                "New (Android): if reNOOP ever crashes, the details are now saved into the strap log you share - so a crash that only happens on your device can actually be diagnosed (#33).",
+                "More accurate HRV: the heart-rate variability reNOOP computes from a session now discards stray, irregular beats before averaging - the same cleaning the rest of its HRV maths already does - so a noisy WHOOP 5/MG optical reading no longer comes out inflated. Thanks @frazzle28 (#262/#235).",
                 "Fixed (Mac): the sidebar and the Settings strap card could disagree about your connection - one saying ‘Connecting…’ while the other said ‘Connected’ for the same state. They now read from one source. Thanks @gingerbeardman (#266).",
                 "Fixed (Mac & iPhone): the experimental WHOOP 5/MG deep-data unlock now requires the full encrypted bond. A live-HR-only link (strap still owned by the official app) can’t carry the unlock, so the button waits for a real bond and tells you to free the strap from the official app first. Thanks @Joshsil03 (#269).",
                 "New (Android): the ‘Start a workout’ sport list now shows a scrollbar so you can tell it scrolls, and adds Tennis, Squash and Table tennis. Thanks @nhe (#265).",
@@ -1478,7 +1478,7 @@ enum AppChangelog {
             date: "June 2026",
             items: [
                 "New: each Readiness signal now shows the numbers behind it - e.g. ‘HRV 72 vs 60 ms’, ‘Resting HR 46 vs 52 bpm’, ‘Training load 7d 10.0 / 28d 10.0’ - so you can see exactly why a signal is flagged, not just the label. Thanks @khalilkm01.",
-                "Fixed (Android): a workout imported from Health Connect could show no distance even when the distance was recorded - a relay app (e.g. Suunto via Health Sync) often writes the distance with timestamps slightly offset from the workout, which NOOP's exact-window match missed. It now matches with a tolerance. Thanks @pilleuspulcher-blip. (#215)",
+                "Fixed (Android): a workout imported from Health Connect could show no distance even when the distance was recorded - a relay app (e.g. Suunto via Health Sync) often writes the distance with timestamps slightly offset from the workout, which reNOOP's exact-window match missed. It now matches with a tolerance. Thanks @pilleuspulcher-blip. (#215)",
                 "Fixed (iPhone): on the Explore screen, tapping a metric could bounce you back to the More tab instead of opening it - a nested-navigation bug. Drilling into a metric now works. Thanks @sebastianwoo. (#199)",
             ]),
         Release(
@@ -1486,33 +1486,33 @@ enum AppChangelog {
             title: "iPhone diagnostics & expectations, clearer labels, a journal fix",
             date: "June 2026",
             items: [
-                "New (iPhone): a 'Using NOOP on iPhone' note in Settings sets honest expectations - sideloading, re-signing, unlocking your phone after a reboot so history can sync - and shows how many days until your sideloaded build expires. The strap log you share now also carries the iPhone details (iOS version, lock state, background-refresh, low-power) that make iPhone-only issues quick to diagnose, with a one-tap Diagnostics screen to copy them.",
+                "New (iPhone): a 'Using reNOOP on iPhone' note in Settings sets honest expectations - sideloading, re-signing, unlocking your phone after a reboot so history can sync - and shows how many days until your sideloaded build expires. The strap log you share now also carries the iPhone details (iOS version, lock state, background-refresh, low-power) that make iPhone-only issues quick to diagnose, with a one-tap Diagnostics screen to copy them.",
                 "Fixed: copy that said 'this Mac' now reads correctly on iPhone. Thanks @robin-liquidium (#225).",
                 "Fixed: the journal could show the same prompt (e.g. magnesium) twice after importing - duplicates are now merged, on every platform. Thanks @maddognik (#224).",
-                "Improved (WHOOP 5/MG): the heart rate NOOP derives from the optical sensor on sleeping (sub-60 bpm) stretches no longer risks snapping to ~60 bpm from a recording artifact, while a genuine 60 bpm is preserved. Thanks @ryanbr (#194).",
+                "Improved (WHOOP 5/MG): the heart rate reNOOP derives from the optical sensor on sleeping (sub-60 bpm) stretches no longer risks snapping to ~60 bpm from a recording artifact, while a genuine 60 bpm is preserved. Thanks @ryanbr (#194).",
             ]),
         Release(
             version: "2.8.5",
             title: "Fixed: iPhone import, and a stuck store now self-heals",
             date: "June 2026",
             items: [
-                "Fixed (iPhone): importing a WHOOP or Apple Health export could silently do nothing - iOS was handing the app an iCloud file that hadn't downloaded yet. NOOP now downloads a local copy first (through the system Files picker), so imports actually go through. Thanks @adrnxq and @Chopin85. (#179)",
-                "Fixed (iPhone): if a NOOP backup from another platform had been restored (e.g. an Android backup onto an iPhone), the app could get permanently stuck on “store not ready” - the imported database held the data but not the bookkeeping NOOP's database engine needs. NOOP now recovers automatically on the next launch, and declines such a backup at import time with a clear explanation. To move history across platforms, use the WHOOP-format CSV export instead. Thanks @NoahMcE. (#222)",
+                "Fixed (iPhone): importing a WHOOP or Apple Health export could silently do nothing - iOS was handing the app an iCloud file that hadn't downloaded yet. reNOOP now downloads a local copy first (through the system Files picker), so imports actually go through. Thanks @adrnxq and @Chopin85. (#179)",
+                "Fixed (iPhone): if a reNOOP backup from another platform had been restored (e.g. an Android backup onto an iPhone), the app could get permanently stuck on “store not ready” - the imported database held the data but not the bookkeeping reNOOP's database engine needs. reNOOP now recovers automatically on the next launch, and declines such a backup at import time with a clear explanation. To move history across platforms, use the WHOOP-format CSV export instead. Thanks @NoahMcE. (#222)",
             ]),
         Release(
             version: "2.8.4",
             title: "New: a guide to how your Charge, Effort and Rest scores work",
             date: "June 2026",
             items: [
-                "New: a clear in-app guide to how NOOP's three daily scores - Charge, Effort and Rest - are calculated, and how they differ from WHOOP's Recovery, Strain and Sleep. Tap the ⓘ on any score on the Today screen, or open it any time from Settings → About → How your scores work. New here? A one-time card points you to it.",
-                "New: each score now explains how sure NOOP is of it - Solid, Building or Calibrating - and carries a one-line description of what it measures.",
+                "New: a clear in-app guide to how reNOOP's three daily scores - Charge, Effort and Rest - are calculated, and how they differ from WHOOP's Recovery, Strain and Sleep. Tap the ⓘ on any score on the Today screen, or open it any time from Settings → About → How your scores work. New here? A one-time card points you to it.",
+                "New: each score now explains how sure reNOOP is of it - Solid, Building or Calibrating - and carries a one-line description of what it measures.",
             ]),
         Release(
             version: "2.8.3",
             title: "Fixed: imported data and strap sync getting stuck on iOS",
             date: "June 2026",
             items: [
-                "Fixed (iOS): after importing your data, the strap could get stuck on \"store not ready\" and never sync - imported history wouldn't appear and backfill never started. On iOS the local database was sealed behind the device's data protection while the phone was locked, so a background reconnect couldn't open it (macOS and Android were never affected). NOOP now stores its database at the right protection level - readable after you first unlock since boot, still encrypted at rest - and retries automatically, so sync proceeds. Thanks @NoahMcE (#222).",
+                "Fixed (iOS): after importing your data, the strap could get stuck on \"store not ready\" and never sync - imported history wouldn't appear and backfill never started. On iOS the local database was sealed behind the device's data protection while the phone was locked, so a background reconnect couldn't open it (macOS and Android were never affected). reNOOP now stores its database at the right protection level - readable after you first unlock since boot, still encrypted at rest - and retries automatically, so sync proceeds. Thanks @NoahMcE (#222).",
                 "Improved: store-open failures are now written to the strap log with the real reason instead of failing silently, so problems like this are diagnosable at a glance.",
             ]),
         Release(
@@ -1521,7 +1521,7 @@ enum AppChangelog {
             date: "June 2026",
             items: [
                 "Fixed (Android): your Charge could read slightly low on Android because the skin-temperature term was weighted twice as hard as on macOS/iOS. All three apps now compute Charge identically. (#219)",
-                "Fixed (Android, WHOOP 5/MG): the heart rate NOOP derives from the optical (PPG) sensor on stretches with no measured HR now uses the same harmonic-rejecting estimator as macOS/iOS - it could previously lock onto half or double your true rate - and it now also recovers HR from short data runs the way the other apps do. (#219)",
+                "Fixed (Android, WHOOP 5/MG): the heart rate reNOOP derives from the optical (PPG) sensor on stretches with no measured HR now uses the same harmonic-rejecting estimator as macOS/iOS - it could previously lock onto half or double your true rate - and it now also recovers HR from short data runs the way the other apps do. (#219)",
                 "Fixed (Android): the respiratory-rate early-illness signal in Readiness now uses the same sensitivity thresholds and plausible-range filter as macOS/iOS, so all three apps flag it the same way.",
                 "Fixed: assorted smaller cross-platform tidy-ups - skin-temperature data is now kept over the same range on every platform (Android was dropping valid just-put-on readings), CSV exports round-trip byte-for-byte, and a couple of score-rounding edge cases now agree across apps.",
             ]),
@@ -1530,7 +1530,7 @@ enum AppChangelog {
             title: "Battery + responsiveness: smarter sync, lighter notification",
             date: "June 2026",
             items: [
-                "Improved (battery): NOOP now backs off its history-sync polling when the strap keeps handing over nothing (off-wrist or not yet banking) instead of re-trying every 90 seconds - a manual or reconnect sync still runs instantly, and the first real record resumes normal cadence. Thanks @ryanbr (#217).",
+                "Improved (battery): reNOOP now backs off its history-sync polling when the strap keeps handing over nothing (off-wrist or not yet banking) instead of re-trying every 90 seconds - a manual or reconnect sync still runs instantly, and the first real record resumes normal cadence. Thanks @ryanbr (#217).",
                 "Improved: a just-synced night's Charge / Effort / Rest now appear the moment the sync finishes, instead of up to 15 minutes later. Thanks @FrostDev7 (#218).",
                 "Improved (Android, battery): the persistent notification no longer re-draws with your live heart rate every second - it updates only when the connection, sync, recovery or battery state changes, cutting a constant background wakeup. Thanks @Eph00n and @spasypaddy (#216).",
             ]),
@@ -1542,9 +1542,9 @@ enum AppChangelog {
                 "New: a **Week in review** - a deterministic, offline weekly digest of your Charge / Effort / Rest, HRV and resting HR, with week-over-week and vs-baseline changes and a plain-English read. It appears at the top of Trends once the week has a day or two of data. Thanks @subscriptiondestroyer (#208).",
                 "New (Live screen): a live **body console** - a clearer at-a-glance readout of heart rate, recent R-R, a rolling RMSSD and the live connection/signal state. Thanks @khalilkm01.",
                 "New: the Live heart-rate chart now has a **time axis** so you can read what window it covers and watch it scroll. Thanks @sebastianwoo (#198).",
-                "Improved: charts and metrics now resolve the **freshest source** for each value (imported WHOOP, then NOOP-computed, then compatible Apple Health), so a screen never looks stale when newer data exists. Thanks @khalilkm01.",
+                "Improved: charts and metrics now resolve the **freshest source** for each value (imported WHOOP, then reNOOP-computed, then compatible Apple Health), so a screen never looks stale when newer data exists. Thanks @khalilkm01.",
                 "New (Insights): a **personal experiments** (n-of-1) section that correlates a behaviour you log against your recovery - only for behaviours you actually have data for. Thanks @khalilkm01.",
-                "Improved (AI Coach): when a local LLM truncates the conversation to fit its context window, NOOP now tells you, and caps the history it sends to local servers. Thanks @witchykinkajou.",
+                "Improved (AI Coach): when a local LLM truncates the conversation to fit its context window, reNOOP now tells you, and caps the history it sends to local servers. Thanks @witchykinkajou.",
                 "Improved (Android): the Today and Trends charts now have proper time and value axis labels. Thanks @ujix.",
             ]),
         Release(
@@ -1552,15 +1552,15 @@ enum AppChangelog {
             title: "Big fix wave - clock, reconnect, local LLM, Explore, weight and more",
             date: "June 2026",
             items: [
-                "Fixed (WHOOP 4.0): some straps on firmware 41.17.x silently failed to set their clock, so they banked no history and showed no sleep or recovery. NOOP now sends both clock-command formats, so these straps clock and bank correctly. Thanks @rad182 (#120).",
-                "Fixed: the strap sometimes wouldn't reconnect after an app update - NOOP now rotates the scan between WHOOP 4 and 5/MG so it finds your strap either way. Thanks @khalilkm01.",
+                "Fixed (WHOOP 4.0): some straps on firmware 41.17.x silently failed to set their clock, so they banked no history and showed no sleep or recovery. reNOOP now sends both clock-command formats, so these straps clock and bank correctly. Thanks @rad182 (#120).",
+                "Fixed: the strap sometimes wouldn't reconnect after an app update - reNOOP now rotates the scan between WHOOP 4 and 5/MG so it finds your strap either way. Thanks @khalilkm01.",
                 "Fixed (AI Coach): the Custom provider can now reach a local LLM on your home network (e.g. Ollama at http://192.168.x.x:11434), not just localhost - on Android and iPhone, while cloud providers stay HTTPS-only. Thanks @andreasc1 (#187).",
                 "Fixed (iPhone): the Backup buttons (Export / Import / Export CSV) no longer truncate to Ex / Im / E. (#188)",
                 "Fixed: the Explore page was empty for WHOOP 5 users on live Bluetooth with no import - it now reads your computed daily scores. Thanks @sebastianwoo (#199).",
                 "Fixed: the Today Weight tile now shows the weight you set in Settings when Apple Health has none. Thanks @subscriptiondestroyer (#204).",
                 "Fixed (Android): imported Health Connect workouts now carry distance, so the Total Distance tile is no longer always zero. Thanks @pilleuspulcher (#215).",
                 "Fixed (WHOOP 5/MG): PPG-derived heart rate now feeds the daily scores, so a night recorded only from the optical sensor can still be scored. Thanks @khalilkm01 (#212).",
-                "Fixed (WHOOP 4.0): when a strap hands over an empty history sync, NOOP now reliably tells you to charge it to 100% and reconnect instead of silently showing nothing. Thanks @alberba (#214).",
+                "Fixed (WHOOP 4.0): when a strap hands over an empty history sync, reNOOP now reliably tells you to charge it to 100% and reconnect instead of silently showing nothing. Thanks @alberba (#214).",
                 "Fixed (Mac): the on-device store now stays in the app's sandbox container, with a one-time migration so nothing is lost. Thanks @khalilkm01.",
             ]),
         Release(
@@ -1583,7 +1583,7 @@ enum AppChangelog {
             title: "iPhone import: handle iCloud and large export files",
             date: "June 2026",
             items: [
-                "Fixed (iPhone): importing a WHOOP or Apple Health export could still fail right after you picked the file. NOOP now copies the file out of iCloud Drive / Files into local storage first - so a not-yet-downloaded iCloud file or a very large export actually opens - and then imports it. Thanks @adrnxq and @Chopin85 (#179).",
+                "Fixed (iPhone): importing a WHOOP or Apple Health export could still fail right after you picked the file. reNOOP now copies the file out of iCloud Drive / Files into local storage first - so a not-yet-downloaded iCloud file or a very large export actually opens - and then imports it. Thanks @adrnxq and @Chopin85 (#179).",
             ]),
         Release(
             version: "2.6.7",
@@ -1635,28 +1635,28 @@ enum AppChangelog {
             title: "Effort scale fix for imported data",
             date: "June 2026",
             items: [
-                "Fixed: imported WHOOP Day Strain and workout strain now correctly land on NOOP's 0-100 Effort axis (the 0-21 to 0-100 rescale was defined in v2.6.0 but not wired up), so imported and on-device Effort finally share one scale. And NOOP's own CSV export now writes Effort on WHOOP's 0-21 scale, so re-importing your own export round-trips losslessly.",
+                "Fixed: imported WHOOP Day Strain and workout strain now correctly land on reNOOP's 0-100 Effort axis (the 0-21 to 0-100 rescale was defined in v2.6.0 but not wired up), so imported and on-device Effort finally share one scale. And reNOOP's own CSV export now writes Effort on WHOOP's 0-21 scale, so re-importing your own export round-trips losslessly.",
             ]),
         Release(
             version: "2.6.0",
-            title: "Charge, Effort & Rest - NOOP's own scores, out of 100",
+            title: "Charge, Effort & Rest - reNOOP's own scores, out of 100",
             date: "June 2026",
             items: [
-                "New (Mac, iOS and Android): NOOP now has its own daily scores, all out of 100 - Charge (how recovered and ready you are), Effort (the day cardiovascular + movement load), and Rest (last night sleep quality). They are computed on-device across WHOOP 4.0 and 5.0/MG from published sports-science methods (no WHOOP cloud): Charge folds HRV, resting heart rate, respiration, your skin-temperature deviation and Rest into one readiness number; Effort is your cardiovascular load curve; Rest weighs how long you slept versus your need, efficiency, restorative (deep + REM) sleep and consistency. Renamed from Recovery/Strain/Sleep and rescaled so everything reads on the same 0-100 axis. Imported WHOOP history is rescaled to match. They are honest approximations, not WHOOP scores.",
+                "New (Mac, iOS and Android): reNOOP now has its own daily scores, all out of 100 - Charge (how recovered and ready you are), Effort (the day cardiovascular + movement load), and Rest (last night sleep quality). They are computed on-device across WHOOP 4.0 and 5.0/MG from published sports-science methods (no WHOOP cloud): Charge folds HRV, resting heart rate, respiration, your skin-temperature deviation and Rest into one readiness number; Effort is your cardiovascular load curve; Rest weighs how long you slept versus your need, efficiency, restorative (deep + REM) sleep and consistency. Renamed from Recovery/Strain/Sleep and rescaled so everything reads on the same 0-100 axis. Imported WHOOP history is rescaled to match. They are honest approximations, not WHOOP scores.",
             ]),
         Release(
             version: "2.5.0",
             title: "Experimental: unlocking WHOOP 5.0/MG deep data",
             date: "June 2026",
             items: [
-                "New (Mac, iOS and Android, experimental): a WHOOP 5.0/MG \"deep data\" unlock under Settings → Experimental. 5/MG straps give a fresh third-party app only live heart rate; the official app switches on the deeper streams by writing a set of feature flags. NOOP can now send that exact, documented sequence to your strap (opt-in, one button, only when worn + bonded). It writes to the strap but is reversible - it just changes which data the strap emits - and it is the same thing the official app does. Experimental: it may do nothing on your firmware yet. If you have a 5/MG, turning it on and sharing your strap log is exactly what we need to finish 5.0/MG support. iPhone/Android only (a Mac cannot write to a 5/MG). Built on the public protocol work of judes.club, Asherlc/dofek and b-nnett/goose. (#174)",
+                "New (Mac, iOS and Android, experimental): a WHOOP 5.0/MG \"deep data\" unlock under Settings → Experimental. 5/MG straps give a fresh third-party app only live heart rate; the official app switches on the deeper streams by writing a set of feature flags. reNOOP can now send that exact, documented sequence to your strap (opt-in, one button, only when worn + bonded). It writes to the strap but is reversible - it just changes which data the strap emits - and it is the same thing the official app does. Experimental: it may do nothing on your firmware yet. If you have a 5/MG, turning it on and sharing your strap log is exactly what we need to finish 5.0/MG support. iPhone/Android only (a Mac cannot write to a 5/MG). Built on the public protocol work of judes.club, Asherlc/dofek and b-nnett/goose. (#174)",
             ]),
         Release(
             version: "2.4.0",
             title: "A small, honest ask",
             date: "June 2026",
             items: [
-                "New (Mac, iOS and Android): a small card on the Today screen - at most once every 12 hours - asking whether NOOP is proving useful, with the honest numbers: a WHOOP membership runs $300-480 a year, NOOP is free, and 5,000+ downloads in, 7 people have donated. \"Later\" snoozes it 12 hours; \"Don't ask again\" turns it off forever. It's a card in the flow, never a pop-over, and the stats are baked in at release time - the app still never touches the network.",
+                "New (Mac, iOS and Android): a small card on the Today screen - at most once every 12 hours - asking whether reNOOP is proving useful, with the honest numbers: a WHOOP membership runs $300-480 a year, reNOOP is free, and 5,000+ downloads in, 7 people have donated. \"Later\" snoozes it 12 hours; \"Don't ask again\" turns it off forever. It's a card in the flow, never a pop-over, and the stats are baked in at release time - the app still never touches the network.",
             ]),
         Release(
             version: "2.3.2",
@@ -1671,7 +1671,7 @@ enum AppChangelog {
             date: "June 2026",
             items: [
                 "Fixed (Mac and iOS): skin temperature from the strap was being read on the wrong scale, which made every real night look impossibly cold and silently discarded it - so the nightly skin-temp deviation never appeared. Real nights now read correctly (matching Android), and your deviation builds after a few nights of wear. (#166, PR #97 review - thanks @tigercraft4)",
-                "Fixed (Mac and iOS): the strap log no longer prints a stale \"layout v25/v26 … doesn't decode yet\" warning for layouts NOOP has decoded for a while. (#156, thanks @sudden-break)",
+                "Fixed (Mac and iOS): the strap log no longer prints a stale \"layout v25/v26 … doesn't decode yet\" warning for layouts reNOOP has decoded for a while. (#156, thanks @sudden-break)",
                 "Fixed (all platforms): the CSV export wrote the sleep-disturbance count into the \"Awake duration (min)\" column - the cell is now left empty rather than carrying the wrong unit. Also: workouts present as both an import and an on-device detection are no longer exported twice, free-text fields are guarded against spreadsheet formula injection, and a failed export on macOS can no longer destroy your previous export file. (PR #97 review - thanks @tigercraft4)",
             ]),
         Release(
@@ -1679,7 +1679,7 @@ enum AppChangelog {
             title: "HR from the optical waveform, an early-morning day rollover, and clearer terms",
             date: "June 2026",
             items: [
-                "New (Mac, iOS and Android): on WHOOP 5.0/MG, NOOP now derives a per-second heart rate from the strap's optical (PPG) waveform to fill gaps where a stored HR isn't available. It's heart-rate continuity only - it does not reconstruct HRV - and a measured HR always takes priority over a derived one. (#156, thanks @j0b-dev)",
+                "New (Mac, iOS and Android): on WHOOP 5.0/MG, reNOOP now derives a per-second heart rate from the strap's optical (PPG) waveform to fill gaps where a stored HR isn't available. It's heart-rate continuity only - it does not reconstruct HRV - and a measured HR always takes priority over a derived one. (#156, thanks @j0b-dev)",
                 "Fixed (Mac, iOS and Android): your day now rolls over in the early morning (~4am) instead of at midnight, so a late-night workout or a 1am glance still counts toward the right day rather than resetting underneath you. (#144)",
                 "Improved (Mac, iOS and Android): nights with more than one sleep block (naps, split sleep) are now grouped by day, so each block is shown and navigated correctly. (#160)",
                 "New (Android): an \"All other apps\" toggle under Notifications → Behaviour now buzzes your wrist for any app that isn't in the curated list (e.g. BeReal). Opt-in and off by default; quiet hours and only-when-worn still apply. (#168)",
@@ -1708,8 +1708,8 @@ enum AppChangelog {
             date: "June 2026",
             items: [
                 "New (Mac, iOS and Android): the Sleep screen now lets you browse past nights - tap ◀/▶ on the hypnogram to step back through every recorded night, not just last night. (#160, thanks @FrostDev7)",
-                "Fixed (Android): the AI Coach now sees the recovery, strain, sleep and HRV that NOOP computes on-device for live-strap users - it was only reading imported rows, so a Bluetooth-only user's Coach wrongly said it had no data. (#124)",
-                "Fixed (Android): your imported step count now updates for TODAY, not just past days - NOOP refreshes today's Health Connect steps when you open the app. (#150)",
+                "Fixed (Android): the AI Coach now sees the recovery, strain, sleep and HRV that reNOOP computes on-device for live-strap users - it was only reading imported rows, so a Bluetooth-only user's Coach wrongly said it had no data. (#124)",
+                "Fixed (Android): your imported step count now updates for TODAY, not just past days - reNOOP refreshes today's Health Connect steps when you open the app. (#150)",
                 "New (Mac, iOS and Android): workouts now show their start-end time (e.g. 13:00-13:30), and the Today screen shows your strap's battery level. (#157, #159)",
                 "New (Mac, iOS and Android): a Step calibration setting - if your step count runs high on a WHOOP 5.0/MG, set how many motion-counter ticks equal one real step (the default leaves counts unchanged). (#139)",
                 "New (Mac, iOS and Android): Breathe sessions now show your HRV response - how much your RMSSD rose from start to finish, and the peak - so you can see the calming effect land.",
@@ -1721,29 +1721,29 @@ enum AppChangelog {
             title: "Clearer answers when your strap isn't banking history",
             date: "June 2026",
             items: [
-                "Improved (Mac, iOS and Android): your strap log now records what a sync SAVED, not only what failed - a \"persisted N rows (M with motion) across K night(s)\" line on every successful offload. NOOP previously logged only failures, so a shared log couldn't show whether history was actually banking; now it can. (#150)",
-                "Improved (Mac, iOS and Android): when the strap reports it has no stored history to hand over (its \"no flash cursor\" state), NOOP now names the real cause plainly - the strap's clock has lost sync and it isn't saving to flash, a charge/clock state on the strap, NOT a NOOP decode bug. The Troubleshooting and FAQ guides now lead with this, the most common reason recovery and sleep don't appear, with the fix: fully charge to 100% and reconnect. (#150)",
+                "Improved (Mac, iOS and Android): your strap log now records what a sync SAVED, not only what failed - a \"persisted N rows (M with motion) across K night(s)\" line on every successful offload. reNOOP previously logged only failures, so a shared log couldn't show whether history was actually banking; now it can. (#150)",
+                "Improved (Mac, iOS and Android): when the strap reports it has no stored history to hand over (its \"no flash cursor\" state), reNOOP now names the real cause plainly - the strap's clock has lost sync and it isn't saving to flash, a charge/clock state on the strap, NOT a reNOOP decode bug. The Troubleshooting and FAQ guides now lead with this, the most common reason recovery and sleep don't appear, with the fix: fully charge to 100% and reconnect. (#150)",
             ]),
         Release(
             version: "1.99",
             title: "Your imported steps now show on the Today screen (Android)",
             date: "June 2026",
             items: [
-                "New (Android): the Today screen's Steps tile now shows the steps from your Apple Health / Health Connect import when the strap didn't bank an on-device count - so a WHOOP 4.0, which NOOP can't yet read steps off over Bluetooth, shows your imported steps instead of \"No Data\" (Mac and iOS already did this). Worth saying plainly: the WHOOP 4.0 does count steps in the official WHOOP app - the only gap was that NOOP couldn't surface them yet. (#150)",
+                "New (Android): the Today screen's Steps tile now shows the steps from your Apple Health / Health Connect import when the strap didn't bank an on-device count - so a WHOOP 4.0, which reNOOP can't yet read steps off over Bluetooth, shows your imported steps instead of \"No Data\" (Mac and iOS already did this). Worth saying plainly: the WHOOP 4.0 does count steps in the official WHOOP app - the only gap was that reNOOP couldn't surface them yet. (#150)",
             ]),
         Release(
             version: "1.98",
             title: "The archived-sleep recovery now reaches Android too",
             date: "June 2026",
             items: [
-                "Recovered (Android): the reject-archive retro-decode that landed on Mac & iOS in v1.97 now runs on **Android** as well. If your WHOOP 4.0 on Android synced \"v25\" firmware records before v1.95 - when NOOP couldn't read that layout - that sleep and recovery were saved but left dark; on update NOOP now re-runs them through the current decoder and backfills those nights. (#151)",
+                "Recovered (Android): the reject-archive retro-decode that landed on Mac & iOS in v1.97 now runs on **Android** as well. If your WHOOP 4.0 on Android synced \"v25\" firmware records before v1.95 - when reNOOP couldn't read that layout - that sleep and recovery were saved but left dark; on update reNOOP now re-runs them through the current decoder and backfills those nights. (#151)",
             ]),
         Release(
             version: "1.97",
             title: "Sleep that was stuck in the archive comes back",
             date: "June 2026",
             items: [
-                "Recovered (Mac, iOS and Android): if your WHOOP 4.0 synced \"v25\" firmware records *before* v1.95 - when NOOP couldn't read that layout yet - those records were saved to NOOP's on-device archive but left dark, and the strap had already freed them. NOOP now re-runs that archive through the current decoder on update, so your sleep and recovery from those nights backfill. It happens once per decoder upgrade, automatically. (#151)",
+                "Recovered (Mac, iOS and Android): if your WHOOP 4.0 synced \"v25\" firmware records *before* v1.95 - when reNOOP couldn't read that layout yet - those records were saved to reNOOP's on-device archive but left dark, and the strap had already freed them. reNOOP now re-runs that archive through the current decoder on update, so your sleep and recovery from those nights backfill. It happens once per decoder upgrade, automatically. (#151)",
                 "Fixed (Mac, iOS and Android): the AI Coach now formats its replies properly - **bold**, bullet/numbered lists and headings render, instead of showing as raw Markdown symbols. (#149)",
             ]),
         Release(
@@ -1751,23 +1751,23 @@ enum AppChangelog {
             title: "iOS is now a direct download - no Mac or Xcode needed",
             date: "June 2026",
             items: [
-                "New: the iOS app is now a **direct download** you install with AltStore or SideStore - it signs on your own iPhone with your own free Apple ID, so there's no App Store, no developer account, and NOOP stays anonymous. You no longer need a Mac and Xcode to run it. (Two notes, stated plainly: a free Apple ID re-signs the app every 7 days - AltStore automates that - and some Apple-only integrations like Apple Health and Live Activity widgets can be limited under a free signing identity.)",
+                "New: the iOS app is now a **direct download** you install with AltStore or SideStore - it signs on your own iPhone with your own free Apple ID, so there's no App Store, no developer account, and reNOOP stays anonymous. You no longer need a Mac and Xcode to run it. (Two notes, stated plainly: a free Apple ID re-signs the app every 7 days - AltStore automates that - and some Apple-only integrations like Apple Health and Live Activity widgets can be limited under a free signing identity.)",
                 "Fixed (Mac, iOS and Android): the \"your strap's clock has lost sync\" warning no longer appears after a single quiet sync. It now waits for several empty syncs in a row before warning, so a healthy strap that simply had nothing new to hand over one cycle doesn't get a false alarm. (#126)",
-                "Fixed (Android): Health Connect import now respects partial permissions - switch off the data types you don't want NOOP to read, and it imports the rest instead of refusing the whole import. (#150)",
+                "Fixed (Android): Health Connect import now respects partial permissions - switch off the data types you don't want reNOOP to read, and it imports the rest instead of refusing the whole import. (#150)",
             ]),
         Release(
             version: "1.95",
             title: "Sleep and recovery for WHOOP 4.0 straps on the firmware we couldn't read",
             date: "June 2026",
             items: [
-                "New (Mac and Android): some WHOOP 4.0 straps run a firmware whose offloaded history NOOP couldn't decode for motion - so sleep and recovery never built from the strap, even though live heart rate worked. NOOP now reads that firmware's motion (the accelerometer gravity vector) and per-second timestamps, which is exactly what the sleep engine needs. Once your strap banks a night, sleep staging and recovery can finally build from it. Heart rate in this layout is derived from the optical sensor rather than stored second-by-second, so this unlock is specifically the motion data. (#30)",
+                "New (Mac and Android): some WHOOP 4.0 straps run a firmware whose offloaded history reNOOP couldn't decode for motion - so sleep and recovery never built from the strap, even though live heart rate worked. reNOOP now reads that firmware's motion (the accelerometer gravity vector) and per-second timestamps, which is exactly what the sleep engine needs. Once your strap banks a night, sleep staging and recovery can finally build from it. Heart rate in this layout is derived from the optical sensor rather than stored second-by-second, so this unlock is specifically the motion data. (#30)",
             ]),
         Release(
             version: "1.94",
             title: "Manual workouts on WHOOP 5.0/MG get their calories and strain back",
             date: "June 2026",
             items: [
-                "Fixed (Mac and Android): a workout you start yourself now fills in its calories, average heart rate and strain even on a WHOOP 5.0/MG. The live heart-rate stream on 5/MG is sparse, so a manual session was often saved showing ~1 kcal and no strain - now, once your strap offloads the heart rate it banked during the session, NOOP re-scores that workout from the fuller data. Well-scored workouts are left untouched. (#137)",
+                "Fixed (Mac and Android): a workout you start yourself now fills in its calories, average heart rate and strain even on a WHOOP 5.0/MG. The live heart-rate stream on 5/MG is sparse, so a manual session was often saved showing ~1 kcal and no strain - now, once your strap offloads the heart rate it banked during the session, reNOOP re-scores that workout from the fuller data. Well-scored workouts are left untouched. (#137)",
             ]),
         Release(
             version: "1.93",
@@ -1781,7 +1781,7 @@ enum AppChangelog {
             title: "Better diagnostics for newer strap firmware - so we can decode it",
             date: "June 2026",
             items: [
-                "Improved (Mac and Android): when your strap's historical records use a firmware layout NOOP can't decode yet - newer WHOOP 5.0/MG units, and some WHOOP 4.0 straps, which is why sleep, recovery and steps can be missing (see #30, #136) - the strap log now includes the full record bytes (it previously cut them off after 64) plus a few more sample records. That's exactly what we need to map the new layout, so a single fresh strap log from an affected device now carries everything required for us to add support.",
+                "Improved (Mac and Android): when your strap's historical records use a firmware layout reNOOP can't decode yet - newer WHOOP 5.0/MG units, and some WHOOP 4.0 straps, which is why sleep, recovery and steps can be missing (see #30, #136) - the strap log now includes the full record bytes (it previously cut them off after 64) plus a few more sample records. That's exactly what we need to map the new layout, so a single fresh strap log from an affected device now carries everything required for us to add support.",
             ]),
         Release(
             version: "1.91",
@@ -1792,10 +1792,10 @@ enum AppChangelog {
             ]),
         Release(
             version: "1.90",
-            title: "NOOP now tells you when your strap isn't saving history - and how to fix it",
+            title: "reNOOP now tells you when your strap isn't saving history - and how to fix it",
             date: "June 2026",
             items: [
-                "Improved (Mac and Android): when a sync completes but your strap handed over only its diagnostic output and no stored history - which means its clock has lost sync and it isn't saving data to flash - NOOP now says so, with the fix (fully charge the strap to 100%, then reconnect), instead of silently reporting \"synced.\" It's the single most common reason recovery, sleep and strain stop appearing on a WHOOP 4.0, and it's now told apart from a normal caught-up sync. (#77, #91, #120)",
+                "Improved (Mac and Android): when a sync completes but your strap handed over only its diagnostic output and no stored history - which means its clock has lost sync and it isn't saving data to flash - reNOOP now says so, with the fix (fully charge the strap to 100%, then reconnect), instead of silently reporting \"synced.\" It's the single most common reason recovery, sleep and strain stop appearing on a WHOOP 4.0, and it's now told apart from a normal caught-up sync. (#77, #91, #120)",
             ]),
         Release(
             version: "1.89",
@@ -1817,7 +1817,7 @@ enum AppChangelog {
             title: "Deep sleep that happens later in the night no longer reads 0 minutes",
             date: "June 2026",
             items: [
-                "Fixed (Mac and Android): a follow-on to the deep-sleep fix. NOOP assumes deep sleep is front-loaded (it usually is) and re-imposes that on the staging - but it was zeroing out ALL deep detected after the first third of the night, so nights where your deepest stretch lands later showed 0 minutes of deep even though the signature was there. It now only applies that rule when there's deep early in the night to anchor it; a later-deep night keeps its deep. Thanks to a very precise bug report. (#127)",
+                "Fixed (Mac and Android): a follow-on to the deep-sleep fix. reNOOP assumes deep sleep is front-loaded (it usually is) and re-imposes that on the staging - but it was zeroing out ALL deep detected after the first third of the night, so nights where your deepest stretch lands later showed 0 minutes of deep even though the signature was there. It now only applies that rule when there's deep early in the night to anchor it; a later-deep night keeps its deep. Thanks to a very precise bug report. (#127)",
             ]),
         Release(
             version: "1.86",
@@ -1850,15 +1850,15 @@ enum AppChangelog {
             title: "Workout calories - for manual sessions and Health Connect imports",
             date: "June 2026",
             items: [
-                "Fixed (Mac and Android): a workout you start yourself now estimates its calories from your heart rate - the same model NOOP uses for auto-detected workouts - instead of leaving the field blank. (#117)",
-                "Fixed (Android): workouts imported from Health Connect (e.g. Garmin) now show their calories. NOOP credits each session with the active calories burned inside its time window (a Health Connect exercise record carries no energy of its own, so this stitches them together). (#117)",
+                "Fixed (Mac and Android): a workout you start yourself now estimates its calories from your heart rate - the same model reNOOP uses for auto-detected workouts - instead of leaving the field blank. (#117)",
+                "Fixed (Android): workouts imported from Health Connect (e.g. Garmin) now show their calories. reNOOP credits each session with the active calories burned inside its time window (a Health Connect exercise record carries no energy of its own, so this stitches them together). (#117)",
             ]),
         Release(
             version: "1.82",
             title: "Stop losing strap history we can't yet decode - plus a board of fixes",
             date: "June 2026",
             items: [
-                "Fixed (Mac and Android): NOOP no longer destroys strap history it can't yet decode. If a history chunk arrived with a bad checksum or a firmware record layout we haven't mapped, NOOP used to tell the strap \"got it\" anyway - and the strap then freed (erased) that data while the screen said \"synced\". NOOP now archives those raw records on-device before acknowledging, and if it can't save them it leaves them on the strap to retry, so an unrecognised firmware can no longer cost you your data. (#77, #91)",
+                "Fixed (Mac and Android): reNOOP no longer destroys strap history it can't yet decode. If a history chunk arrived with a bad checksum or a firmware record layout we haven't mapped, reNOOP used to tell the strap \"got it\" anyway - and the strap then freed (erased) that data while the screen said \"synced\". reNOOP now archives those raw records on-device before acknowledging, and if it can't save them it leaves them on the strap to retry, so an unrecognised firmware can no longer cost you your data. (#77, #91)",
                 "Fixed (Android): a Health Connect sync no longer blanks a strap-only day. With no WHOOP import, a sync could write a sparse day record that hid your on-device recovery/strain and regressed your sleep stages; Health Connect now only fills days your strap didn't already cover. Nothing was deleted - this restores it. (#112)",
                 "Fixed (Android): the Today screen's Steps, Calories and Weight tiles now show real data instead of always reading \"no data\". Weight falls back to your profile figure when there's no measured reading. (#107)",
                 "New (Mac): Google Gemini as a third bring-your-own-key AI Coach provider, alongside OpenAI and Anthropic.",
@@ -1885,8 +1885,8 @@ enum AppChangelog {
             title: "Manual workouts, edit/dismiss auto-detected ones, and CSV export",
             date: "June 2026",
             items: [
-                "New (Mac and Android): add a workout by hand, and edit, re-label, or dismiss the ones NOOP auto-detects - so a misread bout or a duplicate no longer sticks around with no way to remove it. Dismissals are remembered, so a re-detected session stays hidden.",
-                "New (Mac and Android): export all your data as a WHOOP-format CSV bundle (cycles, sleeps, workouts, journal) from Settings - yours to keep, and it imports straight back into NOOP.",
+                "New (Mac and Android): add a workout by hand, and edit, re-label, or dismiss the ones reNOOP auto-detects - so a misread bout or a duplicate no longer sticks around with no way to remove it. Dismissals are remembered, so a re-detected session stays hidden.",
+                "New (Mac and Android): export all your data as a WHOOP-format CSV bundle (cycles, sleeps, workouts, journal) from Settings - yours to keep, and it imports straight back into reNOOP.",
             ]),
         Release(
             version: "1.78",
@@ -1901,7 +1901,7 @@ enum AppChangelog {
             title: "First-run terms acknowledgment + an Explore chart fix",
             date: "June 2026",
             items: [
-                "New (Mac and Android): a one-time, plain-English terms acknowledgment on first launch - what NOOP is, that it's independent of WHOOP and that using it may breach WHOOP's Terms of Service, that it's not a medical device, and that you use it at your own risk. Standard for an independent, on-device tool - you accept once. The full terms ship in TERMS.md.",
+                "New (Mac and Android): a one-time, plain-English terms acknowledgment on first launch - what reNOOP is, that it's independent of WHOOP and that using it may breach WHOOP's Terms of Service, that it's not a medical device, and that you use it at your own risk. Standard for an independent, on-device tool - you accept once. The full terms ship in TERMS.md.",
                 "Fixed (Mac): the Explore metric charts no longer flicker to a straight line when the cursor crosses into or out of the graph.",
             ]),
         Release(
@@ -1909,8 +1909,8 @@ enum AppChangelog {
             title: "Robust Apple Health import, marginal-radio HR mode, live HR graph",
             date: "June 2026",
             items: [
-                "Improved (Mac and Android): a very large Apple Health export no longer fails to import because of a single malformed byte. NOOP now skips the bad spans and imports everything else, and tells you how many it skipped - so multi-year exports that errored out before should come in fine now.",
-                "New (Mac): if your Bluetooth radio can't sustain WHOOP 4's full realtime stream (older Macs, OpenCore setups), NOOP now automatically falls back to a low-bandwidth standard heart-rate mode - so live HR keeps working instead of the connection looping on a drop.",
+                "Improved (Mac and Android): a very large Apple Health export no longer fails to import because of a single malformed byte. reNOOP now skips the bad spans and imports everything else, and tells you how many it skipped - so multi-year exports that errored out before should come in fine now.",
+                "New (Mac): if your Bluetooth radio can't sustain WHOOP 4's full realtime stream (older Macs, OpenCore setups), reNOOP now automatically falls back to a low-bandwidth standard heart-rate mode - so live HR keeps working instead of the connection looping on a drop.",
                 "Fixed (Mac): the Health tab's live heart-rate graph now builds a continuous trace over time, instead of getting stuck showing only two points.",
             ]),
         Release(
@@ -1926,7 +1926,7 @@ enum AppChangelog {
             title: "Android reconnect guide + a startup-crash fix",
             date: "June 2026",
             items: [
-                "Android now matches the Mac: if your WHOOP 5.0 / MG can't connect after a firmware update (a Bluetooth pairing reset), NOOP detects it and shows the forget-and-re-pair steps right in the app, instead of silently retrying. (Mac got this in 1.73.)",
+                "Android now matches the Mac: if your WHOOP 5.0 / MG can't connect after a firmware update (a Bluetooth pairing reset), reNOOP detects it and shows the forget-and-re-pair steps right in the app, instead of silently retrying. (Mac got this in 1.73.)",
                 "Fixed (Android): a rare startup crash on some fast devices (e.g. Galaxy S24+) - the app could crash once on launch when a strap was already connected, then open fine on the second try. (Mac was never affected.)",
             ]),
         Release(
@@ -1934,14 +1934,14 @@ enum AppChangelog {
             title: "Reconnect help for WHOOP 5.0 / MG after a firmware update",
             date: "June 2026",
             items: [
-                "If your WHOOP 5.0 / MG stopped connecting after a WHOOP firmware update, that's a Bluetooth pairing reset - not a lockout, and NOOP works fine on the new firmware. To reconnect: quit the official WHOOP app, forget the strap in your Bluetooth settings, put it in pairing mode (tap the band until the LEDs flash blue), then reconnect. On Mac, NOOP now detects this automatically and shows you these exact steps in-app instead of silently retrying. WHOOP 4.0 is unaffected.",
+                "If your WHOOP 5.0 / MG stopped connecting after a WHOOP firmware update, that's a Bluetooth pairing reset - not a lockout, and reNOOP works fine on the new firmware. To reconnect: quit the official WHOOP app, forget the strap in your Bluetooth settings, put it in pairing mode (tap the band until the LEDs flash blue), then reconnect. On Mac, reNOOP now detects this automatically and shows you these exact steps in-app instead of silently retrying. WHOOP 4.0 is unaffected.",
             ]),
         Release(
             version: "1.72",
             title: "GPS workout crash fix (Android)",
             date: "June 2026",
             items: [
-                "Fixed (Android): starting a GPS-tracked workout could crash the app on Android 12 and newer. GPS needs location permission, which NOOP never requested - and it was capped to older Android versions - so route tracking failed the instant it began. NOOP now asks for location permission right before a GPS workout and fails safe if it's unavailable: the workout still records heart rate and strain, just without a route. If you don't use GPS workouts, nothing changes. (Mac: version bump only.)",
+                "Fixed (Android): starting a GPS-tracked workout could crash the app on Android 12 and newer. GPS needs location permission, which reNOOP never requested - and it was capped to older Android versions - so route tracking failed the instant it began. reNOOP now asks for location permission right before a GPS workout and fails safe if it's unavailable: the workout still records heart rate and strain, just without a route. If you don't use GPS workouts, nothing changes. (Mac: version bump only.)",
             ]),
         Release(
             version: "1.71",
@@ -1964,7 +1964,7 @@ enum AppChangelog {
             date: "June 2026",
             items: [
                 "Fixed (Mac and Android): the \"Last Event\" line on the Live screen no longer shows an internal name when live heart rate starts (it used to read \"BLE_REALTIME_HR…\"). It now only shows meaningful strap events - wrist on/off, double-tap, battery, and so on.",
-                "Diagnostics (Mac and Android): when the strap sends history that NOOP can't decode, the strap log now prints a short hex sample of the dropped records - not just the count. If your WHOOP 4 is on a firmware whose record layout we haven't mapped yet (history syncs but no data appears), turning on Debug logging and sharing the strap log now gives us the exact bytes we need to add support. Chasing one of these now (#91).",
+                "Diagnostics (Mac and Android): when the strap sends history that reNOOP can't decode, the strap log now prints a short hex sample of the dropped records - not just the count. If your WHOOP 4 is on a firmware whose record layout we haven't mapped yet (history syncs but no data appears), turning on Debug logging and sharing the strap log now gives us the exact bytes we need to add support. Chasing one of these now (#91).",
             ]),
         Release(
             version: "1.68",
@@ -1973,7 +1973,7 @@ enum AppChangelog {
             items: [
                 "New (Mac and Android): your workouts now show an HR Zones card - time spent in each heart-rate zone for imported sessions, with a duration-weighted summary.",
                 "New (Mac and Android): a \"· Charging\" indicator on the battery pill when your strap is on the charger.",
-                "Improved (Mac and Android): sleep tiles now prefer WHOOP's own imported figures (sleep performance, consistency, need, debt) when available, falling back to NOOP's on-device estimate otherwise - and Android now imports those four figures too.",
+                "Improved (Mac and Android): sleep tiles now prefer WHOOP's own imported figures (sleep performance, consistency, need, debt) when available, falling back to reNOOP's on-device estimate otherwise - and Android now imports those four figures too.",
                 "New (Android): the sleep screen draws a real hypnogram from the per-epoch stages, not just a summary.",
                 "New (Mac): recovery shows \"Calibrating - N of 4 nights\" while it learns your baseline, instead of a misleading empty ring.",
                 "New (Mac): \"History synced N ago\" in Today and the menu bar, so you can see at a glance when your strap last offloaded.",
@@ -1986,28 +1986,28 @@ enum AppChangelog {
             title: "Track a workout manually",
             date: "June 2026",
             items: [
-                "New (Mac and Android): start and stop a workout yourself, instead of waiting for NOOP to detect one. Tap Start workout on the Live screen and you get a live card - elapsed time, heart rate, and strain building in real time; tap End and it's scored and saved to your Workouts, contributing to the day. Perfect for a session NOOP might not auto-detect, or when you just want a clean start/stop. Needs a connected strap streaming live heart rate. A community request - thanks for the nudge.",
+                "New (Mac and Android): start and stop a workout yourself, instead of waiting for reNOOP to detect one. Tap Start workout on the Live screen and you get a live card - elapsed time, heart rate, and strain building in real time; tap End and it's scored and saved to your Workouts, contributing to the day. Perfect for a session reNOOP might not auto-detect, or when you just want a clean start/stop. Needs a connected strap streaming live heart rate. A community request - thanks for the nudge.",
             ]),
         Release(
             version: "1.66",
             title: "Android: WHOOP 4 on newer firmware now records data",
             date: "June 2026",
             items: [
-                "Fixed (Android): a WHOOP 4.0 on a firmware version NOOP hadn't mapped recorded NOTHING - the history sync finished but every record was silently dropped, so heart rate, sleep and recovery all stayed empty. Mac already handled this (it falls back to the standard record layout for unknown firmware); Android didn't, so it dropped the data entirely. Android now does the same fallback, accepting an unmapped firmware's records only when they decode to physically-real data (so it can never store garbage). If your WHOOP 4 was syncing but showing no data, update and it should start filling in. Investigating exactly this on a Samsung report (#77). Mac: version bump only.",
+                "Fixed (Android): a WHOOP 4.0 on a firmware version reNOOP hadn't mapped recorded NOTHING - the history sync finished but every record was silently dropped, so heart rate, sleep and recovery all stayed empty. Mac already handled this (it falls back to the standard record layout for unknown firmware); Android didn't, so it dropped the data entirely. Android now does the same fallback, accepting an unmapped firmware's records only when they decode to physically-real data (so it can never store garbage). If your WHOOP 4 was syncing but showing no data, update and it should start filling in. Investigating exactly this on a Samsung report (#77). Mac: version bump only.",
             ]),
         Release(
             version: "1.65",
             title: "Sync diagnostics: surfacing silently-dropped history",
             date: "June 2026",
             items: [
-                "Diagnostics (Mac and Android): if a chunk of history arrives from the strap but none of it can be decoded - frames failing their checksum, an unrecognised firmware layout, or out-of-range timestamps - NOOP now says so plainly in the strap log instead of quietly moving on. Until now a sync like that looked completely healthy (\"history synced\") while the data went nowhere, which made a rare \"I wore it but got no data\" report almost impossible to diagnose. This release changes no behaviour - it just makes that case visible - so if your history isn't showing up, turning on Debug logging and sharing your strap log will now point straight at the cause. Investigating a report along these lines (#77).",
+                "Diagnostics (Mac and Android): if a chunk of history arrives from the strap but none of it can be decoded - frames failing their checksum, an unrecognised firmware layout, or out-of-range timestamps - reNOOP now says so plainly in the strap log instead of quietly moving on. Until now a sync like that looked completely healthy (\"history synced\") while the data went nowhere, which made a rare \"I wore it but got no data\" report almost impossible to diagnose. This release changes no behaviour - it just makes that case visible - so if your history isn't showing up, turning on Debug logging and sharing your strap log will now point straight at the cause. Investigating a report along these lines (#77).",
             ]),
         Release(
             version: "1.64",
             title: "Android: faster sync, skin temp, sync status, alarm groundwork",
             date: "June 2026",
             items: [
-                "New (Android): a batch of WHOOP 5/MG improvements, with thanks to a community contributor. Sync is faster and more reliable - NOOP now negotiates a larger Bluetooth packet size on connect, so a full history record rides one packet instead of being chopped into fragments. The Live screen now tells you the honest truth about syncing: \"History synced N ago,\" or a clear note if a sync stalled - no more silent guessing for a cloud-free app. Skin-temperature deviation now builds offline from the strap's own nights (wear-gated, in-bed only, baseline-seeded like recovery - APPROXIMATE), which also re-arms the illness early-warning signal. And the recovery ring now shows \"Calibrating - N of 4 nights\" while it learns your baseline, instead of a blank \"No Data.\" Also groundwork for a 5/MG firmware wake alarm - it's behind the Experimental toggle and UNCONFIRMED (help us verify it actually wakes you before relying on it). Mac: version bump only.",
+                "New (Android): a batch of WHOOP 5/MG improvements, with thanks to a community contributor. Sync is faster and more reliable - reNOOP now negotiates a larger Bluetooth packet size on connect, so a full history record rides one packet instead of being chopped into fragments. The Live screen now tells you the honest truth about syncing: \"History synced N ago,\" or a clear note if a sync stalled - no more silent guessing for a cloud-free app. Skin-temperature deviation now builds offline from the strap's own nights (wear-gated, in-bed only, baseline-seeded like recovery - APPROXIMATE), which also re-arms the illness early-warning signal. And the recovery ring now shows \"Calibrating - N of 4 nights\" while it learns your baseline, instead of a blank \"No Data.\" Also groundwork for a 5/MG firmware wake alarm - it's behind the Experimental toggle and UNCONFIRMED (help us verify it actually wakes you before relying on it). Mac: version bump only.",
             ]),
         Release(
             version: "1.63",
@@ -2021,7 +2021,7 @@ enum AppChangelog {
             title: "WHOOP 5/MG history: the missing clock",
             date: "June 2026",
             items: [
-                "New (Mac and Android, experimental): NOOP now sets the clock on a WHOOP 5.0/MG before asking for its history - and that matters more than it sounds: an un-clocked WHOOP 5 doesn't save sensor data at all, so history syncs were \"succeeding\" with nothing in them. A fellow developer's work on real 5/MG hardware found this (history went from 0 to hundreds of frames once clocked) along with several smaller protocol fixes NOOP now carries: the history request waits for the strap to acknowledge a range query first (with a retry if it stays silent), an Android 5/MG connects directly to the strap your phone already paired instead of re-scanning, fresh history is scored within seconds instead of at the next 15-minute tick, and the strap's own diagnostic messages now appear in the strap log. Also new (Android, opt-in, default OFF): \"Record 5/MG raw capture\" in Settings → Experimental writes each history sync's raw frames to a shareable file - if you have a 5/MG, sharing one capture is the single most useful thing you can do to help NOOP learn to decode 5/MG sleep, recovery and strain. With thanks to tajchert, whose hardware-validated fork drove this release.",
+                "New (Mac and Android, experimental): reNOOP now sets the clock on a WHOOP 5.0/MG before asking for its history - and that matters more than it sounds: an un-clocked WHOOP 5 doesn't save sensor data at all, so history syncs were \"succeeding\" with nothing in them. A fellow developer's work on real 5/MG hardware found this (history went from 0 to hundreds of frames once clocked) along with several smaller protocol fixes reNOOP now carries: the history request waits for the strap to acknowledge a range query first (with a retry if it stays silent), an Android 5/MG connects directly to the strap your phone already paired instead of re-scanning, fresh history is scored within seconds instead of at the next 15-minute tick, and the strap's own diagnostic messages now appear in the strap log. Also new (Android, opt-in, default OFF): \"Record 5/MG raw capture\" in Settings → Experimental writes each history sync's raw frames to a shareable file - if you have a 5/MG, sharing one capture is the single most useful thing you can do to help reNOOP learn to decode 5/MG sleep, recovery and strain. With thanks to tajchert, whose hardware-validated fork drove this release.",
             ]),
         Release(
             version: "1.61",
@@ -2042,7 +2042,7 @@ enum AppChangelog {
             title: "Android: share back to Health Connect",
             date: "June 2026",
             items: [
-                "New (Android, opt-in): NOOP can now write the nightly metrics it computes from your strap - resting heart rate, HRV, SpO₂ and respiratory rate - into Health Connect, so other apps can use them. Off by default; flip \"Share back to Health Connect\" in Data Sources and grant the write permissions. Only NOOP's own computed values are written (imported data is never echoed back), and re-writes update in place rather than stacking duplicates. Mac: version bump only.",
+                "New (Android, opt-in): reNOOP can now write the nightly metrics it computes from your strap - resting heart rate, HRV, SpO₂ and respiratory rate - into Health Connect, so other apps can use them. Off by default; flip \"Share back to Health Connect\" in Data Sources and grant the write permissions. Only reNOOP's own computed values are written (imported data is never echoed back), and re-writes update in place rather than stacking duplicates. Mac: version bump only.",
             ]),
         Release(
             version: "1.58",
@@ -2056,50 +2056,50 @@ enum AppChangelog {
             title: "Android home-screen widget",
             date: "June 2026",
             items: [
-                "New (Android): a home-screen widget. Today's recovery - coloured green, amber or red by the usual bands - plus live heart rate and strap battery, at a glance without opening the app. It updates from the background connection (or while the app is open), shows when it last heard from the strap, and tapping it opens NOOP. Long-press your home screen → Widgets → NOOP to add it. Honest-blank until NOOP has learned enough nights to score you. Mac: version bump only.",
+                "New (Android): a home-screen widget. Today's recovery - coloured green, amber or red by the usual bands - plus live heart rate and strap battery, at a glance without opening the app. It updates from the background connection (or while the app is open), shows when it last heard from the strap, and tapping it opens reNOOP. Long-press your home screen → Widgets → reNOOP to add it. Honest-blank until reNOOP has learned enough nights to score you. Mac: version bump only.",
             ]),
         Release(
             version: "1.56",
             title: "Shortcuts on Mac, recovery in the Android notification",
             date: "June 2026",
             items: [
-                "New (Mac): NOOP now offers two Shortcuts actions - \"Buzz Strap\" and \"Mark a Moment\" - so you can vibrate your connected strap or drop a timestamped marker from Shortcuts, Spotlight, or a menu-bar/keyboard trigger without opening the app's window. They act on the strap NOOP is already bonded to; if NOOP isn't running, or the strap isn't connected, you get a clear \"open NOOP\" / \"connect your strap\" message instead of a silent no-op. No new permissions - just the strap you already paired.",
-                "New (Android): the ongoing background notification now shows today's recovery % alongside live heart rate and strap battery, so a glance at your shade tells you how recovered you are without opening the app. It updates itself when the on-device analysis recomputes (about every 15 minutes), and stays absent until NOOP has learned enough nights to score you honestly.",
+                "New (Mac): reNOOP now offers two Shortcuts actions - \"Buzz Strap\" and \"Mark a Moment\" - so you can vibrate your connected strap or drop a timestamped marker from Shortcuts, Spotlight, or a menu-bar/keyboard trigger without opening the app's window. They act on the strap reNOOP is already bonded to; if reNOOP isn't running, or the strap isn't connected, you get a clear \"open reNOOP\" / \"connect your strap\" message instead of a silent no-op. No new permissions - just the strap you already paired.",
+                "New (Android): the ongoing background notification now shows today's recovery % alongside live heart rate and strap battery, so a glance at your shade tells you how recovered you are without opening the app. It updates itself when the on-device analysis recomputes (about every 15 minutes), and stays absent until reNOOP has learned enough nights to score you honestly.",
             ]),
         Release(
             version: "1.55",
             title: "Mac: recovery builds from your strap alone",
             date: "June 2026",
             items: [
-                "New (Mac): recovery now builds from the strap's own offloaded nights, no WHOOP export needed - the same fix Android got in v1.53. The recovery baseline previously only learned from imported history, so a Bluetooth-only Mac user never crossed the \"learn your baseline\" threshold and recovery stayed blank. NOOP now seeds the baseline from the nights it computes on-device too, so after about four nights recovery lights up on its own. Honest-blank until then; a real import still wins per day. Also: the WHOOP 5.0/MG step counter now persists on Mac (parity with Android - surfaced later, still APPROXIMATE). Android: version bump only (it already had both).",
+                "New (Mac): recovery now builds from the strap's own offloaded nights, no WHOOP export needed - the same fix Android got in v1.53. The recovery baseline previously only learned from imported history, so a Bluetooth-only Mac user never crossed the \"learn your baseline\" threshold and recovery stayed blank. reNOOP now seeds the baseline from the nights it computes on-device too, so after about four nights recovery lights up on its own. Honest-blank until then; a real import still wins per day. Also: the WHOOP 5.0/MG step counter now persists on Mac (parity with Android - surfaced later, still APPROXIMATE). Android: version bump only (it already had both).",
             ]),
         Release(
             version: "1.54",
             title: "French WHOOP exports now import",
             date: "June 2026",
             items: [
-                "Fixed: French WHOOP CSV exports now import. Like German and Spanish before it, a French export translates both the column headers (Score de récupération, Variabilité de la fréquence cardiaque, …) and the sleep/workout filenames (sommeil.csv, entrainements.csv), so it used to match nothing and reported \"0 items.\" NOOP now maps every French column - including the full workout set with HR zones - and recognises the French filenames, so recovery, strain, sleep, HRV and workouts all import. Mac and Android. Thanks to a reporter who supplied a real export's headers (#79).",
+                "Fixed: French WHOOP CSV exports now import. Like German and Spanish before it, a French export translates both the column headers (Score de récupération, Variabilité de la fréquence cardiaque, …) and the sleep/workout filenames (sommeil.csv, entrainements.csv), so it used to match nothing and reported \"0 items.\" reNOOP now maps every French column - including the full workout set with HR zones - and recognises the French filenames, so recovery, strain, sleep, HRV and workouts all import. Mac and Android. Thanks to a reporter who supplied a real export's headers (#79).",
             ]),
         Release(
             version: "1.53",
             title: "Recovery builds from your strap alone (Android)",
             date: "June 2026",
             items: [
-                "New (Android): recovery now builds from the strap's own offloaded nights - no WHOOP export needed. Before, the recovery baseline only ever learned from imported history, so a Bluetooth-only user never crossed the \"learn your baseline\" threshold and recovery stayed blank forever. NOOP now seeds the baseline from the nights it computes on-device too, so after about four nights of wear recovery lights up on its own. It stays honestly blank until then, and a real WHOOP import still wins per day. The natural payoff of the v1.52 offload work. Thanks to a community contribution (#78). (macOS recovery-seeding parity is a follow-up; version bump only this release.)",
+                "New (Android): recovery now builds from the strap's own offloaded nights - no WHOOP export needed. Before, the recovery baseline only ever learned from imported history, so a Bluetooth-only user never crossed the \"learn your baseline\" threshold and recovery stayed blank forever. reNOOP now seeds the baseline from the nights it computes on-device too, so after about four nights of wear recovery lights up on its own. It stays honestly blank until then, and a real WHOOP import still wins per day. The natural payoff of the v1.52 offload work. Thanks to a community contribution (#78). (macOS recovery-seeding parity is a follow-up; version bump only this release.)",
             ]),
         Release(
             version: "1.52",
             title: "WHOOP 5.0/MG history offload (Android)",
             date: "June 2026",
             items: [
-                "New (Android, experimental): a WHOOP 5.0/MG can now offload its stored history, not just stream live HR - the same thing the Mac already did. The 5/MG Bluetooth envelope shifts every field by 4 bytes and its end-of-history marker is a different type than the 4.0's, so the app was silently dropping every \"history finished\" frame and the strap never released its records. NOOP now reads those frames at the right place (matching the Mac), so history can download and feed recovery, strain and sleep. If you have a 5.0/MG, please report whether your history populates - it's experimental until confirmed on more straps. Thanks to a community contribution (#78). (macOS: version bump only - it already had this.)",
+                "New (Android, experimental): a WHOOP 5.0/MG can now offload its stored history, not just stream live HR - the same thing the Mac already did. The 5/MG Bluetooth envelope shifts every field by 4 bytes and its end-of-history marker is a different type than the 4.0's, so the app was silently dropping every \"history finished\" frame and the strap never released its records. reNOOP now reads those frames at the right place (matching the Mac), so history can download and feed recovery, strain and sleep. If you have a 5.0/MG, please report whether your history populates - it's experimental until confirmed on more straps. Thanks to a community contribution (#78). (macOS: version bump only - it already had this.)",
             ]),
         Release(
             version: "1.51",
             title: "True battery %, a sync indicator, and HR on imported workouts",
             date: "June 2026",
             items: [
-                "Fixed: the battery flashing 100% before correcting to the real value (and sometimes reverting to 100%). A WHOOP 4.0's standard Bluetooth battery characteristic is a stub that always says 100 - the real charge comes from the proprietary battery command - and NOOP read both. It now uses only the real source per strap model. Mac and Android (#77).",
+                "Fixed: the battery flashing 100% before correcting to the real value (and sometimes reverting to 100%). A WHOOP 4.0's standard Bluetooth battery characteristic is a stub that always says 100 - the real charge comes from the proprietary battery command - and reNOOP read both. It now uses only the real source per strap model. Mac and Android (#77).",
                 "New: a pulsing \"Syncing strap history…\" indicator on Today, Sleep and Intelligence while the strap's history is offloading - with a live chunk count - so a half-loaded screen (\"No nights here yet\") reads as in-progress, not final. The Live pill shows \"Bonded · syncing\" too. Mac and Android (#77).",
                 "Fixed (Android): imported workouts showed no heart rate. Health Connect sessions carry no summary HR, so avg/max were stored empty - the importer now derives them from the heart-rate samples inside each workout's window, and the Workouts/Today lists also fall back to the strap's own recorded HR for any imported session it was worn through (#77).",
             ]),
@@ -2108,35 +2108,35 @@ enum AppChangelog {
             title: "Steadier Bluetooth on congested Android phones",
             date: "June 2026",
             items: [
-                "Fixed (Android): on phones whose Bluetooth stack gets congested (a Pixel 7 on Android 16 logged dozens of \"busy\" command retries and a few dropped commands in 10 minutes), NOOP now retries a busy command more times with an escalating wait so nothing hard-drops, and re-subscribes the live channels at most once per quiet spell instead of every 30 seconds - that repeated re-subscribing was flooding the link with writes that collide with commands on phones that only allow one Bluetooth operation at a time. Steadier live HR and fewer dropped commands as a result. macOS: version bump only (it uses CoreBluetooth's own queue and isn't affected).",
+                "Fixed (Android): on phones whose Bluetooth stack gets congested (a Pixel 7 on Android 16 logged dozens of \"busy\" command retries and a few dropped commands in 10 minutes), reNOOP now retries a busy command more times with an escalating wait so nothing hard-drops, and re-subscribes the live channels at most once per quiet spell instead of every 30 seconds - that repeated re-subscribing was flooding the link with writes that collide with commands on phones that only allow one Bluetooth operation at a time. Steadier live HR and fewer dropped commands as a result. macOS: version bump only (it uses CoreBluetooth's own queue and isn't affected).",
             ]),
         Release(
             version: "1.49",
             title: "Spanish WHOOP exports now import",
             date: "June 2026",
             items: [
-                "Fixed: Spanish WHOOP CSV exports now import. A Spanish export translates both the column headers (Puntuación de recuperación, Variabilidad de la frecuencia cardíaca, and so on) and some filenames (sueño.csv, entrenamientos.csv), so it used to match nothing and reported \"Imported 0 items.\" NOOP now maps the Spanish columns to their canonical fields and recognises the Spanish filenames, so recovery, strain, sleep, HRV and the rest come through correctly. Mac and Android. Thanks to a reporter who supplied a real export's headers (#76) - the same way German was added.",
+                "Fixed: Spanish WHOOP CSV exports now import. A Spanish export translates both the column headers (Puntuación de recuperación, Variabilidad de la frecuencia cardíaca, and so on) and some filenames (sueño.csv, entrenamientos.csv), so it used to match nothing and reported \"Imported 0 items.\" reNOOP now maps the Spanish columns to their canonical fields and recognises the Spanish filenames, so recovery, strain, sleep, HRV and the rest come through correctly. Mac and Android. Thanks to a reporter who supplied a real export's headers (#76) - the same way German was added.",
             ]),
         Release(
             version: "1.48",
             title: "More reliable Bluetooth on newer Android phones",
             date: "June 2026",
             items: [
-                "Fixed (Android): on some phones - especially newer ones on Android 13+, and worst on Android 16 - NOOP could silently drop a Bluetooth command when the phone's Bluetooth stack was momentarily busy, instead of retrying it. The dropped command was often the one that starts live heart rate, sets the strap clock, or acknowledges a chunk of history - so live HR sometimes never started and overnight data didn't come through, even though the strap and pairing were fine. NOOP now retries a rejected command and paces the writes so the stack keeps up. Thanks to a detailed strap log from a Pixel 7 on Android 16 (#77). (macOS: version bump only - it uses CoreBluetooth's own write queue and was never affected.)",
+                "Fixed (Android): on some phones - especially newer ones on Android 13+, and worst on Android 16 - reNOOP could silently drop a Bluetooth command when the phone's Bluetooth stack was momentarily busy, instead of retrying it. The dropped command was often the one that starts live heart rate, sets the strap clock, or acknowledges a chunk of history - so live HR sometimes never started and overnight data didn't come through, even though the strap and pairing were fine. reNOOP now retries a rejected command and paces the writes so the stack keeps up. Thanks to a detailed strap log from a Pixel 7 on Android 16 (#77). (macOS: version bump only - it uses CoreBluetooth's own write queue and was never affected.)",
             ]),
         Release(
             version: "1.47",
             title: "Auto-sync Health Connect (Android)",
             date: "June 2026",
             items: [
-                "New (Android): an opt-in auto-sync for Health Connect. Turn it on under Data Sources → Health Connect and NOOP re-pulls new data (e.g. from a Samsung Galaxy Watch via Samsung Health) each time you open it, if it's been longer than your chosen 6 / 12 / 24h interval. Read-only, never overwrites your strap data, default OFF. Thanks to a community contribution. (macOS: version bump only.)",
+                "New (Android): an opt-in auto-sync for Health Connect. Turn it on under Data Sources → Health Connect and reNOOP re-pulls new data (e.g. from a Samsung Galaxy Watch via Samsung Health) each time you open it, if it's been longer than your chosen 6 / 12 / 24h interval. Read-only, never overwrites your strap data, default OFF. Thanks to a community contribution. (macOS: version bump only.)",
             ]),
         Release(
             version: "1.46",
             title: "History dates fixed for revived straps, gestures during sync, clearer pairing",
             date: "June 2026",
             items: [
-                "Fixed: if your strap sat unused for a while its clock drifts, and your offloaded history was landing months in the past - live HR worked but nothing else showed up as \"today.\" NOOP now corrects the timestamps when the strap's clock is clearly stale, so your history lands on the right days. Mac and Android. Thanks to a detailed bug report (#72).",
+                "Fixed: if your strap sat unused for a while its clock drifts, and your offloaded history was landing months in the past - live HR worked but nothing else showed up as \"today.\" reNOOP now corrects the timestamps when the strap's clock is clearly stale, so your history lands on the right days. Mac and Android. Thanks to a detailed bug report (#72).",
                 "Fixed: double-tap (and wrist on/off) now keep working during a history sync. They were being swallowed while the strap offloaded its backlog - very noticeable on a WHOOP 5.0/MG, where that sync runs for minutes. Mac and Android (#69).",
                 "New: the Live screen now tells you whether you have a real encrypted pairing (\"Bonded\") or just live heart rate over the open profile (\"Live HR - not fully paired\"). The encrypted bond is what unlocks buzz, alarms, double-tap and history sync, so it's now obvious when those are available. Plus a tip on entering 5.0/MG pairing mode (tap the band). Mac and Android (#69).",
             ]),
@@ -2145,7 +2145,7 @@ enum AppChangelog {
             title: "Clearer pairing guidance for WHOOP 5.0/MG",
             date: "June 2026",
             items: [
-                "Improved (Mac): live heart rate on a WHOOP 5.0/MG streams even before the strap is fully paired - but buzz, alarms, double-tap and full history sync all need that real pairing. NOOP now keeps the \"free the strap from the WHOOP app\" guidance visible (in clearer wording) whenever the strap isn't fully paired, so it's obvious what to do to unlock the rest. Thanks to a 5.0/MG report (#69).",
+                "Improved (Mac): live heart rate on a WHOOP 5.0/MG streams even before the strap is fully paired - but buzz, alarms, double-tap and full history sync all need that real pairing. reNOOP now keeps the \"free the strap from the WHOOP app\" guidance visible (in clearer wording) whenever the strap isn't fully paired, so it's obvious what to do to unlock the rest. Thanks to a 5.0/MG report (#69).",
             ]),
         Release(
             version: "1.44",
@@ -2166,7 +2166,7 @@ enum AppChangelog {
             title: "Reconnects automatically after an update (Android)",
             date: "June 2026",
             items: [
-                "New (Android): NOOP now reconnects to your strap automatically when the app starts - so after an app update (or any restart) you don't have to tap Connect again. It reconnects straight to the strap you last paired, as soon as it's in range, with no re-scan. Respects \"Keep connected in the background\" (turn that off if you'd rather connect by hand). Thanks to a community report (#67).",
+                "New (Android): reNOOP now reconnects to your strap automatically when the app starts - so after an app update (or any restart) you don't have to tap Connect again. It reconnects straight to the strap you last paired, as soon as it's in range, with no re-scan. Respects \"Keep connected in the background\" (turn that off if you'd rather connect by hand). Thanks to a community report (#67).",
             ]),
         Release(
             version: "1.41",
@@ -2187,21 +2187,21 @@ enum AppChangelog {
             title: "Wrist alerts for incoming calls (Android)",
             date: "June 2026",
             items: [
-                "New (Android): buzz your strap when a call comes in - regular phone calls and supported VoIP apps - with its own Calls section in Notifications settings, separate from app alerts. The call buzz repeats a few times then stops, so you won't miss it. Privacy-first as always: NOOP never reads the number, the caller, or any notification content - only that a call is ringing; the Phone-calls permission is requested only when you turn that toggle on. Thanks to a community contributor (#66).",
+                "New (Android): buzz your strap when a call comes in - regular phone calls and supported VoIP apps - with its own Calls section in Notifications settings, separate from app alerts. The call buzz repeats a few times then stops, so you won't miss it. Privacy-first as always: reNOOP never reads the number, the caller, or any notification content - only that a call is ringing; the Phone-calls permission is requested only when you turn that toggle on. Thanks to a community contributor (#66).",
             ]),
         Release(
             version: "1.38",
             title: "Smoother during long history syncs (Mac)",
             date: "June 2026",
             items: [
-                "Improved (Mac): NOOP stays responsive while your strap syncs a long stretch of history and while the dashboard recomputes. Sync data is now handled as bulk traffic - drained in small batches and kept out of the live UI parser - the strap log no longer floods with a line for every sync acknowledgement, and the heavy recovery/strain/sleep analysis runs off the main thread. So the app no longer hitches during a big offload. Thanks to a community contributor (#64, #65).",
+                "Improved (Mac): reNOOP stays responsive while your strap syncs a long stretch of history and while the dashboard recomputes. Sync data is now handled as bulk traffic - drained in small batches and kept out of the live UI parser - the strap log no longer floods with a line for every sync acknowledgement, and the heavy recovery/strain/sleep analysis runs off the main thread. So the app no longer hitches during a big offload. Thanks to a community contributor (#64, #65).",
             ]),
         Release(
             version: "1.37",
             title: "New first-run onboarding (Mac + Android)",
             date: "June 2026",
             items: [
-                "A proper guided setup the first time you open NOOP - the same flow on Mac and Android: what NOOP is and what to expect, then Bluetooth, putting your strap on, connecting, a little celebration when it bonds, your profile, optional history import, and wrist alerts. Permissions are now asked only on the step that explains them (nothing fires at launch), and the background-connection service is only promoted once you finish. Cleaner, calmer, and consistent across platforms. Thanks to a community contributor (#36/#63).",
+                "A proper guided setup the first time you open reNOOP - the same flow on Mac and Android: what reNOOP is and what to expect, then Bluetooth, putting your strap on, connecting, a little celebration when it bonds, your profile, optional history import, and wrist alerts. Permissions are now asked only on the step that explains them (nothing fires at launch), and the background-connection service is only promoted once you finish. Cleaner, calmer, and consistent across platforms. Thanks to a community contributor (#36/#63).",
                 "Live heart-rate zones and %-of-max now use the real max heart rate from your profile (your manual override, or the age-based estimate) instead of a fixed default.",
             ]),
         Release(
@@ -2209,14 +2209,14 @@ enum AppChangelog {
             title: "Android: reliable reconnect after a dropout",
             date: "June 2026",
             items: [
-                "Fixed (Android): if your strap dropped - out of range, or after a while in the background - NOOP could get stuck \"disconnected\" and never reconnect, no matter how many times it rescanned; the only fix was forcing the strap into pairing mode. The cause: a bonded strap that isn't advertising can't be found by a Bluetooth scan, and reconnect was scan-only. It now reconnects DIRECTLY to your known strap (the OS reconnects as soon as it's back in range, no scan needed), so it recovers on its own. (The Mac already reconnected this way.)",
+                "Fixed (Android): if your strap dropped - out of range, or after a while in the background - reNOOP could get stuck \"disconnected\" and never reconnect, no matter how many times it rescanned; the only fix was forcing the strap into pairing mode. The cause: a bonded strap that isn't advertising can't be found by a Bluetooth scan, and reconnect was scan-only. It now reconnects DIRECTLY to your known strap (the OS reconnects as soon as it's back in range, no scan needed), so it recovers on its own. (The Mac already reconnected this way.)",
             ]),
         Release(
             version: "1.35",
             title: "WHOOP 5.0/MG buzz - the real command (matched byte-for-byte)",
             date: "June 2026",
             items: [
-                "WHOOP 5.0/MG: the buzz now sends the exact haptics command a working 5.0 app uses - the right command number (0x13), the right 12-byte payload (the \"notify\" vibration pattern), and a framing fix (4-byte padding) that the longer payload needs. NOOP's command is now byte-for-byte identical to the working app's, verified by a test. So Test buzz, wrist alerts and the smart-alarm buzz should now actually vibrate a bonded 5.0/MG. (This supersedes the v1.34 attempt, which had the command number but not the payload.) WHOOP 4.0 buzz is unchanged. If you have a 5.0/MG, please confirm on issue #48.",
+                "WHOOP 5.0/MG: the buzz now sends the exact haptics command a working 5.0 app uses - the right command number (0x13), the right 12-byte payload (the \"notify\" vibration pattern), and a framing fix (4-byte padding) that the longer payload needs. reNOOP's command is now byte-for-byte identical to the working app's, verified by a test. So Test buzz, wrist alerts and the smart-alarm buzz should now actually vibrate a bonded 5.0/MG. (This supersedes the v1.34 attempt, which had the command number but not the payload.) WHOOP 4.0 buzz is unchanged. If you have a 5.0/MG, please confirm on issue #48.",
             ]),
         Release(
             version: "1.34",
@@ -2230,7 +2230,7 @@ enum AppChangelog {
             title: "Smart alarm: the time you set is the time that fires",
             date: "June 2026",
             items: [
-                "Fixed: the Smart alarm wake time didn't always reach the strap. If you changed the time while the strap wasn't actively connected, the new time silently never transmitted - so the strap kept its old time (you set 07:15, but it still buzzed at 07:00). NOOP now re-sends the alarm time every time the strap reconnects, so the time you set is the time that fires. Mac and Android.",
+                "Fixed: the Smart alarm wake time didn't always reach the strap. If you changed the time while the strap wasn't actively connected, the new time silently never transmitted - so the strap kept its old time (you set 07:15, but it still buzzed at 07:00). reNOOP now re-sends the alarm time every time the strap reconnects, so the time you set is the time that fires. Mac and Android.",
             ]),
         Release(
             version: "1.32",
@@ -2244,7 +2244,7 @@ enum AppChangelog {
             title: "No more HR spike when you reopen the app",
             date: "June 2026",
             items: [
-                "Fixed: when you reopened NOOP or returned to the Live screen, your heart rate could briefly show a high stale number (around 100) and then drift back down over several seconds. The strap was fine - the app was re-showing the last smoothed value from before the gap, until fresh readings refilled the averaging window. The hero number now blanks to \"—\" on resume and shows your real heart rate the instant the first fresh reading arrives. Both Mac and Android.",
+                "Fixed: when you reopened reNOOP or returned to the Live screen, your heart rate could briefly show a high stale number (around 100) and then drift back down over several seconds. The strap was fine - the app was re-showing the last smoothed value from before the gap, until fresh readings refilled the averaging window. The hero number now blanks to \"—\" on resume and shows your real heart rate the instant the first fresh reading arrives. Both Mac and Android.",
             ]),
         Release(
             version: "1.30",
@@ -2272,21 +2272,21 @@ enum AppChangelog {
             title: "Wrist alerts work on Android",
             date: "June 2026",
             items: [
-                "Fixed (Android): you couldn't turn wrist alerts on - NOOP didn't show up in your phone's Notification Access list, so there was nothing to grant. NOOP now registers a notification listener (so it appears there); grant access and enable wrist alerts, and your strap buzzes when your chosen apps notify you - respecting your per-app patterns, quiet hours, and only-when-worn. Privacy: it reads only WHICH app notified, never the message content, and nothing leaves your phone. (The buzz works on WHOOP 4.0; 5.0/MG haptics are still being decoded.)",
+                "Fixed (Android): you couldn't turn wrist alerts on - reNOOP didn't show up in your phone's Notification Access list, so there was nothing to grant. reNOOP now registers a notification listener (so it appears there); grant access and enable wrist alerts, and your strap buzzes when your chosen apps notify you - respecting your per-app patterns, quiet hours, and only-when-worn. Privacy: it reads only WHICH app notified, never the message content, and nothing leaves your phone. (The buzz works on WHOOP 4.0; 5.0/MG haptics are still being decoded.)",
             ]),
         Release(
             version: "1.26",
             title: "Smart alarm actually works on Android",
             date: "June 2026",
             items: [
-                "Fixed (Android): the Smart alarm in Automations didn't work - the toggle reset the moment you left the screen, and the wake time was stuck at 07:00 with no way to change it. It's now a real, saved setting with a proper time picker, and on WHOOP 4.0 it arms the strap's own firmware alarm, so your wrist buzzes at your wake time even if your phone is asleep or NOOP is closed (matching the Mac). Connect the strap to arm it. (On 5.0/MG the alarm command isn't verified yet - same situation as the buzz.)",
+                "Fixed (Android): the Smart alarm in Automations didn't work - the toggle reset the moment you left the screen, and the wake time was stuck at 07:00 with no way to change it. It's now a real, saved setting with a proper time picker, and on WHOOP 4.0 it arms the strap's own firmware alarm, so your wrist buzzes at your wake time even if your phone is asleep or reNOOP is closed (matching the Mac). Connect the strap to arm it. (On 5.0/MG the alarm command isn't verified yet - same situation as the buzz.)",
             ]),
         Release(
             version: "1.25",
             title: "WHOOP 5.0/MG history download (experimental) + pairing help (Mac)",
             date: "June 2026",
             items: [
-                "Experimental (Mac): once your WHOOP 5.0/MG is properly paired (see below), NOOP now attempts to download the strap's stored history - the missing piece for on-device 5.0 recovery, strain and sleep. It's brand-new and needs real-hardware testing; if it works you'll see the offload run in the strap log. WHOOP 4.0 is completely unaffected.",
+                "Experimental (Mac): once your WHOOP 5.0/MG is properly paired (see below), reNOOP now attempts to download the strap's stored history - the missing piece for on-device 5.0 recovery, strain and sleep. It's brand-new and needs real-hardware testing; if it works you'll see the offload run in the strap log. WHOOP 4.0 is completely unaffected.",
                 "Clearer 5.0/MG pairing: you can't just scan for a 5.0/MG - it has to be in pairing mode and freed from the official WHOOP app first (otherwise pairing is refused with \"Encryption is insufficient\"). The \"free your strap\" tip now shows right on the Live screen (it was hidden in Settings), and the README has a step-by-step pairing guide.",
             ]),
         Release(
@@ -2315,8 +2315,8 @@ enum AppChangelog {
             title: "Reading more from your WHOOP 5.0 (Mac)",
             date: "June 2026",
             items: [
-                "Decoding progress (WHOOP 5.0): NOOP now reads skin temperature, motion/activity and wrist-contact from your 5.0's stored history - each verified against real data (e.g. ~30.6 °C on the wrist, dropping to room temperature off it) and only stored when it's physically sensible. These are building blocks toward on-device 5.0 sleep and recovery; nothing changes on screen yet.",
-                "Fixed (Mac): corrected which byte NOOP reads the 5.0's optical-pulse channel from - a community reverse-engineering report, cross-checked against our own captured frames, showed it was a counter byte, not the channel. The pulse waveform itself was always decoded correctly; this only affects the channel label.",
+                "Decoding progress (WHOOP 5.0): reNOOP now reads skin temperature, motion/activity and wrist-contact from your 5.0's stored history - each verified against real data (e.g. ~30.6 °C on the wrist, dropping to room temperature off it) and only stored when it's physically sensible. These are building blocks toward on-device 5.0 sleep and recovery; nothing changes on screen yet.",
+                "Fixed (Mac): corrected which byte reNOOP reads the 5.0's optical-pulse channel from - a community reverse-engineering report, cross-checked against our own captured frames, showed it was a counter byte, not the channel. The pulse waveform itself was always decoded correctly; this only affects the channel label.",
             ]),
         Release(
             version: "1.20",
@@ -2331,7 +2331,7 @@ enum AppChangelog {
             date: "June 2026",
             items: [
                 "Changed (Mac): while an import is running, both Data Sources buttons now lock and only the source that's actually importing shows a spinner - so you can't start a WHOOP and an Apple Health import at the same time, and the loading state always points at the right card. Follow-up to the 1.18 status-message fix.",
-                "Decoding progress (WHOOP 5.0): NOOP now reads the strap's raw optical pulse (PPG) waveform from its stored history - a 24 Hz trace verified against your own heart rate, with no external reference. Nothing changes on screen yet; it's a building block toward 5.0 recovery and strain.",
+                "Decoding progress (WHOOP 5.0): reNOOP now reads the strap's raw optical pulse (PPG) waveform from its stored history - a 24 Hz trace verified against your own heart rate, with no external reference. Nothing changes on screen yet; it's a building block toward 5.0 recovery and strain.",
             ]),
         Release(
             version: "1.18",
@@ -2346,7 +2346,7 @@ enum AppChangelog {
             title: "Sleep from WHOOP 4 on more firmware (Mac)",
             date: "June 2026",
             items: [
-                "Fixed (Mac): no sleep recorded from a WHOOP 4 on certain firmware. NOOP stages your sleep from the strap's overnight motion data - but historical records from firmware versions it hadn't mapped were being silently dropped, so the offload finished yet produced no motion → no sleep. NOOP now falls back to the standard record layout for unmapped firmware, accepting it only when it decodes to physically-real data (so it can never store garbage), and surfaces a genuinely-unknown firmware version in the strap log. If your WHOOP 4 wasn't recording sleep, update and wear it overnight while connected.",
+                "Fixed (Mac): no sleep recorded from a WHOOP 4 on certain firmware. reNOOP stages your sleep from the strap's overnight motion data - but historical records from firmware versions it hadn't mapped were being silently dropped, so the offload finished yet produced no motion → no sleep. reNOOP now falls back to the standard record layout for unmapped firmware, accepting it only when it decodes to physically-real data (so it can never store garbage), and surfaces a genuinely-unknown firmware version in the strap log. If your WHOOP 4 wasn't recording sleep, update and wear it overnight while connected.",
             ]),
         Release(
             version: "1.16",
@@ -2360,7 +2360,7 @@ enum AppChangelog {
             title: "WHOOP 5/MG: the buzz works",
             date: "June 2026",
             items: [
-                "The wrist buzz now works on WHOOP 5.0/MG (experimental). Now that live heart rate confirmed a 5/MG strap acts on NOOP's commands, the haptic buzz - Test buzz, the smart alarm - is wired through the same path. Try Test buzz in Notifications; if it doesn't fire on your 5/MG strap, let us know. (Battery already worked on 5/MG via the standard profile.) WHOOP 4.0 is unchanged.",
+                "The wrist buzz now works on WHOOP 5.0/MG (experimental). Now that live heart rate confirmed a 5/MG strap acts on reNOOP's commands, the haptic buzz - Test buzz, the smart alarm - is wired through the same path. Try Test buzz in Notifications; if it doesn't fire on your 5/MG strap, let us know. (Battery already worked on 5/MG via the standard profile.) WHOOP 4.0 is unchanged.",
             ]),
         Release(
             version: "1.14",
@@ -2374,14 +2374,14 @@ enum AppChangelog {
             title: "WHOOP 5/MG heart rate on Android",
             date: "June 2026",
             items: [
-                "WHOOP 5.0/MG live heart rate now works on Android. Once the strap bonds, NOOP subscribes to its realtime data channels and decodes the heart-rate stream the same way the Mac does - before, Android only listened on the standard profile, which a 5/MG strap doesn't stream, so it bonded but showed no HR. Still experimental: 5/MG owners, update and share a strap log if it doesn't come through. WHOOP 4.0 is unaffected.",
+                "WHOOP 5.0/MG live heart rate now works on Android. Once the strap bonds, reNOOP subscribes to its realtime data channels and decodes the heart-rate stream the same way the Mac does - before, Android only listened on the standard profile, which a 5/MG strap doesn't stream, so it bonded but showed no HR. Still experimental: 5/MG owners, update and share a strap log if it doesn't come through. WHOOP 4.0 is unaffected.",
             ]),
         Release(
             version: "1.12",
             title: "WHOOP 5/MG heart rate on Mac + a Readiness fix",
             date: "June 2026",
             items: [
-                "WHOOP 5.0/MG on Mac: the secure pairing now completes and live heart rate comes through. NOOP waits for the strap to bond before subscribing to its data channels - subscribing too early was the silent failure - then asks it to start streaming with the right framing. If the strap won't bond on first connect, NOOP now tells you to close the official WHOOP app and put the strap in pairing mode (blue LEDs flashing), which is what lets it pair. Still experimental on 5/MG; built from a 5/MG owner's verified flow. (Android 5/MG bonding landed in v1.10; WHOOP 4.0 is untouched.)",
+                "WHOOP 5.0/MG on Mac: the secure pairing now completes and live heart rate comes through. reNOOP waits for the strap to bond before subscribing to its data channels - subscribing too early was the silent failure - then asks it to start streaming with the right framing. If the strap won't bond on first connect, reNOOP now tells you to close the official WHOOP app and put the strap in pairing mode (blue LEDs flashing), which is what lets it pair. Still experimental on 5/MG; built from a 5/MG owner's verified flow. (Android 5/MG bonding landed in v1.10; WHOOP 4.0 is untouched.)",
                 "Readiness now reflects today, not a stale import. After importing months-old WHOOP history, the \"Should you push today?\" card was still reading off the newest imported day. It now anchors to your real calendar day on both Mac and Android - completing the v1.11 dashboard fix - so an old import no longer drives today's readiness.",
             ]),
         Release(
@@ -2404,7 +2404,7 @@ enum AppChangelog {
             title: "Fix: bonded but no live data (Android)",
             date: "June 2026",
             items: [
-                "Fixed an Android bug where the strap would connect and bond but show no live data at all - heart rate, battery, worn and events all blank - on some phones (it shows up reliably on newer Android). A Bluetooth callback-threading race let the pairing write starve the data-stream subscriptions; NOOP now pins all Bluetooth callbacks to one thread and retries a momentarily-busy subscription, so the stream comes up reliably. Reported, diagnosed and hardware-verified by a community contributor.",
+                "Fixed an Android bug where the strap would connect and bond but show no live data at all - heart rate, battery, worn and events all blank - on some phones (it shows up reliably on newer Android). A Bluetooth callback-threading race let the pairing write starve the data-stream subscriptions; reNOOP now pins all Bluetooth callbacks to one thread and retries a momentarily-busy subscription, so the stream comes up reliably. Reported, diagnosed and hardware-verified by a community contributor.",
             ]),
         Release(
             version: "1.8",
@@ -2434,14 +2434,14 @@ enum AppChangelog {
             title: "WHOOP 5/MG: secure-pairing fix",
             date: "June 2026",
             items: [
-                "WHOOP 5.0/MG: fixed connecting getting stuck at “Finishing the secure pairing handshake.” NOOP now establishes the encrypted pairing first, then subscribes - so live heart rate can come through instead of hanging. Still experimental on 5/MG: if you have one, please try it and share your strap log on GitHub so we can keep improving it.",
+                "WHOOP 5.0/MG: fixed connecting getting stuck at “Finishing the secure pairing handshake.” reNOOP now establishes the encrypted pairing first, then subscribes - so live heart rate can come through instead of hanging. Still experimental on 5/MG: if you have one, please try it and share your strap log on GitHub so we can keep improving it.",
             ]),
         Release(
             version: "1.4",
             title: "Live heart rate that doesn't freeze",
             date: "June 2026",
             items: [
-                "Fixed live heart rate freezing on a stale number mid-session. NOOP now keeps the strap's realtime stream re-armed and, if the link goes quiet, quietly reconnects on its own - no more disconnect-and-reconnect by hand to un-stick it. (Android now matches how the Mac app already behaved.)",
+                "Fixed live heart rate freezing on a stale number mid-session. reNOOP now keeps the strap's realtime stream re-armed and, if the link goes quiet, quietly reconnects on its own - no more disconnect-and-reconnect by hand to un-stick it. (Android now matches how the Mac app already behaved.)",
                 "Hardened the Bluetooth frame reader so a single corrupt packet can't wedge the live stream until you reconnect.",
             ]),
         Release(
@@ -2449,8 +2449,8 @@ enum AppChangelog {
             title: "Stays connected in the background",
             date: "June 2026",
             items: [
-                "NOOP now keeps your strap connected when the app is closed. On Android it shows a quiet ongoing notification and keeps streaming your heart rate; on Mac, just close the window and NOOP keeps running from the menu bar.",
-                "New “Keep connected in the background” toggle in Settings → Strap (on by default). Turn it off and NOOP disconnects whenever you close the app.",
+                "reNOOP now keeps your strap connected when the app is closed. On Android it shows a quiet ongoing notification and keeps streaming your heart rate; on Mac, just close the window and reNOOP keeps running from the menu bar.",
+                "New “Keep connected in the background” toggle in Settings → Strap (on by default). Turn it off and reNOOP disconnects whenever you close the app.",
                 "Fixed the strap dropping the moment you closed the app, and made sure the notification permission is actually requested.",
             ]),
         Release(

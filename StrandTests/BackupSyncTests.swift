@@ -136,13 +136,13 @@ final class BackupSyncTests: XCTestCase {
     func testTrailSlicesAfterTheICloudSyncRoot() {
         // macOS shape: merely filtering out the tilde component would leave "Mobile Documents › NOOP".
         XCTAssertEqual(
-            FolderBackup.folderTrail(path: "/Users/x/Library/Mobile Documents/com~apple~CloudDocs/NOOP"),
-            "NOOP")
+            FolderBackup.folderTrail(path: "/Users/x/Library/Mobile Documents/com~apple~CloudDocs/reNOOP"),
+            "reNOOP")
         // iOS shape, two components deep.
         XCTAssertEqual(
             FolderBackup.folderTrail(
-                path: "/private/var/mobile/Library/Mobile Documents/com~apple~CloudDocs/Backups/NOOP"),
-            "Backups › NOOP")
+                path: "/private/var/mobile/Library/Mobile Documents/com~apple~CloudDocs/Backups/reNOOP"),
+            "Backups › reNOOP")
         // A per-app ubiquity container is a sync root too.
         XCTAssertEqual(
             FolderBackup.folderTrail(path: "/var/mobile/Library/Mobile Documents/iCloud~com~foo~bar/Documents/B"),
@@ -168,7 +168,7 @@ final class BackupSyncTests: XCTestCase {
 
     func testICloudPathRuleMatchesTheDiagnosticsSignal() {
         // One definition: the screen and `restoreListHealth`'s dump must never disagree.
-        XCTAssertTrue(FolderBackup.isICloudPath("/Users/x/Library/Mobile Documents/com~apple~CloudDocs/NOOP"))
+        XCTAssertTrue(FolderBackup.isICloudPath("/Users/x/Library/Mobile Documents/com~apple~CloudDocs/reNOOP"))
         XCTAssertFalse(FolderBackup.isICloudPath("/var/mobile/Containers/Data/Application/U/Documents/Backups"))
     }
 }

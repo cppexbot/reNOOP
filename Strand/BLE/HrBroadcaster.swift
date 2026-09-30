@@ -193,7 +193,7 @@ public final class HrBroadcaster: NSObject, ObservableObject {
         if !manager.isAdvertising {
             manager.startAdvertising([
                 CBAdvertisementDataServiceUUIDsKey: [Self.heartRateService],
-                CBAdvertisementDataLocalNameKey: "NOOP HR",
+                CBAdvertisementDataLocalNameKey: "reNOOP HR",
             ])
             log("HR-out: advertising 0x180D heart-rate service")
         }
@@ -216,7 +216,7 @@ extension HrBroadcaster: @preconcurrency CBPeripheralManagerDelegate {
             log("HR-out: Bluetooth is off, cannot broadcast")
         case .unauthorized:
             advertising = false
-            statusNote = "NOOP needs Bluetooth permission to broadcast your heart rate."
+            statusNote = "reNOOP needs Bluetooth permission to broadcast your heart rate."
             log("HR-out: Bluetooth permission not granted, cannot broadcast")
         case .unsupported:
             advertising = false

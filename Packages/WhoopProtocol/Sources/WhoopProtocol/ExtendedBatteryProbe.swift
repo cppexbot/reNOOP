@@ -59,7 +59,7 @@ public enum ExtendedBatteryProbe {
             if !isWhoop5, pay.count >= 9 {
                 let mv = Int(pay[7]) | (Int(pay[8]) << 8)
                 sb += "\nVoltage: " + String(format: "%.2f V", Double(mv) / 1000.0)
-                sb += "  (mV=\(mv) @07) — the field NOOP already reads\n"
+                sb += "  (mV=\(mv) @07) — the field reNOOP already reads\n"
             }
             // Per-byte diff vs the previous capture — the field-mapping signal.
             sb += "\n"

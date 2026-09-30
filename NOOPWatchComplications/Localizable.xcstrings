@@ -577,66 +577,66 @@
         }
       }
     },
-    "Charge out of date, last synced %@. Open NOOP on iPhone.": {
+    "Charge out of date, last synced %@. Open reNOOP on iPhone.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ladung veraltet, zuletzt synchronisiert %@. Öffne NOOP auf dem iPhone."
+            "value": "Ladung veraltet, zuletzt synchronisiert %@. Öffne reNOOP auf dem iPhone."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Charge out of date, last synced %@. Open NOOP on iPhone."
+            "value": "Charge out of date, last synced %@. Open reNOOP on iPhone."
           }
         },
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "Carga desatualizada, última sincronização %@. Abra o NOOP no iPhone."
+            "value": "Carga desatualizada, última sincronização %@. Abra o reNOOP no iPhone."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Заряд устарел, последняя синхронизация %@. Откройте NOOP на iPhone."
+            "value": "Заряд устарел, последняя синхронизация %@. Откройте reNOOP на iPhone."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Carga fuera de la fecha, última sincronizada %1$@. Abrir NOOP en iPhone."
+            "value": "Carga fuera de la fecha, última sincronizada %1$@. Abrir reNOOP en iPhone."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Charge hors date, dernière synchronisation %1$@. Ouvrez NOOP sur iPhone."
+            "value": "Charge hors date, dernière synchronisation %1$@. Ouvrez reNOOP sur iPhone."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Carica non aggiornata, ultima sincronizzazione %@. Apri NOOP su iPhone."
+            "value": "Carica non aggiornata, ultima sincronizzazione %@. Apri reNOOP su iPhone."
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Energia nieaktualny, ostatnia synchronizacja %@. Otwórz NOOP na iPhonie."
+            "value": "Energia nieaktualny, ostatnia synchronizacja %@. Otwórz reNOOP na iPhonie."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "能量数据已过期，上次同步 %@。请在 iPhone 上打开 NOOP。"
+            "value" : "能量数据已过期，上次同步 %@。请在 iPhone 上打开 reNOOP。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "能量資料已過期，上次同步 %@。請在 iPhone 上開啟 NOOP。"
+            "value" : "能量資料已過期，上次同步 %@。請在 iPhone 上開啟 reNOOP。"
           }
         }
       }
@@ -1025,146 +1025,146 @@
         }
       }
     },
-    "NOOP Charge": {
+    "reNOOP Charge": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "NOOP Ladung"
+            "value": "reNOOP Ladung"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "NOOP Charge"
+            "value": "reNOOP Charge"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Carga de NOOP"
+            "value": "Carga de reNOOP"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Carica NOOP"
+            "value": "Carica reNOOP"
           }
         },
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "Carga NOOP"
+            "value": "Carga reNOOP"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "NOOP Заряд"
+            "value": "reNOOP Заряд"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "NOOP 能量"
+            "value": "reNOOP 能量"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "NOOP 能量"
+            "value": "reNOOP 能量"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Charge NOOP"
+            "value": "Charge reNOOP"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "NOOP Energia"
+            "value": "reNOOP Energia"
           }
         }
       }
     },
-    "NOOP · open on iPhone": {
+    "reNOOP · open on iPhone": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "NOOP · auf iPhone öffnen"
+            "value": "reNOOP · auf iPhone öffnen"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "NOOP · open on iPhone"
+            "value": "reNOOP · open on iPhone"
           }
         },
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "NOOP · abrir no iPhone"
+            "value": "reNOOP · abrir no iPhone"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "NOOP · откройте на iPhone"
+            "value": "reNOOP · откройте на iPhone"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "NOOP · abierto en iPhone"
+            "value": "reNOOP · abierto en iPhone"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "NOOP · ouvert sur iPhone"
+            "value": "reNOOP · ouvert sur iPhone"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "NOOP · apri su iPhone"
+            "value": "reNOOP · apri su iPhone"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "NOOP · otwórz na iPhonie"
+            "value": "reNOOP · otwórz na iPhonie"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "NOOP · 在 iPhone 上打开"
+            "value" : "reNOOP · 在 iPhone 上打开"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "NOOP · 在 iPhone 上開啟"
+            "value" : "reNOOP · 在 iPhone 上開啟"
           }
         }
       }
     },
-    "NOOP. %@, %@, %@.": {
+    "reNOOP. %@, %@, %@.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "NOOP. %@, %@, %@."
+            "value": "reNOOP. %@, %@, %@."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "NOOP. %@, %@, %@."
+            "value": "reNOOP. %@, %@, %@."
           }
         },
         "pt-PT": {
@@ -1176,13 +1176,13 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "NOOP. %@, %@, %@."
+            "value": "reNOOP. %@, %@, %@."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "NOOP. %1$@, %2$@, %3$@."
+            "value": "reNOOP. %1$@, %2$@, %3$@."
           }
         },
         "fr": {
@@ -1194,281 +1194,281 @@
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "NOOP. %@, %@, %@."
+            "value": "reNOOP. %@, %@, %@."
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "NOOP. %@, %@, %@."
+            "value": "reNOOP. %@, %@, %@."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "NOOP。%@、%@、%@。"
+            "value" : "reNOOP。%@、%@、%@。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "NOOP。%@、%@、%@。"
+            "value" : "reNOOP。%@、%@、%@。"
           }
         }
       }
     },
-    "NOOP. No data yet, open NOOP on your iPhone to sync.": {
+    "reNOOP. No data yet, open reNOOP on your iPhone to sync.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "NOOP. Noch keine Daten, öffne NOOP auf deinem iPhone zum Synchronisieren."
+            "value": "reNOOP. Noch keine Daten, öffne reNOOP auf deinem iPhone zum Synchronisieren."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "NOOP. No data yet, open NOOP on your iPhone to sync."
+            "value": "reNOOP. No data yet, open reNOOP on your iPhone to sync."
           }
         },
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "NÃO. Ainda não há dados, abra o NOOP no teu iPhone para tincronizar."
+            "value": "NÃO. Ainda não há dados, abra o reNOOP no teu iPhone para tincronizar."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "NOOP. Данных пока нет, откройте NOOP на iPhone для синхронизации."
+            "value": "reNOOP. Данных пока нет, откройте reNOOP на iPhone для синхронизации."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "NOOP. Aún no hay datos, abra NOOP en su iPhone para sincronizar."
+            "value": "reNOOP. Aún no hay datos, abra reNOOP en su iPhone para sincronizar."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "- Oui. Pas encore de données, ouvrez NOOP sur votre iPhone pour synchroniser."
+            "value": "- Oui. Pas encore de données, ouvrez reNOOP sur votre iPhone pour synchroniser."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "NOOP. Ancora nessun dato, apri NOOP sul tuo iPhone per sincronizzare."
+            "value": "reNOOP. Ancora nessun dato, apri reNOOP sul tuo iPhone per sincronizzare."
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "NOOP. Nie ma jeszcze danych. Otwórz NOOP na swoim iPhonie, aby przeprowadzić synchronizację."
+            "value": "reNOOP. Nie ma jeszcze danych. Otwórz reNOOP na swoim iPhonie, aby przeprowadzić synchronizację."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "NOOP。暂无数据，请在 iPhone 上打开 NOOP 进行同步。"
+            "value" : "reNOOP。暂无数据，请在 iPhone 上打开 reNOOP 进行同步。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "NOOP。暫無資料，請在 iPhone 上開啟 NOOP 進行同步。"
+            "value" : "reNOOP。暫無資料，請在 iPhone 上開啟 reNOOP 進行同步。"
           }
         }
       }
     },
-    "NOOP. Scores out of date, last synced %@. Open NOOP on iPhone to refresh.": {
+    "reNOOP. Scores out of date, last synced %@. Open reNOOP on iPhone to refresh.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "NOOP. Werte veraltet, zuletzt synchronisiert %@. Öffne NOOP auf dem iPhone zum Aktualisieren."
+            "value": "reNOOP. Werte veraltet, zuletzt synchronisiert %@. Öffne reNOOP auf dem iPhone zum Aktualisieren."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "NOOP. Scores out of date, last synced %@. Open NOOP on iPhone to refresh."
+            "value": "reNOOP. Scores out of date, last synced %@. Open reNOOP on iPhone to refresh."
           }
         },
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "NÃO. Pontuações desatualizadas, última sincronização %@. Abra o NOOP no iPhone para atualizar."
+            "value": "NÃO. Pontuações desatualizadas, última sincronização %@. Abra o reNOOP no iPhone para atualizar."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "NOOP. Показатели устарели, последняя синхронизация %@. Откройте NOOP на iPhone, чтобы обновить."
+            "value": "reNOOP. Показатели устарели, последняя синхронизация %@. Откройте reNOOP на iPhone, чтобы обновить."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "NOOP. Resultados fuera de la fecha, último sincronizado %1$@. Abra NOOP en iPhone para refrescarse."
+            "value": "reNOOP. Resultados fuera de la fecha, último sincronizado %1$@. Abra reNOOP en iPhone para refrescarse."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "- Oui. Les scores sont dépassés, le dernier %1$@ synchronisé. Ouvrez NOOP sur iPhone pour vous rafraîchir."
+            "value": "- Oui. Les scores sont dépassés, le dernier %1$@ synchronisé. Ouvrez reNOOP sur iPhone pour vous rafraîchir."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "NOOP. Punteggi non aggiornati, ultima sincronizzazione %@. Apri NOOP su iPhone per aggiornare."
+            "value": "reNOOP. Punteggi non aggiornati, ultima sincronizzazione %@. Apri reNOOP su iPhone per aggiornare."
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "NOOP. Wyniki nieaktualne, ostatnia synchronizacja %@. Otwórz NOOP na iPhonie, aby odświeżyć."
+            "value": "reNOOP. Wyniki nieaktualne, ostatnia synchronizacja %@. Otwórz reNOOP na iPhonie, aby odświeżyć."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "NOOP。评分已过期，上次同步 %@。请在 iPhone 上打开 NOOP 以刷新。"
+            "value" : "reNOOP。评分已过期，上次同步 %@。请在 iPhone 上打开 reNOOP 以刷新。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "NOOP。評分已過期，上次同步 %@。請在 iPhone 上開啟 NOOP 以重新整理。"
+            "value" : "reNOOP。評分已過期，上次同步 %@。請在 iPhone 上開啟 reNOOP 以重新整理。"
           }
         }
       }
     },
-    "No data, open NOOP on iPhone": {
+    "No data, open reNOOP on iPhone": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Keine Daten, öffne NOOP auf dem iPhone"
+            "value": "Keine Daten, öffne reNOOP auf dem iPhone"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "No data, open NOOP on iPhone"
+            "value": "No data, open reNOOP on iPhone"
           }
         },
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sem dados, abra o NOOP no iPhone"
+            "value": "Sem dados, abra o reNOOP no iPhone"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Нет данных, откройте NOOP на iPhone"
+            "value": "Нет данных, откройте reNOOP на iPhone"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No hay datos, abra NOOP en iPhone"
+            "value": "No hay datos, abra reNOOP en iPhone"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pas de données, ouvrir NOOP sur iPhone"
+            "value": "Pas de données, ouvrir reNOOP sur iPhone"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nessun dato, apri NOOP su iPhone"
+            "value": "Nessun dato, apri reNOOP su iPhone"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Brak danych, otwórz NOOP na iPhonie"
+            "value": "Brak danych, otwórz reNOOP na iPhonie"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无数据，请在 iPhone 上打开 NOOP"
+            "value" : "无数据，请在 iPhone 上打开 reNOOP"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "無資料，請在 iPhone 上開啟 NOOP"
+            "value" : "無資料，請在 iPhone 上開啟 reNOOP"
           }
         }
       }
     },
-    "Open NOOP": {
+    "Open reNOOP": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "NOOP öffnen"
+            "value": "reNOOP öffnen"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Open NOOP"
+            "value": "Open reNOOP"
           }
         },
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "Abrir NOOP"
+            "value": "Abrir reNOOP"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Открыть NOOP"
+            "value": "Открыть reNOOP"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Open NOOP"
+            "value": "Open reNOOP"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ouvrir NOOP"
+            "value": "Ouvrir reNOOP"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Apri NOOP"
+            "value": "Apri reNOOP"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Otwórz NOOP"
+            "value": "Otwórz reNOOP"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "打开 NOOP"
+            "value" : "打开 reNOOP"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "開啟 NOOP"
+            "value" : "開啟 reNOOP"
           }
         }
       }

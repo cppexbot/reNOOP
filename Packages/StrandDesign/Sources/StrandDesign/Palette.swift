@@ -373,6 +373,12 @@ public enum StrandPalette {
     /// The default (no photo) profile circle: Contacts-style grey gradient behind a white silhouette.
     public static let summaryAvatarTop    = Color(light: "#A9AEBB", dark: "#8E929E")
     public static let summaryAvatarBottom = Color(light: "#868A96", dark: "#6B6F7A")
+    /// Apple Fitness's Summary tiles (measured on iOS 26.5): the chart's rules and day letters, and the grey
+    /// disc behind a tile's chevron. Fitness is dark-only; the light values are the system greys it would take.
+    public static let fitnessTileRule = Color(light: "#D1D1D6", dark: "#5D5D60", lightHC: "#AEAEB2", darkHC: "#8E8E93")
+    public static let fitnessTileDisc = Color(light: "#C7C7CC", dark: "#727275", lightHC: "#8E8E93", darkHC: "#AEAEB2")
+    /// The outline of Health's "Show All Health Data" glyph.
+    public static let healthDataGlyph = Color(light: "#CFCFD1", dark: "#5A5A5E", lightHC: "#8E8E93", darkHC: "#8E8E93")
     /// Sleep screen (Apple Health idiom): the four stage hues, and the plain page colour the chart sits on.
     /// Health's own values (iOS 26): Awake and Deep are HealthUI's `sleep_awake` / `sleep_deep_color`
     /// (Awake converted from Display P3), REM and Core the system cyan and blue.

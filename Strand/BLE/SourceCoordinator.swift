@@ -441,7 +441,7 @@ final class SourceCoordinator: ObservableObject {
             onsetKeying: { UserDefaults.standard.bool(forKey: AppModel.ouraOnsetKeyingKey) },  // #1284 residual 3
             notifyMaskFull: { UserDefaults.standard.bool(forKey: AppModel.ouraNotifyMaskFullKey) },  // packed-notification A/B
             adoptIntent: adoptIntent)
-        if adoptIntent { straplog("Oura: adopt consent granted - this session may install NOOP's key") }
+        if adoptIntent { straplog("Oura: adopt consent granted - this session may install reNOOP's key") }
         ouraSource = source   // the published typed handle for the adopt mirror (same object as activeSource)
         return source
     }

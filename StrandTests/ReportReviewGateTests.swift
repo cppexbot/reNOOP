@@ -9,7 +9,7 @@ final class ReportReviewGateTests: XCTestCase {
 
     private func sampleEntries() -> [FileExport.BundleEntry] {
         [FileExport.BundleEntry(name: "report.txt",
-                                data: Data("NOOP strap log\nline 1\nline 2".utf8))]
+                                data: Data("reNOOP strap log\nline 1\nline 2".utf8))]
     }
 
     func testFreshGateIsNotCleared() {

@@ -88,7 +88,7 @@ final class DocumentPickerEventTests: XCTestCase {
     func testOurOwnDocumentsIsNamedAsSuch() {
         let ours = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
         let resolved = try? XCTUnwrap(ours)
-        XCTAssertEqual(BackupPickerStart.category(resolved), "NOOP's own folder")
+        XCTAssertEqual(BackupPickerStart.category(resolved), "reNOOP's own folder")
     }
 
     /// Anything else is the user's last-used folder, and is described WITHOUT naming it.
@@ -108,7 +108,7 @@ final class DocumentPickerEventTests: XCTestCase {
         let ours = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
         guard let ours else { return XCTFail("no Documents directory") }
         let withSlash = URL(fileURLWithPath: ours.path + "/")
-        XCTAssertEqual(BackupPickerStart.category(withSlash), "NOOP's own folder")
+        XCTAssertEqual(BackupPickerStart.category(withSlash), "reNOOP's own folder")
     }
 
     // MARK: - Source access

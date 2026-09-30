@@ -65,7 +65,7 @@ final class UnmappedHistoricalLayoutTests: XCTestCase {
                        "precondition: the record is CRC-VALID, so only the layout decision can archive it")
         XCTAssertTrue(isUnmappedWhoop5HistoricalRecord(unmapped))
         XCTAssertEqual(rejectedHistoricalRecords([unmapped], family: .whoop5), [unmapped],
-                       "a record from a layout NOOP cannot map must be archived whatever it decoded")
+                       "a record from a layout reNOOP cannot map must be archived whatever it decoded")
     }
 
     /// Every version outside `mappedWhoop5HistoricalVersions` is archived — no gaps, no lucky values.

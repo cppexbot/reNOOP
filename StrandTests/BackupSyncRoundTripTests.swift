@@ -54,7 +54,7 @@ final class BackupSyncRoundTripTests: XCTestCase {
         let result = DataBackup.restore(from: backup, toDatabaseAt: liveDB.path)
 
         guard case .imported = result else {
-            return XCTFail("Restore should succeed for a valid NOOP backup, got \(result)")
+            return XCTFail("Restore should succeed for a valid reNOOP backup, got \(result)")
         }
         XCTAssertEqual(try deviceRows(in: liveDB), ["my-whoop", "watch"],
                        "Restored DB should hold exactly the backed-up rows")

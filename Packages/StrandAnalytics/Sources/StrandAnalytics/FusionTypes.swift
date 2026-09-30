@@ -34,7 +34,7 @@ public enum FusionSource: String, Equatable, Sendable, CaseIterable, Codable {
     public var displayName: String {
         switch self {
         case .whoopImport:   return "WHOOP"
-        case .noopComputed:  return "NOOP"
+        case .noopComputed:  return "reNOOP"
         case .appleHealth:   return "Apple Health"
         case .healthConnect: return "Health Connect"
         case .xiaomiBand:    return "Mi Band"

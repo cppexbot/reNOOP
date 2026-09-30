@@ -87,7 +87,7 @@ final class HrBroadcasterEncodeTests: XCTestCase {
             let parsed = StandardHeartRate.parse(encoded)
             XCTAssertNotNil(parsed, "encoded \(bpm) must re-parse")
             XCTAssertEqual(parsed?.hr, bpm, "encode→parse round trip must preserve \(bpm)")
-            XCTAssertEqual(parsed?.rr.count, 0, "NOOP broadcasts a plain HR with no R-R")
+            XCTAssertEqual(parsed?.rr.count, 0, "reNOOP broadcasts a plain HR with no R-R")
         }
     }
 }

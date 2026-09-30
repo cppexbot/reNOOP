@@ -528,8 +528,8 @@ public struct R22DisableReport: Equatable, Sendable {
       • A cleared flag is not the same as reverted BEHAVIOUR. This reports what the strap STORES. Whether
         the deep records actually stop is a separate question, answered by wearing the strap and watching
         the type-0x2F deep-buffer capture stop, not by this report.
-      • This does not restore a snapshot. NOOP never read these values before first writing them, so the
-        strap's pre-NOOP state is unknown. The honest claim is "cleared the flags NOOP set".
+      • This does not restore a snapshot. reNOOP never read these values before first writing them, so the
+        strap's pre-reNOOP state is unknown. The honest claim is "cleared the flags reNOOP set".
       • disable_pip_r26_packets inverts: clearing it is expected to let PIP R26 packets flow AGAIN. That is
         the pre-R22 behaviour and is intended.
     """

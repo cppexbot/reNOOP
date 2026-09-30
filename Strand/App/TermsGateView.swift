@@ -16,7 +16,7 @@ struct TermsGateView: View {
 
     var body: some View {
         SetupPage(isFirst: true,
-                  title: String(localized: "Before you use NOOP"),
+                  title: String(localized: "Before you use reNOOP"),
                   message: String(localized: "Please read the points below, then confirm each statement."),
                   art: { SetupGlyph(systemName: "doc.text") }) {
             VStack(alignment: .leading, spacing: 24) {
@@ -94,7 +94,7 @@ private struct TermsSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     TermsPoints()
-                    Text("The full terms are in TERMS.md, shipped with NOOP. This is not legal advice.")
+                    Text("The full terms are in TERMS.md, shipped with reNOOP. This is not legal advice.")
                         .font(StrandFont.pro(15))
                         .foregroundStyle(StrandPalette.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)

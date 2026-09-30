@@ -149,7 +149,7 @@ enum DebugDataDiagnostics {
             let bmOk = d.bool(forKey: "backupPicker.lastBookmarkOk")
             lines.append("             scoped-access \(scoped ? "ok" : "FAILED"), bookmark \(bmOk ? "ok" : "FAILED")")
         }
-        lines.append("Backup mode:  \(FolderBackup.useInternalFolder ? "NOOP's own folder (#52 fallback)" : (FolderBackup.hasFolder ? "external folder" : "none chosen"))")
+        lines.append("Backup mode:  \(FolderBackup.useInternalFolder ? "reNOOP's own folder (#52 fallback)" : (FolderBackup.hasFolder ? "external folder" : "none chosen"))")
         #endif
         #if os(macOS)
         // #278: macOS Backup & Sync restore-list health. When a user reports "restore shows no files",

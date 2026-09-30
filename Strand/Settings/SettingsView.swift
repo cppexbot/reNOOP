@@ -70,7 +70,7 @@ struct SettingsView: View {
             }
 
             Section {
-                SettingsLink(.about, "About NOOP", icon: "info", color: StrandPalette.settingsGray)
+                SettingsLink(.about, "About reNOOP", icon: "info", color: StrandPalette.settingsGray)
                 if DeveloperUnlock.isAlwaysOn || developerUnlocked {
                     SettingsLink(.developer, "Developer", icon: "hammer.fill", color: StrandPalette.settingsGray)
                 }

@@ -42,7 +42,7 @@ struct BackupSyncView: View {
                 #if os(iOS)
                 // #52: some iOS 26 pickers never return a folder; back up inside NOOP's own Files folder.
                 if !FolderBackup.useInternalFolder {
-                    Button("NOOP folder") { useNoopFolder() }
+                    Button("reNOOP folder") { useNoopFolder() }
                         .disabled(busy)
                 }
                 #endif
@@ -202,7 +202,7 @@ struct BackupSyncView: View {
             showOversizeRestoreConfirm = true
         case .imported:
             // ST-6: an outcome, not a question — the capsule, as Backed up already does.
-            Confirmation.shared.show(String(localized: "Restored. Reopen NOOP."))
+            Confirmation.shared.show(String(localized: "Restored. Reopen reNOOP."))
         case .failure(let message):
             alertTitle = String(localized: "Backup problem")
             alertMessage = message
@@ -239,7 +239,7 @@ struct BackupSyncView: View {
                 // active, a cancelled picker changed nothing — and the button the message points at is
                 // hidden, so alerting here would send the user chasing a control that isn't shown.
                 alertTitle = String(localized: "No folder selected")
-                alertMessage = String(localized: "If Open does nothing, tap NOOP folder to back up inside NOOP.")
+                alertMessage = String(localized: "If Open does nothing, tap reNOOP folder to back up inside reNOOP.")
                 showAlert = true
             }
         }
@@ -253,7 +253,7 @@ struct BackupSyncView: View {
         FolderBackup.useNoopFolder()
         // The Folder row now names it; the capsule confirms the switch (ST-6).
         folderLabel = FolderBackup.folderLabel()
-        Confirmation.shared.show(String(localized: "Using NOOP's folder"))
+        Confirmation.shared.show(String(localized: "Using reNOOP's folder"))
     }
     #endif
 
@@ -279,7 +279,7 @@ struct BackupSyncView: View {
         snapshots = FolderBackup.listSnapshots()
         if snapshots.isEmpty {
             alertTitle = String(localized: "No backups found")
-            alertMessage = String(localized: "There are no NOOP backups in your folder yet. Use Back up now first.")
+            alertMessage = String(localized: "There are no reNOOP backups in your folder yet. Use Back up now first.")
             showAlert = true
         } else {
             showRestoreSheet = true
@@ -299,7 +299,7 @@ struct BackupSyncView: View {
             await MainActor.run {
                 switch result {
                 case .imported:
-                    Confirmation.shared.show(String(localized: "Restored. Reopen NOOP."))
+                    Confirmation.shared.show(String(localized: "Restored. Reopen reNOOP."))
                     return
                 case .failure(let m):
                     alertTitle = String(localized: "Restore problem"); alertMessage = m

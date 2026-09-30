@@ -172,7 +172,7 @@ struct AppleWatchSetupView: View {
         case .unknown:
             Text("Heart, sleep, steps and VO₂ max. It all stays on this iPhone.")
         case .denied:
-            Text("If you don't see the prompt, turn NOOP on under Settings › Health › Data Access & Devices.")
+            Text("If you don't see the prompt, turn reNOOP on under Settings › Health › Data Access & Devices.")
         case .authorized:
             Text("Charge calibrates over the first week.")
         }

@@ -170,11 +170,11 @@ enum UpdateWatch {
             // What's New row beside it. `composeMessage` only assembles what it is handed.
             let body = String(localized: "You're on \(currentVersion). Open Settings and use Check for updates to see what's new and download \(release.version).")
             let sideload = sideloadHint
-                ? String(localized: "AltStore or SideStore can install it for you automatically if you added NOOP's source; a direct .ipa still has to be signed on your device.")
+                ? String(localized: "AltStore or SideStore can install it for you automatically if you added reNOOP's source; a direct .ipa still has to be signed on your device.")
                 : nil
             UpdateStore.shared.post(UpdateItem(
                 kind: .newVersion,
-                title: String(localized: "NOOP \(release.version) is available"),
+                title: String(localized: "reNOOP \(release.version) is available"),
                 message: UpdateAvailability.composeMessage(body: body,
                                                            sideload: sideload,
                                                            notes: release.notes)))

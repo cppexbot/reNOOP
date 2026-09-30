@@ -124,12 +124,12 @@ struct StepsCalibrationSheet: View {
     /// normal history, and imports never carry strap motion.
     private var noMotionAction: String {
         if is5MG && !deepDataEnabled {
-            return String(localized: "Keep NOOP near the strap until its history finishes syncing. Imports don't include strap motion.")
+            return String(localized: "Keep reNOOP near the strap until its history finishes syncing. Imports don't include strap motion.")
         }
         if is5MG {
-            return String(localized: "Deep data is on. Keep NOOP near the strap until its motion history syncs.")
+            return String(localized: "Deep data is on. Keep reNOOP near the strap until its motion history syncs.")
         }
-        return String(localized: "Keep NOOP near your strap until its motion history syncs.")
+        return String(localized: "Keep reNOOP near your strap until its motion history syncs.")
     }
 
     /// The current calibration: coefficient, sample days and confidence, or what is still missing.

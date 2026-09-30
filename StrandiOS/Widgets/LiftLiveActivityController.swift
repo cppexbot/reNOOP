@@ -53,7 +53,7 @@ final class LiftLiveActivityController {
         var logLine: String {
             switch self {
             case .askedIOS:    return "Lift Log: strap step sent to the Lock Screen with a light-up alert"
-            case .appOnScreen: return "Lift Log: strap step not lighting the Lock Screen — NOOP is open on screen"
+            case .appOnScreen: return "Lift Log: strap step not lighting the Lock Screen — reNOOP is open on screen"
             case .noBanner:    return "Lift Log: strap step not lighting the Lock Screen — no Lift Log banner is running"
             }
         }
@@ -97,7 +97,7 @@ final class LiftLiveActivityController {
             return alert ? .noBanner : nil
         }
         if adopted != nil {
-            log("Lift Log: Lock Screen banner picked up again after NOOP restarted")
+            log("Lift Log: Lock Screen banner picked up again after reNOOP restarted")
             waitingForForeground = false
         }
 
@@ -140,8 +140,8 @@ final class LiftLiveActivityController {
             guard UIApplication.shared.applicationState == .active else {
                 if !waitingForForeground {
                     waitingForForeground = true
-                    log("Lift Log: no Lock Screen banner — iOS starts one only while NOOP is open, so it "
-                        + "comes back the next time NOOP is opened")
+                    log("Lift Log: no Lock Screen banner — iOS starts one only while reNOOP is open, so it "
+                        + "comes back the next time reNOOP is opened")
                 }
                 return alert ? .noBanner : nil
             }

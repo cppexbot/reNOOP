@@ -93,7 +93,7 @@ struct NOOPWidgetView: View {
         var parts: [String] = []
         if let r = snap.recovery { parts.append("Charge \(r)%") }
         if let b = bpm { parts.append("\(b) bpm") }
-        return parts.isEmpty ? "NOOP" : parts.joined(separator: " · ")
+        return parts.isEmpty ? "reNOOP" : parts.joined(separator: " · ")
     }
 
     // MARK: - Lock Screen accessories
@@ -426,7 +426,7 @@ struct NOOPWidget: Widget {
                 .containerBackground(.background, for: .widget)
                 .widgetURL(WidgetLink.today.url)
         }
-        .configurationDisplayName("NOOP")
+        .configurationDisplayName("reNOOP")
         .description("Charge, Effort and Rest as score rings, plus heart rate and strap battery at a glance.")
         .supportedFamilies([
             .systemSmall, .systemMedium, .systemLarge,

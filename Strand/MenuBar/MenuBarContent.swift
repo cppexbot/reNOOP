@@ -151,7 +151,7 @@ public struct MenuBarContent: View {
     private var header: some View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("NOOP")
+                Text("reNOOP")
                     .font(StrandFont.headline)
                     .foregroundStyle(StrandPalette.textPrimary)
                 Text("ALL YOUR DATA · NONE OF THE CLOUD")

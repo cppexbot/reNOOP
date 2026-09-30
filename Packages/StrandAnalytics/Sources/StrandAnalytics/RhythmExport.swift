@@ -22,7 +22,7 @@ public enum RhythmExport {
     /// The disclaimer stamped on every export, verbatim from the Rhythm screen's own copy, so a
     /// shared file can never be read as a medical assessment on its own.
     public static let disclaimer: String =
-        "NOOP Rhythm export — experimental wellness visualization, NOT a diagnosis. Not an ECG and "
+        "reNOOP Rhythm export — experimental wellness visualization, NOT a diagnosis. Not an ECG and "
         + "not a medical device; it cannot detect any heart condition. Beat-to-beat variation has many "
         + "ordinary, benign causes (breathing, movement, an imperfect optical reading, or the occasional "
         + "extra or skipped beat most healthy people have). Everything was computed on your device. "

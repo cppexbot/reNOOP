@@ -162,7 +162,7 @@ struct DeviceDetailView: View {
                         DeviceReadsView(family: DeviceFamily.confirmedRegistryFamily(model: device.model,
                                                                                     brand: device.brand))
                     } label: {
-                        Text("What NOOP Reads").foregroundStyle(StrandPalette.textPrimary)
+                        Text("What reNOOP Reads").foregroundStyle(StrandPalette.textPrimary)
                     }
                 }
                 if testing, r.isActive, let line = clockState?.line {
@@ -404,7 +404,7 @@ private struct DeviceConfirmDialog: ViewModifier {
     private func message(_ c: DeviceConfirm) -> LocalizedStringKey {
         switch c {
         case .restart: return "It reconnects on its own in about 30 seconds."
-        case .forget: return "NOOP stops connecting to it. Its data is kept."
+        case .forget: return "reNOOP stops connecting to it. Its data is kept."
         case .deleteData: return "This can't be undone."
         case .purge: return "Its recorded data is deleted too."
         }

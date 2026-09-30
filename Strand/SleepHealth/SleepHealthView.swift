@@ -247,7 +247,7 @@ struct SleepHealthView: View {
     private func napSheet(_ seed: AddNapSeed) -> some View {
         SleepTimeEditor(bedTs: seed.bedTs, wakeTs: seed.wakeTs,
                         title: "Add a nap",
-                        blurb: "Pick when the nap started and ended. NOOP stages it from your data as its own session, separate from the night's sleep.",
+                        blurb: "Pick when the nap started and ended. reNOOP stages it from your data as its own session, separate from the night's sleep.",
                         bedLabel: "Nap started", wakeLabel: "Nap ended") { startTs, endTs in
             await repo.addManualNap(startTs: startTs, endTs: endTs)
             await intelligence.analyzeRecent()
@@ -266,7 +266,7 @@ struct SleepHealthView: View {
         // A hand-edited / added night writes no tombstone, so only a detected one promises no re-detection.
         let message = snapshot.session.userEdited
             ? String(localized: "Sleep deleted.")
-            : String(localized: "Sleep deleted. NOOP won't detect sleep between \(Self.clock(displayStart)) and \(Self.clock(windowEnd)) again.")
+            : String(localized: "Sleep deleted. reNOOP won't detect sleep between \(Self.clock(displayStart)) and \(Self.clock(windowEnd)) again.")
         withAnimation(.easeOut(duration: 0.2)) { sleepUndo = SleepUndo(snapshot: snapshot, message: message) }
     }
 

@@ -124,7 +124,7 @@ final class LiveActivityController {
         if !isEnding, let activity, !Self.isShowing(activity) {
             self.activity = nil
             shownState = nil
-            log("gone from the Lock Screen (ended by iOS or dismissed); started again when NOOP is next on screen "
+            log("gone from the Lock Screen (ended by iOS or dismissed); started again when reNOOP is next on screen "
                 + "during a workout")
         }
         // Re-adopt an activity that outlived a previous app session. ActivityKit keeps Live Activities

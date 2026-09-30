@@ -1601,66 +1601,66 @@
         }
       }
     },
-    "Open NOOP on your iPhone to sync": {
+    "Open reNOOP on your iPhone to sync": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Öffne NOOP auf deinem iPhone zum Synchronisieren"
+            "value": "Öffne reNOOP auf deinem iPhone zum Synchronisieren"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Open NOOP on your iPhone to sync"
+            "value": "Open reNOOP on your iPhone to sync"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Abre NOOP en tu iPhone para sincronizar"
+            "value": "Abre reNOOP en tu iPhone para sincronizar"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Apri NOOP sul tuo iPhone per sincronizzare"
+            "value": "Apri reNOOP sul tuo iPhone per sincronizzare"
           }
         },
         "pt-PT": {
           "stringUnit": {
             "state": "translated",
-            "value": "Abra o NOOP no teu iPhone para tincronizar"
+            "value": "Abra o reNOOP no teu iPhone para tincronizar"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Откройте NOOP на iPhone для синхронизации"
+            "value": "Откройте reNOOP на iPhone для синхронизации"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "在 iPhone 上打开 NOOP 以同步"
+            "value": "在 iPhone 上打开 reNOOP 以同步"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "在你的 iPhone 上打開 NOOP 以同步"
+            "value": "在你的 iPhone 上打開 reNOOP 以同步"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ouvrez NOOP sur votre iPhone pour synchroniser"
+            "value": "Ouvrez reNOOP sur votre iPhone pour synchroniser"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Otwórz NOOP na swoim iPhonie, aby zsynchronizować"
+            "value": "Otwórz reNOOP na swoim iPhonie, aby zsynchronizować"
           }
         }
       }

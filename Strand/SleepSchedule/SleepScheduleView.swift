@@ -77,7 +77,7 @@ struct SleepScheduleView: View {
             Button(String(localized: "Open Settings")) { Self.openNotificationSettings() }
             Button(String(localized: "Not now"), role: .cancel) {}
         } message: {
-            Text("Turn on notifications for NOOP in Settings to get your wind-down reminder.")
+            Text("Turn on notifications for reNOOP in Settings to get your wind-down reminder.")
         }
         .onAppear(perform: openDemoEditor)
     }

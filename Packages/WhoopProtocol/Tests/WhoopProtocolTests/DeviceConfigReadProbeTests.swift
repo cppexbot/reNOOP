@@ -66,7 +66,7 @@ final class DeviceConfigReadProbeTests: XCTestCase {
         XCTAssertEqual(flagKeys.count, 16, "the write sequence must not inherit read-only discoveries")
         XCTAssertEqual(DeviceConfigReadProbe.knownFlagKeys(for: .whoop4), flagKeys)
         XCTAssertTrue(report.render().contains("includes names observed in strap enumeration"))
-        XCTAssertFalse(report.render().contains("names NOOP already writes; values never read before"))
+        XCTAssertFalse(report.render().contains("names reNOOP already writes; values never read before"))
     }
 
     // MARK: - The read-only allowlist (the hard safety constraint)
@@ -305,7 +305,7 @@ final class DeviceConfigReadProbeTests: XCTestCase {
                                                  candidateKeys: DeviceConfigReadProbe.oxygenCandidateKeys)
         guard let first = report.nextStep() else { return XCTFail("expected a first step") }
         XCTAssertEqual(first.opcode, 128)
-        XCTAssertEqual(first.key, "enable_r22_packets", "128 is discovered against a flag NOOP writes")
+        XCTAssertEqual(first.key, "enable_r22_packets", "128 is discovered against a flag reNOOP writes")
         XCTAssertEqual(first.group, .discovery)
 
         // Nothing is known yet, so the second step is the other verb, not a value read.
@@ -575,7 +575,7 @@ final class DeviceConfigReadProbeTests: XCTestCase {
            1. enable_r22_packets              = '2' (0x32)
            2. whoop_live_hr_in_adv_ind_pkt    — no value (result=UNSUPPORTED(3))
 
-        Known feature-flag values (names NOOP already writes; values never read before) (1):
+        Known feature-flag values (names reNOOP already writes; values never read before) (1):
            1. hr_ch_switching                 = '2' (0x32)
 
         Candidate oxygen keys — GUESSES, never observed on a wire or in any table (1):

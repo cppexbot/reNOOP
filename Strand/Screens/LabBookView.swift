@@ -79,7 +79,7 @@ struct LabBookView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 InfoButton(label: "About Lab Results") {
-                    Text("A private notebook, not a medical service: NOOP doesn't read or judge these numbers.")
+                    Text("A private notebook, not a medical service: reNOOP doesn't read or judge these numbers.")
                 }
             }
             ToolbarItem(placement: .primaryAction) {

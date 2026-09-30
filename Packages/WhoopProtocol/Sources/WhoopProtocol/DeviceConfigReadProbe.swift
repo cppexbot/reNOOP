@@ -600,7 +600,7 @@ public struct DeviceConfigReadProbeReport: Equatable, Sendable {
                       empty: "(none — no reply was decoded)")
         let writeNames = Set(Whoop5Config.enableR22Sequence.map(\.name))
         let flagTitle = knownFlagKeys.allSatisfy(writeNames.contains)
-            ? "Known feature-flag values (names NOOP already writes; values never read before)"
+            ? "Known feature-flag values (names reNOOP already writes; values never read before)"
             : "Known feature-flag values (includes names observed in strap enumeration)"
         sb += section(.knownFlag,
                       title: flagTitle,

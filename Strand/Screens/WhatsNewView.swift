@@ -16,7 +16,7 @@ struct WhatsNewView: View {
                             .font(StrandFont.pro(34, weight: .bold))
                             .foregroundStyle(StrandPalette.textPrimary)
                             .multilineTextAlignment(.center)
-                        Text(verbatim: "NOOP \(AppChangelog.currentVersion)")
+                        Text(verbatim: "reNOOP \(AppChangelog.currentVersion)")
                             .font(StrandFont.pro(17))
                             .foregroundStyle(StrandPalette.textSecondary)
                     }
@@ -133,7 +133,7 @@ private struct WhatsNewEarlierReleases: View {
                                 .frame(maxWidth: .infinity)
                         }
                         .background(StrandPalette.plainPage.ignoresSafeArea())
-                        .navigationTitle(Text(verbatim: "NOOP \(release.version)"))
+                        .navigationTitle(Text(verbatim: "reNOOP \(release.version)"))
                         #if os(iOS)
                         .navigationBarTitleDisplayMode(.inline)
                         #endif

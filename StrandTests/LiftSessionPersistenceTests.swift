@@ -62,7 +62,7 @@ final class LiftSessionPersistenceTests: XCTestCase {
         XCTAssertTrue(c.isActive)
         XCTAssertFalse(c.isPresented, "it comes back as the bar, not as a sheet")
         XCTAssertTrue(claimed, "the strap's double-tap is the session's again")
-        XCTAssertEqual(lines, ["Lift Log: session picked up again after NOOP restarted"])
+        XCTAssertEqual(lines, ["Lift Log: session picked up again after reNOOP restarted"])
 
         c.resumeSaved(from: defaults)
         XCTAssertEqual(lines.count, 1, "a running session is not picked up twice")

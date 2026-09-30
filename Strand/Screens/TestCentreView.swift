@@ -210,7 +210,7 @@ struct TestCentreView: View {
             Button("Clear", role: .destructive) { clearScheduledExports() }
             Button("Cancel", role: .cancel) { }
         } message: {
-            Text("This deletes every scheduled strap-log and raw-capture file NOOP has saved. This can't be undone.")
+            Text("This deletes every scheduled strap-log and raw-capture file reNOOP has saved. This can't be undone.")
         }
         .alert("Write to the ring?", isPresented: $showUserInfoConfirm) {
             Button("Cancel", role: .cancel) { }
@@ -238,7 +238,7 @@ struct TestCentreView: View {
                 }
             }
         } message: { pending in
-            Text("Sends \(pending.framePreview) to the ring. Unvalidated on NOOP's own hardware (OURA_PROTOCOL.md \u{00A7}7.5). Watch the strap log for the follow-up feature-status read.")
+            Text("Sends \(pending.framePreview) to the ring. Unvalidated on reNOOP's own hardware (OURA_PROTOCOL.md \u{00A7}7.5). Watch the strap log for the follow-up feature-status read.")
         }
         .alert(infoTitle, isPresented: $showInfo) {
             Button("OK", role: .cancel) { }
@@ -385,7 +385,7 @@ struct TestCentreView: View {
         Section {
             Toggle("Oura notification mask ff (experimental)", isOn: $ouraNotifyMaskFull)
         } footer: {
-            Text("At the next connect, sends the official app\u{2019}s notification mask (1c 01 ff) instead of NOOP\u{2019}s 3f.")
+            Text("At the next connect, sends the official app\u{2019}s notification mask (1c 01 ff) instead of reNOOP\u{2019}s 3f.")
         }
     }
 
@@ -453,7 +453,7 @@ struct TestCentreView: View {
         } header: {
             Text("Oura feature enable (experimental)")
         } footer: {
-            Text("Unvalidated on NOOP's own hardware (OURA_PROTOCOL.md \u{00A7}7.5).")
+            Text("Unvalidated on reNOOP's own hardware (OURA_PROTOCOL.md \u{00A7}7.5).")
         }
     }
 
@@ -701,7 +701,7 @@ struct TestCentreView: View {
             if let url {
                 infoTitle = String(localized: "Strap log exported")
                 #if os(iOS)
-                infoMessage = String(localized: "Saved \(url.lastPathComponent) to NOOP's folder in the Files app.")
+                infoMessage = String(localized: "Saved \(url.lastPathComponent) to reNOOP's folder in the Files app.")
                 #else
                 infoMessage = String(localized: "Saved \(url.lastPathComponent) to your Documents folder.")
                 #endif

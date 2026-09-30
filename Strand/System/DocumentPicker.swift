@@ -187,6 +187,6 @@ enum BackupPickerStart {
         guard let directory else { return "the picker default" }
         let ourDocuments = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
         return directory.standardizedFileURL == ourDocuments?.standardizedFileURL
-            ? "NOOP's own folder" : "a folder you chose"
+            ? "reNOOP's own folder" : "a folder you chose"
     }
 }

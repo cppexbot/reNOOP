@@ -3,7 +3,7 @@ import Foundation
 /// Single source of truth for project identity and attribution. Deliberately
 /// contains no author/AI identifiers so the public repo can stay anonymous.
 enum ProjectInfo {
-    static let appName = "NOOP"
+    static let appName = "reNOOP"
     static let tagline = "Your strap. Your data. Your machine. Local-first, no cloud."
     static let version = "0.1.0"
     /// Public contact for questions, feedback, bug reports. Baked into every platform.

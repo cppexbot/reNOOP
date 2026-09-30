@@ -29,7 +29,7 @@ struct HowNoopWorksView: View {
             case .sleepSorting: return "Your longest block near your usual bedtime. The rest are naps."
             case .scores:       return "Scored on your device. Charge calibrates over about four nights."
             case .recording:    return "Connected means saving live. Not recording? Reconnect."
-            case .provenance:   return "A badge shows whether NOOP, WHOOP or Apple Health made a number."
+            case .provenance:   return "A badge shows whether reNOOP, WHOOP or Apple Health made a number."
             }
         }
 
@@ -111,11 +111,11 @@ struct HowNoopWorksView: View {
                 } header: {
                     Text("How your scores are computed")
                 } footer: {
-                    Text("NOOP never makes up a number.")
+                    Text("reNOOP never makes up a number.")
                 }
             }
             .settingsForm()
-            .navigationTitle(Text("How NOOP works"))
+            .navigationTitle(Text("How reNOOP works"))
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -175,7 +175,7 @@ struct GuideGlyphRow: View {
 }
 
 #if DEBUG
-#Preview("How NOOP works") {
+#Preview("How reNOOP works") {
     HowNoopWorksView(onClose: {})
 }
 #endif

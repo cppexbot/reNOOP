@@ -54,7 +54,7 @@ final class NoopScratchTests: XCTestCase {
 
         NoopScratch.purge(in: root)
 
-        XCTAssertTrue(exists("noop-canary-a"), "#2446: a sibling NOOP never wrote was deleted")
+        XCTAssertTrue(exists("noop-canary-a"), "#2446: a sibling reNOOP never wrote was deleted")
         XCTAssertTrue(exists("noop-verify"), "#2446: the reporter's verification folder was deleted")
         XCTAssertTrue(exists("noop-measure"), "#2446: the reporter's measurement folder was deleted")
         XCTAssertTrue(exists("canary-b-noop"))
@@ -155,6 +155,6 @@ final class NoopScratchTests: XCTestCase {
             return Int64(vals?.fileSize ?? 0)
         }
 
-        XCTAssertEqual(110, counted, "the 5000-byte sibling is not NOOP's scratch")
+        XCTAssertEqual(110, counted, "the 5000-byte sibling is not reNOOP's scratch")
     }
 }

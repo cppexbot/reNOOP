@@ -224,7 +224,7 @@ struct CoachSettingsView: View {
                     CoachBriefScheduler.setEnabled(on, generateBrief: { await coach.generateBrief() }) { outcome in
                         if outcome == .denied {
                             briefEnabled = false
-                            briefStatus = String(localized: "Notifications are off for NOOP.")
+                            briefStatus = String(localized: "Notifications are off for reNOOP.")
                         }
                     }
                 }

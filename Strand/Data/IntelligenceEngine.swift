@@ -366,7 +366,7 @@ final class IntelligenceEngine: ObservableObject {
         let meanLog: String = inBedBpms.isEmpty ? "nil"
             : String(Int((Double(inBedBpms.reduce(0, +)) / Double(inBedBpms.count)).rounded()))
         return "rhr day=\(day) floor=\(floor) nightMean=\(meanLog) inBedSamples=\(inBedBpms.count) "
-            + "(floor = WHOOP-style lowest-sustained = NOOP RHR; mean = sleeping-HR-app number)"
+            + "(floor = WHOOP-style lowest-sustained = reNOOP RHR; mean = sleeping-HR-app number)"
     }
 
     /// #1244: one line for a day that CLEARED the ≥200-HR gate yet detected NO in-bed session, so the
@@ -2888,7 +2888,7 @@ final class IntelligenceEngine: ObservableObject {
 
         results = out
         note = out.isEmpty
-            ? "No scored nights yet. Wear the strap with NOOP connected overnight and the engine will score your charge, effort and rest itself, no WHOOP cloud required."
+            ? "No scored nights yet. Wear the strap with reNOOP connected overnight and the engine will score your charge, effort and rest itself, no WHOOP cloud required."
             : nil
 
         // Reload the dashboard caches so the freshly computed scores show up immediately. A heal-only

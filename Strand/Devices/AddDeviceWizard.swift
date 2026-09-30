@@ -232,7 +232,7 @@ struct AddDeviceWizard: View {
             Button("Cancel", role: .cancel) { }
             Button("Take over", role: .destructive) { commitOuraAdopt() }
         } message: {
-            Text("The Oura app will no longer work with this ring. NOOP can't undo this.")
+            Text("The Oura app will no longer work with this ring. reNOOP can't undo this.")
         }
         // Drive the Adopting step to success (streaming → close) or to the honest Failed step. Only acts
         // while Adopting, so a later steady-state needs-pairing never reopens this.
@@ -508,7 +508,7 @@ struct AddDeviceWizard: View {
     }
 
     private var ouraGateStep: some View {
-        PairingCard(title: typeTitle(.oura), detail: "NOOP installs its own key on the ring. The Oura app stops working with it.",
+        PairingCard(title: typeTitle(.oura), detail: "reNOOP installs its own key on the ring. The Oura app stops working with it.",
                     art: .ring, beta: true) {
             Toggle(isOn: $ouraConsented) {
                 Text("I understand this can't be undone")
@@ -544,7 +544,7 @@ struct AddDeviceWizard: View {
     private var ouraKeyStep: some View {
         Form {
             Section {
-                PairingTitle(title: "Ring Key", detail: "32 hex characters. NOOP keeps it on this device only.")
+                PairingTitle(title: "Ring Key", detail: "32 hex characters. reNOOP keeps it on this device only.")
                     .listRowBackground(Color.clear)
                     .listRowInsets(EdgeInsets())
             }
@@ -1006,7 +1006,7 @@ private struct PickScreen<Rows: View>: View {
             // Denied, the scan can never answer: say why and where to fix it, instead of searching forever.
             if CBManager.authorization == .denied || CBManager.authorization == .restricted {
                 Section {
-                    Text("Bluetooth is off for NOOP")
+                    Text("Bluetooth is off for reNOOP")
                         .foregroundStyle(StrandPalette.textPrimary)
                     #if os(iOS)
                     Button("Open Settings") {

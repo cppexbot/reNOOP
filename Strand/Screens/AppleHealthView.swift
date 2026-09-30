@@ -136,7 +136,7 @@ struct AppleHealthView: View {
             // & Devices.
             Text("This install can't connect to Apple Health directly.")
         case .denied:
-            Text("If you don't see the prompt, enable NOOP under Settings › Health › Data Access & Devices.")
+            Text("If you don't see the prompt, enable reNOOP under Settings › Health › Data Access & Devices.")
         case .unknown, .authorized:
             EmptyView()
         }

@@ -99,14 +99,14 @@ targets:
     info:
       path: Strand/Resources/Info.plist
       properties:
-        CFBundleName: NOOP
-        CFBundleDisplayName: NOOP
+        CFBundleName: reNOOP
+        CFBundleDisplayName: reNOOP
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "198"
         LSMinimumSystemVersion: "13.0"
         LSApplicationCategoryType: public.app-category.healthcare-fitness
-        NSBluetoothAlwaysUsageDescription: "NOOP connects to your WHOOP strap to read heart rate, HRV and battery on this Mac."
-        NSLocationWhenInUseUsageDescription: "NOOP records your route during outdoor workouts to show distance, pace and a map."
+        NSBluetoothAlwaysUsageDescription: "reNOOP connects to your WHOOP strap to read heart rate, HRV and battery on this Mac."
+        NSLocationWhenInUseUsageDescription: "reNOOP records your route during outdoor workouts to show distance, pace and a map."
         # The AI Coach's "Custom (OpenAI-compatible)" provider talks to a LOCAL LLM server over plain
         # HTTP on loopback (Ollama / LM Studio / llama.cpp at http://localhost:…). ATS blocks cleartext
         # by default; NSAllowsLocalNetworking exempts loopback/.local/unqualified hosts ONLY — public
@@ -237,8 +237,8 @@ targets:
     info:
       path: StrandiOS/Resources/Info.plist
       properties:
-        CFBundleName: NOOP
-        CFBundleDisplayName: NOOP
+        CFBundleName: reNOOP
+        CFBundleDisplayName: reNOOP
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         # Surfaces APP_GROUP_ID to runtime (WidgetSnapshot.suiteName) so the App Group id isn't
@@ -292,19 +292,19 @@ targets:
           # #1538: finishes a re-score that a backgrounded offload started and could not complete. The
           # only BGProcessingTask of the three; the other two are refresh tasks.
           - $(PRODUCT_BUNDLE_IDENTIFIER).rescore
-        NSBluetoothAlwaysUsageDescription: "NOOP connects to your WHOOP strap to read heart rate, HRV and battery on this iPhone."
-        NSLocationWhenInUseUsageDescription: "NOOP records your route during outdoor workouts, also with the screen off, to show distance, pace and a map."
-        NSHealthShareUsageDescription: "NOOP reads your Apple Health data to compute Charge, Effort and sleep on this iPhone."
-        NSHealthUpdateUsageDescription: "NOOP saves the metrics it computes from your strap to Apple Health."
-        NSMotionUsageDescription: "NOOP reads your iPhone’s step count to show steps for walking and running workouts."
+        NSBluetoothAlwaysUsageDescription: "reNOOP connects to your WHOOP strap to read heart rate, HRV and battery on this iPhone."
+        NSLocationWhenInUseUsageDescription: "reNOOP records your route during outdoor workouts, also with the screen off, to show distance, pace and a map."
+        NSHealthShareUsageDescription: "reNOOP reads your Apple Health data to compute Charge, Effort and sleep on this iPhone."
+        NSHealthUpdateUsageDescription: "reNOOP saves the metrics it computes from your strap to Apple Health."
+        NSMotionUsageDescription: "reNOOP reads your iPhone’s step count to show steps for walking and running workouts."
         # K4: Coach voice input. Speech is transcribed ON-DEVICE ONLY (requiresOnDeviceRecognition);
         # the mic button is disabled where the locale doesn't support that, never falls back to
         # server transcription. Only the resulting TEXT reaches the provider, via the same channel
         # a typed question already uses.
-        NSSpeechRecognitionUsageDescription: "NOOP transcribes your question on this iPhone so you can ask the coach out loud."
-        NSMicrophoneUsageDescription: "NOOP uses the microphone so you can ask the coach a question by voice."
+        NSSpeechRecognitionUsageDescription: "reNOOP transcribes your question on this iPhone so you can ask the coach out loud."
+        NSMicrophoneUsageDescription: "reNOOP uses the microphone so you can ask the coach a question by voice."
         # AL-1: the smart alarm's phone backup is a system alarm (AlarmKit), which needs its own permission.
-        NSAlarmKitUsageDescription: "NOOP sets a system alarm as the phone’s backup to your strap’s silent wake."
+        NSAlarmKitUsageDescription: "reNOOP sets a system alarm as the phone’s backup to your strap’s silent wake."
         # #187: the opt-in AI Coach's "Custom (OpenAI-compatible)" provider can point at a LOCAL LLM on
         # the LAN (Ollama / LM Studio at http://192.168.x.x:11434). ATS blocks cleartext by default;
         # NSAllowsLocalNetworking exempts loopback/.local/private-LAN hosts ONLY — public HTTPS endpoints
@@ -381,7 +381,7 @@ targets:
     info:
       path: StrandiOSWidgets/Info.plist
       properties:
-        CFBundleDisplayName: NOOP
+        CFBundleDisplayName: reNOOP
         # Version keys MUST live here in the generated-Info.plist properties — NOT hand-edited into the
         # file — because xcodegen regenerates StrandiOSWidgets/Info.plist on every `xcodegen generate`
         # (which every release runs for the version bump) and would otherwise rewrite them to its
@@ -431,8 +431,8 @@ targets:
     info:
       path: NOOPWatch/Info.plist
       properties:
-        CFBundleName: NOOP
-        CFBundleDisplayName: NOOP
+        CFBundleName: reNOOP
+        CFBundleDisplayName: reNOOP
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         # Surfaces APP_GROUP_ID to runtime (WatchScoreStore.suiteName) so the App Group id isn't
@@ -444,8 +444,8 @@ targets:
         # Built from the same $(BUNDLE_ID_PREFIX) rather than $(PRODUCT_BUNDLE_IDENTIFIER) because that
         # build setting would resolve to THIS target's own id, not NOOPiOS's.
         WKCompanionAppBundleIdentifier: $(BUNDLE_ID_PREFIX).noop
-        NSHealthShareUsageDescription: "NOOP reads your heart rate from the Watch sensor to show a live readout on your wrist. It stays on your device."
-        NSHealthUpdateUsageDescription: "NOOP records a basic workout session on your Watch for a higher-fidelity heart rate. The session stays on your device."
+        NSHealthShareUsageDescription: "reNOOP reads your heart rate from the Watch sensor to show a live readout on your wrist. It stays on your device."
+        NSHealthUpdateUsageDescription: "reNOOP records a basic workout session on your Watch for a higher-fidelity heart rate. The session stays on your device."
     entitlements:
       path: NOOPWatch/NOOPWatch.entitlements
       properties:
@@ -490,7 +490,7 @@ targets:
     info:
       path: NOOPWatchComplications/Info.plist
       properties:
-        CFBundleDisplayName: NOOP
+        CFBundleDisplayName: reNOOP
         # Version keys live here as generated-plist properties so xcodegen keeps them lockstep with the
         # parent watch app on every regenerate (mirrors the NOOPiOSWidgets rationale, #416).
         CFBundleShortVersionString: "$(MARKETING_VERSION)"

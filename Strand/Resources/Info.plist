@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>NOOP</string>
+	<string>reNOOP</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>NOOP</string>
+	<string>reNOOP</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -39,9 +39,9 @@
 		<true/>
 	</dict>
 	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>NOOP connects to your WHOOP strap to read heart rate, HRV and battery on this Mac.</string>
+	<string>reNOOP connects to your WHOOP strap to read heart rate, HRV and battery on this Mac.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>NOOP records your route during outdoor workouts to show distance, pace and a map.</string>
+	<string>reNOOP records your route during outdoor workouts to show distance, pace and a map.</string>
 	<key>OURA_CLIENT_ID</key>
 	<string>$(OURA_CLIENT_ID)</string>
 	<key>OURA_CLIENT_SECRET</key>

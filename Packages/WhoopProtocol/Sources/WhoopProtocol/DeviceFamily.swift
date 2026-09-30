@@ -80,7 +80,7 @@ public enum WhoopGattServiceFamily: String, Sendable, CaseIterable {
     public var isConnectable: Bool { connectableDeviceFamily != nil }
 
     public var diagnosticUnsupportedMessage: String {
-        "\(displayName) detected but unsupported; NOOP will not connect or send commands."
+        "\(displayName) detected but unsupported; reNOOP will not connect or send commands."
     }
 
     public static var unsupportedFamilies: [WhoopGattServiceFamily] {
