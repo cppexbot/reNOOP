@@ -176,42 +176,17 @@
     <!-- Trends / Explore / Deep Timeline (#448, completed by #453): these screens originally used
          hardcoded English throughout. Direct Compose copy and data-driven MetricSpec/TimelineMetric
          labels now live in resources; German wording follows the Apple catalogs where available. -->
-    <string name="trends_subtitle">The thread of you over time.</string>
-    <string name="trends_trailing">Trailing</string>
-    <string name="trends_trailing_days">Trailing %1$d days</string>
-    <string name="trends_all_history">All history</string>
     <string name="trends_trend">Trend</string>
     <string name="trends_trend_a11y">Trend: %1$s</string>
-    <plurals name="trends_n_days">
-        <item quantity="one">%1$d day</item>
-        <item quantity="other">%1$d days</item>
-    </plurals>
     <string name="trends_charge">Charge</string>
     <string name="trends_effort">Effort</string>
-    <string name="trends_rest">Rest</string>
     <string name="trends_hrv_full">Heart rate variability</string>
     <string name="trends_resting_hr_full">Resting heart rate</string>
-    <string name="trends_no_readings_this_week">No readings this week</string>
-    <string name="trends_no_readings_body">Step to another week with the arrows above to see its review.</string>
-    <string name="trends_this_week">This week</string>
-    <string name="trends_last_week">Last week</string>
-    <string name="trends_previous_week">Previous week</string>
-    <string name="trends_next_week">Next week</string>
-    <string name="trends_daily_signals">Daily signals</string>
-    <string name="trends_week_in_review">Week in review</string>
-    <string name="trends_charge_effort_rest">Charge · Effort · Rest</string>
-    <string name="trends_calendar">Calendar</string>
-    <string name="trends_avg">Avg</string>
     <string name="trends_peak">Peak</string>
-    <string name="trends_low">Low</string>
-    <string name="trends_days">Days</string>
     <string name="trends_mean">Mean</string>
     <string name="trends_min">Min</string>
     <string name="trends_max">Max</string>
-    <string name="trends_calendar_footnote">Each bar is one day\'s Charge score, low to high. The 53-week calendar heat-grid is part of the desktop app.</string>
     <string name="trends_not_enough_data">Not enough data for this window.</string>
-    <string name="trends_empty_title">Trends need history to draw</string>
-    <string name="trends_empty_body">Trends need history to draw. Import your WHOOP export in Data Sources to see weeks, months and years instantly.</string>
 
     <string name="deep_timeline_title">Deep Timeline</string>
 
@@ -960,8 +935,6 @@
     <string name="l10n_updates_inbox_screen_restore_to_today_77c7c8e5">Restore to Today</string>
     <string name="l10n_updates_inbox_screen_updates_c76d1807">Updates</string>
     <string name="l10n_updates_inbox_screen_you_re_all_caught_up_3d39c469">You\'re all caught up.</string>
-    <string name="l10n_weekly_digest_card_no_readings_this_week_yet_0745a2df">No readings this week yet</string>
-    <string name="l10n_weekly_digest_card_week_in_review_66d95a07">Week in review</string>
     <string name="l10n_whats_new_sheet_close_bbfa773e">Close</string>
     <string name="l10n_whats_new_sheet_got_it_5b8027fa">Got it</string>
     <string name="l10n_whats_new_sheet_noop_appchangelog_current_version_05dae27c">reNOOP %1$s</string>
@@ -1656,10 +1629,6 @@
     <string name="l10n_trends_report_export_pdf_3dd7d56a">Export PDF</string>
     <string name="l10n_trends_report_the_share_sheet_can_save_the_ecddbca7">The share sheet can save the PDF to Files, or send it on.</string>
     <string name="l10n_trends_report_trends_report_pdf_481e8a5f">Trends report (PDF)</string>
-    <string name="l10n_weekly_digest_card_digest_dayswithdata_7_days_182e6a18">%1$s/7 days</string>
-    <string name="l10n_weekly_digest_card_digest_dayswithdata_of_7_days_had_8068f0ee">%1$s of 7 days had data this week</string>
-    <string name="l10n_weekly_digest_card_informational_only_not_medical_advice_593feb77">Informational only, not medical advice.</string>
-    <string name="l10n_weekly_digest_card_sleep_steadiness_rest_varied_fmt1_sd_44997f21">Sleep steadiness: Rest varied ±%1$s pts night to night.</string>
     <string name="l10n_wheel_picker_accessibility_tap_to_choose_1314c4ed">%1$s. Tap to choose.</string>
     <string name="l10n_workouts_screen_minutes_total_100_roundtoint_5bb7c6d8">%1$s%%</string>
     <!-- #453 manually migrated complex Kotlin templates. -->
@@ -1699,10 +1668,6 @@
     <plurals name="lab_book_readings_count">
         <item quantity="one">%1$d reading · your own entry</item>
         <item quantity="other">%1$d readings · your own entries</item>
-    </plurals>
-    <plurals name="trends_weeks_ago">
-        <item quantity="one">%1$d week ago</item>
-        <item quantity="other">%1$d weeks ago</item>
     </plurals>
     <plurals name="l10n_workouts_screen_hrr_workout_count_516">
         <item quantity="one">%1$d workout</item>
@@ -2355,13 +2320,7 @@
     <string name="scoring_guide_building">Building</string>
     <string name="scoring_guide_confidence_body">Each score shows its reliability. Calibrating means reNOOP is learning your baseline or needs more data. Building means enough data exists for a score, but it is still limited. Solid means all inputs are present. If reNOOP cannot calculate a score reliably, it shows no score instead of guessing.</string>
     <string name="trends_training_load">Training Load</string>
-    <string name="trends_tl_legend_ctl">CTL · Fitness</string>
-    <string name="trends_tl_legend_atl">ATL · Fatigue</string>
-    <string name="trends_tl_established">42-day fitness vs 7-day fatigue</string>
-    <string name="trends_tl_building">Building — %1$d of %2$d days</string>
-    <string name="trends_tl_unavailable">Chronic vs acute load</string>
     <string name="trends_tl_needs">Needs %1$d+ consecutive days of Effort to begin. %2$d so far.</string>
-    <string name="trends_tl_form">Form</string>
     <string name="sleep_delete_user_edited_body">Removes this sleep and recomputes the day without it. You can undo for a few seconds after.</string>
     <string name="sleep_delete_recorded_body">Removes this recorded sleep and recomputes the day without it. reNOOP won\'t re-detect sleep in this window. You can undo for a few seconds after.</string>
     <string name="settings_waist_footnote_unset">Optional · VO₂max builds from ~4 nights of heart rate; a waist makes it more accurate. The Fitness Age itself doesn’t need it. Measure around your middle, at the navel.</string>
@@ -2737,5 +2696,37 @@
     <plurals name="metric_fitness_age_basics_nights">
         <item quantity="one">Add your age and sex below; Fitness Age appears after %1$d more night of wear.</item>
         <item quantity="other">Add your age and sex below; Fitness Age appears after %1$d more nights of wear.</item>
+    </plurals>
+    <string name="trends_avg_days">%1$d day avg</string>
+    <string name="trends_avg_weeks">%1$d-week avg</string>
+    <string name="trends_fatigue_7">Fatigue · 7 days</string>
+    <string name="trends_fitness_42">Fitness · 42 days</string>
+    <string name="trends_fitness_fatigue">Fitness and Fatigue</string>
+    <string name="trends_form">Form</string>
+    <string name="trends_form_caps">FORM</string>
+    <string name="trends_none">No Trends</string>
+    <string name="trends_not_enough">Not Enough Data Yet</string>
+    <string name="trends_report_30">Last 30 days</string>
+    <string name="trends_report_90">Last 90 days</string>
+    <string name="trends_report_180">Last 6 months</string>
+    <string name="trends_report_365">Last year</string>
+    <string name="trends_report_all">All history</string>
+    <string name="trends_report_pdf">Trends Report (PDF)</string>
+    <string name="trends_share">Share</string>
+    <plurals name="trends_higher_days">
+        <item quantity="one">Trending higher for %1$d day</item>
+        <item quantity="other">Trending higher for %1$d days</item>
+    </plurals>
+    <plurals name="trends_higher_weeks">
+        <item quantity="one">Trending higher for %1$d week</item>
+        <item quantity="other">Trending higher for %1$d weeks</item>
+    </plurals>
+    <plurals name="trends_lower_days">
+        <item quantity="one">Trending lower for %1$d day</item>
+        <item quantity="other">Trending lower for %1$d days</item>
+    </plurals>
+    <plurals name="trends_lower_weeks">
+        <item quantity="one">Trending lower for %1$d week</item>
+        <item quantity="other">Trending lower for %1$d weeks</item>
     </plurals>
 </resources>

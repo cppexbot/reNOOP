@@ -67,41 +67,17 @@
     <string name="terms_attest_liability">在法律允许的最大范围内，对于因我使用 reNOOP 而引起的任何损失或损害，我不会追究 reNOOP 项目或其代码贡献者的责任。</string>
     <string name="terms_checkbox">我已阅读并接受上述条款，我正在使用我个人的设备和数据，风险由我自己承担。</string>
     <string name="terms_accept">接受并继续</string>
-    <string name="trends_subtitle">时间长河中，你身体的轨迹。</string>
-    <string name="trends_trailing">近</string>
-    <string name="trends_trailing_days">近 %1$d 天</string>
-    <string name="trends_all_history">全部历史</string>
     <string name="trends_trend">趋势</string>
     <string name="trends_trend_a11y">趋势：%1$s</string>
-    <plurals name="trends_n_days">
-        <item quantity="other">%1$d 天</item>
-    </plurals>
     <string name="trends_charge">充能</string>
     <string name="trends_effort">负荷</string>
-    <string name="trends_rest">恢复</string>
     <string name="trends_hrv_full">心率变异性 (HRV)</string>
     <string name="trends_resting_hr_full">静息心率 (RHR)</string>
-    <string name="trends_no_readings_this_week">本周暂无数据</string>
-    <string name="trends_no_readings_body">使用上方箭头切换到其他周次查看健康回顾。</string>
-    <string name="trends_this_week">本周</string>
-    <string name="trends_last_week">上周</string>
-    <string name="trends_previous_week">上一周</string>
-    <string name="trends_next_week">下一周</string>
-    <string name="trends_daily_signals">每日体征</string>
-    <string name="trends_week_in_review">本周回顾</string>
-    <string name="trends_charge_effort_rest">充能 · 负荷 · 恢复</string>
-    <string name="trends_calendar">日历热力图</string>
-    <string name="trends_avg">平均</string>
     <string name="trends_peak">峰值</string>
-    <string name="trends_low">最低</string>
-    <string name="trends_days">天</string>
     <string name="trends_mean">平均</string>
     <string name="trends_min">最小</string>
     <string name="trends_max">最大</string>
-    <string name="trends_calendar_footnote">每根柱子代表一天的充能得分，从低到高排列。53周完整的年度热力图可在桌面版应用中查看。</string>
     <string name="trends_not_enough_data">该时间段数据不足。</string>
-    <string name="trends_empty_title">趋势图需要历史数据</string>
-    <string name="trends_empty_body">趋势图需要历史数据才能生成。在“数据源”中导入您的 WHOOP 导出数据，即可瞬间解锁以周、月、年为单位的宏观视图。</string>
     <string name="deep_timeline_title">深度时间轴</string>
     <string name="timeline_subtitle">你一天的每一秒。向回拖拽最多可查看3天。</string>
     <string name="timeline_my_whoop">我的 WHOOP</string>
@@ -810,8 +786,6 @@
     <string name="l10n_updates_inbox_screen_restore_to_today_77c7c8e5">恢复到“今日”面板</string>
     <string name="l10n_updates_inbox_screen_updates_c76d1807">消息与更新</string>
     <string name="l10n_updates_inbox_screen_you_re_all_caught_up_3d39c469">您已看完了所有最新消息。</string>
-    <string name="l10n_weekly_digest_card_no_readings_this_week_yet_0745a2df">本周暂无读数</string>
-    <string name="l10n_weekly_digest_card_week_in_review_66d95a07">本周回顾</string>
     <string name="l10n_whats_new_sheet_close_bbfa773e">关闭</string>
     <string name="l10n_whats_new_sheet_got_it_5b8027fa">明白了</string>
     <string name="l10n_whats_new_sheet_noop_appchangelog_current_version_05dae27c">reNOOP %1$s</string>
@@ -1491,10 +1465,6 @@
     <string name="l10n_trends_report_export_pdf_3dd7d56a">导出 PDF</string>
     <string name="l10n_trends_report_the_share_sheet_can_save_the_ecddbca7">通过分享面板，您可以将 PDF 保存到文件中，或直接发送给他人。</string>
     <string name="l10n_trends_report_trends_report_pdf_481e8a5f">趋势报告 (PDF)</string>
-    <string name="l10n_weekly_digest_card_digest_dayswithdata_7_days_182e6a18">%1$s / 7 天</string>
-    <string name="l10n_weekly_digest_card_digest_dayswithdata_of_7_days_had_8068f0ee">本周有 %1$s 天记录了数据</string>
-    <string name="l10n_weekly_digest_card_informational_only_not_medical_advice_593feb77">仅供参考，不构成医疗建议。</string>
-    <string name="l10n_weekly_digest_card_sleep_steadiness_rest_varied_fmt1_sd_44997f21">睡眠稳定性：各晚的恢复(Rest)得分上下浮动约 ±%1$s 分。</string>
     <string name="l10n_wheel_picker_accessibility_tap_to_choose_1314c4ed">%1$s。点击进行选择。</string>
     <string name="l10n_workouts_screen_minutes_total_100_roundtoint_5bb7c6d8">%1$s%%</string>
     <string name="intervals_range_step">%1$s – %2$s%3$s · 步长 %4$d</string>
@@ -2484,18 +2454,9 @@
     <string name="l10n_workouts_screen_hrr_last_90_days_516">最近 90 天</string>
     <string name="settings_streak_title">连续记录</string>
     <string name="trends_training_load">训练负荷</string>
-    <string name="trends_tl_legend_ctl">CTL · 体能</string>
-    <string name="trends_tl_legend_atl">ATL · 疲劳</string>
-    <string name="trends_tl_established">42 天体能与 7 天疲劳对比</string>
-    <string name="trends_tl_building">正在建立：%1$d / %2$d 天</string>
-    <string name="trends_tl_unavailable">长期负荷与急性负荷对比</string>
     <string name="trends_tl_needs">需要连续 %1$d 天以上的负荷记录才能开始。目前 %2$d 天。</string>
-    <string name="trends_tl_form">竞技状态</string>
     <plurals name="lab_book_readings_count">
         <item quantity="other">%1$d 条记录 · 你自己的条目</item>
-    </plurals>
-    <plurals name="trends_weeks_ago">
-        <item quantity="other">%1$d 周前</item>
     </plurals>
     <plurals name="l10n_workouts_screen_hrr_workout_count_516">
         <item quantity="other">%1$d 次运动</item>
@@ -2681,5 +2642,33 @@
     </plurals>
     <plurals name="metric_fitness_age_basics_nights">
         <item quantity="other">请在下方添加年龄和性别；再佩戴 %1$d 晚后将显示体能年龄。</item>
+    </plurals>
+    <string name="trends_avg_days">%1$d 天平均值</string>
+    <string name="trends_avg_weeks">%1$d 周平均值</string>
+    <string name="trends_fatigue_7">疲劳 · 7 天</string>
+    <string name="trends_fitness_42">体能 · 42 天</string>
+    <string name="trends_fitness_fatigue">体能与疲劳</string>
+    <string name="trends_form">竞技状态</string>
+    <string name="trends_form_caps">状态</string>
+    <string name="trends_none">无趋势</string>
+    <string name="trends_not_enough">数据尚不足</string>
+    <string name="trends_report_30">最近 30 天</string>
+    <string name="trends_report_90">最近 90 天</string>
+    <string name="trends_report_180">最近 6 个月</string>
+    <string name="trends_report_365">去年</string>
+    <string name="trends_report_all">全部历史</string>
+    <string name="trends_report_pdf">趋势报告 (PDF)</string>
+    <string name="trends_share">分享</string>
+    <plurals name="trends_higher_days">
+        <item quantity="other">连续 %1$d 天呈上升趋势</item>
+    </plurals>
+    <plurals name="trends_higher_weeks">
+        <item quantity="other">连续 %1$d 周呈上升趋势</item>
+    </plurals>
+    <plurals name="trends_lower_days">
+        <item quantity="other">连续 %1$d 天呈下降趋势</item>
+    </plurals>
+    <plurals name="trends_lower_weeks">
+        <item quantity="other">连续 %1$d 周呈下降趋势</item>
     </plurals>
 </resources>

@@ -155,42 +155,17 @@
     <string name="terms_attest_liability">Nella massima misura consentita dalla legge, non riterrò il progetto reNOOP o i suoi contributori responsabili di perdite o danni derivanti dal mio utilizzo.</string>
     <string name="terms_checkbox">Ho letto e accetto questi termini e sto usando reNOOP con il mio dispositivo e i miei dati, a mio rischio.</string>
     <string name="terms_accept">Accetta e continua</string>
-    <string name="trends_subtitle">Il filo di te nel tempo.</string>
-    <string name="trends_trailing">Ultimi</string>
-    <string name="trends_trailing_days">Ultimi %1$d giorni</string>
-    <string name="trends_all_history">Tutta la cronologia</string>
     <string name="trends_trend">Andamento</string>
     <string name="trends_trend_a11y">Andamento: %1$s</string>
-    <plurals name="trends_n_days">
-        <item quantity="one">%1$d giorno</item>
-        <item quantity="other">%1$d giorni</item>
-    </plurals>
     <string name="trends_charge">Carica</string>
     <string name="trends_effort">Sforzo</string>
-    <string name="trends_rest">Riposo</string>
     <string name="trends_hrv_full">Variabilità della frequenza cardiaca</string>
     <string name="trends_resting_hr_full">Frequenza cardiaca a riposo</string>
-    <string name="trends_no_readings_this_week">Nessuna lettura questa settimana</string>
-    <string name="trends_no_readings_body">Passa a un\'altra settimana con le frecce sopra per vederne la rassegna.</string>
-    <string name="trends_this_week">Questa settimana</string>
-    <string name="trends_last_week">La settimana scorsa</string>
-    <string name="trends_previous_week">Settimana precedente</string>
-    <string name="trends_next_week">Settimana successiva</string>
-    <string name="trends_daily_signals">Segnali giornalieri</string>
-    <string name="trends_week_in_review">La settimana in sintesi</string>
-    <string name="trends_charge_effort_rest">Carica · sforzo · riposo</string>
-    <string name="trends_calendar">Calendario</string>
-    <string name="trends_avg">Media</string>
     <string name="trends_peak">Picco</string>
-    <string name="trends_low">Bassa</string>
-    <string name="trends_days">Giorni</string>
     <string name="trends_mean">Media</string>
     <string name="trends_min">Min</string>
     <string name="trends_max">Max</string>
-    <string name="trends_calendar_footnote">Ogni barra è il punteggio di Carica di un giorno, dal più basso al più alto. Il calendario a mappa di calore di 53 settimane fa parte dell\'app desktop.</string>
     <string name="trends_not_enough_data">Dati insufficienti per questo intervallo.</string>
-    <string name="trends_empty_title">Gli andamenti hanno bisogno di una cronologia</string>
-    <string name="trends_empty_body">Gli andamenti hanno bisogno di una cronologia per essere tracciati. Importa la tua esportazione WHOOP in Sorgenti dati per vedere subito settimane, mesi e anni.</string>
     <string name="deep_timeline_title">Cronologia dettagliata</string>
     <string name="timeline_subtitle">Ogni secondo della tua giornata. Trascina indietro fino a 3 giorni.</string>
     <string name="timeline_my_whoop">Il mio WHOOP</string>
@@ -933,8 +908,6 @@
     <string name="l10n_updates_inbox_screen_restore_to_today_77c7c8e5">Ripristina a Oggi</string>
     <string name="l10n_updates_inbox_screen_updates_c76d1807">Aggiornamenti</string>
     <string name="l10n_updates_inbox_screen_you_re_all_caught_up_3d39c469">Sei in pari con tutto.</string>
-    <string name="l10n_weekly_digest_card_no_readings_this_week_yet_0745a2df">Ancora nessuna lettura questa settimana</string>
-    <string name="l10n_weekly_digest_card_week_in_review_66d95a07">La settimana in sintesi</string>
     <string name="l10n_whats_new_sheet_close_bbfa773e">Chiudi</string>
     <string name="l10n_whats_new_sheet_got_it_5b8027fa">Capito</string>
     <string name="l10n_whats_new_sheet_noop_appchangelog_current_version_05dae27c">reNOOP %1$s</string>
@@ -1627,10 +1600,6 @@
     <string name="l10n_trends_report_export_pdf_3dd7d56a">Esporta PDF</string>
     <string name="l10n_trends_report_the_share_sheet_can_save_the_ecddbca7">Il menu di condivisione può salvare il PDF in File o inviarlo ad altri.</string>
     <string name="l10n_trends_report_trends_report_pdf_481e8a5f">Report degli andamenti (PDF)</string>
-    <string name="l10n_weekly_digest_card_digest_dayswithdata_7_days_182e6a18">%1$s/7 giorni</string>
-    <string name="l10n_weekly_digest_card_digest_dayswithdata_of_7_days_had_8068f0ee">%1$s giorni su 7 con dati questa settimana</string>
-    <string name="l10n_weekly_digest_card_informational_only_not_medical_advice_593feb77">Solo a scopo informativo, non è un consiglio medico.</string>
-    <string name="l10n_weekly_digest_card_sleep_steadiness_rest_varied_fmt1_sd_44997f21">Regolarità del sonno: il Riposo è variato di ±%1$s punti da una notte all\'altra.</string>
     <string name="l10n_wheel_picker_accessibility_tap_to_choose_1314c4ed">%1$s. Tocca per scegliere.</string>
     <string name="l10n_workouts_screen_minutes_total_100_roundtoint_5bb7c6d8">%1$s%%</string>
     <string name="intervals_range_step">%1$s – %2$s%3$s · passo %4$d</string>
@@ -1668,10 +1637,6 @@
     <plurals name="lab_book_readings_count">
         <item quantity="one">%1$d lettura · inserita da te</item>
         <item quantity="other">%1$d letture · inserite da te</item>
-    </plurals>
-    <plurals name="trends_weeks_ago">
-        <item quantity="one">%1$d settimana fa</item>
-        <item quantity="other">%1$d settimane fa</item>
     </plurals>
     <plurals name="l10n_workouts_screen_hrr_workout_count_516">
         <item quantity="one">%1$d allenamento</item>
@@ -2301,13 +2266,7 @@
     <string name="scoring_guide_building">Creazione in corso</string>
     <string name="scoring_guide_confidence_body">Ogni punteggio mostra la sua affidabilità. Calibrazione significa che reNOOP sta apprendendo la tua linea di base o ha bisogno di più dati. Creazione in corso significa che ci sono dati sufficienti per un punteggio, ma ancora limitati. Stabile significa che tutti gli input sono presenti. Se reNOOP non può calcolare un punteggio in modo affidabile, non mostra alcun punteggio invece di tirare a indovinare.</string>
     <string name="trends_training_load">Carico di allenamento</string>
-    <string name="trends_tl_legend_ctl">CTL · Forma fisica</string>
-    <string name="trends_tl_legend_atl">ATL · Fatica</string>
-    <string name="trends_tl_established">Forma fisica a 42 giorni vs fatica a 7 giorni</string>
-    <string name="trends_tl_building">In creazione — %1$d di %2$d giorni</string>
-    <string name="trends_tl_unavailable">Carico cronico vs acuto</string>
-    <string name="trends_tl_needs">Servono almeno %1$d giorni consecutivi di sforzo per iniziare. Finora %2$d.</string>
-    <string name="trends_tl_form">Forma</string>
+    <string name="trends_tl_needs">Servono almeno %1$d giorni consecutivi di Sforzo per iniziare. Finora %2$d.</string>
     <string name="sleep_delete_user_edited_body">Rimuove questo sonno e ricalcola la giornata senza di esso. Puoi annullare per qualche secondo dopo.</string>
     <string name="sleep_delete_recorded_body">Rimuove questo sonno registrato e ricalcola la giornata senza di esso. reNOOP non rileverà più il sonno in questa finestra. Puoi annullare per qualche secondo dopo.</string>
     <string name="settings_waist_footnote_unset">Facoltativo · Il VO₂max si costruisce da ~4 notti di frequenza cardiaca; la circonferenza vita lo rende più preciso. L\'Età fitness in sé non ne ha bisogno. Misura intorno alla vita, all\'altezza dell\'ombelico.</string>
@@ -2678,5 +2637,37 @@
     <plurals name="metric_fitness_age_basics_nights">
         <item quantity="one">Inserisci età e sesso qui sotto; l’età fitness apparirà dopo ancora %1$d notte di utilizzo.</item>
         <item quantity="other">Inserisci età e sesso qui sotto; l’età fitness apparirà dopo ancora %1$d notti di utilizzo.</item>
+    </plurals>
+    <string name="trends_avg_days">Media %1$d giorni</string>
+    <string name="trends_avg_weeks">Media %1$d settimane</string>
+    <string name="trends_fatigue_7">Affaticamento · 7 giorni</string>
+    <string name="trends_fitness_42">Forma fisica · 42 giorni</string>
+    <string name="trends_fitness_fatigue">Forma e affaticamento</string>
+    <string name="trends_form">Forma</string>
+    <string name="trends_form_caps">FORMA</string>
+    <string name="trends_none">Nessuna tendenza</string>
+    <string name="trends_not_enough">Dati non ancora sufficienti</string>
+    <string name="trends_report_30">Ultimi 30 giorni</string>
+    <string name="trends_report_90">Ultimi 90 giorni</string>
+    <string name="trends_report_180">Ultimi 6 mesi</string>
+    <string name="trends_report_365">L\'anno scorso</string>
+    <string name="trends_report_all">Tutta la cronologia</string>
+    <string name="trends_report_pdf">Report tendenze (PDF)</string>
+    <string name="trends_share">Condividi</string>
+    <plurals name="trends_higher_days">
+        <item quantity="one">In aumento da %1$d giorno</item>
+        <item quantity="other">In aumento da %1$d giorni</item>
+    </plurals>
+    <plurals name="trends_higher_weeks">
+        <item quantity="one">In aumento da %1$d settimana</item>
+        <item quantity="other">In aumento da %1$d settimane</item>
+    </plurals>
+    <plurals name="trends_lower_days">
+        <item quantity="one">In calo da %1$d giorno</item>
+        <item quantity="other">In calo da %1$d giorni</item>
+    </plurals>
+    <plurals name="trends_lower_weeks">
+        <item quantity="one">In calo da %1$d settimana</item>
+        <item quantity="other">In calo da %1$d settimane</item>
     </plurals>
 </resources>

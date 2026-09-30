@@ -458,7 +458,7 @@ private fun ChartCard(
                 Modifier
                     .fillMaxWidth()
                     .padding(top = 12.dp)
-                    .clearAndSetSemantics { contentDescription = "$latestText, ${textOf(v)}" },
+                    .clearAndSetSemantics { contentDescription = listOf(latestText, textOf(v)).joinToString(", ") },
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(latestText, style = MaterialTheme.typography.bodyLarge, color = colors.onSurfaceVariant, modifier = Modifier.weight(1f), maxLines = 1)

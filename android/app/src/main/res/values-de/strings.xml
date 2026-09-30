@@ -80,42 +80,17 @@
 
     <!-- Trends / Explore / Deep Timeline , see the English values/strings.xml comment for scope.
          Wording matches the existing iOS/macOS German catalog entries where one exists. -->
-    <string name="trends_subtitle">Der rote Faden deiner Zeit.</string>
-    <string name="trends_trailing">Letzte</string>
-    <string name="trends_trailing_days">Letzte %1$d Tage</string>
-    <string name="trends_all_history">Gesamter Verlauf</string>
     <string name="trends_trend">Trend</string>
     <string name="trends_trend_a11y">Trend: %1$s</string>
-    <plurals name="trends_n_days">
-        <item quantity="one">%1$d Tag</item>
-        <item quantity="other">%1$d Tage</item>
-    </plurals>
     <string name="trends_charge">Ladung</string>
     <string name="trends_effort">Anstrengung</string>
-    <string name="trends_rest">Ruhe</string>
     <string name="trends_hrv_full">Herzfrequenzvariabilität</string>
     <string name="trends_resting_hr_full">Ruheherzfrequenz</string>
-    <string name="trends_no_readings_this_week">Keine Messwerte diese Woche</string>
-    <string name="trends_no_readings_body">Wechsle mit den Pfeilen oben zu einer anderen Woche, um ihren Rückblick zu sehen.</string>
-    <string name="trends_this_week">Diese Woche</string>
-    <string name="trends_last_week">Letzte Woche</string>
-    <string name="trends_previous_week">Vorherige Woche</string>
-    <string name="trends_next_week">Nächste Woche</string>
-    <string name="trends_daily_signals">Tägliche Signale</string>
-    <string name="trends_week_in_review">Woche im Rückblick</string>
-    <string name="trends_charge_effort_rest">Ladung · Anstrengung · Ruhe</string>
-    <string name="trends_calendar">Kalender</string>
-    <string name="trends_avg">Ø</string>
     <string name="trends_peak">Spitze</string>
-    <string name="trends_low">Niedrig</string>
-    <string name="trends_days">Tage</string>
     <string name="trends_mean">Mittelwert</string>
     <string name="trends_min">Min</string>
     <string name="trends_max">Max</string>
-    <string name="trends_calendar_footnote">Jeder Balken ist der Ladungswert eines Tages, von niedrig bis hoch. Das 53-Wochen-Kalendergitter ist Teil der Desktop-App.</string>
     <string name="trends_not_enough_data">Nicht genug Daten für diesen Zeitraum.</string>
-    <string name="trends_empty_title">Trends brauchen Verlauf zum Zeichnen</string>
-    <string name="trends_empty_body">Trends brauchen Verlauf zum Zeichnen. Importiere deinen WHOOP-Export in den Datenquellen, um Wochen, Monate und Jahre sofort zu sehen.</string>
 
     <string name="deep_timeline_title">Deep Timeline</string>
 
@@ -868,8 +843,6 @@
     <string name="l10n_updates_inbox_screen_restore_to_today_77c7c8e5">In „Heute“ wiederherstellen</string>
     <string name="l10n_updates_inbox_screen_updates_c76d1807">Updates</string>
     <string name="l10n_updates_inbox_screen_you_re_all_caught_up_3d39c469">Du bist auf dem neuesten Stand.</string>
-    <string name="l10n_weekly_digest_card_no_readings_this_week_yet_0745a2df">Diese Woche noch keine Messwerte</string>
-    <string name="l10n_weekly_digest_card_week_in_review_66d95a07">Wochenrückblick</string>
     <string name="l10n_whats_new_sheet_close_bbfa773e">Schließen</string>
     <string name="l10n_whats_new_sheet_got_it_5b8027fa">Verstanden</string>
     <string name="l10n_whats_new_sheet_noop_appchangelog_current_version_05dae27c">reNOOP %1$s</string>
@@ -1553,10 +1526,6 @@
     <string name="l10n_trends_report_export_pdf_3dd7d56a">PDF exportieren</string>
     <string name="l10n_trends_report_the_share_sheet_can_save_the_ecddbca7">Das Sharesheet kann das PDF in Dateien speichern oder es weiterleiten.</string>
     <string name="l10n_trends_report_trends_report_pdf_481e8a5f">Trends Report (PDF)</string>
-    <string name="l10n_weekly_digest_card_digest_dayswithdata_7_days_182e6a18">%1$s/7 Tage</string>
-    <string name="l10n_weekly_digest_card_digest_dayswithdata_of_7_days_had_8068f0ee">%1$s von 7 Tagen hatte diese Woche Daten</string>
-    <string name="l10n_weekly_digest_card_informational_only_not_medical_advice_593feb77">Nur zur Information, kein medizinischer Rat.</string>
-    <string name="l10n_weekly_digest_card_sleep_steadiness_rest_varied_fmt1_sd_44997f21">Schlafstabilität: Ruhe variiert ±%1$s pts von Nacht zu Nacht.</string>
     <string name="l10n_wheel_picker_accessibility_tap_to_choose_1314c4ed">%1$s. Tippe, um zu wählen.</string>
     <string name="l10n_workouts_screen_minutes_total_100_roundtoint_5bb7c6d8">%1$s%%</string>
     <!-- #453 manually migrated complex Kotlin templates. -->
@@ -1596,10 +1565,6 @@
     <plurals name="lab_book_readings_count">
         <item quantity="one">%1$d Messwert · dein eigener Eintrag</item>
         <item quantity="other">%1$d Messwerte · deine eigenen Einträge</item>
-    </plurals>
-    <plurals name="trends_weeks_ago">
-        <item quantity="one">vor %1$d Woche</item>
-        <item quantity="other">vor %1$d Wochen</item>
     </plurals>
     <plurals name="l10n_workouts_screen_hrr_workout_count_516">
         <item quantity="one">%1$d Workout</item>
@@ -2249,13 +2214,7 @@
     <string name="scoring_guide_building">Im Aufbau</string>
     <string name="scoring_guide_confidence_body">Jeder Wert zeigt seine Verlässlichkeit. „Kalibrierung“ bedeutet, dass reNOOP deine Basislinie noch lernt oder mehr Daten benötigt. „Im Aufbau“ bedeutet, dass genügend, aber noch wenige Daten vorliegen. „Stabil“ bedeutet, dass alle Eingaben vorhanden sind. Ist keine verlässliche Berechnung möglich, zeigt reNOOP lieber keinen Wert als eine Schätzung.</string>
     <string name="trends_training_load">Trainingslast</string>
-    <string name="trends_tl_legend_ctl">CTL · Kondition</string>
-    <string name="trends_tl_legend_atl">ATL · Ermüdung</string>
-    <string name="trends_tl_established">42-Tage-Fitness vs. 7-Tage-Ermüdung</string>
-    <string name="trends_tl_building">Wird aufgebaut — %1$d von %2$d Tagen</string>
-    <string name="trends_tl_unavailable">Chronische vs. akute Last</string>
-    <string name="trends_tl_needs">Benötigt %1$d+ aufeinanderfolgende Tage mit Anstrengung, um zu starten. Bisher %2$d.</string>
-    <string name="trends_tl_form">Tagesform</string>
+    <string name="trends_tl_needs">Benötigt %1$d+ aufeinanderfolgende Tage mit Belastung, um zu starten. Bisher %2$d.</string>
     <string name="sleep_delete_user_edited_body">Entfernt diesen Schlaf und berechnet den Tag ohne ihn neu. Du kannst dies für ein paar Sekunden rückgängig machen.</string>
     <string name="sleep_delete_recorded_body">Entfernt diesen aufgezeichneten Schlaf und berechnet den Tag ohne ihn neu. reNOOP erkennt in diesem Zeitfenster keinen Schlaf mehr. Du kannst dies für ein paar Sekunden rückgängig machen.</string>
     <string name="settings_waist_footnote_unset">Optional · VO₂max entsteht aus ~4 Nächten Herzfrequenz; ein Taillenumfang macht ihn genauer. Das Fitness-Alter selbst braucht ihn nicht. Miss um deine Körpermitte, auf Höhe des Bauchnabels.</string>
@@ -2723,5 +2682,37 @@
     <plurals name="metric_fitness_age_basics_nights">
         <item quantity="one">Gib unten Alter und Geschlecht ein; dein Fitnessalter erscheint, wenn du das Armband noch %1$d Nacht getragen hast.</item>
         <item quantity="other">Gib unten Alter und Geschlecht ein; dein Fitnessalter erscheint, wenn du das Armband noch %1$d Nächte getragen hast.</item>
+    </plurals>
+    <string name="trends_avg_days">Ø %1$d Tage</string>
+    <string name="trends_avg_weeks">Ø %1$d Wochen</string>
+    <string name="trends_fatigue_7">Ermüdung · 7 Tage</string>
+    <string name="trends_fitness_42">Fitness · 42 Tage</string>
+    <string name="trends_fitness_fatigue">Fitness und Ermüdung</string>
+    <string name="trends_form">Tagesform</string>
+    <string name="trends_form_caps">FORM</string>
+    <string name="trends_none">Keine Trends</string>
+    <string name="trends_not_enough">Noch nicht genug Daten</string>
+    <string name="trends_report_30">Letzte 30 Tage</string>
+    <string name="trends_report_90">Letzte 90 Tage</string>
+    <string name="trends_report_180">Letzte 6 Monate</string>
+    <string name="trends_report_365">Letztes Jahr</string>
+    <string name="trends_report_all">Gesamter Verlauf</string>
+    <string name="trends_report_pdf">Trendbericht (PDF)</string>
+    <string name="trends_share">Teilen</string>
+    <plurals name="trends_higher_days">
+        <item quantity="one">Steigend seit %1$d Tag</item>
+        <item quantity="other">Steigend seit %1$d Tagen</item>
+    </plurals>
+    <plurals name="trends_higher_weeks">
+        <item quantity="one">Steigend seit %1$d Woche</item>
+        <item quantity="other">Steigend seit %1$d Wochen</item>
+    </plurals>
+    <plurals name="trends_lower_days">
+        <item quantity="one">Sinkend seit %1$d Tag</item>
+        <item quantity="other">Sinkend seit %1$d Tagen</item>
+    </plurals>
+    <plurals name="trends_lower_weeks">
+        <item quantity="one">Sinkend seit %1$d Woche</item>
+        <item quantity="other">Sinkend seit %1$d Wochen</item>
     </plurals>
 </resources>

@@ -106,7 +106,7 @@ fun MetricAllDataScreen(vm: AppViewModel, key: String, source: String?, onBack: 
                         .heightIn(min = M3Dimens.rowTwoLineHeight)
                         .clip(groupItemShape(i, list.size))
                         .background(MaterialTheme.colorScheme.surfaceContainerLow)
-                        .clearAndSetSemantics { contentDescription = "${row.value}, ${row.source}, ${row.time}" }
+                        .clearAndSetSemantics { contentDescription = listOf(row.value, row.source, row.time).joinToString(", ") }
                         .padding(horizontal = 16.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {

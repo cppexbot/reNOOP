@@ -62,6 +62,8 @@ import com.noop.ui.metric.MetricDescriptor
 import com.noop.ui.metric.MetricDetailScreen
 import com.noop.ui.metric.metricRoute
 import com.noop.ui.metric.metricRouteForLegacyKey
+import com.noop.ui.trends.TrainingLoadScreen
+import com.noop.ui.trends.TrendsScreen
 
 // MARK: - Navigation model
 //
@@ -97,10 +99,11 @@ internal enum class Destination(val route: String) {
     // Coach settings (#2243), reached only from the strip on the Coach page; it shares Coach's view model.
     CoachSettings("coach_settings"),
     Intervals("intervals"),
-    // A metric's page (key, optional source: null opens the freshest source), its All Data list, and the
-    // day by the second (a heart-rate page's option).
+    // A metric's page (key, optional source: null opens the freshest source), its All Data list, the Trends
+    // page's Training Load, and the day by the second (a heart-rate page's option).
     Metric("metric/{key}?source={source}"),
     MetricData("metric_data/{key}?source={source}"),
+    TrainingLoad("training_load"),
     FullDay("full_day"),
     Hydration("hydration"),
     AppleHealth("apple_health"),
@@ -271,7 +274,14 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                 InsightsScreen(viewModel, onOpenInsightsHub = { nav.openInTab(MainTab.Browse, Destination.InsightsHub.route) })
             }
             composable(Destination.LabBook.route) { LabBookScreen(viewModel) }
-            composable(Destination.Trends.route) { TrendsScreen(viewModel) }
+            composable(Destination.Trends.route) {
+                TrendsScreen(
+                    viewModel,
+                    onBack = { nav.popBackStack() },
+                    onOpenMetric = { nav.push(metricRoute(it.key, it.source)) },
+                    onOpenTrainingLoad = { nav.push(Destination.TrainingLoad.route) },
+                )
+            }
             composable(Destination.InsightsHub.route) { InsightsHubScreen(viewModel) }
             composable(Destination.Devices.route) {
                 DevicesScreen(viewModel, onUseFileImport = { nav.push(Destination.DataSources.route) })
@@ -302,6 +312,7 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                     onBack = { nav.popBackStack() },
                 )
             }
+            composable(Destination.TrainingLoad.route) { TrainingLoadScreen(viewModel, onBack = { nav.popBackStack() }) }
             composable(Destination.FullDay.route) { FullDayChartScreen(vm = viewModel, onBack = { nav.popBackStack() }) }
             composable(Destination.Hydration.route) { HydrationScreen(viewModel) }
             composable(Destination.AppleHealth.route) { AppleHealthScreen(viewModel) }

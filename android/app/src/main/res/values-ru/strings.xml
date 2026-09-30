@@ -153,38 +153,17 @@
     <string name="terms_attest_liability">В максимальной степени, допускаемой законом, я не буду возлагать на проект reNOOP или его участников ответственность за любые убытки или ущерб, возникшие в результате моего использования.</string>
     <string name="terms_checkbox">Я прочитал(а) и принимаю эти условия и использую reNOOP со своим устройством и своими данными на свой страх и риск.</string>
     <string name="terms_accept">Принять и продолжить</string>
-    <string name="trends_subtitle">Ваша история во времени.</string>
-    <string name="trends_trailing">Последние</string>
-    <string name="trends_trailing_days">Последние %1$d дней</string>
-    <string name="trends_all_history">Вся история</string>
     <string name="trends_trend">Тренд</string>
     <string name="trends_trend_a11y">Тренд: %1$s</string>
     <string name="trends_charge">Заряд</string>
     <string name="trends_effort">Усилие</string>
-    <string name="trends_rest">Отдых</string>
     <string name="trends_hrv_full">Вариабельность сердечного ритма</string>
     <string name="trends_resting_hr_full">Пульс в покое</string>
-    <string name="trends_no_readings_this_week">На этой неделе показаний нет</string>
-    <string name="trends_no_readings_body">Перейдите к другой неделе с помощью стрелок выше, чтобы увидеть её обзор.</string>
-    <string name="trends_this_week">На этой неделе</string>
-    <string name="trends_last_week">Прошлая неделя</string>
-    <string name="trends_previous_week">Предыдущая неделя</string>
-    <string name="trends_next_week">Следующая неделя</string>
-    <string name="trends_daily_signals">Ежедневные показатели</string>
-    <string name="trends_week_in_review">Итоги недели</string>
-    <string name="trends_charge_effort_rest">Заряд · Усилие · Отдых</string>
-    <string name="trends_calendar">Календарь</string>
-    <string name="trends_avg">Сред.</string>
     <string name="trends_peak">Пик</string>
-    <string name="trends_low">Низкий</string>
-    <string name="trends_days">Дни</string>
     <string name="trends_mean">Среднее</string>
     <string name="trends_min">Мин.</string>
     <string name="trends_max">Макс.</string>
-    <string name="trends_calendar_footnote">Каждый столбец — Заряд за один день, от низкого к высокому. 53-недельная календарная тепловая сетка есть в настольном приложении.</string>
     <string name="trends_not_enough_data">Недостаточно данных за выбранный период.</string>
-    <string name="trends_empty_title">Для трендов нужна история</string>
-    <string name="trends_empty_body">Для построения трендов нужна история. Импортируйте данные WHOOP в разделе «Источники данных», чтобы сразу увидеть данные за недели, месяцы и годы.</string>
     <string name="deep_timeline_title">Подробная шкала времени</string>
     <string name="timeline_subtitle">Каждая секунда вашего дня. Прокрутка назад до 3 дней.</string>
     <string name="timeline_my_whoop">Мой WHOOP</string>
@@ -868,8 +847,6 @@
     <string name="l10n_updates_inbox_screen_restore_to_today_77c7c8e5">Вернуться к «Сегодня»</string>
     <string name="l10n_updates_inbox_screen_updates_c76d1807">Обновления</string>
     <string name="l10n_updates_inbox_screen_you_re_all_caught_up_3d39c469">Вы всё просмотрели.</string>
-    <string name="l10n_weekly_digest_card_no_readings_this_week_yet_0745a2df">На этой неделе показаний пока нет</string>
-    <string name="l10n_weekly_digest_card_week_in_review_66d95a07">Итоги недели</string>
     <string name="l10n_whats_new_sheet_close_bbfa773e">Закрыть</string>
     <string name="l10n_whats_new_sheet_got_it_5b8027fa">Понятно</string>
     <string name="l10n_whats_new_sheet_release_notes_cd5af734">Заметки о выпуске</string>
@@ -1585,10 +1562,6 @@
     <string name="l10n_trends_report_export_pdf_3dd7d56a">Экспортировать PDF</string>
     <string name="l10n_trends_report_the_share_sheet_can_save_the_ecddbca7">Через меню «Поделиться» PDF можно сохранить в Файлы или отправить дальше.</string>
     <string name="l10n_trends_report_trends_report_pdf_481e8a5f">Отчёт по трендам (PDF)</string>
-    <string name="l10n_weekly_digest_card_digest_dayswithdata_7_days_182e6a18">%1$s из 7 дней</string>
-    <string name="l10n_weekly_digest_card_digest_dayswithdata_of_7_days_had_8068f0ee">Данные были в %1$s из 7 дней на этой неделе</string>
-    <string name="l10n_weekly_digest_card_informational_only_not_medical_advice_593feb77">Только для информации, не медицинская рекомендация.</string>
-    <string name="l10n_weekly_digest_card_sleep_steadiness_rest_varied_fmt1_sd_44997f21">Стабильность сна: Отдых колебался на ±%1$s пт от ночи к ночи.</string>
     <string name="l10n_wheel_picker_accessibility_tap_to_choose_1314c4ed">%1$s. Нажмите, чтобы выбрать.</string>
     <string name="intervals_range_step">%1$s – %2$s%3$s · шаг %4$d</string>
     <string name="live_workout_saved_summary">✓ %1$s сохранено · %2$s</string>
@@ -2186,13 +2159,7 @@
     <string name="scoring_guide_building">Накопление данных</string>
     <string name="scoring_guide_confidence_body">У каждой оценки показана её надёжность. «Калибровка» означает, что reNOOP изучает вашу норму или ему нужно больше данных. «Формируется» означает, что данных хватает для оценки, но она пока ограничена. «Надёжно» означает, что все входные данные на месте. Если reNOOP не может надёжно вычислить оценку, он не показывает её вместо того, чтобы гадать.</string>
     <string name="trends_training_load">Тренировочная нагрузка</string>
-    <string name="trends_tl_legend_ctl">CTL · Форма</string>
-    <string name="trends_tl_legend_atl">ATL · Усталость</string>
-    <string name="trends_tl_established">42-дневная форма против 7-дневной усталости</string>
-    <string name="trends_tl_building">Формируется — %1$d из %2$d дней</string>
-    <string name="trends_tl_unavailable">Хроническая против острой нагрузки</string>
     <string name="trends_tl_needs">Нужно %1$d+ подряд дней с Усилием, чтобы начать. Пока %2$d.</string>
-    <string name="trends_tl_form">Форма</string>
     <string name="sleep_delete_user_edited_body">Удаляет этот сон и пересчитывает день без него. Несколько секунд после можно отменить.</string>
     <string name="sleep_delete_recorded_body">Удаляет этот записанный сон и пересчитывает день без него. reNOOP не будет заново определять сон в этом окне. Несколько секунд после можно отменить.</string>
     <string name="settings_waist_footnote_unset">Необязательно · VO₂max строится примерно по 4 ночам пульса; обхват талии делает его точнее. Самому фитнес-возрасту он не нужен. Измеряйте вокруг талии, на уровне пупка.</string>
@@ -2313,23 +2280,11 @@
     <string name="l10n_app_changelog_a_whoop_5_that_stays_connected_7b490eee">WHOOP 5, который остаётся на связи, ваши биологические часы на экране «Сон» и Журнал, отличающий «Нет» от пустоты</string>
     <string name="l10n_app_changelog_choose_a_12_hour_clock_sleep_8a19db5c">Выбор 12-часового формата, сон с браслетов без записи движения и журнал браслета, который перестал гадать</string>
     <string name="l10n_settings_screen_skin_temperature_fc103030">Температура кожи</string>
-    <plurals name="trends_n_days">
-        <item quantity="one">%1$d день</item>
-        <item quantity="few">%1$d дня</item>
-        <item quantity="many">%1$d дней</item>
-        <item quantity="other">%1$d дня</item>
-    </plurals>
     <plurals name="lab_book_readings_count">
         <item quantity="one">%1$d измерение · ваша собственная запись</item>
         <item quantity="few">%1$d измерения · ваши собственные записи</item>
         <item quantity="many">%1$d измерений · ваши собственные записи</item>
         <item quantity="other">%1$d измерения · ваши собственные записи</item>
-    </plurals>
-    <plurals name="trends_weeks_ago">
-        <item quantity="one">%1$d неделю назад</item>
-        <item quantity="few">%1$d недели назад</item>
-        <item quantity="many">%1$d недель назад</item>
-        <item quantity="other">%1$d недели назад</item>
     </plurals>
     <plurals name="l10n_workouts_screen_hrr_workout_count_516">
         <item quantity="one">%1$d тренировка</item>
@@ -2620,5 +2575,45 @@
         <item quantity="few">Укажите возраст и пол ниже — Фитнес-возраст появится после ещё %1$d ночей ношения.</item>
         <item quantity="many">Укажите возраст и пол ниже — Фитнес-возраст появится после ещё %1$d ночей ношения.</item>
         <item quantity="other">Укажите возраст и пол ниже — Фитнес-возраст появится после ещё %1$d ночей ношения.</item>
+    </plurals>
+    <string name="trends_avg_days">Среднее за %1$d дн.</string>
+    <string name="trends_avg_weeks">Среднее за %1$d нед.</string>
+    <string name="trends_fatigue_7">Усталость · 7 дней</string>
+    <string name="trends_fitness_42">Тренированность · 42 дня</string>
+    <string name="trends_fitness_fatigue">Тренированность и усталость</string>
+    <string name="trends_form">Форма</string>
+    <string name="trends_form_caps">ФОРМА</string>
+    <string name="trends_none">Трендов нет</string>
+    <string name="trends_not_enough">Пока недостаточно данных</string>
+    <string name="trends_report_30">Последние 30 дней</string>
+    <string name="trends_report_90">Последние 90 дней</string>
+    <string name="trends_report_180">Последние 6 месяцев</string>
+    <string name="trends_report_365">Последний год</string>
+    <string name="trends_report_all">Вся история</string>
+    <string name="trends_report_pdf">Отчёт по трендам (PDF)</string>
+    <string name="trends_share">Поделиться</string>
+    <plurals name="trends_higher_days">
+        <item quantity="one">Повышается в течение %1$d дня</item>
+        <item quantity="few">Повышается в течение %1$d дней</item>
+        <item quantity="many">Повышается в течение %1$d дней</item>
+        <item quantity="other">Повышается в течение %1$d дня</item>
+    </plurals>
+    <plurals name="trends_higher_weeks">
+        <item quantity="one">Повышается в течение %1$d недели</item>
+        <item quantity="few">Повышается в течение %1$d недель</item>
+        <item quantity="many">Повышается в течение %1$d недель</item>
+        <item quantity="other">Повышается в течение %1$d недели</item>
+    </plurals>
+    <plurals name="trends_lower_days">
+        <item quantity="one">Понижается в течение %1$d дня</item>
+        <item quantity="few">Понижается в течение %1$d дней</item>
+        <item quantity="many">Понижается в течение %1$d дней</item>
+        <item quantity="other">Понижается в течение %1$d дня</item>
+    </plurals>
+    <plurals name="trends_lower_weeks">
+        <item quantity="one">Понижается в течение %1$d недели</item>
+        <item quantity="few">Понижается в течение %1$d недель</item>
+        <item quantity="many">Понижается в течение %1$d недель</item>
+        <item quantity="other">Понижается в течение %1$d недели</item>
     </plurals>
 </resources>
