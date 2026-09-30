@@ -228,11 +228,6 @@ internal fun spo2MissingCaptionRes(hasRawSpo2: Boolean): Int =
     if (hasRawSpo2) R.string.l10n_health_screen_raw_counts_only_needs_an_import_d0e33552
     else R.string.l10n_health_screen_no_spo_import_or_health_value_408f8c55
 
-internal enum class VitalCaptionMode {
-    AS_OF,
-    RANGE,
-}
-
 /** Build the vitals, banded against the user's OWN trailing baseline once 14 trusted
  *  nights exist (population ranges before that — VitalBands does the deciding).
  *
@@ -467,80 +462,6 @@ internal fun vitalsFor(
             secondary = if (leadsAbsolute) skinTempSecondaryNote(d?.skinTempDevC, fahrenheit) else null,
         ),
     )
-}
-
-internal fun latestVitals(
-    days: List<DailyMetric>,
-    tempUnit: TemperatureUnit,
-    spo2CandidateByDay: Map<String, Double> = emptyMap(),
-    spo2ToggleOn: Boolean = false,
-    hrvOverCountByDay: Map<String, Double> = emptyMap(),   // #1118
-    // #1846: the Settings lead-with choice. Travels like tempUnit so the Health tile agrees with Today
-    // and the detail screen — a setting that reaches two of three surfaces is worse than none.
-    skinTempPreferred: SkinTempDisplay.Kind = SkinTempDisplay.Kind.ABSOLUTE,
-): List<Vital> {
-    val emptyByKey = vitalsFor(null, days, tempUnit, spo2CandidateByDay, spo2ToggleOn, hrvOverCountByDay,
-                               skinTempPreferred).associateBy { it.key }
-    return listOf(
-        latestVital("resp", days, tempUnit, emptyByKey, spo2CandidateByDay, spo2ToggleOn) { it.respRateBpm != null },
-        latestVital("spo2", days, tempUnit, emptyByKey, spo2CandidateByDay, spo2ToggleOn) {
-            it.spo2Pct != null || spo2CandidateByDay[it.day] != null
-        },
-        latestVital("spo2raw", days, tempUnit, emptyByKey, spo2CandidateByDay, spo2ToggleOn) { it.spo2Red != null && it.spo2Ir != null },
-        latestVital("rhr", days, tempUnit, emptyByKey, spo2CandidateByDay, spo2ToggleOn) { it.restingHr != null },
-        latestVital("hrv", days, tempUnit, emptyByKey, hrvOverCountByDay = hrvOverCountByDay) { it.avgHrv != null },
-        // #1846: pass the preference (the other keys' rows don't read it). The predicate takes EITHER
-        // number for the same reason `lastSkinTempReadingRow` does — a calibrating night has a measured
-        // absolute and no deviation yet, and a deviation-only test walks straight past it.
-        latestVital("skin", days, tempUnit, emptyByKey, skinTempPreferred = skinTempPreferred) {
-            it.skinTempC != null || it.skinTempDevC != null
-        },
-    )
-}
-
-/**
- * The newest row carrying this vital, STALENESS-BOUNDED by [Baselines.vitalCarryDays]: the carry
- * exists so a missed night doesn't blank a tile, not so a months-old reading sits under a section
- * headed "Latest". Unbounded, this reached back arbitrarily far — a WHOOP CSV import that ended
- * 30 Jul kept the Resp Rate tile reading "15.6 rpm" a fortnight later. The `asOfLabel` ("as of
- * 30 Jul") was not enough on its own: the eye takes the headline number for today's. Byte-twin of
- * the Swift `BodyVitalSigns.latest`.
- */
-private fun latestVital(
-    key: String,
-    days: List<DailyMetric>,
-    tempUnit: TemperatureUnit,
-    emptyByKey: Map<String, Vital>,
-    spo2CandidateByDay: Map<String, Double> = emptyMap(),
-    spo2ToggleOn: Boolean = false,
-    hrvOverCountByDay: Map<String, Double> = emptyMap(),   // #1118
-    todayKey: String = logicalDayKeyNow(),
-    skinTempPreferred: SkinTempDisplay.Kind = SkinTempDisplay.Kind.ABSOLUTE,   // #1846
-    hasValue: (DailyMetric) -> Boolean,
-): Vital {
-    val row = Baselines.freshestCarried(
-        days.filter(hasValue).map { it.day to it },
-        todayKey,
-    )?.second
-    return row
-        ?.let { latestRow ->
-            vitalsFor(latestRow, days, tempUnit, spo2CandidateByDay, spo2ToggleOn, hrvOverCountByDay,
-                      skinTempPreferred).firstOrNull { it.key == key }
-        }
-        ?.copy(asOfLabel = asOfLabel(row.day))
-        ?: emptyByKey.getValue(key)
-}
-
-internal fun selectedDayLabel(offset: Int): String = when (offset) {
-    0 -> "Today"
-    1 -> "Yesterday"
-    else -> "2 days ago"
-}
-
-internal fun missingVitalsTitle(offset: Int): String = when (offset) {
-    0 -> "We didn't get today's data"
-    1 -> "We didn't get yesterday's data"
-    else -> "We didn't get data from 2 days ago"
 }
 
 internal fun asOfLabel(day: String?): String? {

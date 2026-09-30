@@ -53,9 +53,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.noop.R
-import com.noop.analytics.FusionSource
 import com.noop.push.SelfHostedPushScreen
-import androidx.compose.runtime.LaunchedEffect
 
 // MARK: - Navigation model
 //
@@ -90,16 +88,10 @@ internal enum class Destination(val route: String) {
     // Pushed from a screen.
     // Coach settings (#2243), reached only from the strip on the Coach page; it shares Coach's view model.
     CoachSettings("coach_settings"),
-    Intelligence("intelligence"),
-    CoupledView("coupled_view"),
     Intervals("intervals"),
     Stress("stress"),
-    Compare("compare"),
-    Health("health"),
     Hydration("hydration"),
-    VitalSigns("vital_signs"),
     VitalSignsDetail("vital_detail/{key}"),
-    Rhythm("rhythm"),
     AppleHealth("apple_health"),
     Automations("automations"),
     // "Alarms" is the one alarm surface (#766); the route id stays "smart_alarm".
@@ -107,7 +99,6 @@ internal enum class Destination(val route: String) {
     NoopLimitations("noop_limitations"),
     DataSources("data_sources"),
     BackupSync("backup_sync"),
-    FusedRecord("fused_record"),
     Notifications("notifications"),
     PowerSaving("power_saving"),
     Settings("settings"),
@@ -209,12 +200,12 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                     onOpenSettings = { nav.push(Destination.Settings.route) },
                     onOpenHydration = { nav.push(Destination.Hydration.route) },
                     onOpenStress = { nav.push(Destination.Stress.route) },
-                    onOpenHealth = { nav.push(Destination.Health.route) },
+                    // The Health screen is gone (iOS parity); its stale route lands on All Metrics.
+                    onOpenHealth = { nav.push(exploreRoute(null)) },
                     // Every metric card opens its own detail trend (vital_detail/<key>).
                     onOpenMetric = { key -> nav.push("vital_detail/$key") },
                     onOpenStepsCalibration = { nav.push(Destination.StepsCalibration.route) },
                     onOpenSleep = { nav.showTabRoot(MainTab.Sleep) },
-                    onOpenCoupled = { nav.push(Destination.CoupledView.route) },
                     onOpenCoach = { nav.openCoach() },
                     // The "workout in progress" card: the Workouts tab, with the recording over it.
                     onOpenActiveWorkout = {
@@ -277,28 +268,9 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                 StressScreen(vm = viewModel, onBreathe = { nav.openInTab(MainTab.Browse, Destination.Breathe.route) })
             }
             composable(Destination.Hydration.route) { HydrationScreen(viewModel) }
-            composable(Destination.CoupledView.route) {
-                CoupledScreen(vm = viewModel, onOpenSleep = { nav.showTabRoot(MainTab.Sleep) })
-            }
-            composable(Destination.Intelligence.route) { IntelligenceScreen(viewModel) }
-            composable(Destination.Compare.route) { CompareScreen(viewModel) }
-            composable(Destination.Health.route) {
-                HealthScreen(
-                    vm = viewModel,
-                    onVitalClick = { nav.push("vital_detail/$it") },
-                    onOpenLabBook = { nav.openInTab(MainTab.Browse, Destination.LabBook.route) },
-                    onOpenFusedRecord = { nav.push(Destination.FusedRecord.route) },
-                    onOpenSettings = { nav.openInTab(MainTab.Summary, Destination.Settings.route) },
-                )
-            }
-            composable(Destination.VitalSigns.route) {
-                VitalSignsScreen(vm = viewModel, onVitalClick = { nav.push("vital_detail/$it") })
-            }
             composable(Destination.VitalSignsDetail.route) { entry ->
                 VitalDetailScreen(vm = viewModel, key = entry.arguments?.getString("key").orEmpty())
             }
-            composable(Destination.Rhythm.route) { RhythmRoute(viewModel) }
-            composable(Destination.FusedRecord.route) { FusedRecordRoute(viewModel) }
             composable(Destination.AppleHealth.route) { AppleHealthScreen(viewModel) }
             composable(Destination.Automations.route) { AutomationsScreen(viewModel) }
             composable(Destination.SmartAlarm.route) { SmartAlarmScreen(viewModel) }
@@ -540,18 +512,3 @@ private val NavEasing = CubicBezierEasing(0.22f, 1f, 0.36f, 1f)
 
 /** ~240 ms crossfade on the calm easing. */
 private val navFadeSpec = tween<Float>(durationMillis = 240, easing = NavEasing)
-
-/**
- * Loader for the v5 "Your Data, Fused" screen: assembles today's [FusedRecord] off the repository via
- * [AppViewModel.fusedRecordForToday] and hands the pure [FusedRecordScreen] its read-model.
- */
-@Composable
-private fun FusedRecordRoute(viewModel: AppViewModel) {
-    var record by remember {
-        mutableStateOf(FusedRecord(rows = emptyList(), dayOwner = null as FusionSource?, contributingSourceCount = 0))
-    }
-    LaunchedEffect(Unit) {
-        record = runCatching { viewModel.fusedRecordForToday() }.getOrDefault(record)
-    }
-    FusedRecordScreen(record = record)
-}

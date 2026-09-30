@@ -5,15 +5,15 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * Pins the By-Day source badge (Sleep overhaul §2.6). The card used to hard-code "NOOP-computed" on
- * EVERY row — even days an import won the dashboard merge — so a user couldn't tell a strap-scored
- * night from an imported one. The badge now derives from the merged DailyMetric's WINNING deviceId:
+ * Pins the day source badge (Sleep overhaul §2.6), which the Sleep footer and the Today sleep card read.
+ * It used to hard-code "NOOP-computed" on EVERY row — even days an import won the dashboard merge — so a
+ * user couldn't tell a strap-scored night from an imported one. The badge now derives from the merged DailyMetric's WINNING deviceId:
  *   - computed "<id>-noop"        → "On-device"
  *   - imported WHOOP export        → "Whoop"
  *   - apple-health / health-connect → "Apple Health"
  * Brand wording matches macOS IntelligenceEngine.DaySource.badge. Mirrors WorkoutSourceLabelTest.
  */
-class IntelligenceDaySourceBadgeTest {
+class DaySourceBadgeTest {
 
     @Test
     fun computedNoopRow_isOnDevice() {

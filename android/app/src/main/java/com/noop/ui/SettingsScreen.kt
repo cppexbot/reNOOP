@@ -688,7 +688,6 @@ internal fun SettingsScreen(
     var hydrationTracking by remember { mutableStateOf(NoopPrefs.hydrationTracking(context)) }
     var stressCheckIn by remember { mutableStateOf(BiofeedbackPrefs.checkInEnabled(context)) }
     var stressAutoNudge by remember { mutableStateOf(BiofeedbackPrefs.autoNudge(context)) }
-    var rhythmEnabled by remember { mutableStateOf(RhythmConsent.isEnabled(context)) }
     var coachSignals by remember { mutableStateOf(NoopPrefs.coachSignals(context)) }
     var autoDetectWorkouts by remember { mutableStateOf(NoopPrefs.autoDetectWorkouts(context)) }
     var journalReminder by remember { mutableStateOf(NoopPrefs.journalReminderEnabled(context)) }
@@ -698,9 +697,6 @@ internal fun SettingsScreen(
     var workoutKeepScreenOn by remember {
         mutableStateOf(NoopPrefs.of(context).getBoolean("workoutKeepScreenOn", false))
     }
-    // Live Sessions (beta) — gates the Today "Start session" entry. Unlike its section-mates this is a
-    // BETA feature flag, default ON (`live_sessions_beta`, see LiveSessionPrefs); off hides the entry.
-    var liveSessionsBeta by remember { mutableStateOf(LiveSessionPrefs.enabled(context)) }
 
     // Display preferences. The original system remains the body choice; exercise distance/pace has an
     // independent override. SharedPreferences isn't reactive, so both mirror into local state.
@@ -3232,18 +3228,6 @@ internal fun SettingsScreen(
                     },
                 )
                 SettingsRowDivider()
-                // BETA + default ON (the one exception to this section's off-by-default rule): the flag
-                // gates the Today entry so anyone can wave the beta away here with one flip.
-                SettingsToggleRow(
-                    title = uiString(R.string.l10n_settings_screen_live_sessions_beta_2ca3a97f),
-                    detail = "Silence-first strap coaching during workouts.",
-                    checked = liveSessionsBeta,
-                    onCheckedChange = {
-                        liveSessionsBeta = it
-                        LiveSessionPrefs.setEnabled(context, it)
-                    },
-                )
-                SettingsRowDivider()
                 SettingsToggleRow(
                     title = uiString(R.string.l10n_settings_screen_stress_check_ins_haptic_bf2746ba),
                     detail = "Lets reNOOP notice a fresh HRV dip while you're still and offer a minute to breathe. \"Stress\" here is an autonomic proxy from your own baseline, never a diagnosis. The strap gives one light confirming buzz; no push notification.",
@@ -3266,23 +3250,6 @@ internal fun SettingsScreen(
                         },
                     )
                 }
-                SettingsRowDivider()
-                SettingsToggleRow(
-                    title = uiString(R.string.l10n_settings_screen_rhythm_experimental_12d357da),
-                    detail = "An experimental picture of your beat-to-beat timing: a Poincaré scatter and plain regularity stats from quiet resting windows. Not an ECG and not a diagnosis; you'll read a short disclaimer and accept before it turns on.",
-                    checked = rhythmEnabled,
-                    onCheckedChange = {
-                        // Enabling here just un-gates the experimental item; the screen itself still shows
-                        // its consent clickwrap on first open (and re-prompts on a version bump). Disabling
-                        // clears the flag so the screen returns to its gate.
-                        rhythmEnabled = it
-                        if (it) {
-                            NoopPrefs.of(context).edit().putBoolean(RhythmConsent.KEY_ENABLED, true).apply()
-                        } else {
-                            NoopPrefs.of(context).edit().putBoolean(RhythmConsent.KEY_ENABLED, false).apply()
-                        }
-                    },
-                )
                 SettingsRowDivider()
                 // The AI Coach master switch (it used to sit in the bottom-bar card). Not chrome: off disables
                 // the AI itself, hides the Browse "Coach" row and the Today launcher card, and cancels the

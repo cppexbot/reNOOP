@@ -2913,15 +2913,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         )
     }
 
-    /** Build today's fused multi-device record for [FusedRecordScreen] (v5 Local Multi-Device Fusion).
-     *  Reads each source's banked row for the logical day and runs the pure FusionResolver per metric;
-     *  no core-waterfall change. Suspend so the screen calls it from a LaunchedEffect. */
-    suspend fun fusedRecordForToday(): FusedRecord =
-        // SPINE / #814: the strap + computed reads follow the registry's ACTIVE strap id (the same id the
-        // live read path resolves to), not a hardcoded "my-whoop", so a non-WHOOP active band fuses its OWN
-        // data. A single-WHOOP install resolves to "my-whoop", so this is byte-identical there.
-        FusionDayAdapter.buildFor(repository, logicalDayKeyNow(), activeStrapId = deviceId)
-
     /** Toggle strap low/full battery notifications (#368). The notifier reads NoopPrefs on each
      *  live-state update, so persisting is all that's needed — no stream to re-arm. */
     fun setBatteryAlertsEnabled(enabled: Boolean) {

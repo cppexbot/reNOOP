@@ -292,8 +292,6 @@ class HomeLocalizationTest(unittest.TestCase):
             "today_card_sleep": "Sleep", "today_card_sleep_subtitle": "Last night",
             "today_card_calories": "Calories", "today_card_calories_subtitle": "Active energy",
             "today_card_hydration": "Hydration", "today_card_hydration_subtitle": "Today's fluid",
-            "today_card_coupled": "Coupled view",
-            "today_card_coupled_subtitle": "Recovery, strain and sleep in one glance",
             "today_readiness_wear_for_nights": "Wear the strap for a few nights and your readiness read will appear here.",
             "today_readiness_hrv_good": "above your baseline - well recovered",
             "today_readiness_normal_range": "in your normal range",

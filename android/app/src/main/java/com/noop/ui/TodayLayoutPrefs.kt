@@ -6,7 +6,7 @@ import com.noop.R
 
 // MARK: - Reorderable Today sections (#today-layout)
 //
-// The Today screen's sections — the Charge/Effort/Rest hero, the Start-session entry, Synthesis, Key
+// The Today screen's sections — the Charge/Effort/Rest hero, Synthesis, Key
 // Metrics, Workouts, Heart Rate, Recovery Vitals, Your Cards — rendered in one fixed order. This lets the
 // user REORDER or HIDE them, with the default being the original order so nothing changes for anyone who
 // never customizes Today. Display-only — no metric is computed or stored differently; this only decides
@@ -24,7 +24,6 @@ import com.noop.R
  */
 enum class TodaySection(val raw: String, @StringRes val titleRes: Int) {
     HERO("hero", R.string.today_section_hero),
-    LIVE_SESSION("liveSession", R.string.today_section_live_session),
     SYNTHESIS("synthesis", R.string.today_section_synthesis),
     KEY_METRICS("keyMetrics", R.string.today_section_key_metrics),
     WORKOUTS("workouts", R.string.today_section_workouts),
@@ -45,7 +44,7 @@ enum class TodaySection(val raw: String, @StringRes val titleRes: Int) {
         /** The original, hard-coded section order — the default when the layout isn't customised. The
          *  journal widget (#656) is last by default, where it was first added, above the data-sources card. */
         val defaultOrder: List<TodaySection> = listOf(
-            HERO, LIVE_SESSION, SYNTHESIS, KEY_METRICS, WORKOUTS, HEART_RATE, RECOVERY_VITALS, YOUR_CARDS,
+            HERO, SYNTHESIS, KEY_METRICS, WORKOUTS, HEART_RATE, RECOVERY_VITALS, YOUR_CARDS,
             MENSTRUAL_CYCLE, JOURNAL, ADDED_CARDS,
         )
     }

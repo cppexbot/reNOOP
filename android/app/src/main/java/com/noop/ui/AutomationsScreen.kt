@@ -111,7 +111,6 @@ fun AutomationsScreen(viewModel: AppViewModel) {
     // double-tap is gated by its action picker, not here. SharedPreferences isn't reactive → read into state.
     var breathingHaptic by remember { mutableStateOf(HapticPrefs.enabled(ctx, HapticPrefs.BREATHING)) }
     var intervalsHaptic by remember { mutableStateOf(HapticPrefs.enabled(ctx, HapticPrefs.INTERVALS)) }
-    var liveSessionHaptic by remember { mutableStateOf(HapticPrefs.enabled(ctx, HapticPrefs.LIVE_SESSION)) }
     var workoutHaptic by remember { mutableStateOf(HapticPrefs.enabled(ctx, HapticPrefs.WORKOUT)) }
 
     // PERF (#707): lazy scaffold — each settings section is an unconditional top-level child, so each
@@ -129,7 +128,7 @@ fun AutomationsScreen(viewModel: AppViewModel) {
             icon = Icons.Filled.Vibration,
             title = uiString(R.string.haptics_section_title),
             blurb = "Choose which in-session cues buzz your wrist during a breathing session, timer, or workout.",
-            active = breathingHaptic || intervalsHaptic || liveSessionHaptic || workoutHaptic,
+            active = breathingHaptic || intervalsHaptic || workoutHaptic,
         ) {
             ToggleRow(
                 label = uiString(R.string.haptics_breathing_label),
@@ -143,13 +142,6 @@ fun AutomationsScreen(viewModel: AppViewModel) {
                 help = "Buzz on each interval change.",
                 checked = intervalsHaptic,
                 onChange = { intervalsHaptic = it; HapticPrefs.setEnabled(ctx, HapticPrefs.INTERVALS, it) },
-            )
-            RowDivider()
-            ToggleRow(
-                label = uiString(R.string.haptics_live_session_label),
-                help = "Coaching buzzes during a live workout session.",
-                checked = liveSessionHaptic,
-                onChange = { liveSessionHaptic = it; HapticPrefs.setEnabled(ctx, HapticPrefs.LIVE_SESSION, it) },
             )
             RowDivider()
             ToggleRow(

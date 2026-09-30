@@ -57,7 +57,6 @@ import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.filled.MonitorWeight
 import androidx.compose.material.icons.filled.Thermostat
 import androidx.compose.material.icons.filled.Timeline
-import androidx.compose.material.icons.filled.TrackChanges
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.WaterDrop
@@ -313,9 +312,6 @@ fun TodayScreen(
     // nested destination Settings uses; other Steps states continue through [onOpenMetric].
     onOpenStepsCalibration: () -> Unit = {},
     onOpenSleep: () -> Unit = {},
-    // Optional Coupled view card (task #43): a tap-through to the WHOOP-style day screen. Defaulted to a
-    // no-op so the call site stays compiling; AppRoot binds it to nav.navigate(CoupledView).
-    onOpenCoupled: () -> Unit = {},
     /** #1862: open Coach, optionally with a question the Today launcher already collected. */
     onOpenCoach: (String?) -> Unit = {},
     // The "workout in progress" indicator card re-opens the running workout's recording. Defaulted to a no-op
@@ -758,16 +754,6 @@ fun TodayScreen(
     // #1694: the Latest-Workouts tile that was tapped. Held HERE, not inside the section: the Today
     // sections are LazyColumn items, and a disposed item would take an open sheet down with it.
     var selectedWorkoutRow by remember { mutableStateOf<WorkoutRow?>(null) }
-    // LIVE SESSIONS (beta, default ON): the "Start session" entry under the hero + its full-screen Dialog
-    // (the same presentation the live-workout overlay / Charge breakdown use — deliberately NOT a nav
-    // destination, so dismissing it leaves the session's runner coaching and this entry is the way back
-    // in). Gated on the Settings `live_sessions_beta` flag; SharedPreferences isn't reactive, so it's read
-    // once into local state like the hydration/day-cycle gates above. The ACTIVE runner is also collected
-    // here (null ↔ runner only — the per-second snapshot is scoped inside the entry card) so a running
-    // session keeps its way-back-in card even if the beta flag was just switched off.
-    var showLiveSession by remember { mutableStateOf(false) }
-    val liveSessionsEnabled = remember { LiveSessionPrefs.enabled(context) }
-    val activeLiveSession by LiveSessionRunner.active.collectAsStateWithLifecycle()
     // The journal widget's own opt-out (default ON). Read here too so its reorderable section emits no
     // item when disabled — an always-present zero-height slot would leave a blank draggable gap. Same
     // remember-once idiom the card uses; a resume/recompose re-reads it. (#656)
@@ -1639,8 +1625,6 @@ fun TodayScreen(
                         (it != DashboardCard.COACH || CoachEnabledStore.enabled)
             }
             val sectionVisible = when (section) {
-                TodaySection.LIVE_SESSION ->
-                    selectedDayOffset == 0 && (liveSessionsEnabled || activeLiveSession != null)
                 TodaySection.YOUR_CARDS ->
                     selectedDayOffset == 0 && visibleDashboardCards.isNotEmpty()
                 TodaySection.MENSTRUAL_CYCLE ->
@@ -1732,23 +1716,6 @@ fun TodayScreen(
                                 }
                             }
                         }
-                        // LIVE SESSIONS (beta): the compact "Start session · BETA" entry. Today only
-                        // (offset 0 — a session is a now-thing), gated on the Settings beta flag; a RUNNING
-                        // session keeps the card visible regardless (it is the designed way back into the
-                        // dismissed session dialog, see LiveSessionRunner's lifetime note). The gate lives
-                        // at the loop level (sectionVisible) so a gated-off section emits no item.
-                        TodaySection.LIVE_SESSION -> LiveSessionEntryCard(
-                            onOpen = {
-                                // Only BEGIN when nothing is in flight: an active runner (running, or ended
-                                // and holding its unseen summary) is simply re-presented, never displaced —
-                                // so a tap can't silently discard a running session or a summary awaiting
-                                // its "Done".
-                                if (LiveSessionRunner.active.value == null) {
-                                    startOrResumeLiveSession(viewModel, context)
-                                }
-                                showLiveSession = true
-                            },
-                        )
                         // The plain-English read-out, the Charge-tinted Synthesis card. Mirrors the iOS
                         // Synthesis InsightCard; carries the last scored day's read at the rollover (#543).
                         TodaySection.SYNTHESIS -> Box(modifier = Modifier.fillMaxWidth().staggeredAppear(stagger)) {
@@ -1878,7 +1845,6 @@ fun TodayScreen(
                             onOpenStress = onOpenStress,
                             onOpenMetric = onOpenMetric,
                             onOpenSleep = onOpenSleep,
-                            onOpenCoupled = onOpenCoupled,
                             onOpenCoach = onOpenCoach,
                             onCustomise = { showDashboardEditor = true },
                             spo2CandidateByDay = spo2CandidateByDay,
@@ -2018,20 +1984,6 @@ fun TodayScreen(
     // #1694: the tapped Latest-Workouts session, in the same read-only sheet the Workouts list opens.
     selectedWorkoutRow?.let { row ->
         WorkoutDetailSheet(vm = viewModel, row = row, onDismiss = { selectedWorkoutRow = null })
-    }
-
-    // LIVE SESSIONS (beta): the full-screen session dialog — the same presentation the live-workout
-    // overlay uses on Live (Dialog, usePlatformDefaultWidth = false). Dismissing it only HIDES the
-    // screen: the runner (held in LiveSessionRunner.active, ticking on the app-wide viewModelScope)
-    // keeps guarding, and the entry card above re-opens the same session. Only "End session" + the
-    // summary's "Done" (inside the screen) actually finish and clear it.
-    if (showLiveSession) {
-        Dialog(
-            onDismissRequest = { showLiveSession = false },
-            properties = DialogProperties(usePlatformDefaultWidth = false),
-        ) {
-            LiveSessionScreen(vm = viewModel, onClose = { showLiveSession = false })
-        }
     }
 
     // Key-Metrics layout editor (#251), a Today-local dialog (no new nav destination). Saves the layout
@@ -2215,85 +2167,6 @@ private fun WorkoutInProgressCard(
                     )
                 }
             }
-        }
-    }
-}
-
-/**
- * The compact Live Sessions entry under the hero ("Start session · BETA"). Three honest states off the
- * process-wide [LiveSessionRunner.active]: no session → start affordance; session running → the way back
- * into the dismissed session dialog (with a live elapsed clock); session ended but its summary not yet
- * Done-dismissed → "See the summary". The runner's 1 Hz snapshot is collected INSIDE this card only, so
- * the per-second tick recomposes this card, never the Today body (the WorkoutInProgressCard idiom).
- * The whole card is one tap target; [onOpen] begins/re-presents the session dialog.
- */
-@Composable
-private fun LiveSessionEntryCard(onOpen: () -> Unit) {
-    val active by LiveSessionRunner.active.collectAsStateWithLifecycle()
-    val runner = active
-    var running = false
-    var summaryWaiting = false
-    var elapsed = ""
-    if (runner != null) {
-        val snap by runner.snapshot.collectAsStateWithLifecycle()
-        running = !snap.ended
-        summaryWaiting = snap.ended
-        elapsed = elapsedClock(snap.elapsedSec.toLong())
-    }
-    val teal = Palette.metricCyan
-    val title = when {
-        running -> uiString(R.string.today_live_session_running)
-        summaryWaiting -> uiString(R.string.today_live_session_ended)
-        else -> uiString(R.string.today_live_session_start)
-    }
-    val detail = when {
-        running -> uiString(R.string.today_live_session_guarding)
-        summaryWaiting -> uiString(R.string.today_live_session_summary)
-        else -> uiString(R.string.today_live_session_explanation)
-    }
-
-    // liquidPress on the whole tappable card (same interactionSource on clickable + press), matching the
-    // workout-in-progress card above. Merged semantics so TalkBack reads one Button, not four stops.
-    val interaction = remember { MutableInteractionSource() }
-    NoopCard(
-        tint = teal,
-        modifier = Modifier
-            .liquidPress(interaction)
-            .clickable(interactionSource = interaction, indication = null, onClick = onOpen)
-            .semantics(mergeDescendants = true) {
-                contentDescription = uiString(R.string.l10n_today_screen_title_beta_detail_6b39ae21, title, detail)
-            },
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space12),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Icon(
-                Icons.Filled.TrackChanges,
-                contentDescription = null,
-                tint = teal,
-                modifier = Modifier.size(20.dp),
-            )
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Metrics.space8),
-                ) {
-                    Text(title, style = NoopType.headline, color = Palette.textPrimary)
-                    StatePill(uiString(R.string.today_beta), tone = StrandTone.Accent, showsDot = false)
-                }
-                Text(detail, style = NoopType.footnote, color = Palette.textTertiary)
-            }
-            if (running) {
-                Text(elapsed, style = NoopType.number(15f), color = Palette.textPrimary)
-            }
-            Icon(
-                Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = Palette.textTertiary,
-                modifier = Modifier.size(Metrics.iconSmall),
-            )
         }
     }
 }
@@ -4138,7 +4011,6 @@ private fun YourCardsSection(
     onOpenStress: () -> Unit,
     onOpenMetric: (String) -> Unit,
     onOpenSleep: () -> Unit,
-    onOpenCoupled: () -> Unit,
     onOpenCoach: (String?) -> Unit,
     onCustomise: () -> Unit,
     spo2CandidateByDay: Map<String, Double> = emptyMap(),
@@ -4234,7 +4106,6 @@ private fun YourCardsSection(
                         onOpenMetric = onOpenMetric,
                         onOpenSleep = onOpenSleep,
                         onOpenHydration = onOpenHydration,
-                        onOpenCoupled = onOpenCoupled,
                         onOpenCoach = { showCoachLauncher = true },
                     ),
                 )
@@ -4261,7 +4132,7 @@ private fun sleepSourceSubtitle(card: DashboardCard, day: DailyMetric?): String?
 }
 
 /** The `vital_detail/<key>` key a metric/vital card opens, or null when the card has its OWN dedicated
- *  screen (Stress / Sleep / Hydration / Coupled) rather than a metric-detail trend. Mirrors the iOS
+ *  screen (Stress / Sleep / Hydration) rather than a metric-detail trend. Mirrors the iOS
  *  `liquidCard` switch, where every metric/vital card opens `metricDetail(key)` (its own focused trend),
  *  NOT the shared Health hub (2026-07-03). Keys are the Android VitalDetailScreen keys. */
 internal fun dashboardCardMetricKey(card: DashboardCard): String? = when (card) {
@@ -4276,13 +4147,13 @@ internal fun dashboardCardMetricKey(card: DashboardCard): String? = when (card) 
     DashboardCard.STEPS, DashboardCard.STEPS_AVERAGE_30 -> "steps_est"
     DashboardCard.CALORIES -> "active_kcal"
     // These carry their own full screen, not a per-metric trend.
-    DashboardCard.STRESS, DashboardCard.SLEEP, DashboardCard.HYDRATION, DashboardCard.COUPLED,
+    DashboardCard.STRESS, DashboardCard.SLEEP, DashboardCard.HYDRATION,
     // #1862: a launcher row, not a metric — no explorer key.
     DashboardCard.COACH -> null
 }
 
 /** The destination callback a dashboard card opens when tapped. Mirrors the iOS dashboardCardRow switch:
- *  Stress -> Stress; Sleep -> Sleep; Hydration -> Hydration; Coupled -> the WHOOP-style day screen; every
+ *  Stress -> Stress; Sleep -> Sleep; Hydration -> Hydration; every
  *  metric/vital card -> its OWN focused trend (`vital_detail/<key>` via [onOpenMetric]), matching the iOS
  *  `metricDetail(key)`. Every card resolves to a destination, so the chevron is always honest (#706/#684). */
 private fun dashboardCardDestination(
@@ -4291,7 +4162,6 @@ private fun dashboardCardDestination(
     onOpenMetric: (String) -> Unit,
     onOpenSleep: () -> Unit,
     onOpenHydration: () -> Unit,
-    onOpenCoupled: () -> Unit,
     // #1862: Coach is the one card that opens a SHEET rather than a destination, so its "destination" is
     // a callback that shows the launcher. Kept in this same resolver so every card still resolves to
     // exactly one tap action and the chevron stays honest.
@@ -4300,8 +4170,6 @@ private fun dashboardCardDestination(
     DashboardCard.STRESS -> onOpenStress
     DashboardCard.SLEEP -> onOpenSleep
     DashboardCard.HYDRATION -> onOpenHydration
-    // The Coupled view card (#43) taps through to the full WHOOP-style day screen.
-    DashboardCard.COUPLED -> onOpenCoupled
     DashboardCard.COACH -> onOpenCoach
     // Every overnight vital + Fitness age / Vitality / Steps / Calories opens its own metric-detail trend.
     else -> {
@@ -4314,7 +4182,7 @@ private fun dashboardCardDestination(
  *  their biometric hue; everything else the blue accent. No gold (WHOOP), tokens only. Mirrors iOS
  *  dashboardTint. This drives the mini liquid ring's tint on each row, so it follows the iOS `liquidCard`
  *  per-card tints exactly: Stress=accent, Fitness age=charge-green, Vitality=liquid-purple, HRV=cyan,
- *  Resting HR=rose, Respiratory=accent, Steps=cyan, Sleep=rest, Coupled=charge. */
+ *  Resting HR=rose, Respiratory=accent, Steps=cyan, Sleep=rest. */
 private fun dashboardCardTint(card: DashboardCard): Color = when (card) {
     // iOS `liquidCard`: stress → StrandPalette.accent (blue), not the Effort orange.
     DashboardCard.STRESS -> Palette.accent
@@ -4332,7 +4200,6 @@ private fun dashboardCardTint(card: DashboardCard): Color = when (card) {
     DashboardCard.STEPS, DashboardCard.STEPS_AVERAGE_30 -> Palette.metricCyan
     DashboardCard.CALORIES -> Palette.metricAmber
     DashboardCard.HYDRATION -> Palette.metricCyan
-    DashboardCard.COUPLED -> Palette.chargeColor
     DashboardCard.COACH -> Palette.accent
 }
 
@@ -4341,7 +4208,7 @@ private fun dashboardCardTint(card: DashboardCard): Color = when (card) {
  * iOS `liquidCard` `frac:` argument exactly, per card:
  *   Stress = stress/3 · Fitness age = 0.5 (fixed) · Vitality = vitality/100 · HRV = avgHrv/120 ·
  *   Resting HR = restingHr/100 · Respiratory = respRate/24 · Steps = steps/10000 · Sleep = totalSleepMin/480 ·
- *   Coupled = 0.6 (fixed) · Blood oxygen / Skin temp / Calories / Hydration = null (empty, not half-full).
+ *   Blood oxygen / Skin temp / Calories / Hydration = null (empty, not half-full).
  * The three overnight vitals (HRV / Resting HR / Respiratory) read PER-FIELD today-first with the
  * recovery-INDEPENDENT [vitalsDay] carry, matching the row VALUE, so the ring fill and the number agree
  * (and a recovery-nulled night keeps its OWN preserved vitals). Sleep keeps the recovery-gated
@@ -4381,7 +4248,6 @@ private fun dashboardCardFraction(
         }
         DashboardCard.SLEEP -> over(vd?.totalSleepMin, 480.0)
         DashboardCard.STEPS_AVERAGE_30 -> over(stepsAverage30, 10000.0)
-        DashboardCard.COUPLED -> 0.6
         DashboardCard.COACH -> 0.5
         // Not wired to a real read yet — an EMPTY ring (not half-full) so it doesn't imply a reading.
         DashboardCard.BLOOD_OXYGEN, DashboardCard.SKIN_TEMP, DashboardCard.CALORIES,
@@ -4508,10 +4374,6 @@ private fun dashboardCardValue(
                 Locale.getDefault(), "%.1f / %.1f L",
                 hydrationTotalMl / 1000.0, hydrationGoalMl / 1000.0,
             )
-        DashboardCard.COUPLED ->
-            // A tap-through row with no metric value of its own, the row shows just the chevron. An empty
-            // string (not NO_DATA) renders no number and leaves it un-dimmed. Mirrors iOS dashboardValue.
-            ""
         DashboardCard.COACH ->
             // #1862: likewise a launcher row. Empty rather than NO_DATA for the same reason — there is no
             // missing measurement here, there is no measurement at all.

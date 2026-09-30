@@ -19,8 +19,6 @@ class CoachCardTest {
     @Test
     fun `the coach card is not in the default selection`() {
         assertFalse("Coach must be opt-in", DashboardCard.defaultSelection.contains(DashboardCard.COACH))
-        assertFalse("Coupled is the same posture and stays that way",
-            DashboardCard.defaultSelection.contains(DashboardCard.COUPLED))
     }
 
     /** It must be addable, so it has to survive the raw round-trip Today customization persists through. */
@@ -33,7 +31,7 @@ class CoachCardTest {
 
     /**
      * A launcher row carries no measurement, so it must not render a unit — an empty unit is what makes
-     * the row show just icon + title + subtitle + chevron, exactly as COUPLED does.
+     * the row show just icon + title + subtitle + chevron.
      */
     @Test
     fun `the coach card carries no unit`() {

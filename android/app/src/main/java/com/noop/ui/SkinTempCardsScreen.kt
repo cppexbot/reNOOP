@@ -192,31 +192,6 @@ fun CycleAwarenessCard(
     }
 }
 
-/**
- * Shown in place of the card when the user has NOT opted in. A single calm opt-in card restating
- * the privacy promise at the point of consent (manual-first; default OFF).
- */
-@Composable
-fun CycleAwarenessOptInCard(onEnable: () -> Unit) {
-    NoopCard(tint = Palette.restColor) {
-        Column(verticalArrangement = Arrangement.spacedBy(Metrics.gap)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Filled.Thermostat, contentDescription = null, tint = Palette.restColor, modifier = Modifier.size(18.dp))
-                Text(uiString(R.string.l10n_skin_temp_cards_screen_cycle_awareness_ffb94783), style = NoopType.headline, color = Palette.textPrimary)
-            }
-            Text(
-                uiString(R.string.l10n_skin_temp_cards_screen_noop_can_read_a_coarse_menstrual_c79e4b85) +
-                    " entirely on your device. It is awareness only: not contraception, not a fertility " +
-                    "predictor, not a medical service.",
-                style = NoopType.subhead,
-                color = Palette.textSecondary,
-            )
-            PrivacyNote()
-            OutlinedButton(onClick = onEnable) { Text(uiString(R.string.l10n_skin_temp_cards_screen_turn_on_cycle_awareness_7c2d328f)) }
-        }
-    }
-}
-
 // MARK: - 2. Body Clock card
 
 /**

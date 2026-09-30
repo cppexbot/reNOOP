@@ -11,7 +11,6 @@ import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Hexagon
 import androidx.compose.material.icons.filled.LocalDrink
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.MonitorHeart
@@ -62,15 +61,8 @@ enum class DashboardCard(
     CALORIES("calories", R.string.today_card_calories, R.string.today_card_calories_subtitle, "kcal", Icons.Filled.LocalFireDepartment),
     HYDRATION("hydration", R.string.today_card_hydration, R.string.today_card_hydration_subtitle, "", Icons.Filled.LocalDrink),
 
-    // Optional, default-OFF (task #43): a tap-through to the Coupled view (the WHOOP-style day read). Unlike
-    // every other card it carries NO metric value of its own, it is a navigation row that opens the full
-    // CoupledScreen. It is NOT in [defaultSelection], so a fresh install never shows it until the user adds
-    // it via CUSTOMISE. Mirrors iOS DashboardCard.coupled (raw "coupled", byte-identical across OS).
-    COUPLED("coupled", R.string.today_card_coupled, R.string.today_card_coupled_subtitle, "", Icons.Filled.Hexagon),
-
     // Optional, default-OFF (#1862): opens the Coach launcher BOTTOM SHEET rather than a screen — the one
-    // card that does. Coach is otherwise buried in More, and entering it means leaving Today. Like COUPLED
-    // it carries no metric value and is absent from [defaultSelection], so someone who does not use a
+    // card that does, so entering Coach does not mean leaving Today. It carries no metric value and is absent from [defaultSelection], so someone who does not use a
     // provider never gains a fixed dashboard row for one. Opening the sheet makes NO provider request.
     // Reuses the existing nav + Coach-screen strings, so the card adds nothing to translate.
     // Mirrors iOS DashboardCard.coach (raw "coach", byte-identical across OS).
