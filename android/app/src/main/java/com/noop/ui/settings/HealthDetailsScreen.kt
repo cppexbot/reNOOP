@@ -310,7 +310,15 @@ private fun BirthDialog(selected: LocalDate, onPick: (LocalDate) -> Unit, onDism
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.summary_cancel)) } },
     ) {
-        DatePicker(state = state, title = null)
+        DatePicker(
+            state = state,
+            title = {
+                Text(
+                    stringResource(R.string.settings_date_of_birth),
+                    modifier = Modifier.padding(start = 24.dp, end = 12.dp, top = 16.dp),
+                )
+            },
+        )
     }
 }
 

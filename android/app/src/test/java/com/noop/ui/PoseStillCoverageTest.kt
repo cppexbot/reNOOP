@@ -2,6 +2,7 @@ package com.noop.ui
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -99,17 +100,19 @@ class PoseStillCoverageTest {
         )
     }
 
-    /** The gate combines all three live signals. Losing one is silent, so pin their exact census here. */
+    /**
+     * The gate combines the two live system signals. Losing one is silent, so pin their exact census here.
+     * The in-app "Reduce motion in NOOP" switch is retired (iOS ST-4): the system setting applies, so a
+     * stored value must not keep a screen still with no switch left to undo it.
+     */
     @Test
-    fun poseStillGateCombinesAllThreeLiveSignals() {
+    fun poseStillGateCombinesTheLiveSystemSignals() {
         val motion = File(uiDir(), "NoopMotion.kt")
         assertTrue("NoopMotion.kt missing", motion.isFile)
         val code = stripComments(motion.readText()).replace(Regex("\\s+"), " ")
         assertTrue(
-            "rememberPoseStill must OR system motion, battery saver, and the in-app preference: $code",
-            code.contains(
-                "fun rememberPoseStill(): Boolean = rememberReduceMotion() || rememberPowerSaveMode() || rememberQuietMotion()",
-            ),
+            "rememberPoseStill must OR system motion and battery saver: $code",
+            code.contains("fun rememberPoseStill(): Boolean = rememberReduceMotion() || rememberPowerSaveMode()"),
         )
         assertTrue(
             "battery saver must be read from PowerManager.isPowerSaveMode",
@@ -119,13 +122,9 @@ class PoseStillCoverageTest {
             "and kept live — a read-once value would strand the screen animating after the user flips it",
             code.contains("ACTION_POWER_SAVE_MODE_CHANGED"),
         )
-        assertTrue(
-            "the in-app preference must use the cross-platform key",
-            code.contains("NoopPrefs.KEY_QUIET_MOTION"),
-        )
-        assertTrue(
-            "and stay live without leaving the screen",
-            code.contains("registerOnSharedPreferenceChangeListener"),
+        assertFalse(
+            "the retired in-app preference must not be read any more",
+            code.contains("KEY_QUIET_MOTION"),
         )
     }
 }
