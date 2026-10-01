@@ -1,6 +1,12 @@
 package com.noop.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -15,6 +21,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -23,8 +30,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
@@ -54,6 +59,18 @@ import com.noop.ui.summary.SummaryActions
 import com.noop.ui.summary.SummaryScreen
 import com.noop.ui.trends.TrainingLoadScreen
 import com.noop.ui.trends.TrendsScreen
+import com.noop.ui.m3.AlwaysDark
+import com.noop.ui.workouts.IntervalRunScreen
+import com.noop.ui.workouts.IntervalTimerRunner
+import com.noop.ui.workouts.IntervalsSetupScreen
+import com.noop.ui.workouts.LiveWorkoutRecording
+import com.noop.ui.workouts.NowRunning
+import com.noop.ui.workouts.NowRunningBar
+import com.noop.ui.workouts.WorkoutDetailScreen
+import com.noop.ui.workouts.WorkoutHistoryScreen
+import com.noop.ui.workouts.WorkoutsHomeScreen
+import com.noop.ui.workouts.WorkoutsNav
+import com.noop.ui.workouts.workoutKey
 
 // MARK: - Navigation model
 //
@@ -89,6 +106,9 @@ internal enum class Destination(val route: String) {
     // Coach settings (#2243), reached only from the strip on the Coach page; it shares Coach's view model.
     CoachSettings("coach_settings"),
     Intervals("intervals"),
+    // The Workouts tab's pages: All Workouts and one workout (its natural key, URI-encoded).
+    WorkoutHistory("workout_history"),
+    Workout("workout/{key}"),
     // A metric's page (key, optional source: null opens the freshest source), its All Data list, the Trends
     // page's Training Load, and the day by the second (a heart-rate page's option).
     Metric("metric/{key}?source={source}"),
@@ -145,10 +165,17 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
     val scrollTop = remember { mutableStateListOf(*Array(MainTab.entries.size) { 0 }) }
 
     val context = LocalContext.current
-    // The running workout's full-screen recording, presented over whichever tab is showing (iOS presents it
-    // from the root the same way). Guarded on an active workout so it never opens empty.
-    var showActiveWorkout by remember { mutableStateOf(false) }
+    // The recording screen (a workout or the interval timer), drawn full screen over every tab and put away
+    // to the mini-player above the navigation bar (iOS NowRunning). Guarded on a running workout so it never
+    // opens empty.
+    val expanded by NowRunning.expanded.collectAsStateWithLifecycle()
     val activeWorkout by viewModel.activeWorkout.collectAsStateWithLifecycle()
+    // The interval timer buzzes the strap on every transition, only while one is bonded.
+    LaunchedEffect(viewModel) {
+        IntervalTimerRunner.shared.buzz = { loops ->
+            if (viewModel.live.value.bonded) viewModel.buzz(loops, HapticPrefs.INTERVALS)
+        }
+    }
 
     /** Selects [tab] as a tap on it would: re-selecting pops to the root, then scrolls the root to the top. */
     fun onTabTapped(tab: MainTab) {
@@ -165,12 +192,15 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
         nav.selectTab(MainTab.Summary)
     }
 
+    Box(Modifier.fillMaxSize()) {
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surface,
         bottomBar = {
             // Shown on tab roots and on pushed screens alike, as iOS keeps its tab bar. No recording is a
-            // route to hide it for: the live workout is a full-screen dialog drawn over it, and the interval
-            // and breathing sessions run inside their own screens.
+            // route to hide it for: a running workout or interval timer is drawn over everything, and put
+            // away it docks as the mini-player above the bar.
+            Column {
+            NowRunningBar(viewModel)
             NavigationBar {
                 MainTab.entries.forEach { tab ->
                     val selected = tab == currentTab
@@ -183,6 +213,7 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                         label = { Text(stringResource(tab.labelRes), maxLines = 1) },
                     )
                 }
+            }
             }
         },
     ) { inner ->
@@ -212,11 +243,6 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                             SleepNightRequest.wakeDay = wakeDay
                             nav.showTabRoot(MainTab.Sleep)
                         },
-                        // A running workout: the Workouts tab, with the recording over it.
-                        openActiveWorkout = {
-                            nav.showTabRoot(MainTab.Workouts)
-                            showActiveWorkout = true
-                        },
                     ),
                 )
             }
@@ -233,7 +259,14 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                 )
             }
             tabRoot(MainTab.Workouts, scrollTop) {
-                WorkoutsScreen(viewModel, onOpenIntervals = { nav.push(Destination.Intervals.route) })
+                WorkoutsHomeScreen(
+                    vm = viewModel,
+                    nav = WorkoutsNav(
+                        openHistory = { nav.push(Destination.WorkoutHistory.route) },
+                        openWorkout = { nav.push(workoutRoute(it)) },
+                        openIntervals = { nav.push(Destination.Intervals.route) },
+                    ),
+                )
             }
             tabRoot(MainTab.Browse, scrollTop) {
                 BrowseScreen(onOpen = { route -> nav.push(route) })
@@ -281,7 +314,13 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
             composable(Destination.Breathe.route) { BreatheScreen(viewModel) }
 
             // --- Pushed from a screen ---
-            composable(Destination.Intervals.route) { IntervalsScreen(viewModel) }
+            composable(Destination.Intervals.route) { IntervalsSetupScreen(onBack = { nav.popBackStack() }) }
+            composable(Destination.WorkoutHistory.route) {
+                WorkoutHistoryScreen(viewModel, onBack = { nav.popBackStack() }, openWorkout = { nav.push(workoutRoute(it)) })
+            }
+            composable(Destination.Workout.route, arguments = listOf(navArgument("key") { type = NavType.StringType })) { entry ->
+                WorkoutDetailScreen(viewModel, key = entry.arguments?.getString("key").orEmpty(), onBack = { nav.popBackStack() })
+            }
             composable(Destination.Metric.route, arguments = metricArguments) { entry ->
                 MetricDetailScreen(
                     vm = viewModel,
@@ -347,15 +386,33 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
         }
     }
 
-    if (showActiveWorkout && activeWorkout != null) {
-        Dialog(
-            onDismissRequest = { showActiveWorkout = false },
-            properties = DialogProperties(usePlatformDefaultWidth = false),
-        ) {
-            LiveWorkoutScreen(vm = viewModel, onClose = { showActiveWorkout = false })
+
+    // The recording screen, always dark, sliding up over the whole app (bars included).
+    val shown = when (expanded) {
+        NowRunning.Kind.Workout -> if (activeWorkout != null) NowRunning.Kind.Workout else null
+        NowRunning.Kind.Intervals -> NowRunning.Kind.Intervals
+        null -> null
+    }
+    var lastShown by remember { mutableStateOf<NowRunning.Kind?>(null) }
+    if (shown != null) lastShown = shown
+    AnimatedVisibility(
+        visible = shown != null,
+        enter = slideInVertically(navSlideSpec) { it },
+        exit = slideOutVertically(navSlideSpec) { it },
+    ) {
+        AlwaysDark {
+            when (lastShown) {
+                NowRunning.Kind.Workout -> LiveWorkoutRecording(viewModel, onMinimize = NowRunning::collapse)
+                NowRunning.Kind.Intervals -> IntervalRunScreen(viewModel, onMinimize = NowRunning::collapse)
+                null -> Unit
+            }
         }
     }
+    }
 }
+
+/** The page of one workout on the Workouts tab. */
+private fun workoutRoute(row: com.noop.data.WorkoutRow): String = "workout/${android.net.Uri.encode(workoutKey(row))}"
 
 /**
  * Registers [tab]'s root screen. The root reads its own tab's re-tap counter, so the value it sees never
@@ -437,3 +494,6 @@ private val NavEasing = CubicBezierEasing(0.22f, 1f, 0.36f, 1f)
 
 /** ~240 ms crossfade on the calm easing. */
 private val navFadeSpec = tween<Float>(durationMillis = 240, easing = NavEasing)
+
+/** The recording screen's slide, on the same calm easing. */
+private val navSlideSpec = tween<androidx.compose.ui.unit.IntOffset>(durationMillis = 320, easing = NavEasing)

@@ -112,7 +112,8 @@ Same rules; only paths and commands differ. Shell = Git Bash (POSIX), paths like
   `MSYS_NO_PATHCONV=1` whenever an argument is a device path.
 - Windows-only test failures (file locking and read-only directories behave differently): StrapLogArchiveTest
   x4 and WhoopDatabaseUpgradeTest x2 (its temp zip stays locked). Ignore them here. If a test run fails with
-  "roomSchemaOracle ... doesn't exist", add `syncRoomSchemaSnapshot --rerun` before `testFullDebugUnitTest`.
+  "roomSchemaOracle ... doesn't exist", put `kspFullDebugKotlin --rerun syncRoomSchemaSnapshot --rerun` before
+  `testFullDebugUnitTest`.
 ```
 cd /b/reNOOP/android && export JAVA_HOME=/b/tools/jdk-21
 ./gradlew assembleDemoDebug --console=plain -q 2>&1 | grep -E '^e: |error:|FAIL' | head -40

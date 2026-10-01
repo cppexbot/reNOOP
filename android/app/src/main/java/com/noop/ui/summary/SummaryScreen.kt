@@ -98,7 +98,6 @@ internal class SummaryActions(
     val openTrends: () -> Unit,
     /** The Sleep tab on the night that ended on this "yyyy-MM-dd" day. */
     val openSleepNight: (String) -> Unit,
-    val openActiveWorkout: () -> Unit,
 )
 
 /** Everything the two layouts draw, resolved once per composition. */
@@ -113,7 +112,6 @@ internal class SummaryUi(
     val tiles: List<KeyMetric>,
     val pinned: List<KeyMetric>,
     val alert: String?,
-    val workoutSport: String?,
     val syncLine: SummarySyncLine,
 ) {
     /** A card's stamp on the picked day (only carried values are stamped on a past day). */
@@ -130,7 +128,6 @@ internal fun SummaryScreen(vm: AppViewModel, actions: SummaryActions) {
     val cycle by vm.activeDayCycle.collectAsStateWithLifecycle()
     val spo2Candidates by vm.spo2CandidateByDay.collectAsStateWithLifecycle()
     val alert by vm.healthAlert.collectAsStateWithLifecycle()
-    val activeWorkout by vm.activeWorkout.collectAsStateWithLifecycle()
     val live by vm.live.collectAsStateWithLifecycle()
     // The ~1 Hz heart-rate tick must not redraw the page: only the sync fields matter here.
     val sync by remember {
@@ -189,7 +186,6 @@ internal fun SummaryScreen(vm: AppViewModel, actions: SummaryActions) {
         tiles = tiles,
         pinned = SummaryPins.pinned(enabled, tiles),
         alert = alert,
-        workoutSport = activeWorkout?.sport?.name,
         syncLine = SummarySyncLine.resolve(sync.backfilling, sync.lastSyncAt, maxOf(nowSec, System.currentTimeMillis() / 1000)),
     )
     val onChangeTile: (Int, KeyMetric) -> Unit = { slot, metric -> tiles = SummaryTilePrefs.replace(context, slot, metric) }
@@ -362,12 +358,9 @@ private fun LazyListScope.detailedLayout(
     syncFooter(ui)
 }
 
-/** The raised alert and a running workout, pinned above everything else in both layouts. */
+/** The raised alert, pinned above everything else in both layouts (a running workout is the mini-player). */
 private fun LazyListScope.notices(ui: SummaryUi, actions: SummaryActions) {
     ui.alert?.let { message -> item(key = "alert") { Box(gutter) { HealthAlertNotice(message) } } }
-    ui.workoutSport?.let { sport ->
-        item(key = "workout") { Box(gutter) { WorkoutRunningNotice(sport, actions.openActiveWorkout) } }
-    }
 }
 
 private fun LazyListScope.syncFooter(ui: SummaryUi) {

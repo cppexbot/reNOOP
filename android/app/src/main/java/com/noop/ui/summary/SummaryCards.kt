@@ -306,18 +306,6 @@ internal fun HealthAlertNotice(message: String) {
     )
 }
 
-/** A running workout, until the tab bar's mini-player takes this over. */
-@Composable
-internal fun WorkoutRunningNotice(sport: String, onOpen: () -> Unit) {
-    NoticeCard(
-        icon = Icons.AutoMirrored.Filled.DirectionsRun,
-        title = stringResource(R.string.summary_workout_in_progress),
-        message = sport,
-        action = stringResource(R.string.summary_return_to_workout),
-        onAction = onOpen,
-    )
-}
-
 // MARK: Rings card (layout A)
 
 /** One of the three figures beside the rings. */

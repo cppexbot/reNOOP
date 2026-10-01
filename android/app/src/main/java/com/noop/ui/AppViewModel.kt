@@ -1738,6 +1738,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         buzz(2, HapticPrefs.WORKOUT)
         viewModelScope.launch {
             runCatching { repository.upsertWorkouts(listOf(row)) }
+            // The Workouts tab lists the session as soon as it is saved (the recording screen closes onto it).
+            loadWorkouts()
             // #528: persist the live 1 Hz workout HR into hrSample so it can export to Health Connect
             // at full resolution NOW (the HR export keeps workout-window samples un-decimated), instead
             // of only after the next strap offload sync. IGNORE-on-conflict makes a later sync of the
