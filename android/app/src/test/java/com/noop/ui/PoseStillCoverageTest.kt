@@ -62,19 +62,16 @@ class PoseStillCoverageTest {
     /**
      * Frame loops that are DIRECT MANIPULATION, not idle animation, and must keep running in battery saver.
      *
-     * `TodayScreen.kt` drives drag-reorder auto-scroll from `withFrameNanos`, deliberately time-based so a
-     * 120 Hz panel does not scroll twice as fast. It runs only `while (sectionDrag.key != null)` — while the
-     * user's finger is down. Quieting it would not save idle power (there is no idle: the user is dragging);
-     * it would break the interaction by stripping the auto-scroll out from under them.
-     *
-     * `SleepScreen.kt` runs the byte-identical drag-reorder auto-scroll loop (#sleep-layout, the Sleep-tab
-     * twin of Today's), gated the same way on `while (sleepSectionDrag.key != null)` — the same direct-
-     * manipulation case, exempt for the same reason. Its only `withFrameNanos` IS that loop.
+     * `SleepScreen.kt` drives drag-reorder auto-scroll from `withFrameNanos`, deliberately time-based so a
+     * 120 Hz panel does not scroll twice as fast. It runs only `while (sleepSectionDrag.key != null)` — while
+     * the user's finger is down. Quieting it would not save idle power (there is no idle: the user is
+     * dragging); it would break the interaction by stripping the auto-scroll out from under them. Its only
+     * `withFrameNanos` IS that loop.
      *
      * The distinction this file draws is idle-vs-driven, not animated-vs-still. Anything added here needs a
      * reason of that shape.
      */
-    private val directManipulation = setOf("TodayScreen.kt", "SleepScreen.kt")
+    private val directManipulation = setOf("SleepScreen.kt")
 
     private fun animatingFiles(): List<File> =
         uiDir().walkTopDown()

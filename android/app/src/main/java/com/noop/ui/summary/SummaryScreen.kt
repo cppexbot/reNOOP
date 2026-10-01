@@ -424,10 +424,10 @@ internal fun ringFigures(ui: SummaryUi, actions: SummaryActions): List<RingFigur
         RingFigureData(
             stringResource(R.string.today_metric_charge), percentTokens(s.charge.pct), chargeCaption(s.charge, ui.locale),
             c.charge,
-        ) { actions.openMetric("recovery", null) },
+        ) { actions.openMetric(HeroRingMetric.CHARGE, null) },
         RingFigureData(
             stringResource(R.string.today_metric_effort), effortTokens(s.effort, scale, ui.locale), null, c.effort,
-        ) { actions.openMetric("strain", null) },
+        ) { actions.openMetric(HeroRingMetric.EFFORT, null) },
         RingFigureData(
             stringResource(R.string.today_metric_rest), percentTokens(s.rest), null, c.rest,
         ) { actions.openSleepNight(ui.selectedKey) },
@@ -442,7 +442,7 @@ private fun SummaryRings(ui: SummaryUi, actions: SummaryActions) {
         effort = s.effort,
         rest = s.rest,
         figures = ringFigures(ui, actions),
-        onRings = { actions.openMetric("recovery", null) },
+        onRings = { actions.openMetric(HeroRingMetric.CHARGE, null) },
     )
 }
 

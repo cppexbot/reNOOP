@@ -33,6 +33,7 @@ import com.noop.ui.lastVitalsRow
 import com.noop.ui.localDayString
 import com.noop.ui.logicalDayNow
 import com.noop.ui.recoveryCalibrationNights
+import com.noop.ui.resolveSkinTempReading
 import com.noop.ui.selectNight
 import com.noop.ui.stepsForDay
 import kotlinx.coroutines.Dispatchers
@@ -154,7 +155,8 @@ internal object SummaryLoader {
         val skinCarry = if (isToday) lastSkinTempReadingRow(days, carryKey) else null
         val skinRow = listOfNotNull(day, vitalsDay, skinCarry).firstOrNull { it.skinTempC != null || it.skinTempDevC != null }
         val skinPrefer = UnitPrefs.skinTempPreferred(context)
-        val skinReading = skinRow?.let { SkinTempDisplay.leadReading(it.skinTempC, it.skinTempDevC, skinPrefer) }
+        // The Summary's Skin Temp card leads with the same reading Today's tile did, off the same row.
+        val skinReading = resolveSkinTempReading(day, vitalsDay, skinCarry, skinPrefer)
 
         val phoneToday = (apple + hc).filter { it.day == dayKey }
         val phoneWeightToday = phoneToday.mapNotNull { it.weightKg }.maxOrNull()

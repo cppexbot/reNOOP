@@ -23,30 +23,22 @@ class StressPersonalBaselineSurfaceTest {
     private fun source(path: String): String = File(repoRoot(), path).readText()
 
     @Test
-    fun `android detail and Today resolve and analyze the same selected lens`() {
+    fun `android detail and the shared producer resolve and analyze the same selected lens`() {
         val detail = source("android/app/src/main/java/com/noop/ui/metric/MetricStressDay.kt")
         val producer = source("android/app/src/main/java/com/noop/widget/StressWidgetProducer.kt")
-        val today = source("android/app/src/main/java/com/noop/ui/TodayScreen.kt")
 
         assertTrue(
             "Stress detail must use the shared foreground mode resolver",
             detail.contains("val mode = selectedDaytimeStressMode("),
         )
         assertTrue(
-            "Today's producer must use the same resolver before analyzing the curve",
+            "the shared producer must use the same resolver before analyzing the curve",
             producer.contains("val mode = selectedDaytimeStressMode("),
         )
         assertTrue(
             "the producer must feed that selected mode into the series scorer",
             Regex("DaytimeStress\\.analyze\\([\\s\\S]*?tzOffsetSeconds,\\s*mode,")
                 .containsMatchIn(producer),
-        )
-        assertTrue(
-            "Today must pass the user's selected personal-baseline preference",
-            Regex(
-                "StressWidgetProducer\\.todayCurve\\([\\s\\S]*?" +
-                    "personalBaseline\\s*=\\s*NoopPrefs\\.stressPersonalBaseline\\(context\\)",
-            ).containsMatchIn(today),
         )
         // A SLOT PER LENS, not one slot that compares the lens. Comparing kept the two surfaces from
         // reading each other's curve but made every call miss whenever they alternated, which is every
@@ -59,10 +51,6 @@ class StressPersonalBaselineSurfaceTest {
             "those slots must stay volatile: four concurrent callers reach this producer",
             producer.contains("@Volatile") &&
                 producer.contains("private var memos: Map<Boolean, Memo>"),
-        )
-        assertTrue(
-            "Today must not seed a personal-lens card from the widget's default-lens snapshot",
-            today.contains("if (NoopPrefs.stressPersonalBaseline(context)) return@LaunchedEffect"),
         )
     }
 

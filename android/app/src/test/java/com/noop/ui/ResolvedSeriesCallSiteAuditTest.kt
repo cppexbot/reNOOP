@@ -97,7 +97,10 @@ class ResolvedSeriesCallSiteAuditTest {
         // Scanner sanity: #175 fixed eight call sites; the scan finding fewer means the audit
         // went blind (moved sources, renamed API), not that the problem shrank. If callers were
         // legitimately consolidated behind a helper that threads the id, update this floor.
-        assertTrue("expected >= 8 resolvedSeries call sites, scanned $callCount", callCount >= 8)
+        // Three remain: the old Today screen held five and went with it; the Summary reads every
+        // resolved series through one helper in SummaryLoader, which threads the id (plus Lab Book
+        // and the rolling steps average).
+        assertTrue("expected >= 3 resolvedSeries call sites, scanned $callCount", callCount >= 3)
 
         assertTrue(
             "resolvedSeries callers must pass `strapDeviceId = vm.activeStrapId` (#172/#175); " +

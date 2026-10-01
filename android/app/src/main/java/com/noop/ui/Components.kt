@@ -605,29 +605,6 @@ fun StatTile(
     }
 }
 
-// MARK: - InsightCard
-//
-// PUBLIC API unchanged; an optional [tint] was ADDED (defaulted to the status colour)
-// so the coaching card sits in the same colour world as the score it summarises.
-
-@Composable
-fun InsightCard(
-    category: String,
-    status: String,
-    detail: String,
-    modifier: Modifier = Modifier,
-    statusColor: Color = Palette.accent,
-    tint: Color? = null,
-) {
-    NoopCard(modifier = modifier, padding = 18.dp, tint = tint ?: statusColor) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Overline(category)
-            Text(status, style = NoopType.title1, color = statusColor)
-            Text(detail, style = NoopType.subhead, color = Palette.textSecondary)
-        }
-    }
-}
-
 // MARK: - SegmentedPillControl — the ONE segmented control
 
 @Composable

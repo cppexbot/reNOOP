@@ -65,6 +65,16 @@ sealed class ChargeDisplay {
     }
 }
 
+/** The catalogue keys of the three rings (twin of iOS `HeroRingMetric`): what each figure's page opens on. */
+object HeroRingMetric {
+    const val CHARGE = "recovery"
+    const val EFFORT = "strain"
+    const val REST = "sleep_performance"
+
+    /** Charge, Effort, Rest, in the order the rings card lists them. */
+    val all: List<String> = listOf(CHARGE, EFFORT, REST)
+}
+
 /** Day arithmetic for the pager: offset 0 is today's logical day (rolls at 04:00), 1 yesterday, … */
 object SummaryDay {
     /**
@@ -318,7 +328,7 @@ data class SummaryHighlight(
             "hrv" -> "hrv"
             "rhr" -> "rhr"
             "respRate" -> "resp_rate"
-            else -> "strain"
+            else -> HeroRingMetric.EFFORT
         }
 
         private fun rank(flag: ReadinessEngine.Flag): Int = when (flag) {

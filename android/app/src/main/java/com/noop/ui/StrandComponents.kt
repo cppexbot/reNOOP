@@ -143,19 +143,3 @@ internal fun InsetChartPlaceholder(
         Text(message, style = NoopType.subhead, color = Palette.textTertiary)
     }
 }
-
-@Composable
-internal fun SparkTailBox(
-    modifier: Modifier = Modifier,
-    wide: Boolean = false,
-    content: @Composable () -> Unit,
-) {
-    Box(
-        modifier = modifier
-            .padding(start = Metrics.space8, bottom = Metrics.space2)
-            .width(if (wide) Metrics.sparkWidthWide else Metrics.sparkWidth)
-            .height(Metrics.sparkHeight),
-    ) {
-        content()
-    }
-}

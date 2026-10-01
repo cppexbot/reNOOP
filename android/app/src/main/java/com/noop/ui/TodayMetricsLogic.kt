@@ -37,17 +37,6 @@ internal enum class HrWindow(@StringRes val labelRes: Int, val hours: Int) {
 internal fun hrWindowKeeps(bucketTs: Long, window: HrWindow, now: Long): Boolean =
     bucketTs >= window.cutoff(now)
 
-/** Today footer state cached by the ViewModel across remounts. */
-data class TodayFooterState(
-    val recentWorkouts: List<WorkoutRow> = emptyList(),
-    val whoopDays: Int? = null,
-    val whoopWorkouts: Int? = null,
-    val appleDays: Int? = null,
-    val appleWorkouts: Int? = null,
-    val hcDays: Int? = null,
-    val hcWorkouts: Int? = null,
-)
-
 /** The Today "Last Workouts" contract: cross-source dedup, newest first, at most four. */
 internal fun lastWorkoutsFeed(rows: List<WorkoutRow>): List<WorkoutRow> =
     WorkoutEditing.dedupCrossSource(rows)

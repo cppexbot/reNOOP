@@ -717,42 +717,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val today: StateFlow<DailyMetric?> = _today.asStateFlow()
 
     /**
-     * #849: Today's heavy history-wide reload guard. The Today screen runs a couple of expensive
-     * history-wide passes (the workouts/sources footer, which derives HR per imported workout from raw strap
-     * samples, and the pinned Stress / Fitness-age / Vitality reads over the whole metric history). Those run
-     * in screen-level `LaunchedEffect(days)` blocks, which re-fire on EVERY re-mount of the screen
-     * (tab-away + return, or an Apple-Health import that recreates it) even when the underlying data is
-     * unchanged (`remember`/`LaunchedEffect` reset on a fresh composition). That repeated full reload is the
-     * lag users see returning to Today after an import. This holds the content signature of the `days` list
-     * the footer was last loaded for; the screen skips the reload when the signature is unchanged. It lives
-     * on the long-lived ViewModel (not in the screen's `remember`), so it SURVIVES the re-mount that resets
-     * the screen's local state. `null` = never loaded this process. Pure load-bookkeeping; never drives UI.
-     */
-    var todayFooterLoadedSig: Int? = null
-
-    /**
-     * #849: the last computed Today footer state, cached so a re-mount can RESTORE it without recomputing.
-     * The Android bottom-tab NavHost disposes + recreates the Today composable on a tab switch (its plain
-     * `remember` state resets), so simply skipping the reload would blank the footer. Seeding the screen's
-     * `footer` from this cache on first composition keeps it populated while the redundant heavy reload is
-     * skipped. Updated in lockstep with [todayFooterLoadedSig]. `null` = nothing cached yet this process.
-     */
-    var todayFooterCache: TodayFooterState? = null
-
-    /**
-     * #849: the same re-mount guard for Today's pinned "Your cards" reads (Stress / Fitness age / Vitality),
-     * which scan the whole metric history. Signature + last-computed values are cached on the ViewModel so a
-     * re-mount restores them and skips the redundant reload, exactly like the footer above. `null` = not yet
-     * loaded this process; the cached triple is restored into the screen's local state on first composition.
-     */
-    var todayCardsLoadedSig: Int? = null
-    var todayStressCache: Double? = null
-    var todayFitnessAgeCache: Double? = null
-    var todayVitalityCache: Double? = null
-    var todayVo2maxCache: Double? = null
-
-    /**
-     * Recent daily metrics (newest last), backing the Today grid + illness watch.
+     * Recent daily metrics (newest last), backing the Summary + illness watch.
      * MERGED: imported "my-whoop" rows win per day; on-device computed "my-whoop-noop"
      * rows (from [IntelligenceEngine]) gap-fill, so recovery/strain/sleep populate from
      * the strap with no WHOOP import.
