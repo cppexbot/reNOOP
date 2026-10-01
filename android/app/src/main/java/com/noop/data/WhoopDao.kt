@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.Flow
 /** Kept as one compile-time constant so Room and the plain-JVM SQLite regression test execute the exact
  * same statement. Swift's twin lives in WhoopStore.analysisFingerprint(). */
 internal const val ANALYSIS_FINGERPRINT_SQL =
-    "SELECT 'v3|' || " +
+    "SELECT 'v5|' || " +
         "'h' || (SELECT COUNT(*) FROM hrSample) || ':' || (SELECT COALESCE(MAX(ts), 0) FROM hrSample) || '|' || " +
         "'p' || (SELECT COALESCE(MAX(rowid), 0) FROM ppgHrSample) || '|' || " +
         "'r' || (SELECT COALESCE(MAX(rowid), 0) FROM rrInterval) || '|' || " +
@@ -26,6 +26,7 @@ internal const val ANALYSIS_FINGERPRINT_SQL =
         "'|w5' || (SELECT COUNT(*) FROM rrInterval WHERE srcChannel = 5 AND (tsSuspect IS NULL OR tsSuspect <> 1)) || " +
         "'|w7' || (SELECT COUNT(*) FROM rrInterval WHERE srcChannel = 7 AND (tsSuspect IS NULL OR tsSuspect <> 1)) || " +
         "'|tagged' || (SELECT COUNT(*) FROM rrInterval WHERE srcChannel IN (5, 6, 7)) || " +
+        "'|w4history' || (SELECT COUNT(*) FROM rrInterval WHERE srcChannel = 8) || " +
         "'|registry' || (SELECT COALESCE(GROUP_CONCAT(identity, ';'), '') FROM " +
         "(SELECT QUOTE(id) || ':' || QUOTE(brand) || ':' || QUOTE(model) || ':' || QUOTE(status) AS identity FROM pairedDevice ORDER BY id))"
 
@@ -54,16 +55,17 @@ internal const val ANALYSIS_FINGERPRINT_SQL =
  *
  * The result is opaque and only ever compared to itself in memory, so it needs no byte identity with the
  * Swift twin, `WhoopStore.dayStreamFingerprint`. Kept as one constant so every caller executes the exact
- * same statement; unlike [ANALYSIS_FINGERPRINT_SQL] it carries :deviceId/:from/:to binds, so a plain-JVM
- * SQLite harness could not run it verbatim. Room's KSP verification is what checks it. */
+ * same statement; unlike [ANALYSIS_FINGERPRINT_SQL] it carries :deviceId/:from/:to binds, which
+ * `Whoop5RRSqliteTest` binds by name; Room's KSP verification checks it compiles. The five R-R figures come
+ * from ONE walk (the `rr` derived table): each needs `srcChannel` or `tsSuspect`, which the key index does not
+ * hold, so as five sub-selects every beat in the window paid its table lookup up to five times (44% of a warm
+ * re-score's CPU on a 54-hour WHOOP 5 window). Same values; `Whoop5RRSqliteTest` compares it with the five
+ * sub-selects it replaced. */
 internal const val DAY_STREAM_FINGERPRINT_SQL =
-    "SELECT 's2|' || " +
+    "SELECT 's4|' || " +
         "'p' || (SELECT COUNT(*) FROM ppgHrSample WHERE deviceId = :deviceId AND ts >= :from AND ts <= :to) || " +
         "':' || (SELECT COALESCE(MAX(ts), 0) FROM ppgHrSample WHERE deviceId = :deviceId AND ts >= :from AND ts <= :to) || '|' || " +
-        "'r' || (SELECT COUNT(*) FROM rrInterval WHERE deviceId = :deviceId AND ts >= :from AND ts <= :to " +
-        "AND (srcChannel IS NULL OR srcChannel <> 2) AND (tsSuspect IS NULL OR tsSuspect <> 1)) || " +
-        "':' || (SELECT COALESCE(MAX(ts), 0) FROM rrInterval WHERE deviceId = :deviceId AND ts >= :from AND ts <= :to " +
-        "AND (srcChannel IS NULL OR srcChannel <> 2) AND (tsSuspect IS NULL OR tsSuspect <> 1)) || '|' || " +
+        "'r' || rr.rc || ':' || rr.rm || '|' || " +
         "'x' || (SELECT COUNT(*) FROM respSample WHERE deviceId = :deviceId AND ts >= :from AND ts <= :to) || " +
         "':' || (SELECT COALESCE(MAX(ts), 0) FROM respSample WHERE deviceId = :deviceId AND ts >= :from AND ts <= :to) || '|' || " +
         "'o' || (SELECT COUNT(*) FROM spo2Sample WHERE deviceId = :deviceId AND ts >= :from AND ts <= :to) || " +
@@ -78,12 +80,15 @@ internal const val DAY_STREAM_FINGERPRINT_SQL =
         "':' || (SELECT COALESCE(MAX(ts), 0) FROM sleepStateSample WHERE deviceId = :deviceId AND ts >= :from AND ts <= :to) || '|' || " +
         "'e' || (SELECT COUNT(*) FROM event WHERE deviceId = :deviceId AND ts >= :from AND ts <= :to) || " +
         "':' || (SELECT COALESCE(MAX(ts), 0) FROM event WHERE deviceId = :deviceId AND ts >= :from AND ts <= :to) || " +
-        "'|w5' || (SELECT COUNT(*) FROM rrInterval WHERE deviceId = :deviceId AND ts >= :from AND ts <= :to " +
-        "AND srcChannel = 5 AND (tsSuspect IS NULL OR tsSuspect <> 1)) || " +
-        "'|w7' || (SELECT COUNT(*) FROM rrInterval WHERE deviceId = :deviceId AND ts >= :from AND ts <= :to " +
-        "AND srcChannel = 7 AND (tsSuspect IS NULL OR tsSuspect <> 1)) || " +
+        "'|w5' || rr.w5 || '|w7' || rr.w7 || '|w4h' || rr.w4h || " +
         "'|ownerTagged' || EXISTS(SELECT 1 FROM rrInterval WHERE deviceId = :deviceId AND srcChannel IN (5, 6, 7)) || " +
-        "'|registry' || COALESCE((SELECT QUOTE(brand) || ':' || QUOTE(model) FROM pairedDevice WHERE id = :deviceId), 'absent')"
+        "'|registry' || COALESCE((SELECT QUOTE(brand) || ':' || QUOTE(model) FROM pairedDevice WHERE id = :deviceId), 'absent') " +
+        "FROM (SELECT COUNT(CASE WHEN srcChannel IS NULL OR srcChannel <> 2 THEN 1 END) AS rc, " +
+        "COALESCE(MAX(CASE WHEN srcChannel IS NULL OR srcChannel <> 2 THEN ts END), 0) AS rm, " +
+        "COUNT(CASE WHEN srcChannel = 5 THEN 1 END) AS w5, COUNT(CASE WHEN srcChannel = 7 THEN 1 END) AS w7, " +
+        "COUNT(CASE WHEN srcChannel = 8 THEN 1 END) AS w4h " +
+        "FROM rrInterval WHERE deviceId = :deviceId AND ts >= :from AND ts <= :to " +
+        "AND (tsSuspect IS NULL OR tsSuspect <> 1)) AS rr"
 
 /** The Oura beat channels [RR_INTERVALS_SQL] chooses between, as a SQL list: GREEN_QUALITY (0x80) on
  *  one side, and the amplitude family on the other, IBI_AMPLITUDE (0x60) + IBI_BARE (0x44). Those two
@@ -132,6 +137,36 @@ internal const val WHOOP5_RR_INTERVALS_SQL =
     "AND (tsSuspect IS NULL OR tsSuspect <> 1)) " +
     "ORDER BY ts ASC, ord ASC, rrMs ASC, seq ASC LIMIT :limit"
 
+/**
+ * One R-R source per UTC hour for a WHOOP 4, in provenance order: type-47 history, then type-40
+ * realtime, then standard BLE, then legacy unlabelled rows. Overlapping transports are never merged,
+ * and history takes precedence only in the hours it actually covers, so a partial offload no longer
+ * hides live intervals across the whole interval (#1118, #2335).
+ *
+ * Deliberately NOT `AS MATERIALIZED`, unlike the Swift twin. That hint needs SQLite 3.35 and `minSdk`
+ * is 26, so it is a syntax error on most supported devices. The cost is that SQLite may re-evaluate
+ * the hour choice per row, which is the quadratic read the Swift side names; do not "fix" the
+ * asymmetry by adding the keyword.
+ */
+internal const val WHOOP4_RR_INTERVALS_SQL =
+    "WITH whoop4HourChoice AS (" +
+    "SELECT ts / 3600 AS hour, " +
+    "MIN(CASE WHEN srcChannel = 8 THEN 1 WHEN srcChannel = 9 THEN 2 " +
+    "WHEN srcChannel = 10 THEN 3 WHEN srcChannel IS NULL THEN 4 END) AS sourceChoice " +
+    "FROM rrInterval WHERE deviceId = :deviceId " +
+    "AND ts >= (:from / 3600) * 3600 AND ts < ((:to / 3600) + 1) * 3600 " +
+    "AND (tsSuspect IS NULL OR tsSuspect <> 1) " +
+    "AND (srcChannel IS NULL OR srcChannel IN (8, 9, 10)) GROUP BY ts / 3600) " +
+    "SELECT r.* FROM rrInterval r JOIN whoop4HourChoice h ON h.hour = r.ts / 3600 " +
+    "WHERE r.deviceId = :deviceId AND r.ts >= :from AND r.ts <= :to " +
+    "AND (r.srcChannel IS NULL OR r.srcChannel <> 2) " +
+    "AND ((r.srcChannel = 8 AND h.sourceChoice = 1) " +
+    "OR (r.srcChannel = 9 AND h.sourceChoice = 2) " +
+    "OR (r.srcChannel = 10 AND h.sourceChoice = 3) " +
+    "OR (r.srcChannel IS NULL AND h.sourceChoice = 4)) " +
+    "AND (r.tsSuspect IS NULL OR r.tsSuspect <> 1) " +
+    "ORDER BY r.ts ASC, r.ord ASC, r.rrMs ASC, r.seq ASC LIMIT :limit"
+
 /** The earliest beat a device has banked AT ALL, labelled or not, or null when it has none. The lower
  *  bound on the "cannot be scored" explanation: it separates history this strap actually recorded from
  *  history imported from somewhere else, and only the former can have lost anything to a labelling
@@ -164,6 +199,26 @@ internal const val PROMOTE_WHOOP5_RR_SOURCE_SQL =
     "WHERE deviceId = :deviceId AND ts = :ts AND rrMs = :rrMs AND seq = :seq " +
     "AND ((:source = 5 AND (srcChannel IS NULL OR srcChannel IN (6, 7))) " +
     "OR (:source = 7 AND (srcChannel IS NULL OR srcChannel = 6)))"
+
+/**
+ * #2371: marks the strap's 500 ms fill beats in one device's ts window, after a batch that carries a 500 ms
+ * WHOOP 5 beat. A WHOOP 5/MG emits an exact 500 ms interval as a filler at rest on v18 history (5) and
+ * standard BLE (7); split by the strap's own heart rate in the same second, it is 33-37 times as common as
+ * its neighbours at 80-94 bpm and no more common from 100 bpm up. The row is MARKED `tsSuspect = 1` (every
+ * scoring read filters it, #1073), never deleted. One literal, so the parity ledger can compare it with the
+ * Swift twin `WhoopStore.whoop5RrFillFlagSQL`, which carries the full evidence.
+ */
+internal const val WHOOP5_RR_FILL_FLAG_SQL = "UPDATE rrInterval SET tsSuspect = 1 WHERE deviceId = :deviceId AND ts >= :fromTs AND ts <= :toTs AND rrMs = 500 AND srcChannel IN (5, 7) AND tsSuspect IS NULL AND EXISTS (SELECT 1 FROM hrSample h WHERE h.deviceId = rrInterval.deviceId AND h.ts = rrInterval.ts AND h.bpm < 100)"
+
+/**
+ * Marks every stored fill beat once, in MIGRATION_40_41: the condition of [WHOOP5_RR_FILL_FLAG_SQL] over the
+ * whole table. Swift twin: `WhoopStore.whoop5RrFillMigrationSQL`.
+ */
+internal const val WHOOP5_RR_FILL_MIGRATION_SQL = "UPDATE rrInterval SET tsSuspect = 1 WHERE rrMs = 500 AND srcChannel IN (5, 7) AND tsSuspect IS NULL AND EXISTS (SELECT 1 FROM hrSample h WHERE h.deviceId = rrInterval.deviceId AND h.ts = rrInterval.ts AND h.bpm < 100)"
+
+internal const val PROMOTE_WHOOP4_HISTORY_SQL =
+    "UPDATE rrInterval SET srcChannel = 8, ord = :ord " +
+    "WHERE deviceId = :deviceId AND ts = :ts AND rrMs = :rrMs AND seq = :seq AND srcChannel IS NULL"
 
 /**
  * Data-access for the local store. Mirrors the GRDB reads/writes in WhoopStore
@@ -638,8 +693,14 @@ interface WhoopDao : DeviceRegistryDao {
     @Query(WHOOP5_RR_INTERVALS_SQL)
     suspend fun whoop5RrIntervals(deviceId: String, from: Long, to: Long, limit: Int): List<RrInterval>
 
+    @Query(WHOOP4_RR_INTERVALS_SQL)
+    suspend fun whoop4RrIntervals(deviceId: String, from: Long, to: Long, limit: Int): List<RrInterval>
+
     @Query(HAS_WHOOP5_RR_SOURCE_SQL)
     suspend fun hasWhoop5RrSource(deviceId: String): Boolean
+
+    @Query("SELECT EXISTS(SELECT 1 FROM rrInterval WHERE deviceId = :deviceId AND srcChannel = 8)")
+    suspend fun hasWhoop4HistoricalRrSource(deviceId: String): Boolean
 
     /** Exact-window twin of Swift `legacyWhoop5RRWithheld`; source-family gating stays in Repository. */
     @Query(LEGACY_WHOOP5_RR_WITHHELD_SQL)
@@ -656,6 +717,13 @@ interface WhoopDao : DeviceRegistryDao {
     /** Newly observed canonical source wins exact-key collisions: history > standard > native/legacy. */
     @Query(PROMOTE_WHOOP5_RR_SOURCE_SQL)
     suspend fun promoteWhoop5RrSource(deviceId: String, ts: Long, rrMs: Int, seq: Int, ord: Int, source: Int)
+
+    @Query(PROMOTE_WHOOP4_HISTORY_SQL)
+    suspend fun promoteWhoop4HistoricalRr(deviceId: String, ts: Long, rrMs: Int, seq: Int, ord: Int)
+
+    /** #2371: mark the WHOOP 5 500 ms fill beats in one device's window ([WHOOP5_RR_FILL_FLAG_SQL]). */
+    @Query(WHOOP5_RR_FILL_FLAG_SQL)
+    suspend fun flagWhoop5RrFill(deviceId: String, fromTs: Long, toTs: Long)
 
     @Query(
         "SELECT * FROM event WHERE deviceId = :deviceId AND ts >= :from AND ts <= :to " +

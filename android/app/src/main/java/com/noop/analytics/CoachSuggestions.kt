@@ -31,7 +31,9 @@ object CoachSuggestions {
     private const val HRV_DOWN_RATIO = 0.85
     /** Sleep "poor night": under 6h (360 min). */
     private const val POOR_SLEEP_MIN = 360.0
-    /** "Already loaded" strain: a day strain at/above 14 reads as a high-load day. */
+    /** "Already loaded" cutoff, on WHOOP's 0–21 axis. Compared through
+     *  [StrainScorer.effortValueFromWhoopStrain] because stored Effort is 0–100; kept a `const val`
+     *  literal so both platforms hold the same number. */
     private const val HIGH_STRAIN = 14.0
     /** Max chips surfaced. */
     private const val MAX_CHIPS = 4
@@ -77,7 +79,7 @@ object CoachSuggestions {
         }
 
         // 4. Already a high-strain day.
-        if (strain != null && strain >= HIGH_STRAIN) {
+        if (strain != null && strain >= StrainScorer.effortValueFromWhoopStrain(HIGH_STRAIN)) {
             chips += "Have I done enough today, or push more?"
         }
 

@@ -119,10 +119,23 @@ class Whoop5RRSqliteTest {
                         .use { it.executeUpdate() }
                     Unit
                 }
-                "rrIntervals", "whoop5RrIntervals", "rawRrIntervals" -> query(
+                "flagWhoop5RrFill" -> {
+                    statement(WHOOP5_RR_FILL_FLAG_SQL,
+                        listOf("deviceId", "fromTs", "toTs").zip(args.take(3)).toMap())
+                        .use { it.executeUpdate() }
+                    Unit
+                }
+                "promoteWhoop4HistoricalRr" -> {
+                    statement(PROMOTE_WHOOP4_HISTORY_SQL,
+                        listOf("deviceId", "ts", "rrMs", "seq", "ord").zip(args.take(5)).toMap())
+                        .use { it.executeUpdate() }
+                    Unit
+                }
+                "rrIntervals", "whoop5RrIntervals", "rawRrIntervals", "whoop4RrIntervals" -> query(
                     when (method.name) {
                         "whoop5RrIntervals" -> WHOOP5_RR_INTERVALS_SQL
                         "rawRrIntervals" -> RAW_RR_INTERVALS_SQL
+                        "whoop4RrIntervals" -> WHOOP4_RR_INTERVALS_SQL
                         else -> RR_INTERVALS_SQL
                     },
                     listOf("deviceId", "from", "to", "limit").zip(args.take(4)).toMap(),
@@ -134,6 +147,9 @@ class Whoop5RRSqliteTest {
                 "hasWhoop5RrSource" -> query(HAS_WHOOP5_RR_SOURCE_SQL, mapOf("deviceId" to args[0])) {
                     it.getBoolean(1)
                 }.single()
+                "hasWhoop4HistoricalRrSource" -> query(
+                    "SELECT EXISTS(SELECT 1 FROM rrInterval WHERE deviceId = ? AND srcChannel = 8)",
+                    mapOf("deviceId" to args[0])) { it.getBoolean(1) }.single()
                 "legacyWhoop5RrWithheld" -> query(LEGACY_WHOOP5_RR_WITHHELD_SQL,
                     listOf("deviceId", "from", "to").zip(args.take(3)).toMap()) {
                     it.getBoolean(1)
@@ -161,6 +177,28 @@ class Whoop5RRSqliteTest {
             }
         })
         registry("5.0 MG")
+    }
+
+    @Test fun whoop4PartialHistoryKeepsUnlabelledRowsFromOtherHours() {
+        val base = 1_750_000_000L / 3600 * 3600
+        fun insert(ts: Long, rr: Int, channel: Int?) {
+            statement("INSERT INTO rrInterval(deviceId,ts,rrMs,seq,synced,ord,srcChannel,tsSuspect) " +
+                "VALUES(:d,:t,:r,0,0,0,:c,NULL)",
+                mapOf("d" to id, "t" to ts, "r" to rr, "c" to channel)).use { it.executeUpdate() }
+        }
+        insert(base + 10, 800, null)
+        insert(base + 3600 + 10, 820, null)
+        insert(base + 3600 + 11, 830, null)
+        insert(base + 3600 + 12, 840, null)
+        insert(base + 10, 805, 8)
+        insert(base + 11, 815, 8)
+        insert(base + 3600 + 10, 825, 8)
+
+        val selected = query(
+            WHOOP4_RR_INTERVALS_SQL,
+            mapOf("deviceId" to id, "from" to base, "to" to base + 7200, "limit" to 100),
+        ) { it.getInt("rrMs") to it.getInt("srcChannel") }
+        assertEquals(listOf(805 to 8, 815 to 8, 825 to 8), selected)
     }
 
     @After fun close() { db.close() }
@@ -361,7 +399,7 @@ class Whoop5RRSqliteTest {
 
     @Test fun sourceFingerprintQueriesUseCoveringIndex() {
         val plan = query("EXPLAIN QUERY PLAN $ANALYSIS_FINGERPRINT_SQL") { it.getString("detail") }
-        assertEquals(3, plan.count { it.contains("USING COVERING INDEX rrInterval_source_suspect") })
+        assertEquals(4, plan.count { it.contains("USING COVERING INDEX rrInterval_source_suspect") })
         assertFalse(plan.any { it.contains("SCAN rrInterval") })
     }
 
@@ -660,6 +698,44 @@ class Whoop5RRSqliteTest {
         assertEquals(1, dao.rrIntervals(id, 0, 1000, 100).single().srcChannel)
     }
 
+    @Test fun whoop4HistoricalRowsWinPerTimestampAndPromoteLegacyRows() = runBlocking {
+        registry("4.0")
+        repo.insert(StreamBatch(rr = listOf(RrRow(100, 800), RrRow(101, 810))), id)
+        repo.insert(StreamBatch(rr = listOf(
+            RrRow(100, 800, RrSourceChannel.WHOOP4_HISTORICAL),
+            RrRow(101, 820, RrSourceChannel.WHOOP4_HISTORICAL),
+        )), id)
+        val rows = repo.rrIntervalsForDevice(id, 100, 101, 100)
+        assertEquals(listOf(800, 820), rows.map { it.rrMs })
+        assertEquals(listOf(8, 8), rows.map { it.srcChannel })
+    }
+
+    @Test fun whoop4HistoricalSourceHasPriorityWithinItsHour() = runBlocking {
+        registry("4.0")
+        repo.insert(StreamBatch(rr = listOf(RrRow(100, 800), RrRow(101, 810))), id)
+        repo.insert(StreamBatch(rr = listOf(RrRow(100, 805, RrSourceChannel.WHOOP4_HISTORICAL))), id)
+        val rows = repo.rrIntervalsForDevice(id, 100, 101, 100)
+        assertEquals(listOf(805), rows.map { it.rrMs })
+    }
+
+    @Test fun whoop4RealtimeSourceWinsOverStandardAndLegacyRows() = runBlocking {
+        registry("4.0")
+        repo.insert(StreamBatch(rr = listOf(
+            RrRow(100, 800),
+            RrRow(100, 810, RrSourceChannel.WHOOP4_STANDARD),
+            RrRow(100, 820, RrSourceChannel.WHOOP4_REALTIME),
+        )), id)
+        val rows = repo.rrIntervalsForDevice(id, 100, 100, 100)
+        assertEquals(listOf(820), rows.map { it.rrMs })
+        assertEquals(listOf(9), rows.map { it.srcChannel })
+    }
+
+    @Test fun whoop4FallsBackToUnlabelledRowsWhenNoHistoryExists() = runBlocking {
+        registry("4.0")
+        repo.insert(StreamBatch(rr = listOf(RrRow(100, 800))), id)
+        assertEquals(listOf(800), repo.rrIntervalsForDevice(id, 0, 1000).map { it.rrMs })
+    }
+
     @Test fun firstTagOutsideDayAndSuspectPromotionInvalidateOwnerPolicyCaches() = runBlocking {
         registry("WHOOP")
         repo.insert(StreamBatch(rr = listOf(RrRow(100, 800), RrRow(2000, 900))), id)
@@ -671,5 +747,135 @@ class Whoop5RRSqliteTest {
         assertTrue(read().isEmpty())
         assertNotEquals(g0, dao.analysisFingerprint())
         assertNotEquals(d0, dao.dayStreamFingerprint(id, 0, 1000))
+    }
+
+    // #2371: the same cases and the same expected rows as the Swift `Whoop5RrFillTests`, run through the
+    // production insert path and the production SQL.
+    private val fillT0 = 1_790_000_000L
+    private fun storedFillMarks(): List<List<Long>> = query(
+        "SELECT ts, rrMs, tsSuspect FROM rrInterval WHERE deviceId = :d ORDER BY ts, ord, rrMs, seq",
+        mapOf("d" to id),
+    ) { r -> listOf(r.getLong("ts") - fillT0, r.getLong("rrMs"), r.getLong("tsSuspect")) }
+
+    @Test fun whoop5FillAtRestIsMarkedOnInsertAndNothingElse() = runBlocking {
+        repo.insert(StreamBatch(
+            hr = listOf(80, 99, 100, 80, 80, 80, 80, 80).mapIndexed { i, bpm -> HrRow(fillT0 + i, bpm) },
+            rr = listOf(
+                RrRow(fillT0, 500, RrSourceChannel.WHOOP5_HISTORICAL),       // fill: marked
+                RrRow(fillT0, 820, RrSourceChannel.WHOOP5_HISTORICAL),       // real beat, same second
+                RrRow(fillT0 + 1, 500, RrSourceChannel.WHOOP5_STANDARD),     // fill at 99 bpm: marked
+                RrRow(fillT0 + 2, 500, RrSourceChannel.WHOOP5_STANDARD),     // 100 bpm: a beat, kept
+                RrRow(fillT0 + 3, 501, RrSourceChannel.WHOOP5_HISTORICAL),   // not 500
+                RrRow(fillT0 + 4, 500, RrSourceChannel.WHOOP5_REALTIME),     // channel 6 is never scored
+                RrRow(fillT0 + 5, 500, RrSourceChannel.WHOOP4_HISTORICAL),   // a WHOOP 4.0
+                RrRow(fillT0 + 6, 500),                                      // no transport label
+                RrRow(fillT0 + 8, 500, RrSourceChannel.WHOOP5_HISTORICAL),   // no heart rate that second
+            ),
+        ), id)
+        val rows = storedFillMarks()
+        assertEquals("nothing deleted", 9, rows.size)
+        assertEquals(listOf(listOf(0L, 500L), listOf(1L, 500L)), rows.filter { it[2] == 1L }.map { it.take(2) })
+    }
+
+    @Test fun whoop5FillIsNotScoredButStaysOnDisk() = runBlocking {
+        repo.insert(StreamBatch(hr = (0L..2L).map { HrRow(fillT0 + it, 75) }, rr = listOf(
+            RrRow(fillT0, 800, RrSourceChannel.WHOOP5_HISTORICAL),
+            RrRow(fillT0 + 1, 500, RrSourceChannel.WHOOP5_HISTORICAL),
+            RrRow(fillT0 + 2, 790, RrSourceChannel.WHOOP5_HISTORICAL),
+        )), id)
+        assertEquals(listOf(800, 790), read(fillT0 - 10, fillT0 + 10).map { it.rrMs })
+        assertEquals(listOf(800L, 500L, 790L), storedFillMarks().map { it[1] })
+    }
+
+    @Test fun whoop5FillResyncKeepsTheMark() = runBlocking {
+        val batch = StreamBatch(hr = listOf(HrRow(fillT0, 70)),
+            rr = listOf(RrRow(fillT0, 500, RrSourceChannel.WHOOP5_HISTORICAL)))
+        repo.insert(batch, id)
+        assertEquals(0, repo.insert(batch, id).rr)
+        assertEquals(listOf(1L), storedFillMarks().map { it[2] })
+    }
+
+    @Test fun whoop5FillMigrationMarksTheFillsAlreadyStored() {
+        listOf(0 to 80, 1 to 120, 2 to 80, 3 to 80).forEach { (ts, bpm) ->
+            statement("INSERT INTO hrSample VALUES(:d,:t,:b)", mapOf("d" to id, "t" to fillT0 + ts, "b" to bpm))
+                .use { it.executeUpdate() }
+        }
+        listOf(listOf(0, 500, 5, null), listOf(1, 500, 7, null), listOf(2, 500, 7, null),
+            listOf(2, 760, 7, null), listOf(3, 500, 8, null), listOf(9, 500, 5, 1)).forEach { (ts, rrMs, ch, sus) ->
+            statement("INSERT INTO rrInterval(deviceId,ts,rrMs,seq,synced,ord,srcChannel,tsSuspect) " +
+                "VALUES(:d,:t,:r,0,0,0,:c,:s)",
+                mapOf("d" to id, "t" to fillT0 + ts!!, "r" to rrMs, "c" to ch, "s" to sus)).use { it.executeUpdate() }
+        }
+        sql(WHOOP5_RR_FILL_MIGRATION_SQL)
+        assertEquals(listOf(listOf(0L, 500L, 1L), listOf(1L, 500L, 0L), listOf(2L, 500L, 1L),
+            listOf(2L, 760L, 0L), listOf(3L, 500L, 0L), listOf(9L, 500L, 1L)), storedFillMarks())
+    }
+
+    // DAY_STREAM_FINGERPRINT_SQL reads its five R-R figures in one walk. The statement it replaced, verbatim, is
+    // the reference: over randomised rows on every channel, suspect or not, on two devices, the two must agree on
+    // every window, or the per-day re-score cache would re-score or re-serve nights it should not.
+    private val fiveSubSelectFingerprintSql =
+        "SELECT 's4|' || " +
+            "'p' || (SELECT COUNT(*) FROM ppgHrSample WHERE deviceId = :deviceId AND ts >= :from AND ts <= :to) || " +
+            "':' || (SELECT COALESCE(MAX(ts), 0) FROM ppgHrSample WHERE deviceId = :deviceId AND ts >= :from AND ts <= :to) || '|' || " +
+            "'r' || (SELECT COUNT(*) FROM rrInterval WHERE deviceId = :deviceId AND ts >= :from AND ts <= :to " +
+            "AND (srcChannel IS NULL OR srcChannel <> 2) AND (tsSuspect IS NULL OR tsSuspect <> 1)) || " +
+            "':' || (SELECT COALESCE(MAX(ts), 0) FROM rrInterval WHERE deviceId = :deviceId AND ts >= :from AND ts <= :to " +
+            "AND (srcChannel IS NULL OR srcChannel <> 2) AND (tsSuspect IS NULL OR tsSuspect <> 1)) || '|' || " +
+            "'x' || (SELECT COUNT(*) FROM respSample WHERE deviceId = :deviceId AND ts >= :from AND ts <= :to) || " +
+            "':' || (SELECT COALESCE(MAX(ts), 0) FROM respSample WHERE deviceId = :deviceId AND ts >= :from AND ts <= :to) || '|' || " +
+            "'o' || (SELECT COUNT(*) FROM spo2Sample WHERE deviceId = :deviceId AND ts >= :from AND ts <= :to) || " +
+            "':' || (SELECT COALESCE(MAX(ts), 0) FROM spo2Sample WHERE deviceId = :deviceId AND ts >= :from AND ts <= :to) || '|' || " +
+            "'g' || (SELECT COUNT(*) FROM gravitySample WHERE deviceId = :deviceId AND ts >= :from AND ts <= :to) || " +
+            "':' || (SELECT COALESCE(MAX(ts), 0) FROM gravitySample WHERE deviceId = :deviceId AND ts >= :from AND ts <= :to) || '|' || " +
+            "'z' || (SELECT COUNT(*) FROM stepSample WHERE deviceId = :deviceId AND ts >= :from AND ts <= :to) || " +
+            "':' || (SELECT COALESCE(MAX(ts), 0) FROM stepSample WHERE deviceId = :deviceId AND ts >= :from AND ts <= :to) || '|' || " +
+            "'t' || (SELECT COUNT(*) FROM skinTempSample WHERE deviceId = :deviceId AND ts >= :from AND ts <= :to) || " +
+            "':' || (SELECT COALESCE(MAX(ts), 0) FROM skinTempSample WHERE deviceId = :deviceId AND ts >= :from AND ts <= :to) || '|' || " +
+            "'b' || (SELECT COUNT(*) FROM sleepStateSample WHERE deviceId = :deviceId AND ts >= :from AND ts <= :to) || " +
+            "':' || (SELECT COALESCE(MAX(ts), 0) FROM sleepStateSample WHERE deviceId = :deviceId AND ts >= :from AND ts <= :to) || '|' || " +
+            "'e' || (SELECT COUNT(*) FROM event WHERE deviceId = :deviceId AND ts >= :from AND ts <= :to) || " +
+            "':' || (SELECT COALESCE(MAX(ts), 0) FROM event WHERE deviceId = :deviceId AND ts >= :from AND ts <= :to) || " +
+            "'|w5' || (SELECT COUNT(*) FROM rrInterval WHERE deviceId = :deviceId AND ts >= :from AND ts <= :to " +
+            "AND srcChannel = 5 AND (tsSuspect IS NULL OR tsSuspect <> 1)) || " +
+            "'|w7' || (SELECT COUNT(*) FROM rrInterval WHERE deviceId = :deviceId AND ts >= :from AND ts <= :to " +
+            "AND srcChannel = 7 AND (tsSuspect IS NULL OR tsSuspect <> 1)) || " +
+            "'|w4h' || (SELECT COUNT(*) FROM rrInterval WHERE deviceId = :deviceId AND ts >= :from AND ts <= :to " +
+            "AND srcChannel = 8 AND (tsSuspect IS NULL OR tsSuspect <> 1)) || " +
+            "'|ownerTagged' || EXISTS(SELECT 1 FROM rrInterval WHERE deviceId = :deviceId AND srcChannel IN (5, 6, 7)) || " +
+            "'|registry' || COALESCE((SELECT QUOTE(brand) || ':' || QUOTE(model) FROM pairedDevice WHERE id = :deviceId), 'absent')"
+
+    @Test fun dayFingerprintOneWalkMatchesTheFiveSubSelects() {
+        val rng = java.util.Random(0x2371)
+        val base = 1_790_000_000L
+        val channels = listOf(null, 1, 2, 3, 5, 6, 7, 8, 9)
+        repeat(4000) { i ->
+            val device = if (rng.nextInt(5) == 0) "ring" else id
+            val ts = base - 3600 + rng.nextInt(250_000)
+            statement("INSERT OR IGNORE INTO rrInterval(deviceId,ts,rrMs,seq,synced,ord,srcChannel,tsSuspect) " +
+                "VALUES(:d,:t,:r,0,0,0,:c,:s)", mapOf("d" to device, "t" to ts, "r" to 600 + rng.nextInt(600),
+                "c" to channels[rng.nextInt(channels.size)], "s" to if (rng.nextInt(9) == 0) 1 else null))
+                .use { it.executeUpdate() }
+            if (i % 7 == 0) {
+                statement("INSERT INTO gravitySample VALUES(:d,:t)", mapOf("d" to device, "t" to ts)).use { it.executeUpdate() }
+                statement("INSERT INTO event VALUES(:d,:t)", mapOf("d" to device, "t" to ts)).use { it.executeUpdate() }
+            }
+        }
+        val windows = mutableListOf(base to base + 54 * 3600, base - 7200 to base - 1, base + 200_000 to base + 300_000,
+            base + 3600 to base + 3600)
+        repeat(10) { val from = base - 3600 + rng.nextInt(80_000); windows += from to from + rng.nextInt(200_000) }
+        var compared = 0
+        for (device in listOf(id, "ring", "absent-device")) for ((from, to) in windows) {
+            val binds = mapOf("deviceId" to device, "from" to from, "to" to to)
+            val now = query(DAY_STREAM_FINGERPRINT_SQL, binds) { it.getString(1) }.single()
+            val before = query(fiveSubSelectFingerprintSql, binds) { it.getString(1) }.single()
+            assertEquals("$device [$from, $to]", before, now)
+            compared++
+        }
+        assertEquals(42, compared)
+        val whole = query(DAY_STREAM_FINGERPRINT_SQL, mapOf("deviceId" to id, "from" to base, "to" to base + 54 * 3600)) {
+            it.getString(1)
+        }.single()
+        for (zero in listOf("|r0:", "|w50|", "|w70|", "|w4h0|")) assertFalse("fixture never moves $zero: $whole", whole.contains(zero))
     }
 }

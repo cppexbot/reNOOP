@@ -488,4 +488,47 @@ class BatteryCriticalAlertTest {
         assertTrue(r.fire)
         assertEquals(9.95, r.runway!!.shortfallHours, 0.15)
     }
+
+    private data class Fixture(val midsleepSec: Int, val sleepHours: Double, val half: Int, val bedtime: Int)
+
+    /**
+     * The shared bedtime arithmetic, pinned to the same literals as the Swift twin's
+     * `testSharedBedtimeArithmeticFixture` (expected values from a standalone `swiftc` oracle of the
+     * helpers). Covers the midnight wrap both ways, a half-second rounding tie (1/3600 h → 0.5 s → 1)
+     * and a fractional night.
+     */
+    @Test
+    fun sharedBedtimeArithmeticFixture() {
+        val fixture = listOf(
+            Fixture(12600, 8.0, 14400, 84600),
+            Fixture(1800, 7.5, 13500, 74700),
+            Fixture(0, 8.0, 14400, 72000),
+            Fixture(86399, 0.5, 900, 85499),
+            Fixture(18000, 7.0, 12600, 5400),
+            Fixture(43200, 6.9999, 12600, 30600),
+            Fixture(3600, 1.0 / 3600, 1, 3599),
+            Fixture(10800, 7.25, 13050, 84150),
+            Fixture(82800, 11.99, 21582, 61218),
+            Fixture(5400, 9.3333, 16800, 75000),
+        )
+        for (f in fixture) {
+            assertEquals("half $f", f.half, BatteryEstimator.halfNightSec(f.sleepHours))
+            assertEquals("bedtime $f", f.bedtime, BatteryEstimator.bedtimeSec(f.midsleepSec, f.sleepHours))
+        }
+    }
+
+    /** [BatteryEstimator.bedtimeAlert] must measure its wait to [BatteryEstimator.bedtimeSec], not to a
+     *  bedtime of its own: asked AT the shared bedtime, the runway reads zero hours to go. */
+    @Test
+    fun bedtimeAlertMeasuresToTheSharedBedtime() {
+        for ((midsleep, hours) in listOf(midsleep0330 to sleep8h, 1_800 to 7.5, 82_800 to 11.99, 5_400 to 9.3333)) {
+            val bedtime = BatteryEstimator.bedtimeSec(midsleep, hours)
+            val r = BatteryEstimator.bedtimeAlert(
+                nowSecOfDay = bedtime, habitualMidsleepSec = midsleep,
+                typicalSleepHours = hours, usableRemainingHours = 100.0,
+                charging = false, alerted = false,
+            )
+            assertEquals("$midsleep $hours", 0.0, r.runway!!.hoursUntilBedtime, 0.0)
+        }
+    }
 }

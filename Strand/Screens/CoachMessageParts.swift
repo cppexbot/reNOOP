@@ -237,11 +237,14 @@ struct FlyingMessageBubble: View {
     /// Under Reduce Motion / Quiet Motion there is no flight: the question simply appears in place.
     var body: some View {
         let still = motion.poseStill(reduceMotion)
-        TimelineView(.animation(minimumInterval: nil, paused: still)) { context in
+        // Still, there is no timeline at all: a paused one keeps the render server busy.
+        Group {
             if still {
                 Color.clear
             } else {
-                bubble(at: target.tick(context.date))
+                TimelineView(.animation(minimumInterval: nil)) { context in
+                    bubble(at: target.tick(context.date))
+                }
             }
         }
         .allowsHitTesting(false)
@@ -313,9 +316,20 @@ struct MessageTypingIndicator: View {
     var body: some View {
         // The caller's `still`, or the gate read here, so the indicator can never loop past it.
         let still = self.still || motion.poseStill(reduceMotion)
-        TimelineView(.animation(minimumInterval: nil, paused: still)) { context in
-            let t = context.date.timeIntervalSince(appearedAt)
-            let gone = endedAt.map { 1 - MessageMotion.bezier(context.date.timeIntervalSince($0) / Self.shrinkDuration, 0.25, 0, 0.25, 1) } ?? 1
+        // Still, the frame is drawn once with no timeline behind it: a paused one keeps the render server busy.
+        if still {
+            frame(at: Date(), still: true)
+        } else {
+            TimelineView(.animation(minimumInterval: nil)) { context in
+                frame(at: context.date, still: false)
+            }
+        }
+    }
+
+    private func frame(at date: Date, still: Bool) -> some View {
+        Group {
+            let t = date.timeIntervalSince(appearedAt)
+            let gone = endedAt.map { 1 - MessageMotion.bezier(date.timeIntervalSince($0) / Self.shrinkDuration, 0.25, 0, 0.25, 1) } ?? 1
             ZStack(alignment: .topLeading) {
                 Circle().fill(StrandPalette.messageIncoming)
                     .frame(width: 5, height: 5)

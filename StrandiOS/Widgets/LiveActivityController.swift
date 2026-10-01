@@ -50,19 +50,13 @@ final class LiveActivityController {
     func follow(_ model: AppModel, standsAside: @escaping () -> Bool) {
         self.model = model
         self.standsAside = standsAside
-        // A `@Published` sink runs in willSet: each hands on the value being written and reads the other from `live`.
-        // AppModel's own sinks, subscribed before these, have already folded the value into its median (`bpm`).
-        model.live.$heartRate
-            .sink { [weak self, weak model] hr in
-                guard let model else { return }
-                self?.refreshBanner(heartRate: hr, connected: model.live.connected)
-            }
-            .store(in: &cancellables)
-        model.live.$connected
-            .sink { [weak self, weak model] isConnected in
-                guard let model else { return }
-                self?.refreshBanner(heartRate: model.live.heartRate, connected: isConnected)
-            }
+        // Refreshed once a change has landed, never from inside it (`LiveHRBannerInputs`). AppModel's median (`bpm`)
+        // is an input in its own right: it moves on the R-R alone, and a clear that reached it that way refreshed
+        // nothing, so the banner kept the last number until iOS's stale date drew the dash.
+        LiveHRBannerInputs.settled([model.live.$heartRate.map { _ in () }.eraseToAnyPublisher(),
+                                    model.live.$connected.map { _ in () }.eraseToAnyPublisher(),
+                                    model.$bpm.map { _ in () }.eraseToAnyPublisher()])
+            .sink { [weak self] in self?.refreshBanner() }
             .store(in: &cancellables)
         // The workout starting and ending is what starts and ends the banner; a pause changes nothing it shows.
         model.$activeWorkout
@@ -89,23 +83,17 @@ final class LiveActivityController {
         refreshBanner(appActive: true)
     }
 
-    private func refreshBanner(appActive: Bool? = nil, workoutActive: Bool? = nil) {
-        guard let model else { return }
-        refreshBanner(heartRate: model.live.heartRate, connected: model.live.connected, appActive: appActive,
-                      workoutActive: workoutActive)
-    }
-
     /// #911: recovery and effort come from the SAME shared `Repository.widgetAnchor` the widget and the watch use, so
     /// the banner cannot name a different day at the rollover; memoized, because this runs on every heart-rate tick
     /// (re-deriving it once scanned the whole history, #1051). `workoutActive` is handed in by the workout's own sink,
     /// which runs in willSet, before `activeWorkout` holds the value being written.
-    private func refreshBanner(heartRate: Int?, connected: Bool, appActive: Bool? = nil,
-                               workoutActive: Bool? = nil) {
+    private func refreshBanner(appActive: Bool? = nil, workoutActive: Bool? = nil) {
         guard let model else { return }
+        let connected = model.live.connected
         let day = model.repo.cachedWidgetAnchor()
-        update(bpm: connected ? (model.bpm ?? heartRate) : nil, recovery: day?.recovery.map { Int($0.rounded()) },
-               connected: connected, workoutActive: workoutActive ?? (model.activeWorkout != nil),
-               standsAside: standsAside(),
+        update(bpm: connected ? (model.bpm ?? model.live.heartRate) : nil,
+               recovery: day?.recovery.map { Int($0.rounded()) }, connected: connected,
+               workoutActive: workoutActive ?? (model.activeWorkout != nil), standsAside: standsAside(),
                appActive: appActive ?? (UIApplication.shared.applicationState == .active),
                effort: day?.strain.map { Int($0.rounded()) })
     }

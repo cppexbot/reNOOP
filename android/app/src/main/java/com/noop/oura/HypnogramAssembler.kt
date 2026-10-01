@@ -9,8 +9,9 @@ package com.noop.oura
 // timestamp therefore marks WHEN THE ANALYSIS WAS SAVED, not when the sleep happened; anchoring each
 // record at its envelope collapses an entire night onto a few seconds.
 //
-// THE RECONSTRUCTION: the burst's codes are one contiguous sequence at 30 s/code, ENDING at the
-// anchored burst end. Laying N codes backward from that end recovers the real window. The 30 s epoch
+// THE RECONSTRUCTION: the burst's written codes and interior gaps form a sequence at 30 s/code,
+// ENDING at the anchored burst end. Trailing unwritten flash pad has no elapsed time. Laying the
+// remaining codes backward recovers the real window. The 30 s epoch
 // is triple-confirmed: open_oura's sleepnet.md ("DEEP/LIGHT/REM/WAKE classification at 30-second
 // intervals"), the observed window math (1,196 codes over a ~10 h night), and the 0x49 summary's
 // window minutes over those same codes. The burst end itself is the matching 0x49 window's TRUE
@@ -47,7 +48,8 @@ data class OuraHypnogramBurst(val records: List<OuraHypnogramRecord>) {
         get() = records.zipWithNext().any { (a, b) -> b.ringTimestamp < a.ringTimestamp }
 
     /**
-     * Lay the burst's codes out backward from [endUnixSeconds] at [secondsPerCode]. Code j of N gets
+     * Lay the burst's codes out backward from [endUnixSeconds] at [secondsPerCode]. Trailing unwritten
+     * codes are excluded from N; interior unwritten runs retain their time slots. Code j of N gets
      * `ts = end - (N - j) * secondsPerCode` — i.e. each ts marks the START of that code's interval
      * and the final code's interval ends exactly at the burst end. Order: records in arrival order,
      * codes by their in-record index (the sequence is the ground truth; the spacing is the documented
@@ -64,20 +66,15 @@ data class OuraHypnogramBurst(val records: List<OuraHypnogramRecord>) {
         sleepStartUnixSeconds: Long? = null,
         secondsPerCode: Long = 30,
     ): List<OuraHypnogramCode> {
-        val n = totalCodes
+        val phases = records.flatMap { it.phases }
+        val n = phases.indexOfLast { !it.unwritten } + 1
         val out = ArrayList<OuraHypnogramCode>(n)
-        var j = 0
-        for (record in records) {
-            for (phase in record.phases) {
-                out.add(OuraHypnogramCode(phase, endUnixSeconds - (n - j) * secondsPerCode))
-                j += 1
-            }
+        for (j in 0 until n) {
+            out.add(OuraHypnogramCode(phases[j], endUnixSeconds - (n - j) * secondsPerCode))
         }
-        // #1246: drop UNWRITTEN epochs (whole-record 0xFF erased pages) from the reconstructed hypnogram —
-        // they are a GAP, not AWAKE. Done AFTER the lay so n/j (and thus every WRITTEN code's ts) are
-        // computed over the full sequence: an unwritten run anywhere — head, middle, or tail — leaves the
-        // real codes around it correctly timed. An all-unwritten burst yields [] (an honest no-stage night),
-        // which the caller drops rather than persisting a blank session. Byte-parity twin of Swift.
+        // #1246: interior UNWRITTEN epochs occupy their slots, then leave a gap rather than false awake
+        // stages. #2564: trailing pad is removed before layout so the final written code ends at the
+        // anchor. An all-unwritten burst yields [] and is not persisted as a blank session.
         val written = out.filter { !it.phase.unwritten }
         if (sleepStartUnixSeconds == null) return written
         val clipped = written.filter { it.ts >= sleepStartUnixSeconds }

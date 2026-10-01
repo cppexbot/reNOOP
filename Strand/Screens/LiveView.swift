@@ -210,8 +210,15 @@ private struct LiveHeartGlow: View {
     @State private var clock = LiveBeatClock()
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: nil, paused: bpm == nil)) { ctx in
-            heart(pulse: bpm == nil ? 0 : clock.pulse(at: ctx.date))
+        // At rest the heart is drawn with no timeline behind it: a paused one keeps the render server busy.
+        Group {
+            if bpm == nil {
+                heart(pulse: 0)
+            } else {
+                TimelineView(.animation(minimumInterval: nil)) { ctx in
+                    heart(pulse: clock.pulse(at: ctx.date))
+                }
+            }
         }
         .animation(.easeOut(duration: 0.3), value: bpm == nil)
         .accessibilityHidden(true)

@@ -493,8 +493,8 @@ final class AppModel: ObservableObject {
             // flag → no-op on every subsequent launch; idempotent on a clean DB.
             await self.intelligence.runTimestampHealIfNeeded()
             // One-shot on-upgrade Effort rescore (#313): recompute strain from source across the FULL
-            // history once, so any deep-history rows an older build left on the 0–21 axis regenerate on
-            // the 0–100 axis. Guarded by a persisted flag, so this is a no-op on every subsequent launch.
+            // history and repair sleep rejected by unmatched WRIST_OFF in one pass. Both persisted flags
+            // describe that shared pass; either pending flag triggers it.
             await self.intelligence.runEffortRescoreIfNeeded()
             while !Task.isCancelled {
                 // #547 RE-POLLUTION: a sync since the last tick may have armed a re-heal (its ingest gate
@@ -644,7 +644,8 @@ final class AppModel: ObservableObject {
             // path. Timestamp matches BLEManager.log()'s "HH:mm:ss" so the lines read consistently.
             straplog: { [weak self] line in
                 self?.live.append(log: "[\(AppModel.logTimeFormatter.string(from: Date()))] \(line)")
-            })
+            },
+            ouraNightBand: { [weak self] in self?.ouraNightBand() })   // item 27
         coordinator.start()
         self.deviceRegistry = registry
         // #1303: adoption re-points the strap onto its stable `whoop-<serial>` id inside BLEManager (which
@@ -712,6 +713,7 @@ final class AppModel: ObservableObject {
     /// so that it cannot mark unscored data as scored — so gating on the fingerprint here would be asking
     /// a question whose answer is already known to be "yes, there is work".
     func runDeferredRescoreIfOwed() async {
+        await intelligence.runSleepWearRescoreIfNeeded()
         // A pass already running here holds the owed mark itself and settles it when it finishes; forcing
         // another would only queue a second full pass behind it.
         guard RescoreBackgroundScheduler.isRescoreOwed, !intelligence.computing else { return }
@@ -881,9 +883,10 @@ final class AppModel: ObservableObject {
     }
 
     /// Persist the in-flight manual workout to `UserDefaults` so it survives the app being killed mid-
-    /// session (#529). Called on start + each captured sample. A no-op when nothing is running. Apple has
-    /// no GPS-route session, so every manual workout is the "non-GPS" case and gets this durability ,
-    /// the Apple analogue of Android's `persistNonGpsWorkout`.
+    /// session (#529). Called on start + each captured sample. A no-op when nothing is running. The Apple
+    /// analogue of Android's `persistNonGpsWorkout`. A distance workout records a route as well, and its
+    /// fixes are banked separately by `ActiveRouteStore`: keeping them out of here is what lets this stay
+    /// a small per-sample write instead of rewriting a growing route on every beat.
     private func persistActiveWorkout() {
         guard let w = activeWorkout else { return }
         ActiveWorkoutPersistence.store(
@@ -1692,6 +1695,27 @@ final class AppModel: ObservableObject {
         #endif
     }
 
+    /// Warn about a strap last seen LOW that has not been heard from since (#2556).
+    ///
+    /// The crossings wired into `live.onBatteryUpdate` only run when a reading ARRIVES, so a strap that
+    /// drains out of range is never judged by them. This reads the last BANKED reading instead, so it works
+    /// precisely when the link does not.
+    ///
+    /// `connected: false` is passed deliberately and is sound rather than a shortcut: a connected strap
+    /// banks a reading about every minute, so its last banked value can never be old enough to clear the
+    /// staleness window. The window is its own connectivity test. Kotlin twin: `StaleBatteryWorker`.
+    @MainActor
+    func checkStrapNotSeen() async {
+        guard let last = await repo.latestBattery() else { return }
+        BatteryNotifier.onStrapNotSeen(
+            lastSocPct: last.soc.map { Int($0.rounded()) },
+            lastTsSec: last.ts,
+            lastCharging: last.charging,
+            nowSec: Int(Date().timeIntervalSince1970),
+            connected: false,
+            enabled: behavior.batteryAlerts)
+    }
+
     /// Arm (or clear) the strap's firmware alarm from the smart-alarm settings. The firmware alarm
     /// fires even if the Mac is asleep / NOOP is closed. No-op until bonded (send is gated on bond).
     ///
@@ -2158,6 +2182,28 @@ final class AppModel: ObservableObject {
     var ouraNotifyMaskFull: Bool {
         get { UserDefaults.standard.bool(forKey: Self.ouraNotifyMaskFullKey) }
         set { UserDefaults.standard.set(newValue, forKey: Self.ouraNotifyMaskFullKey) }
+    }
+
+    /// Item 27 (EXPERIMENTAL, default OFF): keep the Oura ring in its daytime-HR mode while the phone's screen
+    /// is off during the DAY, standing it down only for the learned night band (`NightStandDown`), instead
+    /// of on every screen-off. The ring emits daytime heart rate — and the beats behind windowed rMSSD —
+    /// only while a client holds that mode, so with the screen-keyed suspend a pocketed phone empties the
+    /// day. ON costs ring battery (its own daytime PPG); OFF is today's behaviour, and the night is
+    /// unchanged either way. No effect without an Oura ring; cold start (no learned schedule) keeps OFF's rule.
+    static let ouraAllDayLiveHRKey = "noopOuraAllDayLiveHR"
+    var ouraAllDayLiveHR: Bool {
+        get { UserDefaults.standard.bool(forKey: Self.ouraAllDayLiveHRKey) }
+        set { UserDefaults.standard.set(newValue, forKey: Self.ouraAllDayLiveHRKey) }
+    }
+
+    /// Item 27: the learned night band for the all-day HR stand-down — the SAME midsleep + typical-night
+    /// inputs the battery night-guard reads (`refreshHabitualMidsleep`, hourly), so the two policies share
+    /// one notion of the user's night. nil at cold start.
+    func ouraNightBand() -> NightStandDown.Band? {
+        NightStandDown.band(
+            habitualMidsleepSec: habitualMidsleepCache,
+            typicalSleepHours: BatteryEstimator.typicalSleepHours(
+                nightlyHours: repo.days.compactMap { $0.totalSleepMin.map { $0 / 60.0 } }))
     }
 
     /// Recompute the body-clock snapshot from the current history. Called from the analytics pass.

@@ -7,15 +7,20 @@ import SwiftUI
 import StrandDesign
 
 struct StrapLogPage: View {
+    /// How many trailing lines the page RENDERS; Copy / Save still read the whole buffer (#2521).
+    private static let renderedTailLines = 200
+
     @EnvironmentObject private var live: LiveState
     @EnvironmentObject private var model: AppModel
 
     var body: some View {
-        ScrollViewReader { proxy in
+        let tail = LiveState.renderedTail(live.log, tailLines: Self.renderedTailLines)
+        return ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 2) {
-                    ForEach(Array(live.log.enumerated()), id: \.offset) { idx, line in
-                        Text(verbatim: line)
+                    // Absolute indices into `live.log` as identity, so an append adds one row (#2521).
+                    ForEach(tail.indices, id: \.self) { idx in
+                        Text(verbatim: tail[idx])
                             .font(StrandFont.mono)
                             .foregroundStyle(StrandPalette.textSecondary)
                             .textSelection(.enabled)
@@ -26,7 +31,7 @@ struct StrapLogPage: View {
                 .padding(16)
             }
             .onAppear { scrollToEnd(proxy) }
-            .onChangeCompat(of: live.log.count) { _ in scrollToEnd(proxy) }
+            .onChangeCompat(of: live.logRevision) { _ in scrollToEnd(proxy) }
         }
         .background(StrandPalette.summaryCanvas.ignoresSafeArea())
         .navigationTitle("Strap Log")

@@ -46,18 +46,18 @@ object IntelligenceEngine {
     /**
      * Serialises [analyzeRecent] against itself. The pass is launched from four independent coroutines: the
      * 15-min backstop loop and rescoreAfterEdit (both AppViewModel), the post-offload analyze
-     * (WhoopBleClient), plus the one-shot Effort rescore ([runEffortRescoreIfNeeded]). These can overlap:
+     * (WhoopBleClient), plus the shared one-shot Effort/sleep-history repair. These can overlap:
      * two parallel 21-night passes double the CPU/battery AND race the #899 self-heal, whose concurrent
      * overlapping-session deletes can pick different survivors. This mirrors the intent of the Swift
      * `computing` guard, but SERIALISES rather than coalesces on purpose: Android's callers pass
-     * heterogeneous windows , the Effort rescore uses maxDays=4000, not 21, and can overlap the *independent*
+     * heterogeneous windows , the history repair uses maxDays=4000, not 21, and can overlap the *independent*
      * BLE-offload analyze. A drop-guard would skip that full-history rescore while its unconditional flagSet
      * marks it permanently done, and would re-run the holder's 21-day window in its place. withLock lets
      * every caller run its OWN pass, queued and never parallel, so nothing is dropped and no window is
      * silently lost. Suspending (not thread-blocking) and cancellation-cooperative, matching the callers'
      * #125 CancellationException handling. No re-entrancy: nothing analyzeRecent calls re-enters it
      * ([runEffortRescoreIfNeeded] delegates to analyzeRecent and does NOT take the lock itself, so the
-     * Mutex is acquired exactly once per Effort pass, never nested).
+     * Mutex is acquired exactly once per history repair, never nested).
      */
     private val analyzeGate = Mutex()
 
@@ -121,6 +121,9 @@ object IntelligenceEngine {
      *  In-memory and per-process exactly like [dayScanCache]; see [StepsMotionCache] for why this one needs no
      *  config signature. Pruned to the calibration window each pass so it cannot grow without bound. */
     private var stepsMotionCache = HashMap<String, Pair<String, Double>>()
+
+    // Guarded by analyzeGate; kept as state to avoid another parameter on the bytecode-budgeted pass.
+    private var preserveUnscoredHistoryForRun = false
 
     /** One reused night: its per-day cache [key], the scored [res], and everything the pass-1 loop otherwise
      *  writes into function-scoped per-day maps that pass 2 reads (owner/hrRows/primary-session RHR/SpO₂
@@ -499,6 +502,7 @@ object IntelligenceEngine {
         // every existing test relies on. Read/written under [analyzeGate] with the cache they back.
         stepsMotionCacheGet: (() -> String?)? = null,
         stepsMotionCacheSet: ((String) -> Unit)? = null,
+        preserveUnscoredHistory: Boolean = false,
     ): List<Computed> = withContext(Dispatchers.Default) {
         // #1005: time the whole pass so a re-score STORM is visible in the strap log (the trigger lines
         // record WHY each pass runs; this records how many nights and how long — the CPU cost per run).
@@ -516,6 +520,7 @@ object IntelligenceEngine {
             // across the back-to-back passes an offload storm is made of. Reset and emit both live in this
             // wrapper, never in `analyzeRecentOnCpu`, whose ratchet margin has no room for either.
             StoreProbeTally.reset()
+            preserveUnscoredHistoryForRun = preserveUnscoredHistory
             if (!stepsMotionCacheLoaded && stepsMotionCacheGet != null) {
                 stepsMotionCacheLoaded = true
                 val raw = stepsMotionCacheGet()
@@ -599,6 +604,7 @@ object IntelligenceEngine {
         // #1567: same reason as the sync path, over a WIDER window — this one rewrites the FULL history
         // once. Without it every day of that rewrite reads the skin-temp scale as WHOOP5 (see analyzeRecent).
         ownerSource: DayOwnerSource? = null,
+        preserveUnscoredHistory: Boolean = true,
     ) {
         if (flagGet()) return
         analyzeRecent(
@@ -608,6 +614,7 @@ object IntelligenceEngine {
             importedDeviceId = importedDeviceId,
             maxHROverride = maxHROverride,
             ownerSource = ownerSource,
+            preserveUnscoredHistory = preserveUnscoredHistory,
         )
         flagSet()
     }
@@ -1036,7 +1043,7 @@ object IntelligenceEngine {
             val steps = repo.stepSamples(owner, from, to, STREAM_LIMIT)
             val skinReads = readDaySkinAndWristOff(
                 repo, owner, from, to, ownerSource, skinFamilyByOwner, skinWornToleranceByOwner,
-                skinAnchorByOwner, skinAnchorResolvedOwners, skinAnchorScanFrom, skinAnchorScanTo,
+                skinAnchorByOwner, skinAnchorResolvedOwners, skinAnchorScanFrom, skinAnchorScanTo, hr,
             )
             val skin = skinReads.skin
             val spo2 = skinReads.spo2
@@ -1357,10 +1364,21 @@ object IntelligenceEngine {
                 // report says WHY nothing staged. `window` is the read span in whole hours (30 h back → next
                 // local midnight, or +18 h for today). Byte-identical to the Swift line.
                 val windowHours = ((to - from) / 3_600L).toInt()
+                // Attribute each provided session the same way analyzeDay does - by the LOCAL day its
+                // END falls in - so this line and the filter that emptied the night agree by
+                // construction rather than by two readings of the same rule.
+                val longestProvided = longestProvidedForDiag(providedSleep)
                 dayDiag(
                     sleepDetectNoNightLogLine(
                         day = day, hrCount = hr.size, rrCount = rr.size, respCount = resp.size,
                         gravCount = grav.size, stepCount = steps.size, providedCount = providedSleep.size,
+                        providedEndingOnDay = providedSleep.count {
+                            AnalyticsEngine.dayString(it.end, tzOffsetSeconds) == day
+                        },
+                        providedLongestMin = longestProvided?.let { ((it.end - it.start) / 60L).toInt() },
+                        providedLongestEndDay = longestProvided?.let {
+                            AnalyticsEngine.dayString(it.end, tzOffsetSeconds)
+                        },
                         windowHours = windowHours, skinCount = skin.size,
                     ),
                 )
@@ -1935,7 +1953,7 @@ object IntelligenceEngine {
             candidatePriorities, resolvedScoreOwnerByDay,
             IntelligencePersistence.LegacyScoreClock(nowLocalMidnight, nowSeconds, tzOffsetSeconds), out,
         )
-        repo.replaceComputedScoreWindow(computedWindow)
+        IntelligencePersistence.persistComputedWindow(repo, computedWindow, preserveUnscoredHistoryForRun)
 
         persistFitnessVitalityAndSteps(
             repo = repo,
@@ -3050,6 +3068,7 @@ object IntelligenceEngine {
         skinAnchorResolvedOwners: HashSet<String>,
         skinAnchorScanFrom: Long,
         skinAnchorScanTo: Long,
+        hr: List<com.noop.data.HrSample>,
     ): DaySkinReads {
         val skin = repo.skinTempSamples(owner, from, to, StreamReadCap.SKIN)
         // #93: WHOOP 4.0 raw SpO2 PPG samples for the night; analyzeDay banks the nightly red/IR ADC
@@ -3095,7 +3114,7 @@ object IntelligenceEngine {
         // only when its off-wrist coverage reaches maxOffWristSleepFraction, so a real night with a
         // short off-wrist tail survives. Pairing needs WRIST_ON too (to bound each interval); a span
         // still open at the window end closes at `to`. Empty when the strap emitted no wrist events.
-        val wristOff = AnalyticsEngine.offWristIntervals(repo.events(owner, from, to, STREAM_LIMIT), to)
+        val wristOff = AnalyticsEngine.offWristIntervals(repo.events(owner, from, to, STREAM_LIMIT), to, hr)
         return DaySkinReads(skin, spo2, skinFamily, skinWornToleranceSec, skinAnchorRaw, wristOff)
     }
 
@@ -3265,6 +3284,27 @@ object IntelligenceEngine {
     }
 
     /**
+     * The provided session the NO-NIGHT line reports as `providedLongest` / `providedLongestEnd`: the
+     * longest, ties broken by the later END.
+     *
+     * The tie-break is the point. Selecting on duration alone left the OUTPUT undefined whenever two
+     * sessions ran the same length, because [maxByOrNull] and Swift's `max(by:)` do not agree on which of
+     * two equal elements they keep, and the field actually printed is the END day. Two equal sessions
+     * ending on different days would then render differently on the two platforms from identical input,
+     * on a line whose whole contract is being byte-identical across them.
+     *
+     * Equal-length sessions are not a corner case: the HR-only spine works in fixed epochs, so durations
+     * are quantised and repeat. Ordering by (duration, end) makes any surviving tie one where both
+     * printed fields are equal anyway, so the output is deterministic even where the choice of element is
+     * not.
+     *
+     * Pure so both the picked duration and its day key are unit-tested directly; byte-identical twin of
+     * the Swift `longestProvidedForDiag`.
+     */
+    internal fun longestProvidedForDiag(sessions: List<DetectedSleep>): DetectedSleep? =
+        sessions.maxWithOrNull(compareBy({ it.end - it.start }, { it.end }))
+
+    /**
      * #1244: one line for a day that CLEARED the >=200-HR gate yet detected NO in-bed session, so the
      * dashboard shows "HR tracked but no sleep". Today only the summary `sleep day=... totalSleepMin=nil`
      * rides the log — with no clue WHY, since every other night trace (`rhr`/`rrsample`/`hrv diag`) only
@@ -3277,7 +3317,9 @@ object IntelligenceEngine {
      */
     internal fun sleepDetectNoNightLogLine(
         day: String, hrCount: Int, rrCount: Int, respCount: Int, gravCount: Int,
-        stepCount: Int, providedCount: Int, windowHours: Int, skinCount: Int,
+        stepCount: Int, providedCount: Int, providedEndingOnDay: Int,
+        providedLongestMin: Int?, providedLongestEndDay: String?,
+        windowHours: Int, skinCount: Int,
     ): String {
         // `reason` names WHICH absence this is, because grav=0 is printed but its consequence is not.
         //
@@ -3338,8 +3380,37 @@ object IntelligenceEngine {
             if (skinCount >= StreamReadCap.SKIN) add("skin")
         }
         val capNote = if (atCap.isEmpty()) "" else " atCap=${atCap.joinToString(",")}"
+        // WHERE the provided sessions fall, which `provided=` alone does not say and which is the next
+        // question every time this line reads `no-motion-provided-unused`.
+        //
+        // A session is attributed to a day by where it ENDS ([AnalyticsEngine.analyzeDay], the
+        // `tsInDay(it.end)` filter), so `provided=3` with an empty night means those three ended
+        // somewhere else. Without that, the line stops one field short of its own conclusion: a real
+        // 5/MG capture showed `provided=3` beside an HR-only spine reporting a 240-minute session, on a
+        // night the wearer demonstrably slept, and a reader still could not tell whether the spine had
+        // missed the night or the attribution had moved it. Those two want opposite fixes.
+        //
+        // [providedEndingOnDay] is the count that DID end on this day, and is therefore the number the
+        // night was built from: seeing 0 next to a non-zero `provided` is the whole diagnosis. The
+        // longest session and its end day come along because the longest is the one that should have
+        // matched, and naming its day says which neighbour absorbed it.
+        //
+        // Self-checking on purpose: `providedLongestEnd` equal to `day` while `providedHere` is 0 is a
+        // contradiction, and points at the filter rather than at the spine.
+        //
+        // Only when something was actually provided. With `provided=0` the three fields say nothing
+        // that `reason=no-motion` has not already said, and the sibling `atCap` note sets the precedent
+        // for a suffix that appears only when it carries information.
+        val providedNote = if (providedCount > 0) {
+            " providedHere=$providedEndingOnDay" +
+                " providedLongest=${providedLongestMin ?: "nil"}" +
+                " providedLongestEnd=${providedLongestEndDay ?: "nil"}"
+        } else {
+            ""
+        }
         return "sleep-detect day=$day NO-NIGHT hr=$hrCount rr=$rrCount resp=$respCount " +
-            "grav=$gravCount skin=$skinCount steps=$stepCount provided=$providedCount " +
+            "grav=$gravCount skin=$skinCount steps=$stepCount provided=$providedCount" +
+            providedNote + " " +
             "window=${windowHours}h reason=$reason$capNote"
     }
 

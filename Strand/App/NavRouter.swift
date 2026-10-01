@@ -36,6 +36,7 @@ final class NavRouter: ObservableObject {
         case heartRate
         /// The Day Stress metric page: the stress widget's tap (`WidgetLink.stress`).
         case stress
+        case alarms
 
         var id: String { rawValue }
 
@@ -62,6 +63,8 @@ final class NavRouter: ObservableObject {
     func openDevices() { requestedDestination = .devices }
     /// #1862: open Coach, optionally with a question the launcher already collected.
     func openCoach() { requestedDestination = .coach }
+    /// Open the existing wake-alarm and wind-down settings from Sleep.
+    func openAlarms() { requestedDestination = .alarms }
     /// Open the Trends screen (where a "new data" reading deep-links).
     func openTrends() { requestedDestination = .trends }
     /// Open the active workout: route to the Live surface AND raise the one-shot flag so `LiveView`

@@ -1,6 +1,7 @@
 package com.noop.ui.metric
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -15,10 +17,12 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import com.noop.R
@@ -126,6 +130,38 @@ internal fun MetricStressDayCard(day: DaytimeStress.Result, figure: @Composable 
                     val y = yOf(maxOf(level, 0.05))
                     drawRoundRect(tint, Offset(cx - barW / 2, y), Size(barW, bottom - y), CornerRadius(barW / 2, barW / 2))
                 }
+            }
+            // #2125: an hour the wrist was moving is exertion, not stress, so it has no bar; say so, or the gap
+            // reads as missing data.
+            if (day.activityMaskedHours > 0) {
+                Text(
+                    pluralStringResource(R.plurals.stress_hours_excluded_moving, day.activityMaskedHours, day.activityMaskedHours),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The "Today" section while [loadStressDay] is still reading (#2535). The read folds a day of heart rate, R-R
+ * and motion and can take seconds; without this the page showed nothing and then the card popped in, which
+ * looked like a day with no data. Same header and card as [MetricStressDayCard] so the swap is quiet.
+ */
+@Composable
+internal fun MetricStressDayLoading() {
+    Column {
+        SectionHeader(stringResource(R.string.metric_today))
+        HealthCard {
+            Box(Modifier.fillMaxWidth().height(160.dp), contentAlignment = Alignment.Center) {
+                Text(
+                    stringResource(R.string.l10n_stress_screen_reading_today_s_heart_rate_7491835a),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
             }
         }
     }

@@ -18,6 +18,93 @@ import OuraProtocol
 final class RrSourceChannelTests: XCTestCase {
     private let ts = 1_750_000_000
 
+    private func setRegistry(_ store: WhoopStore) throws {
+        try DeviceRegistryStore(dbQueue: store.registryWriter).add(PairedDevice(
+            id: "strap", brand: "WHOOP", model: "4.0", sourceKind: .liveBLE,
+            capabilities: [.hr, .hrv], status: .active, addedAt: ts, lastSeenAt: ts))
+    }
+
+    func testWhoop4HistoricalSourceWinsAndPromotesLegacyLiveRows() async throws {
+        let store = try await WhoopStore.inMemory()
+        try await store.upsertDevice(id: "strap", mac: nil, name: nil)
+        try setRegistry(store)
+
+        _ = try await store.insert(Streams(rr: [RRInterval(ts: ts, rrMs: 800),
+                                                  RRInterval(ts: ts + 1, rrMs: 810)]), deviceId: "strap")
+        _ = try await store.insert(Streams(rr: [RRInterval(ts: ts, rrMs: 800, srcChannel: .whoop4Historical),
+                                                  RRInterval(ts: ts + 1, rrMs: 820, srcChannel: .whoop4Historical)]),
+                                   deviceId: "strap")
+
+        let selected = try await store.rrIntervals(deviceId: "strap", from: ts, to: ts + 1, limit: 100)
+        XCTAssertEqual(selected.map(\.rrMs), [800, 820])
+        XCTAssertEqual(selected.map(\.srcChannel), [.whoop4Historical, .whoop4Historical])
+    }
+
+    func testWhoop4FallsBackToUnlabelledRowsWhenNoHistoricalDataExists() async throws {
+        let store = try await WhoopStore.inMemory()
+        try await store.upsertDevice(id: "strap", mac: nil, name: nil)
+        try setRegistry(store)
+        _ = try await store.insert(Streams(rr: [RRInterval(ts: ts, rrMs: 800)]), deviceId: "strap")
+
+        let selected = try await store.rrIntervals(deviceId: "strap", from: ts, to: ts, limit: 100)
+        XCTAssertEqual(selected.map(\.rrMs), [800])
+        XCTAssertNil(selected.first?.srcChannel)
+    }
+
+    func testWhoop4HistoricalSourceHasPriorityWithinItsHour() async throws {
+        let store = try await WhoopStore.inMemory()
+        try await store.upsertDevice(id: "strap", mac: nil, name: nil)
+        try setRegistry(store)
+        _ = try await store.insert(Streams(rr: [RRInterval(ts: ts, rrMs: 800),
+                                                  RRInterval(ts: ts + 1, rrMs: 810)]), deviceId: "strap")
+        _ = try await store.insert(Streams(rr: [RRInterval(ts: ts, rrMs: 805, srcChannel: .whoop4Historical)]),
+                                   deviceId: "strap")
+
+        let selected = try await store.rrIntervals(deviceId: "strap", from: ts, to: ts + 1, limit: 100)
+        XCTAssertEqual(selected.map(\.rrMs), [805])
+        XCTAssertEqual(selected.map(\.srcChannel), [.whoop4Historical])
+    }
+
+    func testWhoop4RealtimeSourceWinsOverStandardAndLegacyRows() async throws {
+        let store = try await WhoopStore.inMemory()
+        try await store.upsertDevice(id: "strap", mac: nil, name: nil)
+        try setRegistry(store)
+        _ = try await store.insert(Streams(rr: [
+            RRInterval(ts: ts, rrMs: 800),
+            RRInterval(ts: ts, rrMs: 810, srcChannel: .whoop4Standard),
+            RRInterval(ts: ts, rrMs: 820, srcChannel: .whoop4Realtime),
+        ]), deviceId: "strap")
+
+        let selected = try await store.rrIntervals(deviceId: "strap", from: ts, to: ts, limit: 100)
+        XCTAssertEqual(selected.map(\.rrMs), [820])
+        XCTAssertEqual(selected.map(\.srcChannel), [.whoop4Realtime])
+    }
+
+    func testWhoop4PartialHistoryKeepsUnlabelledRowsFromOtherHours() async throws {
+        let store = try await WhoopStore.inMemory()
+        try await store.upsertDevice(id: "strap", mac: nil, name: nil)
+        try setRegistry(store)
+
+        let base = (ts / 3600) * 3600
+        _ = try await store.insert(Streams(rr: [
+            RRInterval(ts: base + 10, rrMs: 800),
+            RRInterval(ts: base + 3600 + 10, rrMs: 820),
+            RRInterval(ts: base + 3600 + 11, rrMs: 830),
+            RRInterval(ts: base + 3600 + 12, rrMs: 840),
+        ]), deviceId: "strap")
+        _ = try await store.insert(Streams(rr: [
+            RRInterval(ts: base + 10, rrMs: 805, srcChannel: .whoop4Historical),
+            RRInterval(ts: base + 11, rrMs: 815, srcChannel: .whoop4Historical),
+            RRInterval(ts: base + 3600 + 10, rrMs: 825, srcChannel: .whoop4Historical),
+        ]), deviceId: "strap")
+
+        let selected = try await store.rrIntervals(deviceId: "strap", from: base,
+                                                    to: base + 7200, limit: 100)
+        XCTAssertEqual(selected.map(\.rrMs), [805, 815, 825])
+        XCTAssertEqual(selected.map(\.srcChannel),
+                       [.whoop4Historical, .whoop4Historical, .whoop4Historical])
+    }
+
     // MARK: - The label survives the mapping
 
     /// A 0x6E record and a 0x80 record covering the same interval must produce rows with DISTINCT
@@ -54,7 +141,8 @@ final class RrSourceChannelTests: XCTestCase {
     /// The two enums are pinned to the same raw values on purpose: they are one durable storage code
     /// split across two packages only because `OuraProtocol` does not depend on `WhoopProtocol`.
     func testTheTwoChannelEnumsAgreeCaseForCaseAndCodeForCode() {
-        XCTAssertEqual(OuraIBIChannel.allCases.count, RRSourceChannel.allCases.filter { !$0.isWhoop5Transport }.count)
+        XCTAssertEqual(OuraIBIChannel.allCases.count,
+                       RRSourceChannel.allCases.filter { !$0.isWhoop5Transport && $0.rawValue <= 4 }.count)
         for c in OuraIBIChannel.allCases {
             let mapped = OuraStreamMapping.rrChannel(c)
             XCTAssertEqual(mapped?.rawValue, c.rawValue,

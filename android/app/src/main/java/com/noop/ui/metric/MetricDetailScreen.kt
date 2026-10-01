@@ -260,9 +260,11 @@ private fun MetricPage(
         }
         if (metric.key == "vo2max_est" && vo2MaxTrendHasBreak(readings)) add(stringResource(R.string.vo2max_method_change_caption))
     }
+    // Null while the read runs; a failed read lands as EMPTY so the loading card does not stay up forever.
     val stressDay by produceState<DaytimeStress.Result?>(null, metric.id) {
         value = if (stressDayApplies(metric)) {
-            runCatching { loadStressDay(vm, NoopPrefs.stressPersonalBaseline(context)) }.getOrNull()
+            runCatching { loadStressDay(vm, NoopPrefs.stressPersonalBaseline(context)) }
+                .getOrDefault(DaytimeStress.Result.EMPTY)
         } else null
     }
     // #1617: a strap that cannot fill Blood Oxygen says why rather than only "No Data".
@@ -316,6 +318,7 @@ private fun MetricPage(
             textOf = textOf,
             onOpenDataSources = onOpenDataSources,
         )
+        if (stressDay == null && stressDayApplies(metric)) MetricStressDayLoading()
         stressDay?.let { day ->
             MetricStressDayCard(
                 day = day,

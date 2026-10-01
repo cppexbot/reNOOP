@@ -212,6 +212,7 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                 SleepScreen(
                     vm = viewModel,
                     onOpenJournal = { nav.openInTab(MainTab.Browse, Destination.Insights.route) },
+                    onOpenAlarms = { nav.push(Destination.SmartAlarm.route) },
                 )
             }
             tabRoot(MainTab.Workouts, scrollTop) {

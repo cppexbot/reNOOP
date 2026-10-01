@@ -268,36 +268,64 @@ internal fun NightNavHeader(
         )
     }
 
-    // Bed-time picker mutates only the draft. Returning to the parent dialog lets the user inspect and
+    // Bed-time editing mutates only the draft. Select the date explicitly before the time so an evening
+    // onset can move forward across midnight (23:00 day 1 -> 04:00 day 2) without retaining day 1 and
+    // manufacturing a >24 h window (#2470). Returning to the parent dialog lets the user inspect and
     // adjust BOTH endpoints before the single Save (#515). The cross-midnight correction stays in the
     // pure SleepTimeEditDraft/SleepEditGuard path pinned by JVM tests.
     val draftForBed = sleepEditDraft
     if (editingBed && session != null && draftForBed != null) {
         val startCal = Calendar.getInstance().apply { timeInMillis = draftForBed.startTs * 1000L }
         DisposableEffect(Unit) {
-            val dialog = TimePickerDialog(
+            var dateChosen = false
+            // Held so BOTH dialogs are reachable from onDispose. The time picker is created inside the
+            // date callback, so a local val left it unreachable: leaving composition while it was showing
+            // (navigation, rotation) leaked the window with a callback still holding `draftForBed`. The
+            // single-dialog version this replaced was dismissed correctly, so tracking only the first one
+            // would have been a step back.
+            var timeDialog: TimePickerDialog? = null
+            val dateDialog = DatePickerDialog(
                 context,
-                { _, h, m ->
-                    val cal = Calendar.getInstance().apply {
-                        timeInMillis = draftForBed.startTs * 1000L
-                        set(Calendar.HOUR_OF_DAY, h); set(Calendar.MINUTE, m)
-                        set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+                { _, year, month, day ->
+                    dateChosen = true
+                    timeDialog = TimePickerDialog(
+                        context,
+                        { _, h, m ->
+                            sleepEditDraft = draftForBed.withBedCandidate(
+                                // The SELECTED date, not the detected start's (#2470).
+                                candidateBedTs = sleepEndpointTs(
+                                    baseTs = draftForBed.startTs, year = year, month = month,
+                                    dayOfMonth = day, hour = h, minute = m,
+                                ),
+                                nowTs = System.currentTimeMillis() / 1000L,
+                            )
+                        },
+                        startCal.get(Calendar.HOUR_OF_DAY), startCal.get(Calendar.MINUTE), true,
+                    ).apply {
+                        setTitle("Bedtime")
+                        setOnDismissListener {
+                            editingBed = false
+                            if (sleepEditDraft != null) showTimeChoice = true
+                        }
                     }
-                    sleepEditDraft = draftForBed.withBedCandidate(
-                        candidateBedTs = cal.timeInMillis / 1000L,
-                        nowTs = System.currentTimeMillis() / 1000L,
-                    )
+                    timeDialog?.show()
                 },
-                startCal.get(Calendar.HOUR_OF_DAY),
-                startCal.get(Calendar.MINUTE),
-                true,
-            ).apply { setTitle("Bedtime") }
-            dialog.setOnDismissListener {
-                editingBed = false
-                if (sleepEditDraft != null) showTimeChoice = true
+                startCal.get(Calendar.YEAR), startCal.get(Calendar.MONTH), startCal.get(Calendar.DAY_OF_MONTH),
+            ).apply {
+                datePicker.maxDate = System.currentTimeMillis()
+                setTitle(context.getString(R.string.sleep_edit_bedtime_date))
+                setOnDismissListener {
+                    if (editingBed && !dateChosen) {
+                        editingBed = false
+                        if (sleepEditDraft != null) showTimeChoice = true
+                    }
+                }
             }
-            dialog.show()
-            onDispose { runCatching { dialog.dismiss() } }
+            dateDialog.show()
+            onDispose {
+                runCatching { dateDialog.dismiss() }
+                runCatching { timeDialog?.dismiss() }
+            }
         }
     }
 
@@ -308,28 +336,33 @@ internal fun NightNavHeader(
         val endCal = Calendar.getInstance().apply { timeInMillis = draftForWake.endTs * 1000L }
         DisposableEffect(Unit) {
             var dateChosen = false
+            // Same reachability point as the bedtime block above: the time picker is created inside the
+            // date callback, so onDispose can only dismiss it if it is held here. This path had the leak
+            // before #2470 touched anything; it is fixed alongside rather than left as the odd one out.
+            var timeDialog: TimePickerDialog? = null
             val dateDialog = DatePickerDialog(
                 context,
                 { _, year, month, day ->
                     dateChosen = true
-                    val selectedDate = Calendar.getInstance().apply {
-                        timeInMillis = draftForWake.endTs * 1000L
-                        set(Calendar.YEAR, year); set(Calendar.MONTH, month); set(Calendar.DAY_OF_MONTH, day)
-                    }
-                    val timeDialog = TimePickerDialog(
+                    timeDialog = TimePickerDialog(
                         context,
                         { _, h, m ->
-                            selectedDate.set(Calendar.HOUR_OF_DAY, h); selectedDate.set(Calendar.MINUTE, m)
-                            selectedDate.set(Calendar.SECOND, 0); selectedDate.set(Calendar.MILLISECOND, 0)
-                            sleepEditDraft = draftForWake.withWakeCandidate(selectedDate.timeInMillis / 1000L)
+                            sleepEditDraft = draftForWake.withWakeCandidate(
+                                sleepEndpointTs(
+                                    baseTs = draftForWake.endTs, year = year, month = month,
+                                    dayOfMonth = day, hour = h, minute = m,
+                                ),
+                            )
                         },
                         endCal.get(Calendar.HOUR_OF_DAY), endCal.get(Calendar.MINUTE), true,
-                    ).apply { setTitle("Wake-up time") }
-                    timeDialog.setOnDismissListener {
-                        editingWake = false
-                        if (sleepEditDraft != null) showTimeChoice = true
+                    ).apply {
+                        setTitle("Wake-up time")
+                        setOnDismissListener {
+                            editingWake = false
+                            if (sleepEditDraft != null) showTimeChoice = true
+                        }
                     }
-                    timeDialog.show()
+                    timeDialog?.show()
                 },
                 endCal.get(Calendar.YEAR), endCal.get(Calendar.MONTH), endCal.get(Calendar.DAY_OF_MONTH),
             ).apply {
@@ -343,7 +376,10 @@ internal fun NightNavHeader(
                 }
             }
             dateDialog.show()
-            onDispose { runCatching { dateDialog.dismiss() } }
+            onDispose {
+                runCatching { dateDialog.dismiss() }
+                runCatching { timeDialog?.dismiss() }
+            }
         }
     }
 
@@ -604,5 +640,3 @@ internal fun NightNavHeader(
 }
 
 // MARK: - 2. Metric grid (row-equalized min-height tiles, each with a bottom sparkline)
-
-

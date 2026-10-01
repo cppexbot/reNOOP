@@ -115,6 +115,7 @@ struct CoachView: View {
         .task {
             await coach.loadPersistedMessagesIfNeeded()
             historyLoaded = true
+            coach.retireStaleConversationIfNeeded()
             // Gated on the transcript BEFORE consuming: `consumeStoredBrief()` clears the unconsumed flag,
             // so consuming on a day with a conversation open would throw the brief away (#2087).
             if coach.messages.isEmpty, let stored = CoachBriefScheduler.consumeStoredBrief() {

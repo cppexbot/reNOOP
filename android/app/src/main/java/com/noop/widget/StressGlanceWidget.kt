@@ -106,7 +106,8 @@ private fun stressTense(dark: Boolean) = if (dark) Color(0xFFE0A62F) else Color(
 private const val STRESS_CARD_PADDING_DP = 28f
 
 /** The level scale column plus its gap. One number, read by both the chart and its axis. */
-private const val STRESS_SCALE_COLUMN_DP = 20f
+private const val STRESS_SCALE_WIDTH_DP = 14f
+private const val STRESS_SCALE_COLUMN_DP = STRESS_SCALE_WIDTH_DP + 6f
 
 /** The height the curve BITMAP is drawn at. The chart box takes the card's leftover height by weight,
  *  so its real height is not knowable here; this is what the bitmap is drawn at and the `Image` scales
@@ -188,8 +189,7 @@ private fun StressWidgetContent(snap: WidgetSnapshot, dark: Boolean) {
                 val peakTime = DateFormat.getTimeInstance(DateFormat.SHORT)
                     .format(Date(stats.peak.ts * 1000))
                 Text(
-                    text = uiString(R.string.trends_peak) +
-                        " ${StressTrace.formatLevel(stats.peak.level ?: 0.0)} · $peakTime",
+                    text = uiString(R.string.trends_complete_04771532, StressTrace.formatLevel(stats.peak.level ?: 0.0), peakTime),
                     style = TextStyle(color = stressTextPrimary(dark), fontSize = 11.sp),
                     modifier = GlanceModifier
                         .background(ColorProvider(stressTense(dark).copy(alpha = 0.18f)))
@@ -218,9 +218,7 @@ private fun StressWidgetContent(snap: WidgetSnapshot, dark: Boolean) {
             ) {
                 Text(
                     text = if (stats != null) {
-                        uiString(R.string.l10n_stress_screen_avg_a178769d) +
-                            " ${StressTrace.formatLevel(stats.mean)} · " +
-                            uiString(R.string.l10n_hr_glance_widget_updated_time_1b5feedb, time)
+                        uiString(R.string.l10n_stress_screen_avg_complete_c26cee27, StressTrace.formatLevel(stats.mean), uiString(R.string.l10n_hr_glance_widget_updated_time_1b5feedb, time))
                     } else {
                         uiString(R.string.l10n_hr_glance_widget_updated_time_1b5feedb, time)
                     },
@@ -293,7 +291,7 @@ private fun StressTraceImage(
     // scale on the right, which is right for a trace whose numbers are read off the end.)
     Row(modifier = modifier.fillMaxWidth()) {
         Column(
-            modifier = GlanceModifier.fillMaxHeight(),
+            modifier = GlanceModifier.width(STRESS_SCALE_WIDTH_DP.dp).fillMaxHeight(),
             horizontalAlignment = Alignment.Horizontal.End,
         ) {
             val ticks = StressTrace.levelTicks()
@@ -338,6 +336,7 @@ private fun StressTimeAxis(snap: WidgetSnapshot, dark: Boolean) {
     val fmt = DateFormat.getTimeInstance(DateFormat.SHORT)
     Spacer(GlanceModifier.height(2.dp))
     Row(modifier = GlanceModifier.fillMaxWidth()) {
+        Spacer(GlanceModifier.width(STRESS_SCALE_COLUMN_DP.dp))
         ticks.forEachIndexed { i, ts ->
             Text(
                 text = fmt.format(Date(ts * 1000)),

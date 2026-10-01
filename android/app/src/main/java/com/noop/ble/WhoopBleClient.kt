@@ -32,6 +32,9 @@ import com.noop.data.EventEntry
 import com.noop.data.StandardHrMapping
 import com.noop.data.StreamBatch
 import com.noop.data.StreamPersistence
+import com.noop.protocol.CommandNames
+import com.noop.protocol.Whoop5Ecg
+import com.noop.protocol.Whoop5EcgProbe
 import com.noop.protocol.Whoop5RawImu
 import com.noop.testcentre.ImuSessionFileStore
 import com.noop.data.WhoopRepository
@@ -4441,11 +4444,31 @@ class WhoopBleClient(
                 ) && groundTruthImuCommandAllowed) &&
                 cmd != CommandNumber.RUN_HAPTICS_PATTERN &&
                 cmd != CommandNumber.SEND_HISTORICAL_DATA && cmd != CommandNumber.HISTORICAL_DATA_RESULT &&
-                // ABORT_HISTORICAL_TRANSMITS (20) over puffin: stop an offload already in flight. Allowed
-                // ONLY while one actually is, so a default install can never form these bytes on a 5/MG —
-                // and the gate is the same state the command is about. Non-destructive: the strap frees
-                // records on our HISTORY_END ack, not on this, so an aborted drain re-offloads intact.
-                !(cmd == CommandNumber.ABORT_HISTORICAL_TRANSMITS && backfilling) &&
+                // ABORT_HISTORICAL_TRANSMITS (20) over puffin: stop an offload already in flight, OR the
+                // first member of the ECG START list (see [ecgSendAbortHistorical]). Allowed while one of
+                // those two is true, so a default install can never form these bytes on a 5/MG — the
+                // first gate is the same state the command is about, and the second is the send burst
+                // itself. Non-destructive: the strap frees records on our HISTORY_END ack, not on this,
+                // so an aborted drain re-offloads intact.
+                //
+                // NOTE [ecgProbeArmed] here is the SEND-BURST flag, not Apple's listen-window property of
+                // the same name. Apple scopes its equivalent with a dedicated `ecgAbortOverride`; the two
+                // admit the same one opcode over the same one call, by different mechanisms.
+                !(cmd == CommandNumber.ABORT_HISTORICAL_TRANSMITS && (backfilling || ecgProbeArmed)) &&
+                // The three MG ECG ("Labrador") TOGGLES (124 / 125 / 139). Gated the HARD way, like
+                // GET_BATTERY_PACK_INFO and unlike the 98/84 read probes: allowed ONLY while an ECG probe
+                // run is actually in flight, so a default install cannot form these bytes at all. Unlike
+                // those read probes these are WRITES that change strap state, and a strap left generating
+                // is a battery cost the wearer did not ask for.
+                //
+                // `ecgProbeArmed` is set by ecgStartCapture/ecgStopCapture for the duration of the send
+                // burst only. The opt-in and MG checks live in ecgGatesAllow at the call site, the same
+                // split Apple uses: this clause answers "is a run in flight", not "is it permitted".
+                !(cmd in setOf(
+                    CommandNumber.TOGGLE_LABRADOR_DATA_GENERATION,
+                    CommandNumber.TOGGLE_LABRADOR_RAW_SAVE,
+                    CommandNumber.TOGGLE_LABRADOR_FILTERED,
+                ) && ecgProbeArmed) &&
                 cmd != CommandNumber.SET_CLOCK && cmd != CommandNumber.GET_CLOCK &&
                 cmd != CommandNumber.GET_DATA_RANGE &&
                 cmd != CommandNumber.SET_ALARM_TIME && cmd != CommandNumber.DISABLE_ALARM &&
@@ -5121,6 +5144,273 @@ class WhoopBleClient(
      * to the Devices dialog and the strap log — no new storage. User-initiated only, Test Centre →
      * Connection gated at the call site. Twin of macOS BLEManager.probeFeatureFlags().
      */
+    // ---- WHOOP MG ECG ("Labrador") turn-on probe — twin of macOS BLEManager.ecg* ----------------
+
+    /** Listen window after the turn-on burst, matching macOS `ecgProbeWindow`. */
+    private val ECG_PROBE_WINDOW_SECONDS = 30
+
+    /** Detailed candidate lines are capped; the PACKET COUNT is not, so the verdict stays complete
+     *  while a chatty stream cannot grow the strap log without bound. Matches macOS. */
+    private val ECG_PROBE_MAX_CANDIDATES = 12
+
+    /**
+     * Guards every probe accumulator below. [noteEcgProbeCandidate] runs on the BINDER thread (the
+     * notify handler), while the verdict reads on the main looper, so `toList()` against a concurrent
+     * `add()` is a real ConcurrentModificationException and `+= 1` is not atomic. The established
+     * unbonded probe solves the same split by hopping to main; this one holds a lock instead, because
+     * the triage must not add a main-thread hop per frame.
+     */
+    private val ecgProbeLock = Any()
+
+    /** Steps of the run in flight; feeds [Whoop5EcgProbe.verdict]. Guarded by [ecgProbeLock]. */
+    private val ecgProbeSteps = mutableListOf<Whoop5EcgProbe.Step>()
+
+    /** Structural-triage hits: the empirical search for the packet TYPE these records arrive under. */
+    private val ecgProbeCandidates = mutableListOf<String>()
+
+    private var ecgProbePacketsSeen = 0
+
+    /**
+     * True only while a probe run is sending. The send() allowlist reads this, so the three toggles are
+     * unformable on a default install even with the opt-in on: permission and in-flight are separate
+     * questions, the same split Apple uses.
+     */
+    @Volatile private var ecgProbeArmed = false
+
+    /**
+     * True for the listen window, which is a LONGER span than [ecgProbeArmed]. The triage in
+     * [noteEcgProbeCandidate] runs only while this is set, so a frame on the ordinary path pays nothing
+     * for a probe nobody started.
+     */
+    @Volatile private var ecgProbeListening = false
+
+    /**
+     * Latched by [ecgStartCapture], cleared by a completed [ecgStopCapture].
+     *
+     * Persisted, because the strap's state is: a capture keeps generating across an app kill, so an
+     * in-memory latch hides a running capture from the wearer. Keyed per device, since a per-install key
+     * would claim a SECOND strap may be generating after a capture that ran on the first.
+     */
+    var ecgMayBeRunning: Boolean
+        get() = ecgPrefs().getBoolean(ecgRunningKey(deviceId), false)
+        private set(v) = ecgPrefs().edit().putBoolean(ecgRunningKey(deviceId), v).apply()
+
+    private fun ecgPrefs() =
+        context.getSharedPreferences(PuffinExperiment.KEY, android.content.Context.MODE_PRIVATE)
+
+    private fun ecgRunningKey(deviceId: String) = "noopEcgMayBeRunning.$deviceId"
+
+    /**
+     * Every gate the probe must clear. Twin of macOS `ecgGatesAllow`, including the #1635/#269 bond
+     * requirement: a puffin write over the live-HR-only link silently fails, and on a suppressed MG it
+     * would spend the stable link the suppression exists to buy.
+     */
+    private fun ecgGatesAllow(requiresOptIn: Boolean = true): Boolean {
+        if (requiresOptIn && !puffinExperiment.ecgEnabled) {
+            log("ECG probe: ignored — the Experimental ECG opt-in is off")
+            return false
+        }
+        if (!whoop5Variant().isMG) {
+            log("ECG probe: ignored — strap is not a positively identified WHOOP MG")
+            return false
+        }
+        if (!_state.value.connected) {
+            log("ECG probe: ignored — not connected")
+            return false
+        }
+        if (!_state.value.encryptedBond) {
+            log("ECG probe: ignored — needs the full encrypted bond, not the live-HR-only link (#1635/#269)")
+            return false
+        }
+        return true
+    }
+
+    /** One command, recorded at send time. `requestsRealtimeData` is knowable ONLY here: the reply
+     *  carries neither opcode nor argument, and every verdict that reads silence as evidence needs it. */
+    private fun sendEcgCommand(cmd: CommandNumber, arg: Int) {
+        val label = "${CommandNames.label(cmd.rawValue)}(${cmd.rawValue})"
+        synchronized(ecgProbeLock) {
+            ecgProbeSteps.add(
+                Whoop5EcgProbe.Step(
+                    label = label,
+                    outcome = Whoop5EcgProbe.CommandOutcome.NoReply,
+                    requestsRealtimeData = Whoop5Ecg.requestsRealtimeData(cmd.rawValue, arg),
+                ),
+            )
+        }
+        log("ECG probe: → $label payload=${Whoop5Ecg.commandPayload(arg).joinToString("") { "%02x".format(it) }}")
+        send(cmd, Whoop5Ecg.commandPayload(arg).map { it.toByte() }.toByteArray())
+    }
+
+    private fun beginEcgProbeRun() {
+        synchronized(ecgProbeLock) {
+            ecgProbeSteps.clear()
+            ecgProbeCandidates.clear()
+            ecgProbePacketsSeen = 0
+        }
+        ecgProbeListening = true
+    }
+
+    private fun scheduleEcgProbeVerdict() {
+        handler.postDelayed({
+            ecgProbeListening = false
+            val (steps, packets, candidates) = synchronized(ecgProbeLock) {
+                Triple(ecgProbeSteps.toList(), ecgProbePacketsSeen, ecgProbeCandidates.toList())
+            }
+            log(Whoop5EcgProbe.report(steps, packets, candidates, ECG_PROBE_WINDOW_SECONDS))
+        }, ECG_PROBE_WINDOW_SECONDS * 1000L)
+    }
+
+    /**
+     * The START list's first member: ABORT_HISTORICAL_TRANSMITS (20), immediately ahead of `124`.
+     * Twin of macOS `ecgSendAbortHistorical`.
+     *
+     * Unconditional, because that is where it sits in the sequence — not a conditional tidy-up. An
+     * offload in flight competes for the same link, so a filtered trace requested underneath one can be
+     * acked and still never arrive, which from this side is indistinguishable from `acceptedButSilent` —
+     * the verdict this probe has been returning. Sending it only when [backfilling] happened to be true
+     * left the common case (no drain running) without the clear the sequence calls for.
+     *
+     * Two routes, because the local bookkeeping differs and only one of them is safe to skip:
+     *
+     *  - Draining: through [abortBackfill], which sends the same `[0x00]` body AND ends the session. The
+     *    raw send alone would stop the strap while leaving [backfilling] true on this side, so the
+     *    session would sit waiting for records that are never coming.
+     *  - Not draining: the bare send. There is no session to tear down, and [abortBackfill] would refuse
+     *    it outright.
+     *
+     * Deliberately NOT recorded as a probe step. Steps feed the verdict, and a FAILURE here (an abort the
+     * firmware declines) would classify the run as `commandRefused` and mask the ECG outcome the run
+     * exists to establish. Its own log line carries the diagnostic instead.
+     *
+     * PARITY NOTE: opcode 123 SELECT_WRIST is the one member of the official PREPARE list Android does
+     * not send, because Android has no wrist-selection surface. It writes PERSISTENT strap state and so
+     * needs its own confirmation UI, which macOS has and this platform does not yet.
+     */
+    private fun ecgSendAbortHistorical() {
+        if (backfilling) {
+            log(
+                "ECG probe: → ABORT_HISTORICAL_TRANSMITS (20) — an offload is in flight and would " +
+                    "compete with the realtime trace, so the local session is torn down with it",
+            )
+            abortBackfill()
+            return
+        }
+        log(
+            "ECG probe: → ABORT_HISTORICAL_TRANSMITS (20) — no offload in flight; sent because it " +
+                "is the START list's first member, not as a tidy-up",
+        )
+        send(CommandNumber.ABORT_HISTORICAL_TRANSMITS, byteArrayOf(0), withResponse = true)
+    }
+
+    /**
+     * Turn ECG generation ON. Twin of macOS `ecgStartCapture`.
+     *
+     * Order is load-bearing: 139 (filtered) is the master gate, 125 enables the raw save, and 124 takes
+     * an OPERATION byte where `start` is 2. A caller sending 1 here would STOP a session it just armed,
+     * which is the shape of every SUCCESS-and-silence report in #891.
+     *
+     * Two lists, in the official order. PREPARE is `139 ON` then `125 ON` (`123` is not on Android's
+     * surface at all — see the parity note on [ecgSendAbortHistorical]). START is `20` then
+     * `124 = start`: opcode 20 belongs to START, immediately ahead of the generation command, and it is
+     * sent on EVERY run rather than only when an offload happens to be draining.
+     */
+    fun ecgStartCapture() {
+        if (!ecgGatesAllow()) return
+        ecgMayBeRunning = true   // latched BEFORE the sends, so a mid-sequence drop still offers Stop
+        beginEcgProbeRun()
+        log("ECG probe: starting the ECG turn-on sequence on an MG (experimental, unvalidated instrumentation)")
+        ecgProbeArmed = true
+        try {
+            sendEcgCommand(CommandNumber.TOGGLE_LABRADOR_FILTERED, 1)
+            sendEcgCommand(CommandNumber.TOGGLE_LABRADOR_RAW_SAVE, 1)
+            ecgSendAbortHistorical()
+            sendEcgCommand(CommandNumber.TOGGLE_LABRADOR_DATA_GENERATION, Whoop5Ecg.ControlSignal.START.raw)
+        } finally {
+            ecgProbeArmed = false
+            // Scheduled in the finally, because it is what CLOSES the listen window. If a send threw,
+            // an early return would leave `ecgProbeListening` true forever and the triage running on
+            // every frame for the life of the process.
+            scheduleEcgProbeVerdict()
+        }
+    }
+
+    /**
+     * The explicit OFF path. Twin of macOS `ecgStopCapture`.
+     *
+     * `requiresOptIn = false`: the OFF path outlives the opt-in, or a wearer who switches the experiment
+     * off mid-capture could never stop the strap. All three OFFs are attempted unconditionally, because
+     * a partial startup leaves components enabled and there is no auto-rollback on the strap.
+     */
+    fun ecgStopCapture(reportsResult: Boolean = true) {
+        if (!ecgGatesAllow(requiresOptIn = false)) {
+            if (ecgMayBeRunning) {
+                log("ECG probe: stop could not be sent (needs a connected MG) — the strap may still be " +
+                    "streaming, so Stop stays available")
+            }
+            return
+        }
+        if (reportsResult) beginEcgProbeRun() else synchronized(ecgProbeLock) { ecgProbeSteps.clear() }
+        log("ECG probe: stopping ECG data generation and both streams")
+        ecgProbeArmed = true
+        try {
+            sendEcgCommand(CommandNumber.TOGGLE_LABRADOR_DATA_GENERATION, Whoop5Ecg.ControlSignal.STOP.raw)
+            sendEcgCommand(CommandNumber.TOGGLE_LABRADOR_RAW_SAVE, 0)
+            sendEcgCommand(CommandNumber.TOGGLE_LABRADOR_FILTERED, 0)
+            // Cleared only once all three OFFs have gone out. If a send threw, the strap may still be
+            // generating and the latch must stay true so Stop keeps being offered.
+            ecgMayBeRunning = false
+        } finally {
+            ecgProbeArmed = false
+            // In the finally for the same reason as the start path: with `reportsResult` this already
+            // opened the listen window, so a throwing send would otherwise leave it open for the life
+            // of the process.
+            if (reportsResult) scheduleEcgProbeVerdict()
+        }
+    }
+
+    /**
+     * Structural triage for the packet TYPE the ECG records arrive under, which no table in this repo
+     * holds. A hit is a CANDIDATE, never a confirmed mapping. Twin of macOS `noteEcgProbeCandidate`.
+     *
+     * The classifier byte is logged as a NUMBER, never its token name: a strap log is a shareable
+     * artefact and no line in it should read like a clinical finding.
+     */
+    private fun noteEcgProbeCandidate(frame: ByteArray) {
+        if (frame.size < 12) return
+        val packet = Whoop5Ecg.r17FromFrame(frame) ?: return
+        synchronized(ecgProbeLock) {
+            ecgProbePacketsSeen += 1
+            if (ecgProbeCandidates.size >= ECG_PROBE_MAX_CANDIDATES) return
+        }
+        // The classifier byte is logged as a NUMBER, never as its token name: a strap log is a shareable
+        // artefact, and no line in it should read like a clinical finding.
+        //
+        // `seq` and `progress` are here because the reading is a SEQUENCE, not a set of packets: a gap in
+        // one or a regression in the other is what tells a contact loss apart from a clean run, and
+        // neither was visible in the old line.
+        val line = (
+            "type=0x%02x len=%d seq=%d samples=%d quality=%d presence=%d progress=%d state=%d " +
+                "hr=%d avgHr=%d var=%d classifierRaw=%d unreadable=0x%02x"
+            ).format(
+            packet.packetType, frame.size, packet.sequence, packet.sampleCount, packet.signalQualityRaw,
+            if (packet.presence) 1 else 0, packet.progress.raw, packet.classifierState,
+            packet.liveHR, packet.averageHR, packet.variabilityRaw ?: 0,
+            packet.arrhythmiaCheckResultRaw, packet.unreadable.raw,
+        )
+        // Rendered from the record rather than left to whoever reads the hex: the flag byte and the
+        // unreadable mask are the two fields that say WHY a run went the way it did, and a strap log is
+        // usually all there is to go on. `terminal`/`invalid` are the strap's own end conditions.
+        val state = buildList {
+            if (packet.isTerminal) add("terminal")
+            if (packet.isInvalid) add("invalid")
+        }
+        val notes = (packet.flags.tokens + packet.unreadable.reasons + state).joinToString(",")
+        val reported = if (notes.isEmpty()) line else "$line [$notes]"
+        synchronized(ecgProbeLock) { ecgProbeCandidates.add(reported) }
+        log("ECG probe: ← candidate $reported (unvalidated instrumentation, not a diagnosis)")
+    }
+
     fun probeFeatureFlags() {
         if (!_state.value.connected) {
             log("Feature-flag probe (#761) ignored — not connected")
@@ -5970,7 +6260,7 @@ class WhoopBleClient(
     }
 
     /**
-     * Arm the strap's **firmware** alarm to buzz at [epochSec] (absolute UTC seconds). The strap fires
+     * Arm the strap's **firmware** alarm for [epochSec] (absolute UTC seconds). WHOOP 4.0 fires
      * at that instant even if the phone is asleep or NOOP is closed. SET_CLOCK is sent first so the
      * strap's RTC is UTC-correct (a wrong RTC fires the alarm at the wrong wall-clock time). The 4.0
      * payload is `[0x01] + u32 LE epoch + [0x00, 0x00] + [0x00, 0x00]` (9 bytes — see
@@ -5981,12 +6271,13 @@ class WhoopBleClient(
     fun armStrapAlarm(epochSec: Long) {
         if (connectedFamily == DeviceFamily.WHOOP5) {
             // 5/MG SET_ALARM_TIME is REVISION_4 (the strap arms its own RTC alarm + fires the wake
-            // haptic itself). EXPERIMENTAL/UNCONFIRMED on our side — gated behind the Experimental
-            // probes opt-in so a normal user can't rely on an alarm that might silently not fire.
+            // haptic itself). One full wake chain was captured on an MG (#864, 2026-08-25) and a second
+            // wake reported on a 5.0 without a log (#2464); neither has been shown to repeat, so this
+            // stays gated behind Protocol probes and no one relies on it by default.
             // The strap maintains its RTC from the connect handshake / history sync, so no SET_CLOCK
             // here. (PR #85, AlarmPayload)
             if (!PuffinExperiment.from(context).isEnabled) {
-                log("Alarm: 5/MG firmware alarm needs the Experimental toggle (unconfirmed) — not armed")
+                log("Alarm: 5/MG firmware alarm needs Protocol probes (Test Centre) — not armed")
                 return
             }
             send(CommandNumber.SET_ALARM_TIME, AlarmPayload.build(epochSec * 1000L))
@@ -6478,11 +6769,43 @@ class WhoopBleClient(
         // re-pair guide the stale-bond / #617 paths show and PAUSE auto-reconnect (reusing the #747/#844
         // machinery [handleDisconnect] already honours) so the battery stops draining. A user Connect or a
         // genuine bond re-arms it via [bondWatchdogBackoff].reset().
-        val gaveUp = bondWatchdogBackoff.recordBounce()
+        // Only a link with somewhere to WRITE the handshake can speak for bonding, and
+        // [commandChannelReady] is already the resolver for that question. Two ways to lack one, both
+        // live on a 5/MG at range: discovery has not returned yet (the window can expire on a 14-17s MTU
+        // negotiation alone, against a 1.5s expected wait), or it returned without the custom service.
+        // Counting either walked the give-up to a 5h 57m auto-reconnect pause that blamed a strap which
+        // had not been asked anything. The window still escalates either way — a slow link should get
+        // longer — which is why the two counters are separate.
+        val attributable = commandChannelReady
+        val gaveUp = bondWatchdogBackoff.recordBounce(attributable = attributable)
+        // Bounded in BOTH directions. Excusing these from the pairing give-up without capping them would
+        // trade a wrong 6-hour pause for an endless bounce loop — the drain #971 exists to end. Different
+        // consequence though: stand the watchdog down and LEAVE THE LINK UP. Auto-reconnect keeps running
+        // because a weak link is transient, and the standard HR profile on that link may be the only data
+        // a strap that cannot bond will ever give (#1635).
+        if (!attributable && bondWatchdogBackoff.shouldStopBouncingWithoutCommandChannel()) {
+            // The trade, stated rather than left to be discovered: the watchdog is down for the REST of
+            // this link, so if discovery finally returns and a handshake does go out on it, nothing times
+            // that handshake out. Acceptable, because the alternative was bouncing forever, and a stuck
+            // handshake still ends in the supervision timeout the log is already full of. The next link
+            // re-arms at its own discovery.
+            log("Service discovery still had not returned after " +
+                "${bondWatchdogBackoff.unattributableBounces} bounces — standing the watchdog down for " +
+                "the rest of this link instead of bouncing again. Auto-reconnect is NOT paused: nothing " +
+                "here is evidence about pairing, and the link is left up in case live HR is still " +
+                "arriving on it. " + bondWatchdogContext())
+            cancelBondWatchdog()
+            return
+        }
         intentionalDisconnect = false
         if (gaveUp) {
-            log("Bond handshake never completed after ${bondWatchdogBackoff.consecutiveBounces} escalating tries " +
-                bondWatchdogContext() + " — pausing auto-reconnect and surfacing the re-pair guide (#971)")
+            // attributableBounces, not consecutiveBounces: the threshold is measured against the former,
+            // so quoting the latter would claim more handshake attempts than were made — the same
+            // over-claim, in the line that tells the user to go re-pair.
+            log("Bond handshake never completed after ${bondWatchdogBackoff.attributableBounces} escalating " +
+                "tries (${bondWatchdogBackoff.consecutiveBounces} link bounces in total, the rest before " +
+                "the command channel existed) " + bondWatchdogContext() +
+                " — pausing auto-reconnect and surfacing the re-pair guide (#971)")
             autoReconnectPausedForBondLoop = true
             bondLoopPausedAtMs = System.currentTimeMillis()   // the #78 hole-4 salvage probe covers this pause too
                 // #1539: park the connect in the same breath as the pause, so this can end while backgrounded.
@@ -6500,8 +6823,23 @@ class WhoopBleClient(
                 ) }
             }
         } else {
-            log("Bond handshake stuck for ${bondWatchdogBackoff.currentWindowMs() / 1000}s — bouncing link to retry " +
-                "(attempt ${bondWatchdogBackoff.consecutiveBounces}, #50/#971) " + bondWatchdogContext())
+            // Two different findings, so two different sentences. Saying "bond handshake stuck" for a link
+            // that never finished discovery names a cause that was never reached — the attribution rule,
+            // and the reason this whole branch was rewritten.
+            log(
+                if (attributable) {
+                    "Bond handshake stuck for ${bondWatchdogBackoff.currentWindowMs() / 1000}s — bouncing " +
+                        "link to retry (attempt ${bondWatchdogBackoff.consecutiveBounces}, #50/#971) " +
+                        bondWatchdogContext()
+                } else {
+                    "Service discovery had not returned after " +
+                        "${bondWatchdogBackoff.currentWindowMs() / 1000}s — bouncing link to retry (attempt " +
+                        "${bondWatchdogBackoff.consecutiveBounces}, #50/#971). NOT counted toward the " +
+                        "re-pair give-up: nothing was discovered and no handshake was written, so this says " +
+                        "nothing about whether the strap will bond. Usually a weak link — check the RSSI " +
+                        "and the MTU settle time above. " + bondWatchdogContext()
+                },
+            )
             // #1095: a 5/MG whose CLIENT_HELLO confirmed write never ACKs (writeInFlight still true, never
             // bonded) gets NEITHER the 5/15-refusal pairing hint NOR — until the 4-bounce give-up — the
             // re-pair guide, so it loops for ~46s with no advice. Surface a 5/MG-tailored re-pair guide on
@@ -6509,10 +6847,15 @@ class WhoopBleClient(
             // Guidance STRING ONLY — the loop is unchanged (the give-up still pauses at the cap, and its own
             // `reconnectGuide == null` check won't overwrite this). Unpairing is the right first step for any
             // 5/MG that connects but never bonds, so surfacing it early is safe even before the capture.
+            // attributableBounces, not consecutiveBounces: this guide is about a hello that went out and
+            // was never answered, so a weak-link bounce that never reached the command channel must
+            // neither advance it nor be counted in what it claims. Reading the total would surface a
+            // "CLIENT_HELLO never acknowledged" guide off bounces where no hello existed, and reach the
+            // threshold a link or two early.
             if (connectedFamily == DeviceFamily.WHOOP5 && !didBond && writeInFlight &&
-                bondWatchdogBackoff.consecutiveBounces >= 2 && _state.value.reconnectGuide == null
+                bondWatchdogBackoff.attributableBounces >= 2 && _state.value.reconnectGuide == null
             ) {
-                log("WHOOP 5/MG: CLIENT_HELLO never acknowledged across ${bondWatchdogBackoff.consecutiveBounces} silent bounces — surfacing the re-pair guide early (#1095)")
+                log("WHOOP 5/MG: CLIENT_HELLO never acknowledged across ${bondWatchdogBackoff.attributableBounces} silent bounces — surfacing the re-pair guide early (#1095)")
                 _state.update { it.copy(reconnectGuide = """
                     Your WHOOP 5.0/MG connects and reads battery, but never finishes pairing with NOOP, so no health data comes through. This is almost always the official WHOOP app still holding the strap (a 5.0 pairs with one phone at a time), or a stale Bluetooth pairing:
 
@@ -7929,7 +8272,12 @@ class WhoopBleClient(
                             // the strap's device time with the wall time of the same instant (see field doc).
                             strapNewestTsWall = System.currentTimeMillis() / 1000L
                             // #34: persist the strap's newest banked record so the debug export can flag a reset clock.
+                            // Keyed by the address that sent THIS reply as well as the legacy global, because
+                            // the global cannot say which strap it came from: on a two-strap install it made the
+                            // alarm section assert "alarm unreliable" about an active 5/MG from a paired 4.0's
+                            // clock. The global stays for single-strap installs across the upgrade.
                             runCatching { NoopPrefs.of(context).edit().putLong("strap.newestRecordTs", it).apply() }
+                            runCatching { NoopPrefs.setStrapNewestRecordTsFor(context, lastDeviceAddress, it) }
                             // #928: flag an implausibly FUTURE "newest" (strap clock set ahead) right where
                             // it lands, so a Test Centre export shows WHY auto-continue refused the range.
                             val wallNowForSkew = System.currentTimeMillis() / 1000L
@@ -8221,6 +8569,12 @@ class WhoopBleClient(
             noteRejectedFrame(parsed)
             return
         }
+
+        // MG ECG probe: offer every VERIFIED frame to the R17 decode while a run is listening.
+        // Placed after the verifier so bad bytes can never be counted as a candidate, and gated on the
+        // window so an ordinary frame pays one boolean. Without this the probe reports zero packets
+        // forever and every run reads as "accepted but silent" even while a trace is streaming.
+        if (ecgProbeListening) noteEcgProbeCandidate(frame)
 
         // Connection test mode: accumulate frames by type and flush ONE `frameTiming` SUMMARY line per
         // rolling window (#1151), instead of a line per frame-TYPE transition — during offloads/command
@@ -9815,7 +10169,17 @@ class WhoopBleClient(
         sessionStarted = true
         val cmd = cmdCharacteristic
         if (cmd == null) {
-            log("Subscribed, but no command characteristic — cannot open a session")
+            // The watchdog was armed at discovery, before discovery could report what it found. With no
+            // command characteristic there is no handshake to write and none to time out, so leaving it
+            // armed would bounce a link whose only fault is that the custom service was not there. The
+            // third stand-down site, after the #1635 suppression and the pairing deferral; the give-up
+            // is separately protected by [BondWatchdogBackoff.recordBounce]'s attributability.
+            cancelBondWatchdog()
+            log(
+                "Subscribed, but no command characteristic — cannot open a session. The standard HR and " +
+                    "battery profiles stay subscribed, so live HR is unaffected; the bond watchdog is " +
+                    "stood down because there is no handshake on this link for it to time out.",
+            )
             return
         }
         when (connectedFamily) {
@@ -10265,7 +10629,8 @@ class WhoopBleClient(
             .filter { it.ok && it.typeName == "REALTIME_DATA" }
             .mapNotNull { (it.parsed["timestamp"] as? Number)?.toInt() }
             .maxOrNull() ?: now
-        val streams: Streams = extractStreams(parsed, deviceClockRef = newestRealtimeTs, wallClockRef = now)
+        val streams: Streams = extractStreams(parsed, deviceClockRef = newestRealtimeTs,
+            wallClockRef = now, family = connectedFamily)
         val batch = StreamPersistence.toBatch(streams)
         // #1118: the SECOND live transport. The standard 0x2A37 path above stamps a beat at the second
         // it arrived; this one stamps it from the strap's own record clock. The same beat reaching both
@@ -10333,8 +10698,11 @@ class WhoopBleClient(
                                  family: DeviceFamily) {
         val shouldFlush = synchronized(collectorLock) {
             if (hr in 30..220) stdHr.add(HrRow(ts, hr))
-            val source = if (family == DeviceFamily.WHOOP5)
-                com.noop.protocol.RrSourceChannel.WHOOP5_STANDARD else null
+            val source = when (family) {
+                DeviceFamily.WHOOP5 -> com.noop.protocol.RrSourceChannel.WHOOP5_STANDARD
+                DeviceFamily.WHOOP4 -> com.noop.protocol.RrSourceChannel.WHOOP4_STANDARD
+                else -> null
+            }
             for (r in rr) if (r in 250..3000) stdRr.add(RrRow(ts, r, source))
             stdContact.add(StandardHrMapping.contactEvent(ts, contact))
             standardHrBufferReachedFlushThreshold(stdHr.size, stdRr.size, stdContact.size)
@@ -11413,8 +11781,9 @@ class WhoopBleClient(
         // GATT_CONN_TIMEOUT). Feed THIS drop into the SAME #971 give-up counter so the loop is bounded and
         // hands off to the identical re-pair guide + paused auto-reconnect. `didBond` is still valid here
         // ([reset] clears it below); [shouldCountNeverBondedSelfDrop] excludes our own localTerminate bounce
-        // to avoid double-counting a cycle. recordBounce() (short-circuited off the gate) increments the
-        // shared streak and returns true only on the bounce that first crosses the give-up threshold.
+        // to avoid double-counting a cycle. recordBounce (short-circuited off the gate) increments the
+        // shared streak and returns true only on the bounce that first crosses the give-up threshold. It
+        // is passed attributable=true because this path fires only where the hello actually went out.
         if (shouldCountNeverBondedSelfDrop(
                 wasConnected = wasConnected,
                 didBond = didBond,
@@ -11438,7 +11807,9 @@ class WhoopBleClient(
                             helloOverrideAttempts,
                         )
                 }.getOrDefault(false),
-            ) && bondWatchdogBackoff.recordBounce()
+            // attributable: [shouldCountNeverBondedSelfDrop] fires only where the hello was actually
+            // sent, so the command channel existed and this drop IS evidence about bonding.
+            ) && bondWatchdogBackoff.recordBounce(attributable = true)
         ) {
             log("Strap connects and subscribes but never finishes pairing, then self-drops before the bond watchdog fires (${bondWatchdogBackoff.consecutiveBounces} cycles) " +
                 bondWatchdogContext() + " — pausing auto-reconnect and surfacing the re-pair guide (#982/#971)")
@@ -11518,8 +11889,9 @@ class WhoopBleClient(
         // flags, and it needs the disconnect `status` (which reset() does not receive). A probe still
         // mid-subscribe when the link goes is stage 1 ending with the LINK; a probe mid-GET_CLOCK-wait
         // is stage 2. Both get a verdict line so the silence budget advances correctly — EXCEPT when the
-        // link was terminated LOCALLY (status=22), which is our own stack ending the link and not a strap
-        // verdict. A local teardown is inconclusive and does NOT charge the budget (#1804).
+        // link was terminated LOCALLY (status=22), which does not say which side ended it: our paths
+        // produce a status 22, and so does the strap ending the link when a write is challenged. That is
+        // unattributable rather than ours, so it does NOT charge the budget (#1804).
         //
         // Cancel the probe runnables BEFORE emitting the verdict, so a runnable already dequeued and
         // waiting to run cannot fire on the stale state. reset() cancels them again idempotently.
@@ -11534,9 +11906,9 @@ class WhoopBleClient(
                     stage = stage,
                     localTeardownOrigin = lastLocalTeardown,
                 ))
-                // #1804: a local teardown is not a strap verdict, so it does NOT charge the silence
-                // budget. But it DOES charge the inconclusive budget, so a strap whose every link is
-                // torn down locally does not retry forever.
+                // #1804: a local teardown cannot be attributed to either side from the status alone, so
+                // it does NOT charge the silence budget. It DOES charge the inconclusive budget, so a
+                // strap whose every link ends this way does not retry forever.
                 chargeUnbondedProbeInconclusive()
             } else {
                 log(

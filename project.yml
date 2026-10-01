@@ -21,7 +21,7 @@ settings:
     # iOS build number (CFBundleVersion). GLOBAL so the iOS app AND its widget extension inherit the
     # SAME value — they must match or iOS warns "extension version must match parent app" (#416).
     # macOS sets its own CFBundleVersion on the Strand target and is unaffected by this.
-    CURRENT_PROJECT_VERSION: "417"
+    CURRENT_PROJECT_VERSION: "429"
     SWIFT_VERSION: "5.0"
     # Emit localizable strings so Xcode auto-extracts every LocalizedStringKey into the
     # String Catalog on build (the English (US) base entries).
@@ -286,12 +286,17 @@ targets:
         # tracks BUNDLE_ID_PREFIX, and each is registered from StrandiOSApp.init before launch finishes.
         BGTaskSchedulerPermittedIdentifiers:
           - $(PRODUCT_BUNDLE_IDENTIFIER).debugexport
+          - $(PRODUCT_BUNDLE_IDENTIFIER).coachbrief
           # Best-effort fallback that writes already-banked WHOOP data to HealthKit when iOS grants
           # background time. Fresh offloads also write immediately from their completion hook.
           - $(PRODUCT_BUNDLE_IDENTIFIER).healthwriteback
           # #1538: finishes a re-score that a backgrounded offload started and could not complete. The
           # only BGProcessingTask of the three; the other two are refresh tasks.
           - $(PRODUCT_BUNDLE_IDENTIFIER).rescore
+          # #2556: the stale-battery warning needs a wake that does NOT depend on the strap. It cannot ride
+          # the re-score task, which is submitted only when a re-score is OWED, and a missing strap owes
+          # none, so that task would never run in the one case the warning exists for.
+          - $(PRODUCT_BUNDLE_IDENTIFIER).stalebattery
         NSBluetoothAlwaysUsageDescription: "reNOOP connects to your WHOOP strap to read heart rate, HRV and battery on this iPhone."
         NSLocationWhenInUseUsageDescription: "reNOOP records your route during outdoor workouts, also with the screen off, to show distance, pace and a map."
         NSHealthShareUsageDescription: "reNOOP reads your Apple Health data to compute Charge, Effort and sleep on this iPhone."

@@ -276,6 +276,9 @@ ANDROID_DIRS = [
 # take its content as the first argument here.
 ANDROID_CALL_PATTERN = re.compile(r"\b(?:Text|Snackbar|TopAppBar|setContentTitle|setContentText)\s*\(")
 ANDROID_KWARG_PATTERN = re.compile(r"\b(?:title|label|text|contentDescription|placeholder)\s*=\s*")
+ANDROID_UI_STRING_PATTERN = re.compile(
+    r"\buiString\s*\(\s*R\.string\.([A-Za-z_][A-Za-z0-9_]*)"
+)
 
 # `contentDescription = <expr>` is UI accessibility text wherever it is ASSIGNED. Unlike the general
 # kwargs it most often sits inside a `Modifier.semantics { }` lambda, whose `{` is NOT an argument
@@ -484,6 +487,51 @@ def scan_android(read: Reader | None = None) -> list[tuple[str, int, str]]:
     return findings
 
 
+def android_ui_string_concatenations(
+    read: Reader | None = None,
+) -> list[tuple[str, int, str]]:
+    """Localized Android resources immediately concatenated with another value.
+
+    Literal tails expose only the prefix to translators; dynamic tails also fix the
+    sentence order in Kotlin instead of letting a locale's positional format control
+    it. Both forms must be represented by one complete formatted resource.
+    """
+    read = read or _disk_read
+    findings: list[tuple[str, int, str]] = []
+    for base in ANDROID_DIRS:
+        if not base.exists():
+            continue
+        for path in sorted(base.rglob("*.kt")):
+            raw = read(path) or ""
+            text = _mask_comments(raw)
+            for match in ANDROID_UI_STRING_PATTERN.finditer(text):
+                open_paren = text.find("(", match.start(), match.end())
+                depth = 1
+                close_paren = open_paren + 1
+                while close_paren < len(text) and depth:
+                    if text[close_paren] == '"':
+                        close_paren = _skip_string_literal(text, close_paren)
+                        continue
+                    if text[close_paren] == "(":
+                        depth += 1
+                    elif text[close_paren] == ")":
+                        depth -= 1
+                        if depth == 0:
+                            break
+                    close_paren += 1
+                cursor = close_paren + 1
+                while cursor < len(text) and text[cursor].isspace():
+                    cursor += 1
+                if cursor >= len(text) or text[cursor] != "+":
+                    continue
+                findings.append((
+                    path.relative_to(ROOT).as_posix(),
+                    text.count("\n", 0, match.start()) + 1,
+                    match.group(1),
+                ))
+    return findings
+
+
 # Keys that are deliberately identical in every language, so their absence from a locale file is not
 # a gap. ONE definition: both the hard-gated focus locales and the #844 discovered ones subtract this,
 # and a second copy would let the two paths disagree the moment anyone adds a key here.
@@ -641,6 +689,172 @@ SWIFT_CALL_START_PATTERN = re.compile(
     r"\bString\s*\((?=\s*localized:)"
 )
 
+# Project-custom call sites that carry copy, discovered rather than listed.
+#
+# SWIFT_CALL_START_PATTERN above enumerates SwiftUI's own views plus the handful of ours somebody
+# remembered to add. Anything else taking a `LocalizedStringKey` is invisible to it, and invisibility
+# here is not cosmetic: the literal never reaches `scan_ios`, so nothing checks that it has a catalog
+# entry, and SwiftUI renders the key itself. The copy ships in English in every locale with this gate
+# green, sitting between neighbours that are translated.
+#
+# That is how PR #2530 came to add `DataPendingNote(title: "Updating last night's sleep…")` with no
+# catalog entry at all, while its author had diligently written the Android half in all eight locales.
+# `DataPendingNote` simply was not on the list.
+#
+# Discovery, not a longer list, because a list is the thing that goes stale: a new view with a
+# `LocalizedStringKey` parameter is covered the day it is written, which is the same reason
+# `shipped_apple_langs` reads locales out of the catalog instead of a constant.
+SWIFT_TYPE_DECL_PATTERN = re.compile(r"\b(?:struct|enum|(?:final\s+)?class)\s+(\w+)")
+SWIFT_LSK_PROPERTY_PATTERN = re.compile(r"\b(?:let|var)\s+(\w+)\s*:\s*LocalizedStringKey")
+SWIFT_FUNC_DECL_PATTERN = re.compile(r"\bfunc\s+(\w+)\s*(?:<[^>\n]*>)?\s*\(")
+
+
+def _swift_paren_span_end(text: str, start: int) -> int:
+    """Index just past the `)` closing the list opened before `start`.
+
+    Distinct from `_swift_argument_span_end`, which stops at the first top-level comma because its
+    callers want the FIRST argument. A declaration has to be read whole: `row(icon: String, label:
+    LocalizedStringKey)` puts the type that matters after a comma, so the first-argument span misses
+    it and the function is never discovered. That mistake made this discovery silently find only
+    types, which the tests caught.
+    """
+    depth = 1
+    i = start
+    while i < len(text) and depth:
+        ch = text[i]
+        if ch == '"':
+            i = _skip_swift_string_literal(text, i)
+            continue
+        if ch in "([{":
+            depth += 1
+        elif ch in ")]}":
+            depth -= 1
+        i += 1
+    return i
+
+
+def _mask_swift_comments(text: str) -> str:
+    """`text` with Swift comment bodies blanked, same length so offsets stay valid.
+
+    The Android path has masked comments since #540; the Apple path never did, and a quoted phrase in a
+    comment reads exactly like copy. Three findings came from prose: a `//` note explaining that
+    `"\\r\\nW" != "W"`, and two `///` comments quoting "the newest row with any recovery score" to say
+    what the code deliberately does NOT anchor on.
+    
+    The second pair is the instructive one. The comment reads "today's row (not "the newest row ...")",
+    and `row` is a discovered call name, so `row (` matched and the quoted phrase inside became its first
+    argument. Masking is the fix rather than tightening that pattern, because prose can contain any call
+    shape at all.
+
+    Separate from `_mask_comments` because that one uses the Kotlin literal skipper. Swift raw strings
+    (`#"..."#`) and multi-line `\"\"\"` literals need the Swift-aware one, or a `//` inside such a
+    literal would be blanked as a comment.
+    """
+    out = list(text)
+    i = 0
+    n = len(text)
+    while i < n:
+        ch = text[i]
+        if ch == '"':
+            i = _skip_swift_string_literal(text, i)
+            continue
+        if ch == "/" and i + 1 < n and text[i + 1] == "/":
+            while i < n and text[i] != "\n":
+                out[i] = " "
+                i += 1
+            continue
+        if ch == "/" and i + 1 < n and text[i + 1] == "*":
+            depth = 1
+            out[i] = out[i + 1] = " "
+            i += 2
+            while i < n and depth:
+                if text[i] == "/" and i + 1 < n and text[i + 1] == "*":
+                    depth += 1
+                    out[i] = out[i + 1] = " "
+                    i += 2
+                    continue
+                if text[i] == "*" and i + 1 < n and text[i + 1] == "/":
+                    depth -= 1
+                    out[i] = out[i + 1] = " "
+                    i += 2
+                    continue
+                if text[i] != "\n":
+                    out[i] = " "
+                i += 1
+            continue
+        i += 1
+    return "".join(out)
+
+
+def _swift_debug_spans(text: str) -> list[tuple[int, int]]:
+    """Byte ranges of `#if DEBUG` ... `#endif`, which are not shipped copy.
+
+    A `#Preview` lives inside one of these, and its fixture data reads exactly like copy: the skin-temp
+    preview passes `note: "Luteal range - temperature is running above your baseline."` into an engine
+    result. Auditing it would demand a catalog entry for a sentence no wearer can ever see, and pass the
+    demand on to every translator.
+
+    This matters more once custom call sites are discovered, because the literal scan descends
+    transparently through `(`, so a preview's nested initialiser argument becomes reachable from the
+    outer view's span. `test_home_i18n` caught exactly that and was right to.
+
+    Nesting is counted, so an inner `#if os(iOS)` does not end the region early.
+    """
+    spans: list[tuple[int, int]] = []
+    for m in re.finditer(r"^[ \t]*#if\s+DEBUG\b", text, re.MULTILINE):
+        depth = 1
+        i = m.end()
+        for token in re.finditer(r"^[ \t]*#(if|endif)\b", text[m.end():], re.MULTILINE):
+            depth += 1 if token.group(1) == "if" else -1
+            if depth == 0:
+                i = m.end() + token.end()
+                break
+        else:
+            i = len(text)
+        spans.append((m.start(), i))
+    return spans
+
+
+def swift_localized_key_call_names(read: "Reader | None" = None) -> frozenset[str]:
+    """Every name whose call site can carry `LocalizedStringKey` copy.
+
+    Two shapes reach a call site. A type with a stored `LocalizedStringKey` property gets it through
+    the memberwise init, so the name to watch is the TYPE (`DataPendingNote(title:)`). A function with
+    such a parameter is called by its own name (`field(_ label:)`). A computed `var x: LocalizedStringKey`
+    on an enum yields its enum name too, which is harmless: the pattern then looks for a call that does
+    not exist and finds nothing.
+
+    Takes `read` so the base-ref scan discovers the names as they were AT that ref. Using the current
+    set against base-ref sources would report a newly added view's literals on both sides and the
+    regression gate would cancel them out, which is the one way this check could quietly do nothing.
+    """
+    read = read or _disk_read
+    names: set[str] = set()
+    for dirs, _catalog_path in CATALOGS:
+        for base in dirs:
+            if not base.exists():
+                continue
+            for path in sorted(base.rglob("*.swift")):
+                text = read(path) or ""
+                if "LocalizedStringKey" not in text:
+                    continue
+                for m in SWIFT_LSK_PROPERTY_PATTERN.finditer(text):
+                    prior = [d for d in SWIFT_TYPE_DECL_PATTERN.finditer(text) if d.start() < m.start()]
+                    if prior:
+                        names.add(prior[-1].group(1))
+                for m in SWIFT_FUNC_DECL_PATTERN.finditer(text):
+                    if "LocalizedStringKey" in text[m.end():_swift_paren_span_end(text, m.end())]:
+                        names.add(m.group(1))
+    return frozenset(names)
+
+
+def swift_custom_call_pattern(names: "frozenset[str] | set[str]") -> "re.Pattern[str] | None":
+    """An alternation matching `Name(` for each discovered name, or None when there are none."""
+    if not names:
+        return None
+    return re.compile(r"\b(?:" + "|".join(re.escape(n) for n in sorted(names)) + r")\s*\(")
+
+
 # A computed property that RETURNS user-facing copy as a `String`, e.g.
 # `var label: String { ... }` on a screen's scope/mode enum.
 #
@@ -728,7 +942,7 @@ def _swift_argument_span_end(text: str, start: int) -> int:
     return i
 
 
-def swift_string_literals(text: str):
+def swift_string_literals(text: str, extra_pattern: "re.Pattern[str] | None" = None):
     """Yield (offset, literal contents) for every literal directly reachable
     in a localized SwiftUI call's FIRST argument — descends transparently
     through `(`/`[` (so `cond ? "a" : "b"` and nested calls are visible) but
@@ -742,32 +956,39 @@ def swift_string_literals(text: str):
     non-localizing `Text<S: StringProtocol>` overload, so it was always
     English regardless of device language (#540).
     """
-    for match in SWIFT_CALL_START_PATTERN.finditer(text):
-        open_paren = match.end() - 1
-        end = _swift_argument_span_end(text, open_paren + 1)
-        i = open_paren + 1
-        while i < end:
-            ch = text[i]
-            if ch == '"':
-                j = _skip_swift_string_literal(text, i)
-                yield i, text[i + 1:j - 1]
-                i = j
-                continue
-            if ch == "{":
-                depth = 1
-                i += 1
-                while i < end and depth:
-                    c2 = text[i]
-                    if c2 == '"':
-                        i = _skip_swift_string_literal(text, i)
-                        continue
-                    if c2 in "({[":
-                        depth += 1
-                    elif c2 in ")}]":
-                        depth -= 1
+    patterns = [SWIFT_CALL_START_PATTERN]
+    if extra_pattern is not None:
+        patterns.append(extra_pattern)
+    seen: set[int] = set()
+    for pattern in patterns:
+        for match in pattern.finditer(text):
+            open_paren = match.end() - 1
+            end = _swift_argument_span_end(text, open_paren + 1)
+            i = open_paren + 1
+            while i < end:
+                ch = text[i]
+                if ch == '"':
+                    j = _skip_swift_string_literal(text, i)
+                    if i not in seen:
+                        seen.add(i)
+                        yield i, text[i + 1:j - 1]
+                    i = j
+                    continue
+                if ch == "{":
+                    depth = 1
                     i += 1
-                continue
-            i += 1
+                    while i < end and depth:
+                        c2 = text[i]
+                        if c2 == '"':
+                            i = _skip_swift_string_literal(text, i)
+                            continue
+                        if c2 in "({[":
+                            depth += 1
+                        elif c2 in ")}]":
+                            depth -= 1
+                        i += 1
+                    continue
+                i += 1
 
 
 def swift_returned_copy_literals(text: str):
@@ -977,6 +1198,8 @@ def scan_ios(read: Reader | None = None) -> tuple[list[tuple[str, int, str]], di
     read = read or _disk_read
     hardcoded: list[tuple[str, int, str]] = []  # not in any catalog at all
     lang_gaps: dict[str, list[str]] = {lang: [] for lang in LANGS}
+    # Discovered with THIS reader, so a base-ref scan uses the names as they were at that ref.
+    custom_calls = swift_custom_call_pattern(swift_localized_key_call_names(read))
 
     for dirs, catalog_path in CATALOGS:
         cat_text = read(catalog_path)
@@ -985,14 +1208,21 @@ def scan_ios(read: Reader | None = None) -> tuple[list[tuple[str, int, str]], di
             if not base.exists():
                 continue
             for path in sorted(base.rglob("*.swift")):
-                text = read(path) or ""
-                literals = list(swift_string_literals(text))
+                raw = read(path) or ""
+                # Comment bodies blanked first: prose quoting a phrase is not copy, and `_mask_swift_comments`
+                # keeps the length so offsets and line numbers still refer to the real file.
+                text = _mask_swift_comments(raw)
+                literals = list(swift_string_literals(text, custom_calls))
                 # Screen files only: see `swift_returned_copy_literals` for why the same shape
                 # elsewhere (BLE opcode names, design-system internals) is not copy.
                 if "/Screens/" in path.as_posix() or "/Liquid/" in path.as_posix():
                     literals += list(swift_returned_copy_literals(text))
+                debug_spans = _swift_debug_spans(text)
                 for offset, literal in literals:
                     if not is_probably_ui_text(literal):
+                        continue
+                    # Preview fixtures are not copy; see `_swift_debug_spans`.
+                    if any(lo <= offset < hi for lo, hi in debug_spans):
                         continue
                     entry = swift_catalog_lookup(cat, literal)
                     line_no = text.count("\n", 0, offset) + 1
@@ -1348,6 +1578,15 @@ def ci_check(base_ref: str) -> int:
     else:
         print("  OK no string resource leans on edge whitespace")
 
+    concatenations = android_ui_string_concatenations()
+    if concatenations:
+        failed = True
+        print(f"FAIL {len(concatenations)} localized Android string(s) are concatenated in code:")
+        for path, line, key in concatenations[:30]:
+            print(f"  {path}:{line}: {key}")
+    else:
+        print("  OK no localized Android string is assembled by concatenation")
+
     print(f"\n--- Apple: no new un-extracted UI copy or focus-locale gaps vs {base_ref} ---")
     cur_ios, _cur_ios_lang_gaps = scan_ios()
     ios_found = {(p, lit) for p, _line, lit in cur_ios}
@@ -1549,6 +1788,13 @@ def main() -> int:
             if args.full:
                 for k in sorted(keys):
                     print(f"    {k}")
+
+        print("\n=== Android: localized resources assembled by concatenation ===")
+        concatenations = android_ui_string_concatenations()
+        if not concatenations:
+            print("  none")
+        for rel, line_no, key in concatenations:
+            print(f"  {rel}:{line_no}: {key}")
 
         print("\n=== Android: values-<locale>/strings.xml key gaps ===")
         gaps = android_strings_xml_gaps()

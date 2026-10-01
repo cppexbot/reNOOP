@@ -168,8 +168,12 @@ public func isEmptyRecordFrame(_ frame: [UInt8]) -> Bool {
 /// during a historical backfill, where type-40 frames are absent.
 /// EVENT and COMMAND_RESPONSE handling is identical to extractStreams.
 /// CRC-failed and non-ok frames are skipped.
+///
+/// Twin of Kotlin `extractHistoricalStreams`. Named here because adding `family` re-identified this
+/// function for the parity inventory, which keys on arity: the pair is unchanged, only its key moved.
 public func extractHistoricalStreams(_ parsed: [ParsedFrame],
                                      deviceClockRef: Int, wallClockRef: Int,
+                                     family: DeviceFamily? = nil,
                                      // SESSION-RELATIVE bounds (#547): the strap's own GET_DATA_RANGE
                                      // oldest/newest markers for THIS sync. nil on the replay/import/no-range
                                      // paths — the gate then falls back to the absolute-only floor (unchanged).
@@ -298,6 +302,7 @@ public func extractHistoricalStreams(_ parsed: [ParsedFrame],
             }
             if let rrs = p["rr_intervals"]?.intArrayValue {
                 let source = p["rr_source_channel"]?.intValue.flatMap(RRSourceChannel.init(rawValue:))
+                    ?? (family == .whoop4 ? .whoop4Historical : nil)
                 for rr in rrs { out.rr.append(RRInterval(ts: ts, rrMs: rr, srcChannel: source)) }
             }
             if let red = p["spo2_red"]?.intValue {

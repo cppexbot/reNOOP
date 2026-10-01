@@ -602,3 +602,229 @@ class SwiftLocalizedStringScanning(unittest.TestCase):
     def test_localized_alongside_a_view_literal(self):
         src = 'Text("Shown")\nlet x = String(localized: "Also shown")'
         self.assertEqual(self.found(src), ["Shown", "Also shown"])
+
+
+class AndroidLocalizedConcatenationAudit(unittest.TestCase):
+    """Regression coverage for #2041's partially translated sentence shape."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory(dir=ia.ROOT)
+        self.addCleanup(self.tmp.cleanup)
+        self.ui_dir = Path(self.tmp.name) / "ui"
+        self.ui_dir.mkdir()
+        self._orig_dirs = ia.ANDROID_DIRS
+        ia.ANDROID_DIRS = [self.ui_dir]
+        self.addCleanup(setattr, ia, "ANDROID_DIRS", self._orig_dirs)
+
+    def write(self, content: str) -> None:
+        (self.ui_dir / "Screen.kt").write_text(content, encoding="utf-8")
+
+    def findings(self) -> list[tuple[str, int, str]]:
+        return ia.android_ui_string_concatenations()
+
+    def test_literal_tail_found_across_lines(self):
+        self.write(
+            "Text(uiString(\n"
+            "    R.string.partial_sentence,\n"
+            ') + " hardcoded tail")\n'
+        )
+        self.assertEqual(self.findings()[0][1:], (1, "partial_sentence"))
+
+    def test_dynamic_tail_found(self):
+        self.write("Text(uiString(R.string.prefix) + value)\n")
+        self.assertEqual(self.findings()[0][1:], (1, "prefix"))
+
+    def test_positional_format_is_allowed(self):
+        self.write("Text(uiString(R.string.complete_sentence, value))\n")
+        self.assertEqual(self.findings(), [])
+
+    def test_resource_on_right_is_not_this_bug(self):
+        self.write('Text("prefix " + uiString(R.string.complete_label))\n')
+        self.assertEqual(self.findings(), [])
+
+    def test_commented_example_is_ignored(self):
+        self.write('// uiString(R.string.old_prefix) + " tail"\n')
+        self.assertEqual(self.findings(), [])
+
+
+class SwiftCustomLocalizedKeyCallSites(unittest.TestCase):
+    """A project view taking `LocalizedStringKey` is a copy call site, and has to be found as one.
+
+    SWIFT_CALL_START_PATTERN lists SwiftUI's own views plus whichever of ours somebody remembered to
+    add. Anything else taking a `LocalizedStringKey` never reached `scan_ios`, so nothing checked that
+    its literal had a catalog entry, and SwiftUI rendered the key itself: English in every locale, with
+    this audit green. PR #2530 added `DataPendingNote(title: "Updating last night's sleep…")` with no
+    catalog entry while its Android half was complete in all eight locales, because `DataPendingNote`
+    was not on the list.
+    """
+
+    def names(self, files: dict[str, str]) -> frozenset[str]:
+        """Discovery over an in-memory tree, keyed by path suffix."""
+        def read(path):
+            for suffix, text in files.items():
+                if str(path).endswith(suffix):
+                    return text
+            return None
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for suffix in files:
+                target = root / suffix
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text("")
+            original = ia.CATALOGS
+            ia.CATALOGS = [([root], root / "Localizable.xcstrings")]
+            try:
+                return ia.swift_localized_key_call_names(read)
+            finally:
+                ia.CATALOGS = original
+
+    def test_a_view_with_a_localized_key_property_is_discovered(self):
+        names = self.names({"Note.swift": (
+            "struct DataPendingNote: View {\n"
+            "    let title: LocalizedStringKey\n"
+            "    let message: LocalizedStringKey\n"
+            "}\n"
+        )})
+        self.assertIn("DataPendingNote", names)
+
+    def test_a_function_with_a_localized_key_parameter_is_discovered(self):
+        # The parameter list spans lines, which is the common shape and the one a single-line
+        # regex would miss.
+        names = self.names({"Rows.swift": (
+            "struct S: View {\n"
+            "    private func row(icon: String,\n"
+            "                     label: LocalizedStringKey,\n"
+            "                     tint: Color) -> some View { EmptyView() }\n"
+            "}\n"
+        )})
+        self.assertIn("row", names)
+
+    def test_a_type_without_localized_key_is_not_discovered(self):
+        names = self.names({"Plain.swift": (
+            "struct PlainCard: View {\n"
+            "    let title: String\n"
+            "}\n"
+        )})
+        self.assertNotIn("PlainCard", names)
+
+    def test_the_literal_at_a_discovered_call_site_is_collected(self):
+        pattern = ia.swift_custom_call_pattern({"DataPendingNote"})
+        snippet = 'DataPendingNote(title: "Updating last night\'s sleep…", symbol: "x")\n'
+        found = [lit for _o, lit in ia.swift_string_literals(snippet, pattern)]
+        self.assertIn("Updating last night's sleep…", found)
+
+    def test_without_the_pattern_the_same_literal_is_invisible(self):
+        """The regression this closes: the default scan cannot see it at all."""
+        snippet = 'DataPendingNote(title: "Updating last night\'s sleep…")\n'
+        self.assertEqual([lit for _o, lit in ia.swift_string_literals(snippet)], [])
+
+    def test_a_builtin_call_still_works_with_a_custom_pattern_supplied(self):
+        pattern = ia.swift_custom_call_pattern({"DataPendingNote"})
+        found = [lit for _o, lit in ia.swift_string_literals('Text("Save")\n', pattern)]
+        self.assertEqual(found, ["Save"])
+
+    def test_a_literal_reachable_from_both_patterns_is_yielded_once(self):
+        """Two independent scans over overlapping spans must not double-report."""
+        pattern = ia.swift_custom_call_pattern({"DataPendingNote"})
+        snippet = 'DataPendingNote(title: Text("Once"))\n'
+        found = [lit for _o, lit in ia.swift_string_literals(snippet, pattern)]
+        self.assertEqual(found, ["Once"])
+
+    def test_no_names_means_no_pattern_rather_than_an_empty_alternation(self):
+        """An empty alternation would match at every position and flag the whole file."""
+        self.assertIsNone(ia.swift_custom_call_pattern(frozenset()))
+
+
+class SwiftDebugRegionExclusion(unittest.TestCase):
+    """`#if DEBUG` is not shipped copy, and a `#Preview` inside one reads exactly like copy.
+
+    The skin-temp preview passes `note: "Luteal range - temperature is running above your baseline."`
+    into an engine result. Demanding a catalog entry for it would put a sentence no wearer can see in
+    front of every translator. This became reachable once custom call sites were discovered, because the
+    literal scan descends through `(` and a preview's nested initialiser sits inside the outer view's
+    argument span. `test_home_i18n` failed on exactly those two strings, and was right to.
+    """
+
+    def test_a_debug_region_is_spanned(self):
+        text = 'let a = 1\n#if DEBUG\nlet fixture = "Preview copy"\n#endif\nlet b = 2\n'
+        spans = ia._swift_debug_spans(text)
+        self.assertEqual(len(spans), 1)
+        offset = text.index('"Preview copy"')
+        self.assertTrue(any(lo <= offset < hi for lo, hi in spans))
+
+    def test_a_nested_directive_does_not_end_the_region_early(self):
+        text = (
+            "#if DEBUG\n"
+            "#if os(iOS)\n"
+            'let inner = "Still preview copy"\n'
+            "#endif\n"
+            'let outer = "Also preview copy"\n'
+            "#endif\n"
+        )
+        spans = ia._swift_debug_spans(text)
+        for needle in ('"Still preview copy"', '"Also preview copy"'):
+            offset = text.index(needle)
+            self.assertTrue(any(lo <= offset < hi for lo, hi in spans), needle)
+
+    def test_shipped_code_after_the_region_is_not_spanned(self):
+        text = '#if DEBUG\nlet fixture = "Preview"\n#endif\nText("Shipped")\n'
+        spans = ia._swift_debug_spans(text)
+        offset = text.index('"Shipped"')
+        self.assertFalse(any(lo <= offset < hi for lo, hi in spans))
+
+    def test_an_unterminated_region_runs_to_end_of_file(self):
+        """Malformed source must not leave later literals unspanned by accident."""
+        text = '#if DEBUG\nlet fixture = "Preview"\n'
+        spans = ia._swift_debug_spans(text)
+        self.assertEqual(spans, [(0, len(text))])
+
+    def test_a_file_with_no_debug_region_has_no_spans(self):
+        self.assertEqual(ia._swift_debug_spans('Text("Save")\n'), [])
+
+
+class SwiftCommentMasking(unittest.TestCase):
+    """Prose is not copy. The Android path has masked comments since #540; the Apple path never did.
+
+    Three findings came from comments. One was a `//` note explaining that a CRLF-prefixed kind field is
+    not equal to the bare one. The other two were `///` comments quoting "the newest row with any recovery
+    score" to say what the code deliberately does NOT anchor on, and those two are the instructive pair:
+    the comment reads `today's row (not "the newest row ...")`, and `row` is a discovered call name, so
+    `row (` matched and the quoted phrase became its first argument. Masking is the fix rather than
+    tightening that pattern, because prose can contain any call shape at all.
+    """
+
+    def test_a_line_comment_body_is_blanked_and_length_preserved(self):
+        text = 'let a = 1  // not "copy" at all\nlet b = 2\n'
+        masked = ia._mask_swift_comments(text)
+        self.assertEqual(len(masked), len(text))
+        self.assertNotIn('"copy"', masked)
+        self.assertIn("let a = 1", masked)
+        self.assertIn("let b = 2", masked)
+
+    def test_a_block_comment_is_blanked_including_nested(self):
+        text = 'let a = 1\n/* outer "x" /* inner "y" */ still outer "z" */\nlet b = 2\n'
+        masked = ia._mask_swift_comments(text)
+        for needle in ('"x"', '"y"', '"z"'):
+            self.assertNotIn(needle, masked)
+        self.assertIn("let b = 2", masked)
+
+    def test_a_double_slash_inside_a_string_is_not_a_comment(self):
+        text = 'Text("https://example.com/path")\nText("After")\n'
+        masked = ia._mask_swift_comments(text)
+        self.assertIn('"https://example.com/path"', masked)
+        self.assertIn('"After"', masked)
+
+    def test_the_quoted_phrase_in_a_comment_is_not_collected(self):
+        """The regression itself, end to end, with `row` as a discovered call name."""
+        pattern = ia.swift_custom_call_pattern({"row"})
+        text = '/// Anchoring on today\'s row (not "the newest row with any recovery score") is the fix.\n'
+        raw = [lit for _o, lit in ia.swift_string_literals(text, pattern)]
+        self.assertIn("the newest row with any recovery score", raw)  # visible without masking
+        masked = ia._mask_swift_comments(text)
+        self.assertEqual([lit for _o, lit in ia.swift_string_literals(masked, pattern)], [])
+
+    def test_real_copy_after_a_comment_survives(self):
+        pattern = ia.swift_custom_call_pattern({"DataPendingNote"})
+        text = '// a note mentioning "something"\nDataPendingNote(title: "Real copy")\n'
+        masked = ia._mask_swift_comments(text)
+        self.assertEqual([lit for _o, lit in ia.swift_string_literals(masked, pattern)], ["Real copy"])

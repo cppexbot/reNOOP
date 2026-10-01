@@ -22,6 +22,9 @@ struct DeveloperSettingsPage: View {
     /// #927: arm it only inside the quiet-hours window. The default MUST match
     /// `PuffinExperiment.continuousHrvOvernightOnlyEnabled` (#1008).
     @AppStorage(PuffinExperiment.continuousHrvOvernightOnlyKey) private var continuousHrvOvernightOnly = true
+    /// Item 27 (Experimental, default OFF): hold an Oura ring in daytime-HR mode all day, standing down
+    /// only for the learned night. No effect without an Oura ring.
+    @AppStorage(AppModel.ouraAllDayLiveHRKey) private var ouraAllDayLiveHREnabled = false
     /// The strap model last picked; gates the WHOOP 4.0-only rename.
     @AppStorage("selectedWhoopModel") private var selectedWhoopModelRaw = WhoopModel.whoop4.rawValue
 
@@ -88,6 +91,12 @@ struct DeveloperSettingsPage: View {
             }
         } header: {
             Text("HRV")
+        }
+
+        Section {
+            Toggle("All-day heart rate", isOn: $ouraAllDayLiveHREnabled)
+        } header: {
+            Text("Oura ring")
         }
     }
 

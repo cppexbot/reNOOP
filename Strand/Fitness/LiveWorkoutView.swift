@@ -183,9 +183,12 @@ struct LiveWorkoutView: View {
                     TimelineView(.periodic(from: Date(timeIntervalSince1970: floor(Date().timeIntervalSince1970)), by: 1)) { ctx in
                         panelClock(at: ctx.date, paused: paused, hundredths: false)
                     }
+                } else if paused {
+                    // A paused clock does not move: drawn once, since a paused timeline still costs frames.
+                    panelClock(at: Date(), paused: true, hundredths: true)
                 } else {
-                    TimelineView(.animation(minimumInterval: 0.05, paused: paused)) { ctx in
-                        panelClock(at: ctx.date, paused: paused, hundredths: true)
+                    TimelineView(.animation(minimumInterval: 0.05)) { ctx in
+                        panelClock(at: ctx.date, paused: false, hundredths: true)
                     }
                 }
             },
