@@ -1,6 +1,7 @@
 # Handbook for agents porting Denis's iOS redesign to Android (Material 3)
 
-Repo: `/Users/ant1/Documents/reNOOP` (fork "reNOOP" of NOOP, a WHOOP-strap companion app). Read `AGENTS.md` first
+Repo: `/Users/ant1/Documents/reNOOP` on the Mac, `B:\reNOOP` on the Windows PC (see "On the Windows PC" at the
+end for the PC's paths and commands) — fork "reNOOP" of NOOP, a WHOOP-strap companion app. Read `AGENTS.md` first
 (hard rules: offline, no telemetry, BLE safety, design tokens only, migrations, cross-platform parity).
 
 ## What we are doing
@@ -93,3 +94,44 @@ anatomy; fix what is off. If the emulator is not running, say so in your report 
 ## Report back
 End with: commits made (sha + subject), what each screen now shows, screenshots taken (paths), known gaps /
 things you could not port and why, test results. Keep it factual; do not claim a check you did not run.
+
+## On the Windows PC
+Same rules; only paths and commands differ. Shell = Git Bash (POSIX), paths like `/b/reNOOP`.
+- Repo `B:\reNOOP` (`/b/reNOOP`), branch `android-m3`. A parallel task works in its own worktree
+  (`/b/reNOOP-wt/<task>`, branch `m3-<task>`); the orchestrator merges it into `android-m3` and pushes.
+  Task agents commit on their branch and never push.
+- JDK: `export JAVA_HOME=/b/tools/jdk-21` (Temurin 21). Android Studio's bundled JBR here is Java 25, which
+  Gradle 8.7 refuses ("What went wrong: 25.0.3").
+- `android/local.properties` (not committed): `sdk.dir=C:/Users/rusik/AppData/Local/Android/Sdk`.
+- Python is `python` (3.12), not `python3` (that name is the Microsoft Store stub):
+  `python SCRATCH/tools/addstr.py add …`.
+- The checkout uses `core.autocrlf=false` (LF, as on the Mac). With Git for Windows' default CRLF, tests that
+  read sources or compare files (GlowRingFlatArcTest, WhoopDatabaseUpgradeTest) fail. Keep it that way in every
+  worktree.
+- Git Bash rewrites `/data/...` and `/sdcard/...` arguments into Windows paths: run adb with
+  `MSYS_NO_PATHCONV=1` whenever an argument is a device path.
+- Windows-only test failures (file locking and read-only directories behave differently): StrapLogArchiveTest
+  x4, WhoopDatabaseUpgradeTest.previousReleasedSchemaOpensThroughTheProductionMigrationChain. Ignore them here.
+```
+cd /b/reNOOP/android && export JAVA_HOME=/b/tools/jdk-21
+./gradlew assembleDemoDebug --console=plain -q 2>&1 | grep -E '^e: |error:|FAIL' | head -40
+JAVA_TOOL_OPTIONS="-Duser.language=en -Duser.country=US" ./gradlew testFullDebugUnitTest --continue --console=plain 2>&1 | grep -E 'tests completed| FAILED$'
+```
+The PC has 40 GB RAM and 16 cores: up to three Gradle builds may run at once, each in its own worktree; still only
+one Gradle process per worktree.
+Emulator: AVD `Pixel_8_Pro` (API 37). `adb` is on PATH; with more than one device, pass `-s emulator-5554` (or the
+serial the orchestrator gives you) to every adb command.
+```
+adb -s emulator-5554 install -r app/build/outputs/apk/demo/debug/app-demo-debug.apk
+adb -s emulator-5554 shell am start -n com.renoop.whoop.demo.debug/com.noop.ui.MainActivity
+mkdir -p "$TEMP/renoop-shots" && adb -s emulator-5554 exec-out screencap -p > "$TEMP/renoop-shots/<name>.png"
+```
+A fresh install shows the terms gate (tick all four, Accept) and then 12 onboarding steps. To land on the
+Summary instead, mark onboarding done in the demo app's prefs and relaunch:
+```
+export MSYS_NO_PATHCONV=1; P=com.renoop.whoop.demo.debug
+adb shell am force-stop $P; adb shell run-as $P cat shared_prefs/noop_prefs.xml > "$TEMP/p.xml"
+sed -i 's#</map>#    <boolean name="noop.onboarded" value="true" />\n    <string name="noop.lastSeenChangelogVersion">11.8.0</string>\n</map>#' "$TEMP/p.xml"
+adb push "$(cygpath -w "$TEMP/p.xml")" /data/local/tmp/p.xml && adb shell run-as $P cp /data/local/tmp/p.xml shared_prefs/noop_prefs.xml
+```
+(`11.8.0` = `AppChangelog.CURRENT_VERSION`; it keeps the What's New sheet away.)

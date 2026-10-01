@@ -15,7 +15,11 @@ Existing names are replaced in place (all locales), so re-running is safe.
 """
 import json, re, sys, pathlib, html
 
-REPO = pathlib.Path('/Users/ant1/Documents/reNOOP')
+# The repo root, wherever it is checked out (Mac or PC): tools/ -> port/ -> plans/ -> superpowers/ -> docs/ -> root.
+REPO = pathlib.Path(__file__).resolve().parents[5]
+# Windows consoles default to a legacy code page; translations must print as UTF-8.
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
 RES = REPO / 'android/app/src/main/res'
 LOCALES = {  # android folder suffix -> xcstrings code
     'de': 'de', 'es': 'es', 'fr': 'fr', 'it': 'it', 'pl': 'pl', 'pt-rPT': 'pt-PT', 'ru': 'ru', 'zh': 'zh-Hans',
@@ -26,7 +30,7 @@ _cat = None
 def catalogue():
     global _cat
     if _cat is None:
-        _cat = json.load(open(REPO / 'Strand/Resources/Localizable.xcstrings'))['strings']
+        _cat = json.load(open(REPO / 'Strand/Resources/Localizable.xcstrings', encoding='utf-8'))['strings']
     return _cat
 
 def ios_value(key, code):
@@ -66,14 +70,15 @@ def escape(v):
     return v
 
 def upsert(path, name, value):
-    s = path.read_text(encoding='utf-8')
+    # Bytes in, bytes out: no newline translation, so a checkout's line endings stay as they are.
+    s = path.read_bytes().decode('utf-8')
     line = f'    <string name="{name}">{escape(value)}</string>'
     pat = re.compile(r'^\s*<string name="' + re.escape(name) + r'"[^>]*>.*?</string>\s*$', re.M | re.S)
     if pat.search(s):
         s = pat.sub(line, s, count=1)
     else:
         s = s.replace('</resources>', line + '\n</resources>')
-    path.write_text(s, encoding='utf-8')
+    path.write_bytes(s.encode('utf-8'))
 
 def add(entry):
     name, en = entry['name'], entry['en']
@@ -115,7 +120,7 @@ def main():
             entry[ARG_KEYS.get(k, k)] = rest[i + 1]
         sys.exit(0 if add(entry) else 1)
     if a[0] == 'addjson':
-        entries = json.load(open(a[1]))
+        entries = json.load(open(a[1], encoding='utf-8'))
         ok = all([add(e) for e in entries])
         sys.exit(0 if ok else 1)
 
