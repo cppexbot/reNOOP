@@ -240,11 +240,8 @@ fun NotificationsSettingsScreen(vm: AppViewModel) {
     var voipCallsEnabled by remember { mutableStateOf(NotifPrefs.getBool(context, NotifPrefs.CALLS_VOIP, false)) }
     var alarmTimerEnabled by remember { mutableStateOf(NotifPrefs.getBool(context, NotifPrefs.ALARM_TIMER, false)) }
     var callsPattern by remember { mutableStateOf(NotifPrefs.callPattern(context)) }
-    // Scheduled report notifications (#517) — opt-in, default OFF. SharedPreferences isn't reactive, so
-    // each Switch mirrors into local state and writes straight through to NoopPrefs.
-    var morningReport by remember { mutableStateOf(NoopPrefs.morningReportEnabled(context)) }
-    var postWorkoutReport by remember { mutableStateOf(NoopPrefs.postWorkoutReportEnabled(context)) }
-    var strainTargetReport by remember { mutableStateOf(NoopPrefs.strainTargetEnabled(context)) }
+    // The scheduled phone reports (#517) moved to Settings > Notifications > Alerts with the other phone
+    // alerts; this page is the wrist half only.
     var phonePermissionDenied by remember { mutableStateOf(false) }
     val phonePermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -268,7 +265,7 @@ fun NotificationsSettingsScreen(vm: AppViewModel) {
     val enabledCount = enabledState.values.count { it }
 
     ScreenScaffold(
-        title = uiString(R.string.l10n_notifications_settings_screen_notifications_753a22b2),
+        title = uiString(R.string.l10n_notifications_settings_screen_wrist_alerts_75581d51),
         subtitle = "Buzz your strap when these apps notify you. Everything runs on this device.",
     ) {
         // MARK: Master card
@@ -473,52 +470,6 @@ fun NotificationsSettingsScreen(vm: AppViewModel) {
                     Spacer(Modifier.weight(1f))
                 }
             }
-        }
-
-        // MARK: Daily reports (#517) — phone notifications, not wrist buzzes. Opt-in, default OFF, no AI.
-        AlertSection(
-            icon = Icons.Filled.NotificationsActive,
-            title = uiString(R.string.l10n_notifications_settings_screen_daily_reports_c1a22a74),
-            blurb = "Optional phone notifications, off by default. These arrive after your strap syncs " +
-                "and reNOOP scores the data, so they land soon after, not the exact second you wake or " +
-                "finish a workout. Everything is worked out on this phone.",
-        ) {
-            FormToggleRow(
-                label = uiString(R.string.l10n_notifications_settings_screen_morning_recap_45ec05c5),
-                help = "After last night is processed, a notification with your Charge and Rest. Posts " +
-                    "once a day, after your strap has synced the night.",
-                checked = morningReport,
-                onChange = {
-                    morningReport = it
-                    NoopPrefs.setMorningReportEnabled(context, it)
-                },
-            )
-            RowDivider()
-            FormToggleRow(
-                label = uiString(R.string.l10n_notifications_settings_screen_post_workout_summary_13e488f5),
-                help = "When a new workout syncs in, a notification with its Effort, duration and average " +
-                    "heart rate. Shows up after the session reaches reNOOP on the next sync.",
-                checked = postWorkoutReport,
-                onChange = {
-                    postWorkoutReport = it
-                    NoopPrefs.setPostWorkoutReportEnabled(context, it)
-                    // Seed the frontier to the newest existing workout when turning ON, so enabling it
-                    // doesn't immediately fire a summary for a session already in history.
-                    if (it) vm.seedWorkoutReportFrontier()
-                },
-            )
-            RowDivider()
-            // #593: NOOP's own optimal-strain-reached nudge (not WHOOP's copy).
-            FormToggleRow(
-                label = uiString(R.string.l10n_notifications_settings_screen_optimal_strain_reached_2862ec2b),
-                help = "Once a day, a notification when your Effort reaches the low end of today's optimal " +
-                    "strain range (from your recovery). Posts after your strap syncs and reNOOP scores the day.",
-                checked = strainTargetReport,
-                onChange = {
-                    strainTargetReport = it
-                    NoopPrefs.setStrainTargetEnabled(context, it)
-                },
-            )
         }
     }
 }

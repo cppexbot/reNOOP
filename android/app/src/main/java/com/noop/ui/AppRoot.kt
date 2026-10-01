@@ -43,6 +43,7 @@ import com.noop.ui.metric.MetricAllDataScreen
 import com.noop.ui.metric.MetricDescriptor
 import com.noop.ui.metric.MetricDetailScreen
 import com.noop.ui.metric.metricRoute
+import com.noop.ui.settings.settingsGraph
 import com.noop.ui.sleep.SleepActions
 import com.noop.ui.sleep.SleepHighlightsScreen
 import com.noop.ui.sleep.SleepMoreDataScreen
@@ -95,7 +96,6 @@ internal enum class Destination(val route: String) {
     TrainingLoad("training_load"),
     FullDay("full_day"),
     Hydration("hydration"),
-    AppleHealth("apple_health"),
     Automations("automations"),
     // The Sleep tab's pages: More Sleep Data on a night (offset 0 = newest), a night's Vitals, Sleep
     // Highlights, and the Sleep Schedule (the one alarm surface, which replaced the Alarms screen).
@@ -103,13 +103,15 @@ internal enum class Destination(val route: String) {
     SleepVitals("sleep_vitals/{day}"),
     SleepHighlights("sleep_highlights/{offset}"),
     SleepSchedule("sleep_schedule"),
-    NoopLimitations("noop_limitations"),
+    // Settings > Import and Settings > Backup (also opened from Devices and a metric page).
     DataSources("data_sources"),
     BackupSync("backup_sync"),
+    // Settings > Notifications > Wrist alerts.
     Notifications("notifications"),
     PowerSaving("power_saving"),
+    // The Settings root; its own pages register in ui/settings/SettingsGraph.kt.
     Settings("settings"),
-    // Experimental: reachable only through Settings > Advanced.
+    // Experimental: reachable only through Settings > Developer.
     SelfHostedPush("self_hosted_push"),
     // Shared by the Settings row and a blank WHOOP 4.0 Steps tile (#1515).
     StepsCalibration("steps_calibration"),
@@ -302,7 +304,6 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
             composable(Destination.TrainingLoad.route) { TrainingLoadScreen(viewModel, onBack = { nav.popBackStack() }) }
             composable(Destination.FullDay.route) { FullDayChartScreen(vm = viewModel, onBack = { nav.popBackStack() }) }
             composable(Destination.Hydration.route) { HydrationScreen(viewModel) }
-            composable(Destination.AppleHealth.route) { AppleHealthScreen(viewModel) }
             composable(Destination.Automations.route) { AutomationsScreen(viewModel) }
             composable(Destination.SleepMoreData.route, arguments = listOf(navArgument("offset") { type = NavType.IntType })) { entry ->
                 SleepMoreDataScreen(viewModel, entry.arguments?.getInt("offset") ?: 0, onBack = { nav.popBackStack() })
@@ -319,21 +320,10 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                 SleepHighlightsScreen(viewModel, entry.arguments?.getInt("offset") ?: 0, onBack = { nav.popBackStack() })
             }
             composable(Destination.SleepSchedule.route) { SleepScheduleScreen(viewModel, onBack = { nav.popBackStack() }) }
-            composable(Destination.DataSources.route) { DataSourcesScreen(viewModel) }
-            composable(Destination.NoopLimitations.route) { NoopLimitationsScreen() }
-            composable(Destination.BackupSync.route) { BackupSyncScreen() }
             composable(Destination.Notifications.route) { NotificationsSettingsScreen(viewModel) }
             composable(Destination.PowerSaving.route) { PowerSavingScreen(viewModel) }
-            composable(Destination.Settings.route) {
-                SettingsScreen(
-                    viewModel,
-                    onOpenTestCentre = { nav.push(Destination.TestCentre.route) },
-                    onOpenBackupSync = { nav.push(Destination.BackupSync.route) },
-                    onOpenSelfHostedPush = { nav.push(Destination.SelfHostedPush.route) },
-                    onOpenStepsCalibration = { nav.push(Destination.StepsCalibration.route) },
-                    onOpenScreen = { nav.push(it.route) },
-                )
-            }
+            // Settings and its pages, with Import (DataSources) and Backup (BackupSync).
+            settingsGraph(viewModel, open = { nav.push(it) }, back = { nav.popBackStack() })
             composable(Destination.StepsCalibration.route) {
                 val profile = remember(context) { ProfileStore.from(context) }
                 var revision by remember { mutableStateOf(0) }
