@@ -19,7 +19,7 @@ palette (Charge green, Effort blue, Rest violet); the Summary offers two layouts
 | 02 Metric page, All Metrics, Trends | done | 3f6e4e2b, 097122d1 |
 | 03 Summary (A/B) replacing Today | done | 052c956e, 2021324b, 531311f8 |
 | 04 Sleep, Vitals, More Sleep Data, Sleep Schedule | done (WIP 8246e461 finished on the PC, merged with main's sleep fixes) | 8246e461 + merge |
-| 05 Workouts | todo | |
+| 05 Workouts | done on branch m3-05-workouts (no Lift Log / gym session on Android; the route map is the offline drawing, no tiles) | e3462f91, 9046e481 |
 | 06 Settings | todo | |
 | 07 Coach, Devices, Onboarding | todo | |
 | 08 Heart Rate, Mindfulness, Journal, What Moves You, Lab Results | todo | |
