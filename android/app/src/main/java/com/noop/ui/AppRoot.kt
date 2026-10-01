@@ -247,7 +247,7 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
             }
             composable(Destination.Coach.route) {
                 // A normal push, so Back returns to the conversation (#2243).
-                CoachScreen(onOpenSettings = { nav.push(Destination.CoachSettings.route) })
+                CoachScreen(onBack = { nav.popBackStack() }, onOpenSettings = { nav.push(Destination.CoachSettings.route) })
             }
             composable(Destination.CoachSettings.route) {
                 // The SAME CoachViewModel the conversation is using, not a fresh one: `viewModel()` resolves
@@ -255,7 +255,7 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                 // against a second instance would leave the conversation sending on the old one. Coach is
                 // always below this entry: it is reachable only from the strip on that screen.
                 val coachEntry = remember(it) { nav.getBackStackEntry(Destination.Coach.route) }
-                CoachSettingsScreen(vm = viewModel(coachEntry))
+                CoachSettingsScreen(vm = viewModel(coachEntry), onBack = { nav.popBackStack() })
             }
             composable(Destination.Insights.route) {
                 InsightsScreen(viewModel, onOpenInsightsHub = { nav.openInTab(MainTab.Browse, Destination.InsightsHub.route) })

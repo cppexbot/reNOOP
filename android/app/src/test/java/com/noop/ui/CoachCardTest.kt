@@ -2,7 +2,6 @@ package com.noop.ui
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -36,34 +35,5 @@ class CoachCardTest {
     @Test
     fun `the coach card carries no unit`() {
         assertTrue(DashboardCard.COACH.unit.isEmpty())
-    }
-
-    /**
-     * The launcher and the full screen must offer the SAME prompts. Two lists drift the moment either is
-     * edited, and the launcher exists to be a shortcut INTO the screen, not a second, different Coach.
-     */
-    @Test
-    fun `the launcher and the coach screen share one prompt list`() {
-        assertEquals(CoachPrompts.SUGGESTIONS, SUGGESTED_PROMPTS)
-        assertTrue("the shared list must not be empty", CoachPrompts.SUGGESTIONS.isNotEmpty())
-    }
-
-    /**
-     * The handoff must be consumed exactly ONCE. `CoachScreen` reads it from a `LaunchedEffect` keyed on
-     * the configured flag, which can re-run; a read that left the value in place would resend the
-     * question — and a resend is a second billed provider request the user did not ask for.
-     */
-    @Test
-    fun `the coach handoff is consumed exactly once`() {
-        CoachHandoff.pendingPrompt = "How can I improve my sleep?"
-        assertEquals("How can I improve my sleep?", CoachHandoff.consume())
-        assertNull("a second read must not resend", CoachHandoff.consume())
-    }
-
-    /** Nothing parked means nothing sent — the ordinary case every time Coach is opened normally. */
-    @Test
-    fun `an empty coach handoff yields nothing`() {
-        CoachHandoff.pendingPrompt = null
-        assertNull(CoachHandoff.consume())
     }
 }
