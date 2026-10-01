@@ -2913,7 +2913,7 @@
     <string name="devices_tap_sleep_mark">Zapisz znak snu</string>
     <string name="devices_tap_buzz_time">Zagraj w czas</string>
     <string name="devices_reads_live_hr">Tętno na żywo</string>
-    <string name="devices_reads_hrv">HRV (rMSSD)</string>
+    <string name="devices_reads_hrv">Zmienność rytmu serca (rMSSD)</string>
     <string name="devices_reads_sleep">Inscenizacja snu</string>
     <string name="devices_reads_recovery">Regeneracja i wysiłek</string>
     <string name="devices_reads_resp">Częstość oddechów</string>

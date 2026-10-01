@@ -606,11 +606,12 @@ private fun BubbleRow(
     }
 }
 
-/** The three-dot typing bubble, breathing while a reply is on its way. */
+/** The three-dot typing bubble, breathing while a reply is on its way; posed still (stepped dots) under
+ *  Remove animations or battery saver (#909). */
 @Composable
 private fun TypingBubble() {
     val label = stringResource(R.string.coach_thinking)
-    val transition = rememberInfiniteTransition(label = "typing")
+    val still = rememberPoseStill()
     Row(Modifier.fillMaxWidth().padding(top = 10.dp)) {
         Row(
             modifier = Modifier
@@ -620,13 +621,14 @@ private fun TypingBubble() {
                 .clearAndSetSemantics { contentDescription = label },
             horizontalArrangement = Arrangement.spacedBy(5.dp),
         ) {
+            val transition = if (still) null else rememberInfiniteTransition(label = "typing")
             repeat(3) { i ->
-                val alpha by transition.animateFloat(
+                val alpha = transition?.animateFloat(
                     initialValue = 0.3f,
                     targetValue = 1f,
                     animationSpec = infiniteRepeatable(tween(600, delayMillis = i * 180), RepeatMode.Reverse),
-                    label = "dot$i",
-                )
+                    label = "typingDot",
+                )?.value ?: (1f - i * 0.35f)
                 Box(
                     Modifier
                         .size(8.dp)

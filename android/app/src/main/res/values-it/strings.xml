@@ -2855,7 +2855,7 @@
     <string name="devices_tap_sleep_mark">Registra un segno di sonno</string>
     <string name="devices_tap_buzz_time">Vibra l\'ora</string>
     <string name="devices_reads_live_hr">Frequenza cardiaca in diretta</string>
-    <string name="devices_reads_hrv">HRV (rMSSD)</string>
+    <string name="devices_reads_hrv">Variabilità cardiaca (rMSSD)</string>
     <string name="devices_reads_sleep">Fasi del sonno</string>
     <string name="devices_reads_recovery">Recupero e sforzo</string>
     <string name="devices_reads_resp">Frequenza respiratoria</string>

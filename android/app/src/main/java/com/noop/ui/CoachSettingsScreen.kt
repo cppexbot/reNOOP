@@ -128,9 +128,10 @@ private fun ConnectionSection(vm: CoachViewModel, configured: Boolean, onConnect
     val authHeader by vm.customAuthHeader.collectAsStateWithLifecycle()
     val customConnected by vm.customConnected.collectAsStateWithLifecycle()
     val error by vm.error.collectAsStateWithLifecycle()
-    @Suppress("UNUSED_VARIABLE") val keyVersion by vm.keyVersion.collectAsStateWithLifecycle()
+    val keyVersion by vm.keyVersion.collectAsStateWithLifecycle()
     val isCustom = provider == AiProvider.CUSTOM
-    val hasKey = vm.hasKey(context)
+    // Re-read whenever a key is saved or cleared (and per provider: a key belongs to one provider).
+    val hasKey = remember(keyVersion, provider) { vm.hasKey(context) }
 
     // Pending key text (never persisted here, handed to saveKey). Also the repair for a rejected key:
     // saveKey replaces the stored key and keeps the transcript.
