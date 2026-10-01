@@ -65,9 +65,9 @@ object Palette {
     /** True when the light scheme is active (surface code uses this for the per-scheme idiom). */
     val isLight: Boolean get() = activeIsLight
 
-    // Chart style — when CLASSIC, the DATA accessors below return the throwback red→green ramps
-    // (light/dark tuned). Reads ChartStylePrefs.style (snapshot state) so a flip re-colours live.
-    val isClassic: Boolean get() = ChartStylePrefs.style == ChartStyle.CLASSIC
+    // Chart style — the in-app "Classic" chart colours went with the in-app Appearance controls (the app
+    // follows the system and Material You now), so a stored CLASSIC no longer re-colours anything.
+    val isClassic: Boolean get() = false
     private val classic: ClassicRamp get() = if (isLight) ClassicLight else ClassicDark
 
     // Surfaces.
@@ -95,25 +95,12 @@ object Palette {
     // Glow.
     val glowAmbient get() = active.glowAmbient
 
-    // Accent — user-selectable chrome anchor (mint default / WHOOP blue / custom). Chrome ONLY; the
-    // recovery/strain/sleep DATA worlds are never themed by this. Reads AccentPrefs snapshot state so a
-    // change is live. Twin of macOS StrandPalette.accent* branching on AccentColor.
-    val accent get() = when (AccentPrefs.color) {
-        AccentColor.MINT -> active.accent
-        AccentColor.WHOOP_BLUE -> if (isLight) Color(0xFF234F9E) else Color(0xFF60A0E0)
-        AccentColor.CUSTOM -> AccentColor.parseHex(AccentPrefs.customHex, active.accent)
-    }
-    val accentHover get() = when (AccentPrefs.color) {
-        AccentColor.MINT -> active.accentHover
-        AccentColor.WHOOP_BLUE -> if (isLight) Color(0xFF3A6FC0) else Color(0xFF8FBEEC)
-        AccentColor.CUSTOM -> AccentColor.lighten(AccentPrefs.customHex)
-    }
-    val accentMuted get() = when (AccentPrefs.color) {
-        AccentColor.MINT -> active.accentMuted
-        AccentColor.WHOOP_BLUE -> (if (isLight) Color(0xFF234F9E) else Color(0xFF60A0E0)).copy(alpha = 0.18f)
-        AccentColor.CUSTOM -> AccentColor.parseHex(AccentPrefs.customHex, active.accent).copy(alpha = 0.18f)
-    }
-    val focusRing get() = if (AccentPrefs.color == AccentColor.MINT) active.focusRing else accent
+    // Accent — the chrome anchor, bridged from the Material You scheme. The in-app accent picker (mint /
+    // WHOOP blue / custom) went with the Appearance controls, so a stored choice no longer applies.
+    val accent get() = active.accent
+    val accentHover get() = active.accentHover
+    val accentMuted get() = active.accentMuted
+    val focusRing get() = active.focusRing
     const val disabledOpacity = 0.45f
 
     // Recovery / Charge gradient.
@@ -634,18 +621,14 @@ private val ReNoopShapes = Shapes(
 )
 
 /**
- * NoopTheme — Material You. Light/dark follows the system (the legacy in-app Appearance preference is
- * still honoured until Settings drops it, as iOS did). Publishes the scheme to `MaterialTheme`, the
+ * NoopTheme — Material You. Light/dark follows the system, as on iOS: the in-app Appearance controls are
+ * gone and a stored theme mode is ignored. Publishes the scheme to `MaterialTheme`, the
  * fixed data hues to [LocalHealthColors] / [LocalTonalIcons], and the bridged tokens to `Palette.active`
  * (guarded + idempotent, written before children compose, so there is no flash and no loop).
  */
 @Composable
 fun NoopTheme(content: @Composable () -> Unit) {
-    val dark = when (AppearancePrefs.mode) {
-        AppearanceMode.LIGHT -> false
-        AppearanceMode.DARK -> true
-        AppearanceMode.SYSTEM -> isSystemInDarkTheme()
-    }
+    val dark = isSystemInDarkTheme()
     val context = LocalContext.current
     val scheme = remember(dark, context) { reNoopColorScheme(context, dark) }
     val tokens = remember(scheme, dark) { bridgeTokens(if (dark) DarkTokens else LightTokens, scheme) }
