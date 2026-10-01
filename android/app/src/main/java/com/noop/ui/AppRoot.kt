@@ -258,7 +258,7 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                 CoachSettingsScreen(vm = viewModel(coachEntry))
             }
             composable(Destination.Insights.route) {
-                InsightsScreen(viewModel, onOpenInsightsHub = { nav.openInTab(MainTab.Browse, Destination.InsightsHub.route) })
+                com.noop.ui.journal.JournalScreen(vm = viewModel, onBack = { nav.popBackStack() })
             }
             composable(Destination.LabBook.route) { LabBookScreen(viewModel) }
             composable(Destination.Trends.route) {
