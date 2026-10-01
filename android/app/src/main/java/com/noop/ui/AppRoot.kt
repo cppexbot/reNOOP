@@ -271,7 +271,11 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
             }
             composable(Destination.InsightsHub.route) { InsightsHubScreen(viewModel) }
             composable(Destination.Devices.route) {
-                DevicesScreen(viewModel, onUseFileImport = { nav.push(Destination.DataSources.route) })
+                DevicesScreen(
+                    viewModel,
+                    onBack = { nav.popBackStack() },
+                    onUseFileImport = { nav.push(Destination.DataSources.route) },
+                )
             }
             composable(Destination.Live.route) {
                 LiveScreen(viewModel = viewModel, onManageDevices = { nav.openInTab(MainTab.Browse, Destination.Devices.route) })
