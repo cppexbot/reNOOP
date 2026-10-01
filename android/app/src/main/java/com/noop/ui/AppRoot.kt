@@ -1,33 +1,18 @@
 package com.noop.ui
 
 import androidx.activity.compose.BackHandler
-import androidx.annotation.StringRes
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.filled.Air
-import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.MonitorHeart
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationDrawerItem
-import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -36,10 +21,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -57,11 +40,11 @@ import com.noop.push.SelfHostedPushScreen
 import com.noop.ui.metric.ALL_METRICS_ROUTE
 import com.noop.ui.metric.AllMetricsScreen
 import com.noop.ui.metric.MetricAllDataScreen
-import com.noop.ui.metric.MetricCatalog
 import com.noop.ui.metric.MetricDescriptor
 import com.noop.ui.metric.MetricDetailScreen
 import com.noop.ui.metric.metricRoute
-import com.noop.ui.metric.metricRouteForLegacyKey
+import com.noop.ui.summary.SummaryActions
+import com.noop.ui.summary.SummaryScreen
 import com.noop.ui.trends.TrainingLoadScreen
 import com.noop.ui.trends.TrendsScreen
 
@@ -73,7 +56,7 @@ import com.noop.ui.trends.TrendsScreen
 // exactly as it was left. Re-selecting the active tab pops it to its root, or scrolls a root that is
 // already showing back to the top. Screens outside the three main tabs are Browse rows and push inside
 // Browse; Settings pushes on the Summary from its avatar. A request from elsewhere (a Today card opening
-// Coach, a quick action, an Updates inbox link) selects the tab the screen lives in and pushes it there,
+// Coach, a Summary card opening the Sleep tab) selects the tab the screen lives in and pushes it there,
 // as a tap on its row would.
 
 /** A NavHost destination, by the stable route string it is registered under. */
@@ -150,13 +133,6 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
     val scrollTop = remember { mutableStateListOf(*Array(MainTab.entries.size) { 0 }) }
 
     val context = LocalContext.current
-    // The Updates inbox (opened from the quick-actions sheet). A process singleton, so the Today cards and
-    // the import path post to the same inbox this sheet renders.
-    val updateStore = remember { UpdateStore.from(context) }
-    var showQuickActions by remember { mutableStateOf(false) }
-    var showUpdatesInbox by remember { mutableStateOf(false) }
-    // #984: the changelog a What's New inbox row opens. Held here so it outlives the inbox sheet.
-    var showWhatsNewFromInbox by remember { mutableStateOf(false) }
     // The running workout's full-screen recording, presented over whichever tab is showing (iOS presents it
     // from the root the same way). Guarded on an active workout so it never opens empty.
     var showActiveWorkout by remember { mutableStateOf(false) }
@@ -210,31 +186,26 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
         ) {
             // --- Tab roots ---
             tabRoot(MainTab.Summary, scrollTop) {
-                TodayScreen(
-                    viewModel = viewModel,
-                    // The "+" in the Today header opens the quick-actions sheet this shell presents.
-                    onQuickActions = { showQuickActions = true },
-                    updateStore = updateStore,
-                    onOpenUpdates = { showUpdatesInbox = true },
-                    // The profile avatar pushes Settings on the Summary (iOS: Summary avatar -> Settings).
-                    onOpenSettings = { nav.push(Destination.Settings.route) },
-                    onOpenHydration = { nav.push(Destination.Hydration.route) },
-                    // The Stress screen folded into the Stress metric page (iOS parity).
-                    onOpenStress = { nav.push(metricRoute("stress", MetricCatalog.WHOOP)) },
-                    // The Health screen is gone (iOS parity); its stale route lands on All Metrics.
-                    onOpenHealth = { nav.push(Destination.AllMetrics.route) },
-                    // Every metric card opens that metric's page.
-                    onOpenMetric = { key -> nav.push(metricRouteForLegacyKey(key)) },
-                    onOpenStepsCalibration = { nav.push(Destination.StepsCalibration.route) },
-                    onOpenSleep = { nav.showTabRoot(MainTab.Sleep) },
-                    onOpenCoach = { nav.openCoach() },
-                    // The "workout in progress" card: the Workouts tab, with the recording over it.
-                    onOpenActiveWorkout = {
-                        nav.showTabRoot(MainTab.Workouts)
-                        showActiveWorkout = true
-                    },
-                    onOpenDevices = { nav.openInTab(MainTab.Browse, Destination.Devices.route) },
-                    onOpenJournal = { nav.openInTab(MainTab.Browse, Destination.Insights.route) },
+                SummaryScreen(
+                    vm = viewModel,
+                    actions = SummaryActions(
+                        // The profile avatar pushes Settings on the Summary (iOS: Summary avatar -> Settings).
+                        openSettings = { nav.push(Destination.Settings.route) },
+                        // Every metric card, ring figure, highlight and trend opens that metric's page here.
+                        openMetric = { key, source -> nav.push(metricRoute(key, source)) },
+                        openAllMetrics = { nav.push(Destination.AllMetrics.route) },
+                        openTrends = { nav.push(Destination.Trends.route) },
+                        // Rest and the Sleep card open the Sleep tab on the picked day's night.
+                        openSleepNight = { wakeDay ->
+                            SleepNightRequest.wakeDay = wakeDay
+                            nav.showTabRoot(MainTab.Sleep)
+                        },
+                        // A running workout: the Workouts tab, with the recording over it.
+                        openActiveWorkout = {
+                            nav.showTabRoot(MainTab.Workouts)
+                            showActiveWorkout = true
+                        },
+                    ),
                 )
             }
             tabRoot(MainTab.Sleep, scrollTop) {
@@ -356,102 +327,6 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
         }
     }
 
-    // The quick-actions sheet, opened by the "+" in the Today header. Each row opens the screen where it
-    // now lives: Heart Rate, Journal and Mindfulness in Browse, a workout on the Workouts tab.
-    if (showQuickActions) {
-        ModalBottomSheet(onDismissRequest = { showQuickActions = false }) {
-            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(bottom = 24.dp)) {
-                Text(
-                    stringResource(R.string.l10n_today_screen_quick_actions_e47e8042),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 16.dp, top = 4.dp, bottom = 6.dp),
-                )
-                // The Updates inbox, one tap away with its unread count.
-                NavigationDrawerItem(
-                    selected = false,
-                    onClick = {
-                        showQuickActions = false
-                        showUpdatesInbox = true
-                    },
-                    icon = { Icon(Icons.Filled.Notifications, contentDescription = null) },
-                    label = { Text(stringResource(R.string.l10n_app_root_updates_c76d1807)) },
-                    badge = {
-                        val unread = updateStore.unreadCount
-                        if (unread > 0) {
-                            Text(
-                                if (unread > 99) "99+" else unread.toString(),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.error,
-                            )
-                        }
-                    },
-                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
-                )
-                quickActions.forEach { action ->
-                    NavigationDrawerItem(
-                        selected = false,
-                        onClick = {
-                            showQuickActions = false
-                            when (action.target) {
-                                QuickActionTarget.LiveHeartRate -> nav.openInTab(MainTab.Browse, Destination.Live.route)
-                                QuickActionTarget.StartWorkout -> nav.showTabRoot(MainTab.Workouts)
-                                QuickActionTarget.LogJournal -> nav.openInTab(MainTab.Browse, Destination.Insights.route)
-                                QuickActionTarget.Breathe -> nav.openInTab(MainTab.Browse, Destination.Breathe.route)
-                            }
-                        },
-                        icon = { Icon(action.icon, contentDescription = null) },
-                        label = { Text(stringResource(action.titleRes)) },
-                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
-                    )
-                }
-            }
-        }
-    }
-
-    // The Updates inbox. Presented here so its deep links can navigate the tabs: "trends" pushes Trends on
-    // the Summary, as the iOS router does.
-    if (showUpdatesInbox) {
-        ModalBottomSheet(
-            onDismissRequest = { showUpdatesInbox = false },
-            // Full height, over the legacy canvas colour its NoopCards are drawn to stand out on.
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            containerColor = Palette.surfaceBase,
-            contentColor = Palette.textPrimary,
-        ) {
-            UpdatesInboxScreen(
-                store = updateStore,
-                onClose = { showUpdatesInbox = false },
-                onDeepLink = { key ->
-                    // #984: What's New is a full-screen sheet (the one Settings > About opens), not a route.
-                    when (key) {
-                        UpdateStore.WHATS_NEW_DEEP_LINK -> showWhatsNewFromInbox = true
-                        "trends" -> nav.openInTab(MainTab.Summary, Destination.Trends.route)
-                        else -> Unit
-                    }
-                },
-                onRestore = { cardId ->
-                    // Flip the shared dismissed flag back off so the card reappears, and signal a mounted
-                    // Today to re-read it immediately (SharedPreferences isn't reactive).
-                    TodayCardDismissal.setDismissed(context, cardId, false)
-                    updateStore.restoreRequest = cardId
-                },
-            )
-        }
-    }
-
-    // #984: the changelog a What's New inbox row opens, the same full-screen dialog Settings > About uses.
-    if (showWhatsNewFromInbox) {
-        Dialog(
-            onDismissRequest = { showWhatsNewFromInbox = false },
-            properties = DialogProperties(usePlatformDefaultWidth = false),
-        ) {
-            Surface(modifier = Modifier.fillMaxSize(), color = Palette.surfaceBase) {
-                WhatsNewSheet(onClose = { showWhatsNewFromInbox = false })
-            }
-        }
-    }
-
     if (showActiveWorkout && activeWorkout != null) {
         Dialog(
             onDismissRequest = { showActiveWorkout = false },
@@ -503,7 +378,7 @@ private fun NavHostController.hasBackStackEntry(route: String): Boolean =
 private fun NavHostController.currentTab(): MainTab =
     MainTab.entries.firstOrNull { hasBackStackEntry(it.route) } ?: MainTab.Summary
 
-/** Shows [tab] at its root (a quick action, the Today Sleep card). */
+/** Shows [tab] at its root (the Summary's Sleep card and Rest ring, a running workout). */
 private fun NavHostController.showTabRoot(tab: MainTab) {
     if (tab != currentTab()) selectTab(tab)
     popBackStack(tab.route, inclusive = false)
@@ -531,20 +406,6 @@ private fun NavHostController.push(route: String) {
 private fun NavHostController.openCoach() {
     if (CoachEnabledStore.enabled) openInTab(MainTab.Browse, Destination.Coach.route)
 }
-
-/** Where a quick action goes; the shell resolves it to a tab and a screen. */
-private enum class QuickActionTarget { LiveHeartRate, StartWorkout, LogJournal, Breathe }
-
-/** A quick action in the Today "+" sheet: its title, icon and target. */
-private data class QuickAction(@StringRes val titleRes: Int, val icon: ImageVector, val target: QuickActionTarget)
-
-/** The quick actions, in the order the sheet lists them. */
-private val quickActions: List<QuickAction> = listOf(
-    QuickAction(R.string.action_live_hr, Icons.Filled.MonitorHeart, QuickActionTarget.LiveHeartRate),
-    QuickAction(R.string.action_start_workout, Icons.Filled.FitnessCenter, QuickActionTarget.StartWorkout),
-    QuickAction(R.string.action_log_journal, Icons.AutoMirrored.Filled.MenuBook, QuickActionTarget.LogJournal),
-    QuickAction(R.string.action_breathe, Icons.Filled.Air, QuickActionTarget.Breathe),
-)
 
 // MARK: - Navigation motion
 //

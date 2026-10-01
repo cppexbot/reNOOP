@@ -1,5 +1,8 @@
 package com.noop.ui
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.noop.analytics.AnalyticsEngine
 import com.noop.analytics.SleepStageTotals
 import com.noop.data.DailyMetric
@@ -297,3 +300,13 @@ private fun sumGroupStages(group: List<SleepSession>): StageMins? {
  *  gate the audit flagged. Mirrors the engine's `TimeZone.getDefault().getOffset(...)`. (#547) */
 internal fun uiTzOffsetSec(): Long =
     TimeZone.getDefault().getOffset(System.currentTimeMillis()) / 1000L
+
+/**
+ * A request from another tab to show the night that ended on a "yyyy-MM-dd" wake day: the Summary's Sleep
+ * card and its Rest ring open the Sleep tab on the picked day's night (iOS `TabRoute.sleepNight`). The
+ * Sleep tab consumes it once its nights are loaded, then clears it. Snapshot state, so a Sleep tab already
+ * on screen reacts too.
+ */
+internal object SleepNightRequest {
+    var wakeDay by mutableStateOf<String?>(null)
+}

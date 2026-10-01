@@ -566,6 +566,14 @@ fun SleepScreen(
         val dayIdx = navDays.indexOfFirst { day -> day.any { localDayString(it.endTs) == targetStr } }
         if (dayIdx >= 0) nightOffset = dayIdx
     }
+    // The Summary's Sleep card / Rest ring asked for a particular night: show it once the nights are here.
+    val requestedNight = SleepNightRequest.wakeDay
+    LaunchedEffect(requestedNight, navDays) {
+        val key = requestedNight ?: return@LaunchedEffect
+        if (navDays.isEmpty()) return@LaunchedEffect
+        runCatching { LocalDate.parse(key) }.getOrNull()?.let(onPickNightDate)
+        SleepNightRequest.wakeDay = null
+    }
 
     LazyScreenScaffold(
         title = uiString(R.string.l10n_sleep_screen_sleep_3cac34e6),

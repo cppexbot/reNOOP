@@ -69,25 +69,31 @@ fun MiniLineChart(
     }
 }
 
-/** Capsule bars, the latest solid and the rest at 40 %. Nothing is drawn for fewer than three values. */
+/**
+ * Capsule bars, the latest solid and the rest at 40 %. Nothing is drawn for fewer than three values. A bar
+ * is never wider than [maxBarWidth], so a wide, short chart spreads thin bars across its width instead of
+ * drawing a row of dots.
+ */
 @Composable
 fun MiniBarChart(
     values: List<Double?>,
     color: Color,
     modifier: Modifier = Modifier.size(84.dp, 32.dp),
+    maxBarWidth: Dp = 8.dp,
 ) {
     Canvas(modifier) {
         if (values.count { it != null } < 3) return@Canvas
         val max = values.maxOf { it ?: 0.0 }.takeIf { it > 0 } ?: 1.0
         val n = values.size
-        val gap = 3.dp.toPx()
-        val w = ((size.width - gap * (n - 1)) / n).coerceAtLeast(2f)
+        val minGap = 3.dp.toPx()
+        val w = ((size.width - minGap * (n - 1)) / n).coerceIn(2f, maxBarWidth.toPx())
+        val step = if (n > 1) (size.width - w) / (n - 1) else 0f
         values.forEachIndexed { i, v ->
             val h = ((v ?: 0.0) / max * size.height).toFloat().coerceAtLeast(if (v != null) w else 0f)
             if (h <= 0f) return@forEachIndexed
             drawRoundRect(
                 color = color.copy(alpha = if (i == n - 1) 1f else 0.4f),
-                topLeft = Offset(i * (w + gap), size.height - h),
+                topLeft = Offset(i * step, size.height - h),
                 size = Size(w, h),
                 cornerRadius = CornerRadius(w / 2, w / 2),
             )
