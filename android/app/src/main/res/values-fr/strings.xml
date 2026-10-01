@@ -2966,4 +2966,21 @@
         <item quantity="one">%1$d anomalie</item>
         <item quantity="other">%1$d anomalies</item>
     </plurals>
+    <string name="heart_rate_hrv_reading">Mesure de VFC</string>
+    <string name="heart_rate_today">Aujourd\'hui</string>
+    <string name="heart_rate_start_workout">Démarrer un entraînement</string>
+    <string name="heart_rate_strap_not_connected">Bracelet non connecté</string>
+    <string name="heart_rate_connecting">Connexion en cours…</string>
+    <string name="heart_rate_not_fully_paired">FC en direct (association incomplète)</string>
+    <string name="heart_rate_off_wrist">Hors du poignet</string>
+    <string name="heart_rate_sync_stopped">Synchronisation de l’historique arrêtée</string>
+    <string name="heart_rate_battery">Batterie %1$d%%</string>
+    <string name="heart_rate_open_devices">Ouvrir Appareils</string>
+    <string name="heart_rate_a11y_label">Fréquence cardiaque</string>
+    <string name="heart_rate_a11y_bpm">%1$d bpm</string>
+    <string name="heart_rate_now">Maintenant</string>
+    <string name="heart_rate_bpm_unit">BPM</string>
+    <string name="heart_rate_range">PLAGE</string>
+    <string name="heart_rate_chart_a11y">Plage de fréquence cardiaque par heure</string>
+    <string name="heart_rate_view_active_workout">Voir l\'entraînement actif</string>
 </resources>

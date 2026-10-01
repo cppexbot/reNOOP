@@ -2994,4 +2994,21 @@
         <item quantity="one">%1$d outlier</item>
         <item quantity="other">%1$d outliers</item>
     </plurals>
+    <string name="heart_rate_hrv_reading">HRV reading</string>
+    <string name="heart_rate_today">Today</string>
+    <string name="heart_rate_start_workout">Start workout</string>
+    <string name="heart_rate_strap_not_connected">Strap not connected</string>
+    <string name="heart_rate_connecting">Connecting…</string>
+    <string name="heart_rate_not_fully_paired">Live HR (not fully paired)</string>
+    <string name="heart_rate_off_wrist">Off wrist</string>
+    <string name="heart_rate_sync_stopped">History sync stopped</string>
+    <string name="heart_rate_battery">Battery %1$d%%</string>
+    <string name="heart_rate_open_devices">Open Devices</string>
+    <string name="heart_rate_a11y_label">Heart rate</string>
+    <string name="heart_rate_a11y_bpm">%1$d bpm</string>
+    <string name="heart_rate_now">Now</string>
+    <string name="heart_rate_bpm_unit">BPM</string>
+    <string name="heart_rate_range">RANGE</string>
+    <string name="heart_rate_chart_a11y">Heart rate range by hour</string>
+    <string name="heart_rate_view_active_workout">View the active workout</string>
 </resources>

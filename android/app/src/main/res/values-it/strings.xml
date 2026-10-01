@@ -2935,4 +2935,21 @@
         <item quantity="one">%1$d valore anomalo</item>
         <item quantity="other">%1$d valori anomali</item>
     </plurals>
+    <string name="heart_rate_hrv_reading">Lettura HRV</string>
+    <string name="heart_rate_today">Oggi</string>
+    <string name="heart_rate_start_workout">Inizia allenamento</string>
+    <string name="heart_rate_strap_not_connected">Fascia non collegata</string>
+    <string name="heart_rate_connecting">Collegamento…</string>
+    <string name="heart_rate_not_fully_paired">FC in diretta (associazione non completa)</string>
+    <string name="heart_rate_off_wrist">Non al polso</string>
+    <string name="heart_rate_sync_stopped">Sincronizzazione della cronologia interrotta</string>
+    <string name="heart_rate_battery">Batteria %1$d%%</string>
+    <string name="heart_rate_open_devices">Apri Dispositivi</string>
+    <string name="heart_rate_a11y_label">Frequenza cardiaca</string>
+    <string name="heart_rate_a11y_bpm">%1$d bpm</string>
+    <string name="heart_rate_now">Ora</string>
+    <string name="heart_rate_bpm_unit">BPM</string>
+    <string name="heart_rate_range">INTERVALLO</string>
+    <string name="heart_rate_chart_a11y">Intervallo di frequenza cardiaca per ora</string>
+    <string name="heart_rate_view_active_workout">Visualizza l\'allenamento attivo</string>
 </resources>

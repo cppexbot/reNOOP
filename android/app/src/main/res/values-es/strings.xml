@@ -2967,4 +2967,21 @@
         <item quantity="one">%1$d valor atípico</item>
         <item quantity="other">%1$d valores atípicos</item>
     </plurals>
+    <string name="heart_rate_hrv_reading">Lectura de VFC</string>
+    <string name="heart_rate_today">Hoy</string>
+    <string name="heart_rate_start_workout">Iniciar entrenamiento</string>
+    <string name="heart_rate_strap_not_connected">Pulsera no conectada</string>
+    <string name="heart_rate_connecting">Conectando…</string>
+    <string name="heart_rate_not_fully_paired">FC en vivo (no emparejada del todo)</string>
+    <string name="heart_rate_off_wrist">Fuera de la muñeca</string>
+    <string name="heart_rate_sync_stopped">Sincronización del historial detenida</string>
+    <string name="heart_rate_battery">Batería %1$d%%</string>
+    <string name="heart_rate_open_devices">Abrir Dispositivos</string>
+    <string name="heart_rate_a11y_label">Frecuencia cardíaca</string>
+    <string name="heart_rate_a11y_bpm">%1$d ppm</string>
+    <string name="heart_rate_now">Ahora</string>
+    <string name="heart_rate_bpm_unit">PPM</string>
+    <string name="heart_rate_range">RANGO</string>
+    <string name="heart_rate_chart_a11y">Rango de frecuencia cardiaca por hora</string>
+    <string name="heart_rate_view_active_workout">Ver el entrenamiento activo</string>
 </resources>

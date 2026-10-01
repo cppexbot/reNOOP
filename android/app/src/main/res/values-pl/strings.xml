@@ -2993,4 +2993,21 @@
         <item quantity="many">%1$d wartości odstających</item>
         <item quantity="other">%1$d wartości odstającej</item>
     </plurals>
+    <string name="heart_rate_hrv_reading">Odczyt HRV</string>
+    <string name="heart_rate_today">Dzisiaj</string>
+    <string name="heart_rate_start_workout">Rozpocznij trening</string>
+    <string name="heart_rate_strap_not_connected">Pasek nie jest podłączony</string>
+    <string name="heart_rate_connecting">Łączenie…</string>
+    <string name="heart_rate_not_fully_paired">Tętno na żywo (nie w pełni sparowane)</string>
+    <string name="heart_rate_off_wrist">Poza nadgarstkiem</string>
+    <string name="heart_rate_sync_stopped">Synchronizacja historii zatrzymana</string>
+    <string name="heart_rate_battery">Bateria %1$d%%</string>
+    <string name="heart_rate_open_devices">Otwórz Urządzenia</string>
+    <string name="heart_rate_a11y_label">Tętno</string>
+    <string name="heart_rate_a11y_bpm">%1$d bpm</string>
+    <string name="heart_rate_now">Teraz</string>
+    <string name="heart_rate_bpm_unit">BPM</string>
+    <string name="heart_rate_range">ZAKRES</string>
+    <string name="heart_rate_chart_a11y">Zakres tętna według godzin</string>
+    <string name="heart_rate_view_active_workout">Wyświetl aktywny trening</string>
 </resources>

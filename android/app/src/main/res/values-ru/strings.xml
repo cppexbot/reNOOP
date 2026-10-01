@@ -2889,4 +2889,21 @@
         <item quantity="many">%1$d отклонений от нормы</item>
         <item quantity="other">%1$d отклонения от нормы</item>
     </plurals>
+    <string name="heart_rate_hrv_reading">Измерение ВСР</string>
+    <string name="heart_rate_today">Сегодня</string>
+    <string name="heart_rate_start_workout">Начать тренировку</string>
+    <string name="heart_rate_strap_not_connected">Браслет не подключён</string>
+    <string name="heart_rate_connecting">Подключается…</string>
+    <string name="heart_rate_not_fully_paired">Пульс в реальном времени (сопряжение не завершено)</string>
+    <string name="heart_rate_off_wrist">Снят с запястья</string>
+    <string name="heart_rate_sync_stopped">Синхронизация истории остановлена</string>
+    <string name="heart_rate_battery">Батарея %1$d%%</string>
+    <string name="heart_rate_open_devices">Открыть устройства</string>
+    <string name="heart_rate_a11y_label">Пульс</string>
+    <string name="heart_rate_a11y_bpm">%1$d уд/мин</string>
+    <string name="heart_rate_now">Сейчас</string>
+    <string name="heart_rate_bpm_unit">УД/МИН</string>
+    <string name="heart_rate_range">ДИАПАЗОН</string>
+    <string name="heart_rate_chart_a11y">Диапазон пульса по часам</string>
+    <string name="heart_rate_view_active_workout">Просмотреть активную тренировку</string>
 </resources>

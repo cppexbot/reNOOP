@@ -274,7 +274,12 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                 DevicesScreen(viewModel, onUseFileImport = { nav.push(Destination.DataSources.route) })
             }
             composable(Destination.Live.route) {
-                LiveScreen(viewModel = viewModel, onManageDevices = { nav.openInTab(MainTab.Browse, Destination.Devices.route) })
+                com.noop.ui.live.HeartRateScreen(
+                    vm = viewModel,
+                    onBack = { nav.popBackStack() },
+                    onOpenDevices = { nav.openInTab(MainTab.Browse, Destination.Devices.route) },
+                    onOpenActiveWorkout = { showActiveWorkout = true },
+                )
             }
             composable(Destination.Breathe.route) { BreatheScreen(viewModel) }
 

@@ -2959,4 +2959,21 @@
         <item quantity="one">%1$d valor atípico</item>
         <item quantity="other">%1$d valores atípicos</item>
     </plurals>
+    <string name="heart_rate_hrv_reading">Leitura da VFC</string>
+    <string name="heart_rate_today">Hoje</string>
+    <string name="heart_rate_start_workout">Iniciar treino</string>
+    <string name="heart_rate_strap_not_connected">Correia não ligada</string>
+    <string name="heart_rate_connecting">Conectando…</string>
+    <string name="heart_rate_not_fully_paired">RH em direto (não totalmente emparelhado)</string>
+    <string name="heart_rate_off_wrist">Fora do pulso</string>
+    <string name="heart_rate_sync_stopped">Sincronização do histórico parada</string>
+    <string name="heart_rate_battery">Bateria %1$d%%</string>
+    <string name="heart_rate_open_devices">Abrir Dispositivos</string>
+    <string name="heart_rate_a11y_label">Frequência cardíaca</string>
+    <string name="heart_rate_a11y_bpm">%1$d bpm</string>
+    <string name="heart_rate_now">Agora</string>
+    <string name="heart_rate_bpm_unit">BPM</string>
+    <string name="heart_rate_range">INTERVALO</string>
+    <string name="heart_rate_chart_a11y">Intervalo de frequência cardíaca por hora</string>
+    <string name="heart_rate_view_active_workout">Veja o treino ativo</string>
 </resources>

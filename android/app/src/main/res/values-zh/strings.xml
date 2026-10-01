@@ -2932,4 +2932,21 @@
     <plurals name="sleep_vitals_outliers">
         <item quantity="other">%1$d个异常值</item>
     </plurals>
+    <string name="heart_rate_hrv_reading">HRV 读数</string>
+    <string name="heart_rate_today">今天</string>
+    <string name="heart_rate_start_workout">开始体能训练</string>
+    <string name="heart_rate_strap_not_connected">手环未连接</string>
+    <string name="heart_rate_connecting">连接中…</string>
+    <string name="heart_rate_not_fully_paired">实时心率（未完全配对）</string>
+    <string name="heart_rate_off_wrist">未佩戴</string>
+    <string name="heart_rate_sync_stopped">历史记录同步已停止</string>
+    <string name="heart_rate_battery">电量 %1$d%%</string>
+    <string name="heart_rate_open_devices">打开设备</string>
+    <string name="heart_rate_a11y_label">心率</string>
+    <string name="heart_rate_a11y_bpm">%1$d bpm</string>
+    <string name="heart_rate_now">现在</string>
+    <string name="heart_rate_bpm_unit">BPM</string>
+    <string name="heart_rate_range">范围</string>
+    <string name="heart_rate_chart_a11y">按小时显示的心率范围</string>
+    <string name="heart_rate_view_active_workout">查看进行中的锻炼</string>
 </resources>
