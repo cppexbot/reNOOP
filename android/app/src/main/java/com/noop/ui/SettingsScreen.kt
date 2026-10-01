@@ -1456,6 +1456,22 @@ internal fun SettingsScreen(
                 )
             }
             SettingsRowDivider()
+            // Which of the Summary's two layouts the home tab draws: Detailed (the iOS structure) or Compact
+            // (score dials and a tile grid). The same choice the Summary's Edit sheet offers.
+            SettingsFormRow(label = uiString(R.string.summary_layout)) {
+                SegmentedPillControl(
+                    items = listOf(com.noop.ui.summary.SummaryLayout.DETAILED, com.noop.ui.summary.SummaryLayout.COMPACT),
+                    selection = com.noop.ui.summary.SummaryLayoutPrefs.layout(context),
+                    label = {
+                        when (it) {
+                            com.noop.ui.summary.SummaryLayout.DETAILED -> uiString(R.string.summary_layout_detailed)
+                            com.noop.ui.summary.SummaryLayout.COMPACT -> uiString(R.string.summary_layout_compact)
+                        }
+                    },
+                    onSelect = { com.noop.ui.summary.SummaryLayoutPrefs.setLayout(context, it) },
+                )
+            }
+            SettingsRowDivider()
             // #2346: how heavy the numeral over a gauge is drawn. A reporter found the Today gauges "too
             // much in your face"; bold display numerals are the house style on BOTH platforms, so this is
             // a preference rather than a defect and Bold stays the default. Only the WEIGHT is offered:
