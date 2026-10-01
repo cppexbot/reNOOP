@@ -710,6 +710,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val _windDownEnabled = MutableStateFlow(windDownStore.enabled)
     /** Whether the evening wind-down nudge is scheduled. */
     val windDownEnabled: StateFlow<Boolean> = _windDownEnabled.asStateFlow()
+    /** The sleep goal of the Sleep Schedule (the wind-down store's sleep need), minutes. */
+    private val _sleepGoalMinutes = MutableStateFlow(windDownStore.sleepNeedMinutes)
+    val sleepGoalMinutes: StateFlow<Int> = _sleepGoalMinutes.asStateFlow()
+    /** How long before bedtime the wind-down reminder comes, minutes. */
+    private val _windDownLeadMinutes = MutableStateFlow(windDownStore.leadMinutes)
+    val windDownLeadMinutes: StateFlow<Int> = _windDownLeadMinutes.asStateFlow()
 
     // MARK: - Today's cached metrics
 
@@ -2755,6 +2761,113 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             appContext, windDownStore, phoneAlarmStore.targetMinutes, phoneAlarmStore.targetOverrides,
         )
         else WindDownScheduler.cancel(appContext)
+    }
+
+    // --- Sleep Schedule (the redesign's one alarm surface; iOS SleepScheduleStore). The schedule is the strap
+    // alarm's time, days and per-day times plus the wind-down store's sleep need. The phone backup is the
+    // existing guaranteed phone alarm (SmartAlarmScheduler: an exact setAlarmClock deadline, re-armed after
+    // boot and after it fires), kept on the schedule's wake times with the shortest window, so it rings at
+    // the latest five minutes after the strap's buzz on the same days. ---
+
+    /** Writes a schedule edit: the strap alarm's base time, days and per-day times, and the sleep goal. Re-arms
+     *  the strap once, moves the phone backup and the wind-down reminder with it. */
+    fun applySleepSchedule(baseWake: Int, alarmDays: Set<Int>, overrides: Map<Int, Int>, sleepGoal: Int) {
+        _smartAlarmMinutes.value = baseWake.coerceIn(0, 24 * 60 - 1)
+        NoopPrefs.setSmartAlarmMinutes(appContext, _smartAlarmMinutes.value)
+        val days = alarmDays.filter { it in 1..7 }.toSet()
+        _smartAlarmWeekdays.value = days
+        NoopPrefs.setSmartAlarmWeekdays(appContext, days)
+        val clean = overrides.filter { (d, m) -> d in 1..7 && m in 0 until 24 * 60 }
+        _smartAlarmDayOverrides.value = clean
+        NoopPrefs.setSmartAlarmDayOverrides(appContext, clean)
+        windDownStore.sleepNeedMinutes = sleepGoal
+        _sleepGoalMinutes.value = windDownStore.sleepNeedMinutes
+        syncSleepScheduleBackup()
+        reconcileStrapAlarm()
+    }
+
+    /** The Strap Alarm switch. Turning it on also turns the phone backup on (when alarms may be set). */
+    fun setScheduleStrapAlarm(enabled: Boolean) {
+        _smartAlarmEnabled.value = enabled
+        NoopPrefs.setSmartAlarmEnabled(appContext, enabled)
+        if (enabled && SmartAlarmScheduler.canScheduleExact(appContext)) {
+            phoneAlarmStore.enabled = true
+            _phoneAlarmEnabled.value = true
+        }
+        syncSleepScheduleBackup()
+        reconcileStrapAlarm()
+    }
+
+    /** The Phone Backup Alarm switch. Returns false when exact alarms are not allowed (the UI asks for them). */
+    fun setScheduleBackupAlarm(enabled: Boolean): Boolean {
+        if (enabled && !SmartAlarmScheduler.canScheduleExact(appContext)) return false
+        phoneAlarmStore.enabled = enabled
+        _phoneAlarmEnabled.value = enabled
+        syncSleepScheduleBackup()
+        return true
+    }
+
+    /**
+     * Keeps the phone alarm on the schedule: its time, days and per-day times are the strap alarm's, its window
+     * the shortest, and the strap-buzz companion (which armed the strap at the PHONE alarm's time, a second
+     * strap time the schedule cannot show) is retired so the strap only ever buzzes at the schedule's times.
+     * Arms or cancels the guaranteed phone alarm and re-times the wind-down reminder from the same wake times.
+     */
+    fun syncSleepScheduleBackup() {
+        phoneAlarmStore.targetMinutes = _smartAlarmMinutes.value
+        phoneAlarmStore.weekdays = _smartAlarmWeekdays.value
+        phoneAlarmStore.targetOverrides = _smartAlarmDayOverrides.value
+        phoneAlarmStore.windowMinutes = SmartAlarmStore.WINDOW_MIN
+        _phoneAlarmTargetMinutes.value = phoneAlarmStore.targetMinutes
+        _phoneAlarmWeekdays.value = phoneAlarmStore.weekdays
+        _phoneAlarmDayOverrides.value = phoneAlarmStore.targetOverrides
+        _phoneAlarmWindowMinutes.value = phoneAlarmStore.windowMinutes
+        if (_buzzWhoop4Enabled.value) {
+            _buzzWhoop4Enabled.value = false
+            NoopPrefs.setBuzzWhoop4WithAlarm(appContext, false)
+            reconcileStrapAlarm()
+        }
+        if (phoneAlarmStore.enabled && SmartAlarmScheduler.canScheduleExact(appContext)) {
+            SmartAlarmScheduler.arm(appContext, phoneAlarmStore)
+        } else if (!phoneAlarmStore.enabled) {
+            SmartAlarmScheduler.cancel(appContext, phoneAlarmStore)
+        }
+        if (windDownStore.enabled) WindDownScheduler.schedule(
+            appContext, windDownStore, phoneAlarmStore.targetMinutes, phoneAlarmStore.targetOverrides,
+        )
+    }
+
+    /**
+     * Gives the strap alarm and the phone alarm one schedule when they were set apart (the old Alarms screen
+     * kept two). The one in use wins, as iOS `SleepScheduleStore.reconcileBaseWake` decides: the strap
+     * alarm's times when it is on, else the phone alarm's when only that one is on. Then the backup follows.
+     */
+    fun reconcileSleepSchedule() {
+        if (!_smartAlarmEnabled.value && phoneAlarmStore.enabled) {
+            _smartAlarmMinutes.value = phoneAlarmStore.targetMinutes
+            NoopPrefs.setSmartAlarmMinutes(appContext, _smartAlarmMinutes.value)
+            _smartAlarmWeekdays.value = phoneAlarmStore.weekdays
+            NoopPrefs.setSmartAlarmWeekdays(appContext, _smartAlarmWeekdays.value)
+            _smartAlarmDayOverrides.value = phoneAlarmStore.targetOverrides
+            NoopPrefs.setSmartAlarmDayOverrides(appContext, _smartAlarmDayOverrides.value)
+            // The strap-buzz companion buzzed the strap at the phone alarm's time: that is now the strap
+            // alarm itself, so the strap keeps buzzing when the companion is retired below.
+            if (_buzzWhoop4Enabled.value) {
+                _smartAlarmEnabled.value = true
+                NoopPrefs.setSmartAlarmEnabled(appContext, true)
+            }
+        }
+        syncSleepScheduleBackup()
+        reconcileStrapAlarm()
+    }
+
+    /** How long before bedtime the wind-down reminder comes (15 / 30 / 45 / 60 minutes). */
+    fun setWindDownLeadMinutes(minutes: Int) {
+        windDownStore.leadMinutes = minutes
+        _windDownLeadMinutes.value = windDownStore.leadMinutes
+        if (windDownStore.enabled) WindDownScheduler.schedule(
+            appContext, windDownStore, phoneAlarmStore.targetMinutes, phoneAlarmStore.targetOverrides,
+        )
     }
 
     // --- Illness watch (opt-out; the evaluation itself is the pure IllnessWatch.evaluate).

@@ -43,6 +43,12 @@ import com.noop.ui.metric.MetricAllDataScreen
 import com.noop.ui.metric.MetricDescriptor
 import com.noop.ui.metric.MetricDetailScreen
 import com.noop.ui.metric.metricRoute
+import com.noop.ui.sleep.SleepActions
+import com.noop.ui.sleep.SleepHighlightsScreen
+import com.noop.ui.sleep.SleepMoreDataScreen
+import com.noop.ui.sleep.SleepScheduleScreen
+import com.noop.ui.sleep.SleepTabScreen
+import com.noop.ui.sleep.SleepVitalsScreen
 import com.noop.ui.summary.SummaryActions
 import com.noop.ui.summary.SummaryScreen
 import com.noop.ui.trends.TrainingLoadScreen
@@ -91,8 +97,12 @@ internal enum class Destination(val route: String) {
     Hydration("hydration"),
     AppleHealth("apple_health"),
     Automations("automations"),
-    // "Alarms" is the one alarm surface (#766); the route id stays "smart_alarm".
-    SmartAlarm("smart_alarm"),
+    // The Sleep tab's pages: More Sleep Data on a night (offset 0 = newest), a night's Vitals, Sleep
+    // Highlights, and the Sleep Schedule (the one alarm surface, which replaced the Alarms screen).
+    SleepMoreData("sleep_more/{offset}"),
+    SleepVitals("sleep_vitals/{day}"),
+    SleepHighlights("sleep_highlights/{offset}"),
+    SleepSchedule("sleep_schedule"),
     NoopLimitations("noop_limitations"),
     DataSources("data_sources"),
     BackupSync("backup_sync"),
@@ -209,9 +219,15 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                 )
             }
             tabRoot(MainTab.Sleep, scrollTop) {
-                SleepScreen(
+                SleepTabScreen(
                     vm = viewModel,
-                    onOpenJournal = { nav.openInTab(MainTab.Browse, Destination.Insights.route) },
+                    actions = SleepActions(
+                        openMetric = { key -> nav.push(metricRoute(key, null)) },
+                        openMoreData = { offset -> nav.push("sleep_more/$offset") },
+                        openVitals = { day -> nav.push("sleep_vitals/$day") },
+                        openHighlights = { offset -> nav.push("sleep_highlights/$offset") },
+                        openSchedule = { nav.push(Destination.SleepSchedule.route) },
+                    ),
                 )
             }
             tabRoot(MainTab.Workouts, scrollTop) {
@@ -288,7 +304,21 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
             composable(Destination.Hydration.route) { HydrationScreen(viewModel) }
             composable(Destination.AppleHealth.route) { AppleHealthScreen(viewModel) }
             composable(Destination.Automations.route) { AutomationsScreen(viewModel) }
-            composable(Destination.SmartAlarm.route) { SmartAlarmScreen(viewModel) }
+            composable(Destination.SleepMoreData.route, arguments = listOf(navArgument("offset") { type = NavType.IntType })) { entry ->
+                SleepMoreDataScreen(viewModel, entry.arguments?.getInt("offset") ?: 0, onBack = { nav.popBackStack() })
+            }
+            composable(Destination.SleepVitals.route, arguments = listOf(navArgument("day") { type = NavType.StringType })) { entry ->
+                SleepVitalsScreen(
+                    viewModel,
+                    day = entry.arguments?.getString("day").orEmpty(),
+                    onBack = { nav.popBackStack() },
+                    onOpenMetric = { key -> nav.push(metricRoute(key, null)) },
+                )
+            }
+            composable(Destination.SleepHighlights.route, arguments = listOf(navArgument("offset") { type = NavType.IntType })) { entry ->
+                SleepHighlightsScreen(viewModel, entry.arguments?.getInt("offset") ?: 0, onBack = { nav.popBackStack() })
+            }
+            composable(Destination.SleepSchedule.route) { SleepScheduleScreen(viewModel, onBack = { nav.popBackStack() }) }
             composable(Destination.DataSources.route) { DataSourcesScreen(viewModel) }
             composable(Destination.NoopLimitations.route) { NoopLimitationsScreen() }
             composable(Destination.BackupSync.route) { BackupSyncScreen() }

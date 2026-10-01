@@ -474,48 +474,6 @@ private fun napDetailLabel(nap: NapCandidate): String =
  */
 // internal (not private) so the consolidated Alarms screen (SmartAlarmScreen, #766) can reuse the
 // exact same picker. The strap wake-alarm card moved there but its weekday/override UI is unchanged.
-@Composable
-internal fun AlarmDayOverridePicker(
-    defaultMinutes: Int,
-    enabledDays: Set<Int>,
-    overrides: Map<Int, Int>,
-    onSetOverride: (Int, Int?) -> Unit,
-) {
-    val fireDays = SMART_ALARM_WEEKDAY_ORDER.filter { smartAlarmWeekdayIsSelected(it, enabledDays) }
-    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(uiString(R.string.l10n_automations_screen_per_day_wake_time_873c81e1), style = NoopType.caption, color = Palette.textTertiary)
-        fireDays.forEach { dow ->
-            val effective = overrides[dow] ?: defaultMinutes
-            val hasOverride = overrides.containsKey(dow)
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(smartAlarmWeekdayName(dow), style = NoopType.body, color = Palette.textPrimary)
-                Spacer(Modifier.weight(1f))
-                if (hasOverride) {
-                    Text(
-                        uiString(R.string.l10n_automations_screen_reset_44c57abd),
-                        style = NoopType.caption,
-                        color = Palette.accent,
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .clickable { onSetOverride(dow, null) }
-                            .padding(horizontal = 10.dp, vertical = 4.dp),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                }
-                TimeChip(
-                    minutes = effective,
-                    accessibilityLabel = "${smartAlarmWeekdayName(dow)} wake time",
-                    onPicked = { onSetOverride(dow, it) },
-                )
-            }
-        }
-        Text(
-            uiString(R.string.l10n_automations_screen_each_day_uses_the_time_above_f9bc9ce3),
-            style = NoopType.footnote, color = Palette.textTertiary,
-        )
-    }
-}
-
 // MARK: - Section + rows (mirror the settings idiom from AutomationsView.swift)
 
 @Composable
@@ -635,36 +593,6 @@ private fun RowDivider() {
  * [selected] set means "every day" (all circles read as on). Mirrors the macOS AutomationsView picker.
  */
 // internal (not private) so SmartAlarmScreen (the consolidated Alarms surface, #766) can reuse it.
-@Composable
-internal fun AlarmWeekdayPicker(selected: Set<Int>, onToggle: (Int) -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            for (dow in SMART_ALARM_WEEKDAY_ORDER) {
-                val on = smartAlarmWeekdayIsSelected(dow, selected)
-                Box(
-                    modifier = Modifier
-                        .size(30.dp)
-                        .clip(CircleShape)
-                        .background(if (on) Palette.accent else Palette.surfaceInset)
-                        .clickable { onToggle(dow) },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        smartAlarmWeekdayInitial(dow),
-                        style = NoopType.caption,
-                        color = if (on) Palette.surfaceBase else Palette.textSecondary,
-                        textAlign = TextAlign.Center,
-                    )
-                }
-            }
-        }
-        Text(smartAlarmWeekdaySummary(selected), style = NoopType.caption, color = Palette.textTertiary)
-    }
-}
-
 /** Calendar.DAY_OF_WEEK numbers laid out Monday-first (Mon…Sun → 2,3,4,5,6,7,1). */
 private val SMART_ALARM_WEEKDAY_ORDER = intArrayOf(2, 3, 4, 5, 6, 7, 1)
 
