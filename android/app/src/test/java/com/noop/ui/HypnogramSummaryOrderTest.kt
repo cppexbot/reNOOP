@@ -43,11 +43,15 @@ class HypnogramSummaryOrderTest {
         val spoken = Regex("""(\d+) percent (\w+)""").findAll(text)
             .associate { it.groupValues[2] to it.groupValues[1].toInt() }
 
+        // The rows' apportionment: one largest-remainder split in awake, light, deep, REM order. The old Sleep
+        // screen's stageSharePercent did this; the rebuilt More Sleep Data rows do it through
+        // SleepPeriodSummary.sharePercent (pinned in sleep/SleepLogicTest).
+        val rows = com.noop.analytics.StagePercentages.wholePercentages(listOf(s.awake, s.light, s.deep, s.rem))!!
+        val row = mapOf("Awake" to rows[0], "Light" to rows[1], "Deep" to rows[2], "REM" to rows[3])
         for (label in listOf("Awake", "Light", "Deep", "REM")) {
-            val key = if (label == "REM") "REM" else label
             assertEquals(
                 "$label: the read-out and the row must print one apportionment",
-                stageSharePercent(label, s), spoken.getValue(key),
+                row.getValue(label), spoken.getValue(label),
             )
         }
     }

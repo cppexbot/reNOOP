@@ -4260,7 +4260,7 @@ private data class SettingsScreenLink(val destination: Destination, @StringRes v
 
 /**
  * The App and Data groups: links to the Android screens that lost their only entry with the More page
- * (Notifications, Alarms, Automations, Power saving; the Apple Health import, Data Sources and the
+ * (Notifications, Automations, Power saving; the Apple Health import, Data Sources and the
  * strap capability grid).
  */
 @Composable
@@ -4268,7 +4268,6 @@ private fun SettingsScreenLinks(onOpenScreen: (Destination) -> Unit) {
     val groups = listOf(
         R.string.settings_group_app to listOf(
             SettingsScreenLink(Destination.Notifications, R.string.nav_notifications, Icons.Filled.Notifications),
-            SettingsScreenLink(Destination.SmartAlarm, R.string.nav_alarms, Icons.Filled.Alarm),
             SettingsScreenLink(Destination.Automations, R.string.nav_automations, Icons.Filled.Bolt),
             SettingsScreenLink(Destination.PowerSaving, R.string.nav_power_saving, Icons.Filled.BatteryStd),
         ),

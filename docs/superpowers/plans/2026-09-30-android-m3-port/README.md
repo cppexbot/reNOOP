@@ -3,7 +3,7 @@
 Plan and working notes for bringing the reNOOP iOS redesign (Denis, 2026-09-26..30) to the Android app in
 Material 3 / Google-app style. Decisions (user, 2026-09-30): Material You colour from the wallpaper; reNOOP ring
 palette (Charge green, Effort blue, Rest violet); the Summary offers two layouts (Denis's "Detailed" and a
-"Compact" Fitbit-like grid, pref `noop.summaryLayout`); work is committed step by step to `main`.
+"Compact" Fitbit-like grid, pref `noop.summaryLayout`); work is committed step by step to the `android-m3` branch (main is merged into it; see HANDBOOK "On the Windows PC" for the PC set-up).
 
 - `HANDBOOK.md` — rules every implementing agent follows (design system, strings in 9 locales, build/test/emulator).
 - `ios-anatomy.md` — screen-by-screen anatomy of Denis's iOS screens with exact strings.
@@ -18,7 +18,7 @@ palette (Charge green, Effort blue, Rest violet); the Summary offers two layouts
 | 01 Shell, Browse, removals | done | 42c828cc, cec7f311 |
 | 02 Metric page, All Metrics, Trends | done | 3f6e4e2b, 097122d1 |
 | 03 Summary (A/B) replacing Today | done | 052c956e, 2021324b, 531311f8 |
-| 04 Sleep, Vitals, More Sleep Data, Sleep Schedule | in progress (uncommitted work in the tree on 2026-10-01: new `ui/sleep/`, old Sleep/SmartAlarm UI deleted) | — |
+| 04 Sleep, Vitals, More Sleep Data, Sleep Schedule | done (WIP 8246e461 finished on the PC, merged with main's sleep fixes) | 8246e461 + merge |
 | 05 Workouts | todo | |
 | 06 Settings | todo | |
 | 07 Coach, Devices, Onboarding | todo | |

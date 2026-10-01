@@ -233,24 +233,6 @@ fun DataPendingNote(title: String, body: String, modifier: Modifier = Modifier) 
 // signal — chunks pulled so far — never a percent (total pending is unknowable from the protocol,
 // so a determinate bar would lie).
 
-@Composable
-fun SyncingHistoryNote(chunks: Int, modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        StatePill("Syncing strap history…", tone = StrandTone.Accent, pulsing = true)
-        if (chunks > 0) {
-            Text(
-                uiString(R.string.l10n_components_chunks_chunks_pulled_cec186cf, chunks),
-                style = NoopType.footnote,
-                color = Palette.textSecondary,
-            )
-        }
-    }
-}
-
 // MARK: - Overline label (ALL-CAPS, semibold, +0.8 tracking, secondary)
 
 @Composable

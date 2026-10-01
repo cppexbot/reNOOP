@@ -252,49 +252,6 @@ private fun DrawScope.drawBaseline(color: Color = Palette.hairline) {
 
 // MARK: - Sparkline
 
-/**
- * Tiny inline line, no axes — for use inside tiles and list rows. Draws a single
- * smooth-capped stroke spanning the full width. Empty/flat data renders a baseline.
- */
-@Composable
-fun Sparkline(
-    values: List<Double>,
-    modifier: Modifier = Modifier,
-    color: Color = Palette.accent,
-) {
-    // PERF (#scroll-jank): the point mapping + Path were rebuilt inside the Canvas draw lambda EVERY
-    // frame. drawWithCache tessellates the Path ONCE (keyed on the values + size — the cache block
-    // re-runs only when those change) and the cached draw lambda just replays it on every scroll frame.
-    // Pixel-identical: same pointsFor geometry, same strokePx/cap/join, same empty→drawBaseline state.
-    // ONE collapsed semantics node (see "Accessibility summaries"): the delegate reads a single trend
-    // summary instead of walking the canvas. clearAndSetSemantics drops any child nodes (there are none
-    // here) and contributes exactly this contentDescription. Changes no drawing.
-    val axSummary = seriesSummary(values, "Trend")
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(Metrics.sparklineHeight)
-            .clearAndSetSemantics { contentDescription = axSummary }
-            .drawWithCache {
-                val strokePx = 2f
-                val pad = strokePx
-                val pts = pointsFor(values, size.width, size.height, pad, pad)
-                if (pts.isEmpty()) {
-                    onDrawBehind { drawBaseline() }
-                } else {
-                    val path = Path().apply {
-                        moveTo(pts.first().x, pts.first().y)
-                        for (i in 1 until pts.size) lineTo(pts[i].x, pts[i].y)
-                    }
-                    val stroke = Stroke(width = strokePx, cap = StrokeCap.Round, join = StrokeJoin.Round)
-                    onDrawBehind {
-                        drawPath(path = path, color = color, style = stroke)
-                    }
-                }
-            },
-    )
-}
-
 // MARK: - LineChart
 
 /**
