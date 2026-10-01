@@ -269,7 +269,13 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                     onOpenTrainingLoad = { nav.push(Destination.TrainingLoad.route) },
                 )
             }
-            composable(Destination.InsightsHub.route) { InsightsHubScreen(viewModel) }
+            composable(Destination.InsightsHub.route) {
+                com.noop.ui.insights.WhatMovesYouScreen(
+                    vm = viewModel,
+                    onBack = { nav.popBackStack() },
+                    onOpenJournal = { nav.push(Destination.Insights.route) },
+                )
+            }
             composable(Destination.Devices.route) {
                 DevicesScreen(viewModel, onUseFileImport = { nav.push(Destination.DataSources.route) })
             }
