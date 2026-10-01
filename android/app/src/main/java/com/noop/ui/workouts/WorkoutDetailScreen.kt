@@ -30,6 +30,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -158,6 +160,7 @@ private fun WorkoutDetailContent(vm: AppViewModel, row: WorkoutRow, onBack: () -
     )
 
     val title = DateTimeFormatter.ofPattern("EEE, d MMM", locale).format(Instant.ofEpochSecond(row.startTs).atZone(zone))
+        .replaceFirstChar { it.titlecase(locale) }
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
         PushedTopBar(title, onBack) {
             if (route.size >= 2) {
@@ -244,20 +247,16 @@ private fun WorkoutDetailContent(vm: AppViewModel, row: WorkoutRow, onBack: () -
     }
     if (showMap) {
         FullScreenDialog(onDismiss = { showMap = false }) {
-            Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainer)) {
-                RouteView(route, Modifier.fillMaxSize().padding(24.dp))
-                IconButton(
-                    onClick = { showMap = false },
-                    modifier = Modifier.align(Alignment.TopStart).padding(16.dp),
-                ) {
-                    Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.manual_close))
-                }
-                Text(
-                    sportLabel(row.sport),
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.align(Alignment.TopCenter).padding(top = 28.dp),
-                )
-            }
+            TopAppBar(
+                title = { Text(sportLabel(row.sport)) },
+                navigationIcon = {
+                    IconButton(onClick = { showMap = false }) {
+                        Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.manual_close))
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface),
+            )
+            RouteView(route, Modifier.fillMaxSize())
         }
     }
     editing?.let { target ->

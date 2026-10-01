@@ -1,6 +1,7 @@
 package com.noop.ui.workouts
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,6 +32,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -63,6 +65,8 @@ internal fun RecordingScaffold(
     Column(
         Modifier
             .fillMaxSize()
+            // The screen is drawn over the app: a touch on its empty parts must not reach what is underneath.
+            .pointerInput(Unit) { detectTapGestures() }
             .background(MaterialTheme.colorScheme.surfaceContainerLowest),
     ) {
         RecordingTopBar(title = title, onMinimize = onMinimize, modifier = Modifier.statusBarsPadding())
