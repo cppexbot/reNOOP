@@ -595,6 +595,8 @@ public final class BLEManager: NSObject, ObservableObject {
     /// Window after the last offload frame/HISTORY_COMPLETE during which a type-0x2F frame is treated
     /// as trailing-historical, not live. ~10 s comfortably covers the post-completion drain lull.
     static let deepPacketLiveCooldownSeconds: TimeInterval = 10
+    /// Another app pulling this strap's history over the shared link (see `ForeignOffloadDetector`).
+    private var foreignOffload = ForeignOffloadDetector()
     /// How far back the inactivity reminder (#419) reads gravity on each offload completion (4 h
     /// comfortably spans the threshold + re-nudge cadence and a separating Active break for bout
     /// continuity). Mirrors the Android WhoopBleClient.INACTIVITY_LOOKBACK_S.
@@ -2590,9 +2592,26 @@ public final class BLEManager: NSObject, ObservableObject {
         // offload (re/sync_openwhoop.py, re/diagnose_biometrics.py) uses [0x00] too. Plain offload — the
         // strap streams HISTORY_START → type-47 records → HISTORY_END (acked) … → HISTORY_COMPLETE.
         send(.sendHistoricalData, payload: [0x00], writeType: .withResponse)
+        foreignOffload.noteOwnOffloadActivity(at: Date())
         armBackfillTimeout()
         log("Backfill: session started — historical offload requested")
         return true
+    }
+
+    /// A history record reached us while we run no offload of our own: evidence of a second app pulling
+    /// this strap's history. Rare-event evidence, so the line is always on — once per sighting streak.
+    private func noteHistoryOutsideOwnOffload() {
+        let now = Date()
+        guard foreignOffload.noteHistoryOutsideOwnOffload(at: now) else { return }
+        if let last = state.otherAppSyncingAt, now.timeIntervalSince(last) < 600 {
+            state.otherAppSyncingAt = now
+            return
+        }
+        state.otherAppSyncingAt = now
+        OtherStrapAppWarning.shared.reportForeignOffload()
+        log("Another app is pulling this strap's history (\(ForeignOffloadDetector.framesToFlag)+ records "
+            + "outside our offload within \(Int(ForeignOffloadDetector.windowSeconds)) s). Whichever app acks a "
+            + "chunk first keeps it; the other never stores those hours. Keep one app connected to the strap.")
     }
 
     /// Feed a frame to the Backfiller preserving exact arrival order. Frames are appended
@@ -2724,6 +2743,7 @@ public final class BLEManager: NSObject, ObservableObject {
         // any type-0x2F records the strap flushes in the seconds after the session aren't miscounted as
         // the live R22 stream — they're the offload's tail.
         lastOffloadFrameAt = Date()
+        foreignOffload.noteOwnOffloadActivity(at: Date())
         backfillTimeout?.cancel()
         backfillTimeout = nil
         backfillFrameQueue.removeAll()
@@ -7351,6 +7371,7 @@ extension BLEManager: @preconcurrency CBPeripheralDelegate {
                     // is a permanent loss. The verdict is formed once here, from the verifier, and
                     // handed to the counter — no parse on this path, which is why it was skipped.
                     router.noteOffloadFrameVerdict(verifyFrame(frame, family: .whoop4))
+                    foreignOffload.noteOwnOffloadActivity(at: Date())
                     armBackfillTimeout()
                     routeBackfillFrame(frame)
                     // …but a REAL-TIME physical gesture (double-tap / wrist) must still fire even mid-
@@ -7372,6 +7393,9 @@ extension BLEManager: @preconcurrency CBPeripheralDelegate {
                 // for isOffloadFrame, and byte-identical to all three original parses (router.family /
                 // collector.family / the no-family clock parse all resolve to .whoop4 here; a DEBUG assert in
                 // the router + collector re-checks the invariant).
+                if !backfilling, ForeignOffloadDetector.isHistoryRecord(frame, family: .whoop4) {
+                    noteHistoryOutsideOwnOffload()
+                }
                 let parsed = parseFrame(frame, family: .whoop4)
                 router.handle(parsed: parsed, frame: frame)       // live/UI path
                 //
@@ -7483,6 +7507,9 @@ extension BLEManager: @preconcurrency CBPeripheralDelegate {
                 router.noteReassemblerHeaderDrops(reassembler.headerChecksumDrops)
                 for frame in completedFrames {
                     let isOffload = backfilling && BLEManager.isOffloadFrame(frame, family: .whoop5)
+                    if !backfilling, ForeignOffloadDetector.isHistoryRecord(frame, family: .whoop5) {
+                        noteHistoryOutsideOwnOffload()
+                    }
                     noteWhoop5R22Telemetry(frame, duringOffload: isOffload)   // #174 deep-data telemetry
                     // Durable EVENT-frame log for deep-data research (#103) — BEFORE the offload
                     // branch, so it sees both live events and their history replays (either path
@@ -7503,6 +7530,7 @@ extension BLEManager: @preconcurrency CBPeripheralDelegate {
                         // the router counts rejections, so a frame that skips it would be invisible
                         // to the counter the hardware run is judged on. One verdict, no parse.
                         router.noteOffloadFrameVerdict(verifyFrame(frame, family: .whoop5))
+                        foreignOffload.noteOwnOffloadActivity(at: Date())
                         armBackfillTimeout()
                         routeBackfillFrame(frame)
                         // A real-time double-tap / wrist gesture still fires during a 5/MG offload (which

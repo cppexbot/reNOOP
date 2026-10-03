@@ -511,6 +511,8 @@ private struct iOSRootView: View {
     @State private var automaticLaunchSheetResolved = false
     /// A restored backup is only usable from a fresh process; see `LiveStoreReplacement`.
     @ObservedObject private var storeRestart = StoreRestartPrompt.shared
+    /// A second app pulling this strap's history; see `ForeignOffloadDetector`.
+    @ObservedObject private var otherAppWarning = OtherStrapAppWarning.shared
 
     var body: some View {
         #if DEBUG
@@ -608,6 +610,19 @@ private struct iOSRootView: View {
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
             storeRestart.present()
         }
+        .alert(String(localized: "Another App Is Syncing Your Strap"), isPresented: $otherAppWarning.isPresented) {
+            Button(String(localized: "OK"), role: .cancel) {}
+            Button(String(localized: "Don't Show Again")) { otherAppWarning.mute() }
+        } message: {
+            Text(otherAppWarningMessage)
+        }
+    }
+
+    private var otherAppWarningMessage: String {
+        if let apps = OtherStrapApps.phrase(otherAppWarning.installedNames) {
+            return String(localized: "\(apps) also pulls your strap's history. Each hour goes to whichever app syncs first, so the other misses it. Keep one app: turn off Bluetooth for the other in Settings or delete it.")
+        }
+        return String(localized: "Another app also pulls your strap's history. Each hour goes to whichever app syncs first, so the other misses it. Keep one app: turn off Bluetooth for the other in Settings or delete it.")
     }
 
     /// DEBUG: launched with --demo-seed, skip the first-run gates (onboarding / terms / What's New) so the
@@ -743,7 +758,7 @@ enum DemoScreens {
             case "watch":    return AnyView(AppleWatchSetupView(onClose: {}))
             default:         return nil
             }
-        // First-run setup, optionally on one step: `--onboarding-step 0…3`.
+        // First-run setup, optionally on one step: `--onboarding-step 0…4` (1 = the other-strap-apps step).
         case "onboarding":
             let n = args.firstIndex(of: "--onboarding-step").flatMap { $0 + 1 < args.count ? Int(args[$0 + 1]) : nil } ?? 0
             return AnyView(OnboardingWizard(onFinished: {}, startAt: n))
