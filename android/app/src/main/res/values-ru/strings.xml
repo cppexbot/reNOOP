@@ -3574,4 +3574,5 @@
     <string name="hrv_snapshot_a11y_result">RMSSD %1$d миллисекунд</string>
     <string name="hrv_snapshot_a11y_incomplete">Считывание не завершено</string>
     <string name="hrv_snapshot_how_measured">Как это измеряется</string>
+    <string name="widget_no_data">Нет данных</string>
 </resources>

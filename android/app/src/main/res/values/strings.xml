@@ -3672,4 +3672,5 @@
     <string name="hrv_snapshot_a11y_result">RMSSD %1$d milliseconds</string>
     <string name="hrv_snapshot_a11y_incomplete">Reading incomplete</string>
     <string name="hrv_snapshot_how_measured">How this is measured</string>
+    <string name="widget_no_data">No data</string>
 </resources>

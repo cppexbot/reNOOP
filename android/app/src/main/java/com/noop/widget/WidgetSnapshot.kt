@@ -3,6 +3,10 @@ package com.noop.widget
 import android.content.Context
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.updateAll
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 
 /**
  * The handful of numbers the home-screen widget shows, persisted to SharedPreferences so the
@@ -72,6 +76,27 @@ object WidgetSnapshotStore {
     private const val KEY_STRESS_SCORED_AT = "stressScoredAt"
     private const val KEY_STRESS_FINGERPRINT = "stressFingerprint"
 
+    private val _revision = MutableStateFlow(0L)
+
+    /**
+     * Counts the redraws the widgets have been asked to make. Each widget's composition reads its data
+     * keyed on this ([currentWidgetSnapshot]), which is what makes an update reach a widget whose Glance
+     * session is still alive.
+     *
+     * A session outlives one update by about 45 seconds, and `update()` on a live session only
+     * RECOMPOSES it; `provideGlance` is not run again. Data captured there was therefore drawn again,
+     * unchanged, by every update that landed while the session lived: a widget placed (or pushed to) a
+     * few seconds before a second push kept the first push's numbers, beside a sibling widget whose
+     * session had ended and which showed the new ones. Bumped only where the widgets are actually told to
+     * redraw, so the gates above still decide whether anything is sent.
+     */
+    internal val revision: StateFlow<Long> = _revision.asStateFlow()
+
+    /** Tell every live widget composition its data changed. Called just before `updateAll`. */
+    internal fun noteRedraw() {
+        _revision.update { it + 1 }
+    }
+
     suspend fun push(context: Context, snap: WidgetSnapshot) {
         val app = context.applicationContext
         // Cheap, non-suspending gate FIRST — at live-HR cadence (~1/s) almost every call ends here.
@@ -136,6 +161,7 @@ object WidgetSnapshotStore {
         // Update only the providers that actually have a widget placed. The ids are already in hand, and
         // `updateAll` on a provider with none still crosses into GlanceAppWidgetManager to discover that
         // for itself. Someone running just the HR widget was paying for two of those on every push.
+        noteRedraw()
         if (standardIds.isNotEmpty()) runCatching { NoopGlanceWidget().updateAll(app) }
         if (compactIds.isNotEmpty()) runCatching { NoopCompactGlanceWidget().updateAll(app) }
         if (hrIds.isNotEmpty()) runCatching { HrGlanceWidget().updateAll(app) }
@@ -235,7 +261,10 @@ object WidgetSnapshotStore {
         val ids = runCatching {
             GlanceAppWidgetManager(app).getGlanceIds(StressGlanceWidget::class.java)
         }.getOrDefault(emptyList())
-        if (ids.isNotEmpty()) runCatching { StressGlanceWidget().updateAll(app) }
+        if (ids.isNotEmpty()) {
+            noteRedraw()
+            runCatching { StressGlanceWidget().updateAll(app) }
+        }
     }
 
     fun save(context: Context, snap: WidgetSnapshot) {
