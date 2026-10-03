@@ -5,6 +5,8 @@ import com.noop.R
 import com.noop.analytics.ReadinessEngine
 import com.noop.analytics.SkinTempDisplay
 import com.noop.data.DailyMetric
+import com.noop.ui.AppToday
+import com.noop.ui.DayRelation
 import com.noop.ui.KeyMetric
 import com.noop.ui.UnitFormatter
 import com.noop.ui.UnitSystem
@@ -104,21 +106,24 @@ sealed class SummaryStamp {
     data class OnDate(val date: LocalDate) : SummaryStamp()
 
     companion object {
-        /** Pure over two day keys, so the words never depend on when the screen redraws. */
-        fun resolve(dayKey: String?, todayKey: String): SummaryStamp? {
-            if (dayKey == null) return null
-            if (dayKey == todayKey) return Today
-            val day = SummaryDay.parse(dayKey) ?: return null
-            val today = SummaryDay.parse(todayKey) ?: return null
-            return if (ChronoUnit.DAYS.between(day, today) == 1L) Yesterday else OnDate(day)
+        /**
+         * The stamp of [dayKey] against [today], the same [AppToday] a metric page stamps its latest reading
+         * with, so one value cannot read "Today" here and "Yesterday" there. Pure, so the words never depend
+         * on when the screen redraws.
+         */
+        internal fun resolve(dayKey: String?, today: AppToday): SummaryStamp? = when (val r = today.relation(dayKey)) {
+            null -> null
+            DayRelation.Today -> Today
+            DayRelation.Yesterday -> Yesterday
+            is DayRelation.OnDate -> OnDate(r.date)
         }
 
         /**
          * A pinned card's stamp on the picked day. On a past day the pager already names the day, so a
          * value from that very day says nothing more; only a value carried from another day is stamped.
          */
-        fun forCard(dayKey: String?, dayOffset: Int, selectedKey: String, todayKey: String): SummaryStamp? =
-            if (dayOffset != 0 && dayKey == selectedKey) null else resolve(dayKey, todayKey)
+        internal fun forCard(dayKey: String?, dayOffset: Int, selectedKey: String, today: AppToday): SummaryStamp? =
+            if (dayOffset != 0 && dayKey == selectedKey) null else resolve(dayKey, today)
     }
 }
 

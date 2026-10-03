@@ -65,6 +65,7 @@ import com.noop.R
 import com.noop.analytics.DaytimeStress
 import com.noop.analytics.FitnessAgeEngine
 import com.noop.analytics.SkinTempDisplay
+import com.noop.ui.AppToday
 import com.noop.ui.AppViewModel
 import com.noop.ui.DisplayText
 import com.noop.ui.KeyMetricPrefs
@@ -236,8 +237,11 @@ private fun MetricPage(
     val category = AllMetricsCatalog.category(metric)
     var rangeIndex by rememberSaveable(metric.id) { mutableIntStateOf(0) }
     val range = MetricRange.entries[rangeIndex]
-    val today = remember { LocalDate.now() }
-    val window = remember(series, range, firstDay) { MetricHealthSeries.window(series, range, today, firstDay) }
+    // The page's one today: the chart's window ends on it and "Latest" is stamped against it, the same day
+    // the Summary calls Today (not the calendar day, which is already tomorrow between midnight and 04:00).
+    val todayRow by vm.today.collectAsStateWithLifecycle()
+    val today = remember(todayRow?.day) { AppToday.now(todayRow?.day) }
+    val window = remember(series, range, firstDay, today) { MetricHealthSeries.window(series, range, today.date, firstDay) }
     val spec = remember(metric, series) { MetricHealthStyle.chart(metric.key, metric.unit, series.map { it.second }) }
     var selection by remember(window) { mutableStateOf<MetricPoint?>(null) }
     val showsImportState = loaded && series.isEmpty() && metric.key != "fitness_age"
@@ -313,18 +317,20 @@ private fun MetricPage(
             segments = segments,
             locale = locale,
             firstDay = firstDay,
+            today = today,
             units = units,
             tokensOf = tokensOf,
             textOf = textOf,
             onOpenDataSources = onOpenDataSources,
         )
-        if (stressDay == null && stressDayApplies(metric)) MetricStressDayLoading()
+        if (stressDay == null && stressDayApplies(metric)) MetricStressDayLoading(today, locale)
         stressDay?.let { day ->
             MetricStressDayCard(
                 day = day,
                 figure = { v -> MetricFigure(tokensOf(v), MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.SemiBold), MaterialTheme.typography.titleLarge) },
                 tint = tint,
                 locale = locale,
+                today = today,
             )
         }
         if (loaded && series.isEmpty() && metric.key == "fitness_age") FitnessAgeEmptyCard(vm, days = vm.recentDays.value, onReload = onReload)
@@ -355,6 +361,7 @@ private fun ChartCard(
     segments: Map<LocalDate, String>,
     locale: Locale,
     firstDay: java.time.DayOfWeek,
+    today: AppToday,
     units: MetricUnits,
     tokensOf: (Double) -> List<MetricToken>,
     textOf: (Double) -> String,
@@ -455,7 +462,7 @@ private fun ChartCard(
         }
         series.lastOrNull()?.let { (day, v) ->
             HorizontalDivider(Modifier.padding(top = 16.dp), color = colors.outlineVariant)
-            val stamp = MetricDateLabels.stamp(day, LocalDate.now(), locale)
+            val stamp = MetricDateLabels.stamp(day, today, locale)
             val latestText = stringResource(R.string.metric_latest, stamp)
             Row(
                 Modifier

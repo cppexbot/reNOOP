@@ -4,6 +4,8 @@ import android.icu.text.DateFormat
 import android.icu.text.DateIntervalFormat
 import android.icu.util.DateInterval
 import com.noop.R
+import com.noop.ui.AppToday
+import com.noop.ui.DayRelation
 import com.noop.ui.uiString
 import java.text.FieldPosition
 import java.time.DayOfWeek
@@ -70,14 +72,16 @@ internal object MetricDateLabels {
     fun shortDate(day: String, locale: Locale): String =
         MetricHealthSeries.date(day)?.let { skeleton("MMMd", it, locale) } ?: day
 
-    /** Health's stamp for a reading's day: "Today", "Yesterday", else "24 Sep". */
-    fun stamp(day: String, today: LocalDate, locale: Locale): String {
-        val d = MetricHealthSeries.date(day) ?: return day
-        return when (d) {
-            today -> uiString(R.string.metric_today)
-            today.minusDays(1) -> uiString(R.string.metric_yesterday)
-            else -> skeleton("MMMd", d, locale)
-        }
+    /**
+     * Health's stamp for a reading's day: "Today", "Yesterday", else "24 Sep". [today] is the app's one
+     * today ([AppToday]), the same the Summary stamps its cards with, so a value that reads "Today" there
+     * reads "Latest: Today" on its own page at any hour.
+     */
+    fun stamp(day: String, today: AppToday, locale: Locale): String = when (val r = today.relation(day)) {
+        null -> day
+        DayRelation.Today -> uiString(R.string.metric_today)
+        DayRelation.Yesterday -> uiString(R.string.metric_yesterday)
+        is DayRelation.OnDate -> skeleton("MMMd", r.date, locale)
     }
 
     /** "24 Sep – 30 Sep 2026" between two "yyyy-MM-dd" days (the Training Load header). */

@@ -53,12 +53,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.noop.R
+import com.noop.ui.AppToday
 import com.noop.ui.AppViewModel
 import com.noop.ui.KeyMetric
 import com.noop.ui.KeyMetricPrefs
 import com.noop.ui.OnScrollToTop
 import com.noop.ui.UnitPrefs
-import com.noop.ui.logicalDayKeyNow
 import com.noop.ui.m3.LargeTitle
 import com.noop.ui.m3.M3Dimens
 import com.noop.ui.m3.SectionHeader
@@ -105,7 +105,8 @@ internal class SummaryUi(
     val locale: Locale,
     val dayOffset: Int,
     val selectedKey: String,
-    val todayKey: String,
+    /** The one today the pager, the day keys and every stamp count from. */
+    val today: AppToday,
     val snapshot: SummarySnapshot,
     val sleepNight: SummarySleepNight?,
     val trends: List<HealthTrendItem>?,
@@ -115,7 +116,7 @@ internal class SummaryUi(
     val syncLine: SummarySyncLine,
 ) {
     /** A card's stamp on the picked day (only carried values are stamped on a past day). */
-    fun stamp(dayKey: String?): SummaryStamp? = SummaryStamp.forCard(dayKey, dayOffset, selectedKey, todayKey)
+    fun stamp(dayKey: String?): SummaryStamp? = SummaryStamp.forCard(dayKey, dayOffset, selectedKey, today)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -149,13 +150,23 @@ internal fun SummaryScreen(vm: AppViewModel, actions: SummaryActions) {
     var showPicker by rememberSaveable { mutableStateOf(false) }
     var reloadTick by remember { mutableIntStateOf(0) }
 
-    val todayKey = SummaryLoader.dayKey(0, todayRow)
-    val selectedKey = SummaryLoader.dayKey(dayOffset, todayRow)
-    val maxOffset = SummaryDay.maxDayOffset(days.firstOrNull()?.day, logicalDayKeyNow())
+    // The sync line's "5 minutes ago" moves on by itself; the same tick carries today over the 04:00 roll.
+    var nowSec by remember { mutableLongStateOf(System.currentTimeMillis() / 1000) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(30_000)
+            nowSec = System.currentTimeMillis() / 1000
+        }
+    }
+    // One clock read for the whole screen: the pager title, the day keys, the loader and every stamp take
+    // this value, so they cannot name different days (a second read could land the other side of 04:00).
+    val today = remember(todayRow?.day, nowSec) { AppToday.now(todayRow?.day) }
+    val selectedKey = today.minusDays(dayOffset).toString()
+    val maxOffset = SummaryDay.maxDayOffset(days.firstOrNull()?.day, today.key)
 
     var snapshot by remember { mutableStateOf(SummarySnapshot()) }
-    LaunchedEffect(days, todayRow, cycle, spo2Candidates, dayOffset, reloadTick) {
-        snapshot = SummaryLoader.load(vm, context, dayOffset, days, todayRow, cycle, spo2Candidates)
+    LaunchedEffect(days, todayRow, cycle, spo2Candidates, dayOffset, reloadTick, today) {
+        snapshot = SummaryLoader.load(vm, context, dayOffset, days, todayRow, cycle, spo2Candidates, today)
     }
     var sleepNight by remember { mutableStateOf<SummarySleepNight?>(null) }
     LaunchedEffect(days, selectedKey, reloadTick) {
@@ -166,20 +177,11 @@ internal fun SummaryScreen(vm: AppViewModel, actions: SummaryActions) {
     LaunchedEffect(days, reloadTick) {
         trends = runCatching { HealthTrends.top(vm, context, limit = 3) }.getOrNull()
     }
-    // The sync line's "5 minutes ago" moves on by itself.
-    var nowSec by remember { mutableLongStateOf(System.currentTimeMillis() / 1000) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(30_000)
-            nowSec = System.currentTimeMillis() / 1000
-        }
-    }
-
     val ui = SummaryUi(
         locale = locale,
         dayOffset = dayOffset,
         selectedKey = selectedKey,
-        todayKey = todayKey,
+        today = today,
         snapshot = snapshot,
         sleepNight = sleepNight?.takeIf { it.wakeDayKey == selectedKey && it.stages.asleep > 0 },
         trends = trends,
@@ -190,7 +192,7 @@ internal fun SummaryScreen(vm: AppViewModel, actions: SummaryActions) {
     )
     val onChangeTile: (Int, KeyMetric) -> Unit = { slot, metric -> tiles = SummaryTilePrefs.replace(context, slot, metric) }
     val pager = SummaryPager(
-        title = dayTitle(dayOffset, SummaryLoader.logicalDay(dayOffset), locale),
+        title = dayTitle(dayOffset, today.minusDays(dayOffset), locale),
         canGoBack = dayOffset < maxOffset,
         canGoForward = dayOffset > 0,
         onBack = { dayOffset = (dayOffset + 1).coerceAtMost(maxOf(maxOffset, 0)) },
@@ -203,7 +205,7 @@ internal fun SummaryScreen(vm: AppViewModel, actions: SummaryActions) {
     LaunchedEffect(pull.isRefreshing) {
         if (!pull.isRefreshing) return@LaunchedEffect
         if (todayPullToSyncEnabled(sync.connected, sync.bonded, sync.backfilling, sync.historyReady)) vm.syncNow()
-        snapshot = SummaryLoader.load(vm, context, dayOffset, days, todayRow, cycle, spo2Candidates)
+        snapshot = SummaryLoader.load(vm, context, dayOffset, days, todayRow, cycle, spo2Candidates, today)
         reloadTick++
         pull.endRefresh()
     }
@@ -236,11 +238,11 @@ internal fun SummaryScreen(vm: AppViewModel, actions: SummaryActions) {
 
     if (showPicker) {
         SummaryDatePicker(
-            selected = SummaryLoader.logicalDay(dayOffset),
-            earliest = SummaryLoader.logicalDay(maxOffset),
-            latest = SummaryLoader.logicalDay(0),
+            selected = today.minusDays(dayOffset),
+            earliest = today.minusDays(maxOffset),
+            latest = today.date,
             onPick = { picked ->
-                dayOffset = SummaryDay.pickedDayOffset(picked, SummaryLoader.logicalDay(0)).coerceAtMost(maxOffset)
+                dayOffset = SummaryDay.pickedDayOffset(picked, today.date).coerceAtMost(maxOffset)
                 showPicker = false
             },
             onDismiss = { showPicker = false },
@@ -455,7 +457,7 @@ private fun FitnessTilesRow(ui: SummaryUi, actions: SummaryActions, onChangeTile
                     reading = reading,
                     week = ui.snapshot.dailySeries[reading.seriesKey].orEmpty(),
                     weekLetters = letters,
-                    stamp = stampText(SummaryStamp.resolve(reading.stampDay ?: ui.selectedKey, ui.todayKey), ui.locale),
+                    stamp = stampText(SummaryStamp.resolve(reading.stampDay ?: ui.selectedKey, ui.today), ui.locale),
                     onClick = { actions.openMetric(reading.routeKey, reading.routeSource) },
                     onChange = { onChangeTile(slot, it) },
                     modifier = Modifier.weight(1f),

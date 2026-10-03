@@ -7,6 +7,7 @@ import com.noop.analytics.ReadinessEngine.Evidence
 import com.noop.analytics.ReadinessEngine.Flag
 import com.noop.analytics.ReadinessEngine.Level
 import com.noop.data.DailyMetric
+import com.noop.ui.AppToday
 import com.noop.ui.KeyMetric
 import com.noop.ui.UnitSystem
 import com.noop.ui.m3.ringFraction
@@ -17,6 +18,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
+import java.time.ZoneId
 import java.util.Locale
 
 /** Pins the Summary's pure decisions: pins, tiles, layout, Charge, days, stamps, readings, highlights, sync. */
@@ -124,17 +126,19 @@ class SummaryLogicTest {
     // MARK: Stamps
 
     @Test fun stamps() {
-        assertEquals(SummaryStamp.Today, SummaryStamp.resolve("2026-09-30", "2026-09-30"))
-        assertEquals(SummaryStamp.Yesterday, SummaryStamp.resolve("2026-09-29", "2026-09-30"))
-        assertEquals(SummaryStamp.OnDate(LocalDate.parse("2026-09-24")), SummaryStamp.resolve("2026-09-24", "2026-09-30"))
-        assertNull(SummaryStamp.resolve(null, "2026-09-30"))
+        // The today every stamp counts from is an AppToday (its own boundaries: AppTodayTest).
+        val today = AppToday.resolve(null, LocalDate.parse("2026-09-30").atTime(12, 0).atZone(ZoneId.of("UTC")))
+        assertEquals(SummaryStamp.Today, SummaryStamp.resolve("2026-09-30", today))
+        assertEquals(SummaryStamp.Yesterday, SummaryStamp.resolve("2026-09-29", today))
+        assertEquals(SummaryStamp.OnDate(LocalDate.parse("2026-09-24")), SummaryStamp.resolve("2026-09-24", today))
+        assertNull(SummaryStamp.resolve(null, today))
         // On a past day a value from that very day is not stamped; a carried one is.
-        assertNull(SummaryStamp.forCard("2026-09-24", 6, "2026-09-24", "2026-09-30"))
+        assertNull(SummaryStamp.forCard("2026-09-24", 6, "2026-09-24", today))
         assertEquals(
             SummaryStamp.OnDate(LocalDate.parse("2026-09-23")),
-            SummaryStamp.forCard("2026-09-23", 6, "2026-09-24", "2026-09-30"),
+            SummaryStamp.forCard("2026-09-23", 6, "2026-09-24", today),
         )
-        assertEquals(SummaryStamp.Today, SummaryStamp.forCard("2026-09-30", 0, "2026-09-30", "2026-09-30"))
+        assertEquals(SummaryStamp.Today, SummaryStamp.forCard("2026-09-30", 0, "2026-09-30", today))
     }
 
     // MARK: Readings

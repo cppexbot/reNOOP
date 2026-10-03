@@ -12,6 +12,7 @@ import com.noop.data.DailyMetric
 import com.noop.data.SleepSession
 import com.noop.data.WhoopRepository
 import com.noop.ui.ActiveDayCycle
+import com.noop.ui.AppToday
 import com.noop.ui.AppViewModel
 import com.noop.ui.NoopPrefs
 import com.noop.ui.PersistedSegment
@@ -31,7 +32,6 @@ import com.noop.ui.lastSkinTempReadingRow
 import com.noop.ui.lastSpo2Row
 import com.noop.ui.lastVitalsRow
 import com.noop.ui.localDayString
-import com.noop.ui.logicalDayNow
 import com.noop.ui.recoveryCalibrationNights
 import com.noop.ui.resolveSkinTempReading
 import com.noop.ui.selectNight
@@ -86,13 +86,11 @@ internal object SummaryLoader {
     private const val TO = "9999-99-99"
     private val PHONE_SOURCES = listOf(WhoopRepository.APPLE_HEALTH_SOURCE, WhoopRepository.HEALTH_CONNECT_SOURCE)
 
-    /** The picked day's logical date: today's (rolls at 04:00) minus [offset] days. */
-    fun logicalDay(offset: Int): LocalDate = logicalDayNow().minusDays(offset.toLong())
-
-    /** The key the day-scoped reads use; at offset 0 it follows the live today row. */
-    fun dayKey(offset: Int, todayRow: DailyMetric?): String =
-        if (offset == 0) todayRow?.day ?: logicalDay(0).toString() else logicalDay(offset).toString()
-
+    /**
+     * Everything for the day [offset] days before [today]. [today] is the screen's one [AppToday]: the
+     * pager title, the day key, the week's slots and every stamp count from it, so none of them can name a
+     * different day than the others.
+     */
     suspend fun load(
         vm: AppViewModel,
         context: Context,
@@ -101,20 +99,22 @@ internal object SummaryLoader {
         todayRow: DailyMetric?,
         activeDayCycle: ActiveDayCycle?,
         spo2CandidateByDay: Map<String, Double>,
+        today: AppToday,
     ): SummarySnapshot = withContext(Dispatchers.IO) {
         val repo = vm.repo
         val active = vm.activeStrapId
         val isToday = offset == 0
-        val logical = logicalDay(offset)
-        val dayKey = dayKey(offset, todayRow)
+        val logical = today.minusDays(offset)
+        val dayKey = logical.toString()
         val mode = NoopPrefs.dayCycleMode(context)
-        val rawDay = if (isToday) todayRow ?: days.lastOrNull { it.day == dayKey } else days.lastOrNull { it.day == dayKey }
+        // The cached today row only while it is still today's (it lags the 04:00 roll until the next read).
+        val rawDay = (if (isToday) todayRow?.takeIf { it.day == dayKey } else null) ?: days.lastOrNull { it.day == dayKey }
         // Steps alone follow the sleep-onset cycle today, as they did on Today.
         val cycleSteps = activeDayCycle?.steps
         val day = if (isToday && mode == DayCycleMode.SLEEP_ONSET && cycleSteps != null) rawDay?.copy(steps = cycleSteps) else rawDay
         val tkey = day?.day ?: dayKey
         // #547: the carry never selects a day past the later of the logical today and the calendar today.
-        val carryToday = maxOf(logicalDay(0).toString(), LocalDate.now().toString())
+        val carryToday = maxOf(today.key, today.calendarKey)
 
         // Charge: scored → calibrating → a real prior night's carry → nothing.
         val hrvEpoch = NoopPrefs.of(context).getLong(Baselines.hrvBaselineEpochKey, 0L).toDouble()

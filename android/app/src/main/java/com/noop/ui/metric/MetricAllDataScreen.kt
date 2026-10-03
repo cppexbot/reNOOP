@@ -33,6 +33,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.noop.R
+import com.noop.ui.AppToday
 import com.noop.ui.AppViewModel
 import com.noop.ui.DisplayText
 import com.noop.ui.m3.M3Dimens
@@ -40,7 +41,6 @@ import com.noop.ui.m3.PushedTopBar
 import com.noop.ui.m3.groupItemShape
 import com.noop.ui.provenanceDisplayLabel
 import com.noop.ui.uiString
-import java.time.LocalDate
 
 // MARK: - All Data (twin of iOS MetricAllDataView)
 //
@@ -72,7 +72,7 @@ fun MetricAllDataScreen(vm: AppViewModel, key: String, source: String?, onBack: 
         val m = metric ?: run { value = emptyList(); return@produceState }
         val ctx = MetricSeriesLoader.context(vm, context)
         val page = MetricSeriesLoader.load(m, ctx)
-        val today = LocalDate.now()
+        val today = AppToday.now(vm.today.value?.day)
         value = metricDataRows(
             page = page,
             fallbackSource = m.source,
