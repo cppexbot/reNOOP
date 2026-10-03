@@ -175,6 +175,39 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
         }
     }
 
+    // A widget or notification tap (AppLink) lands where it promised: the tab is selected and the screen
+    // pushed as a tap on its row would, with the recording screen put away so the destination is in view.
+    val pendingLink by AppLinks.pending.collectAsStateWithLifecycle()
+    LaunchedEffect(pendingLink) {
+        val link = pendingLink ?: return@LaunchedEffect
+        AppLinks.consume()
+        val target = AppLinkTarget.of(
+            link,
+            workoutActive = viewModel.activeWorkout.value != null,
+            coachEnabled = CoachEnabledStore.enabled,
+        )
+        when (target) {
+            is AppLinkTarget.TabRoot -> {
+                NowRunning.collapse()
+                nav.showTabRoot(target.tab)
+            }
+            is AppLinkTarget.Screen -> {
+                NowRunning.collapse()
+                nav.openInTab(target.tab, target.route)
+            }
+            is AppLinkTarget.Metric -> {
+                NowRunning.collapse()
+                nav.showTabRoot(target.tab)
+                nav.push(metricRoute(target.key, target.source))
+            }
+            is AppLinkTarget.Recording -> {
+                NowRunning.expand(NowRunning.Kind.Workout)
+                if (target.confirmFinish) NowRunning.requestFinish()
+            }
+            null -> Unit
+        }
+    }
+
     /** Selects [tab] as a tap on it would: re-selecting pops to the root, then scrolls the root to the top. */
     fun onTabTapped(tab: MainTab) {
         when {

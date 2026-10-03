@@ -151,11 +151,28 @@ class MainActivity : ComponentActivity() {
         BackgroundImageStore.load(this)
         CoachEnabledStore.load(this)   // the AI Coach master switch, read before first composition
 
+        // A widget or notification tap that started the activity (AppLink). Not on a recreation: the
+        // intent is still the one that started it, and a rotation must not replay the tap.
+        if (savedInstanceState == null) deliverLink(intent)
+
         setContent {
             NoopTheme {
                 NoopRoot()
             }
         }
+    }
+
+    /** A widget or notification tap while the activity is already up (its intents are single-top). */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        deliverLink(intent)
+    }
+
+    /** Hands a tapped [AppLink] to the shell. Dropped until setup is done: the terms and onboarding gates
+     *  come first, and a link kept through them would fire long after the tap. */
+    private fun deliverLink(intent: Intent?) {
+        if (NoopPrefs.of(this).getBoolean(NoopPrefs.KEY_ONBOARDED, false)) AppLinks.deliver(intent)
     }
 
     /** Request the BLE permissions appropriate to the running OS version. */

@@ -142,6 +142,14 @@ internal fun LiveWorkoutRecording(vm: AppViewModel, onMinimize: () -> Unit) {
     }
 
     var confirmFinish by remember { mutableStateOf(false) }
+    // The notification's Finish action opens this screen with the confirmation already up.
+    val finishRequested by NowRunning.finishRequested.collectAsStateWithLifecycle()
+    LaunchedEffect(finishRequested) {
+        if (finishRequested) {
+            confirmFinish = true
+            NowRunning.consumeFinishRequest()
+        }
+    }
     val pager = rememberPagerState(pageCount = { 2 })
     val scope = rememberCoroutineScope()
 

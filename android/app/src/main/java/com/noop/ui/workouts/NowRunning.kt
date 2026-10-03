@@ -86,6 +86,20 @@ internal object NowRunning {
         _expanded.value = null
     }
 
+    private val _finishRequested = MutableStateFlow(false)
+
+    /** The workout's recording screen should raise its Finish confirmation: the live-workout
+     *  notification's Finish action, which confirms on that screen as its own button does. */
+    val finishRequested: StateFlow<Boolean> = _finishRequested.asStateFlow()
+
+    fun requestFinish() {
+        _finishRequested.value = true
+    }
+
+    fun consumeFinishRequest() {
+        _finishRequested.value = false
+    }
+
     /**
      * What the mini-player shows. When both run, the interval timer wins (it runs on its own clock); a
      * workout records whatever else happens. Twin of the iOS priority (gym session, intervals, workout).
