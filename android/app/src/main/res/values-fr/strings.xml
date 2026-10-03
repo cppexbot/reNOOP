@@ -3664,4 +3664,5 @@
     <string name="wind_down_notif_body">Une heure calme maintenant vous aide à atteindre votre heure de réveil bien reposé.</string>
     <string name="notif_channel_workout_name">Entraînement en cours</string>
     <string name="notif_channel_workout_desc">Le sport, le chrono et la fréquence cardiaque de l’entraînement en cours d’enregistrement, avec Pause et Terminer.</string>
+    <string name="illness_alert_public">Avis de santé</string>
 </resources>

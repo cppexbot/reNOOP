@@ -3657,4 +3657,5 @@
     <string name="wind_down_notif_body">Uma hora calma agora ajuda-o a acordar bem descansado à hora pretendida.</string>
     <string name="notif_channel_workout_name">Treino em curso</string>
     <string name="notif_channel_workout_desc">O desporto, o tempo e a frequência cardíaca do treino que está a gravar, com Pausar e Terminar.</string>
+    <string name="illness_alert_public">Aviso de saúde</string>
 </resources>

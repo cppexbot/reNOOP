@@ -268,9 +268,11 @@ internal object LiveWorkoutNotifier {
         // The channel BEFORE the content is published: the connection service may build this notification
         // for startForeground the moment [shown] is set, on its own thread.
         val channelReady = ensureChannel(context)
-        shown = content
         lastPostAtMs = System.currentTimeMillis()
+        // No channel, no notification: the workout does not claim the ongoing notification it cannot
+        // show, so the connection service keeps posting its own.
         if (!channelReady) return
+        shown = content
         // Defensive: a notify() throw (OEM quirk, revoked POST_NOTIFICATIONS) must not reach the workout.
         runCatching {
             if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return

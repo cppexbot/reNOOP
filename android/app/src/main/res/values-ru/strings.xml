@@ -3594,4 +3594,5 @@
     <string name="wind_down_notif_body">Спокойный час сейчас поможет вам проснуться отдохнувшим к нужному времени.</string>
     <string name="notif_channel_workout_name">Идёт тренировка</string>
     <string name="notif_channel_workout_desc">Вид спорта, время и пульс тренировки, которая сейчас записывается, с кнопками «Пауза» и «Завершить».</string>
+    <string name="illness_alert_public">Уведомление о здоровье</string>
 </resources>

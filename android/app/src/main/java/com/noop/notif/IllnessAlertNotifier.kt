@@ -77,6 +77,15 @@ object IllnessAlertNotifier {
                 .setAutoCancel(true)
                 .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                // The summary names health signals. On a lock screen set to hide sensitive content, what
+                // stands there instead is a generic notice (audit NT-1, the iOS hidden-preview placeholder).
+                .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+                .setPublicVersion(
+                    NoopNotifications.builder(
+                        context, CHANNEL_ID, R.drawable.ic_stat_heart,
+                        context.getString(R.string.illness_alert_public), null,
+                    ).build(),
+                )
                 .build()
             NotificationManagerCompat.from(context).notify(NOTIF_ID, n)
             NoopPrefs.setIllnessLastNotifiedDay(context, today)

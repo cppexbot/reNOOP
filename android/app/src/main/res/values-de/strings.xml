@@ -3678,4 +3678,5 @@
     <string name="wind_down_notif_body">Eine ruhige Stunde jetzt hilft dir, deine Aufwachzeit ausgeruht zu erreichen.</string>
     <string name="notif_channel_workout_name">Laufendes Workout</string>
     <string name="notif_channel_workout_desc">Sportart, Zeit und Herzfrequenz des Workouts, das du gerade aufzeichnest, mit Pause und Fertigstellen.</string>
+    <string name="illness_alert_public">Gesundheitshinweis</string>
 </resources>
