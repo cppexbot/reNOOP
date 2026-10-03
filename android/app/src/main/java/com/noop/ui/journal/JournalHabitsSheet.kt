@@ -1,5 +1,8 @@
 package com.noop.ui.journal
 
+import com.noop.ui.m3.SheetBackdropEffect
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.foundation.layout.widthIn
 import com.noop.ui.TypedNumber
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -102,6 +105,7 @@ internal fun HabitsSheet(
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surface,
     ) {
+        SheetBackdropEffect(MaterialTheme.colorScheme.surface)
         Row(
             modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -258,7 +262,8 @@ private fun HabitRow(
             if (item.kind.isNumeric) {
                 NumberField(number, item.kind.unitLabel, onNumeric)
             } else {
-                SingleChoiceSegmentedButtonRow(Modifier.width(148.dp)) {
+                // At least 148 dp, wider when the two answers need it at a large font size.
+                SingleChoiceSegmentedButtonRow(Modifier.widthIn(min = 148.dp)) {
                     listOf(true, false).forEachIndexed { i, yes ->
                         SegmentedButton(
                             selected = answer == yes,
@@ -309,7 +314,8 @@ private fun NumberField(value: Double?, unit: String?, onValue: (Double?) -> Uni
             placeholder = { Text("—") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            modifier = Modifier.width(96.dp),
+            // Wide enough for a few digits at the reader's font size.
+            modifier = Modifier.width(96.dp * LocalDensity.current.fontScale.coerceIn(1f, 1.6f)),
         )
         if (!unit.isNullOrBlank()) {
             Text(unit, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

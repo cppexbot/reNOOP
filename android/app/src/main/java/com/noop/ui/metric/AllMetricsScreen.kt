@@ -1,5 +1,6 @@
 package com.noop.ui.metric
 
+import com.noop.ui.m3.SearchField
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -143,25 +144,14 @@ fun AllMetricsScreen(vm: AppViewModel, onBack: () -> Unit, onOpenMetric: (Metric
             large = true,
             scrollBehavior = scrollBehavior,
         )
-        DockedSearchBar(
+        SearchField(
             query = query,
             onQueryChange = { query = it },
+            placeholder = stringResource(R.string.metric_search),
+            clearLabel = stringResource(R.string.l10n_workouts_screen_clear_search_67300d0f),
+            modifier = Modifier.padding(start = M3Dimens.screenPadding, end = M3Dimens.screenPadding, bottom = 8.dp),
             onSearch = { focusManager.clearFocus() },
-            active = false,
-            onActiveChange = {},
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = M3Dimens.screenPadding, end = M3Dimens.screenPadding, bottom = 8.dp),
-            placeholder = { Text(stringResource(R.string.metric_search)) },
-            leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
-            trailingIcon = if (query.isNotEmpty()) {
-                {
-                    IconButton(onClick = { query = "" }) {
-                        Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.l10n_workouts_screen_clear_search_67300d0f))
-                    }
-                }
-            } else null,
-        ) {}
+        )
 
         LazyColumn(
             modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),

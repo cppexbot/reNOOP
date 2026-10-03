@@ -1,5 +1,6 @@
 package com.noop.ui.metric
 
+import com.noop.ui.m3.labelBand
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -123,7 +124,7 @@ internal fun MetricStressDayCard(
                 val labelW = measurer.measure("3", labelStyle).size.width + 10.dp.toPx()
                 val right = size.width - labelW
                 val top = 6.dp.toPx()
-                val bottom = size.height - 20.dp.toPx()
+                val bottom = size.height - labelBand(measurer, labelStyle, 20.dp)
                 fun yOf(v: Double) = (top + (1 - v / 3.0) * (bottom - top)).toFloat()
                 for (v in 0..3) {
                     val y = yOf(v.toDouble())

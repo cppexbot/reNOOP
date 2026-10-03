@@ -1,5 +1,8 @@
 package com.noop.ui.workouts
 
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -157,15 +160,17 @@ internal fun WorkoutsHomeScreen(vm: AppViewModel, nav: WorkoutsNav) {
             val cells: List<String?> = if (quickSports.size % 2 == 1) quickSports + null else quickSports
             cells.chunked(2).forEachIndexed { i, pair ->
                 item(key = "cards-$i") {
+                    // Both cards of a row take the taller one's height: at least 150 dp, more when a
+                    // two-line name needs it at a large font size.
                     Row(
-                        Modifier.padding(horizontal = M3Dimens.screenPadding),
+                        Modifier.padding(horizontal = M3Dimens.screenPadding).height(IntrinsicSize.Min),
                         horizontalArrangement = Arrangement.spacedBy(M3Dimens.itemGap),
                     ) {
                         pair.forEach { sport ->
                             if (sport != null) {
-                                StartCard(sport, Modifier.weight(1f)) { start(sport) }
+                                StartCard(sport, Modifier.weight(1f).fillMaxHeight()) { start(sport) }
                             } else {
-                                OtherCard(Modifier.weight(1f)) { picking = true }
+                                OtherCard(Modifier.weight(1f).fillMaxHeight()) { picking = true }
                             }
                         }
                     }
@@ -235,18 +240,18 @@ private fun StartCard(sport: String, modifier: Modifier, onStart: () -> Unit) {
     val name = sportLabel(sport)
     Column(
         modifier
-            .height(150.dp)
+            .heightIn(min = 150.dp)
             .clip(RoundedCornerShape(M3Dimens.heroRadius))
             .background(c.fitnessContainer)
             .clickable(role = Role.Button, onClickLabel = stringResource(R.string.workouts_start), onClick = onStart)
             .padding(16.dp),
-        verticalArrangement = Arrangement.SpaceBetween,
     ) {
         Row(verticalAlignment = Alignment.Top) {
             Icon(sportIcon(sport), contentDescription = null, tint = c.fitness, modifier = Modifier.size(32.dp))
             Spacer(Modifier.weight(1f))
             PlayDisc()
         }
+        Spacer(Modifier.weight(1f).heightIn(min = 12.dp))
         Text(
             name,
             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
@@ -263,14 +268,14 @@ private fun OtherCard(modifier: Modifier, onClick: () -> Unit) {
     val c = Health.colors
     Column(
         modifier
-            .height(150.dp)
+            .heightIn(min = 150.dp)
             .clip(RoundedCornerShape(M3Dimens.heroRadius))
             .background(MaterialTheme.colorScheme.surfaceContainerLow)
             .clickable(role = Role.Button, onClick = onClick)
             .padding(16.dp),
-        verticalArrangement = Arrangement.SpaceBetween,
     ) {
         Icon(Icons.Filled.MoreHoriz, contentDescription = null, tint = c.fitness, modifier = Modifier.size(32.dp))
+        Spacer(Modifier.weight(1f).heightIn(min = 12.dp))
         Text(
             stringResource(R.string.workouts_other),
             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
@@ -286,11 +291,11 @@ private fun OtherRow(modifier: Modifier, onClick: () -> Unit) {
     Row(
         modifier
             .fillMaxWidth()
-            .height(64.dp)
+            .heightIn(min = 64.dp)
             .clip(RoundedCornerShape(M3Dimens.heroRadius))
             .background(MaterialTheme.colorScheme.surfaceContainerLow)
             .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = 20.dp),
+            .padding(horizontal = 20.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {

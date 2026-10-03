@@ -1,5 +1,6 @@
 package com.noop.ui.trends
 
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -128,7 +129,12 @@ fun HealthTrendChart(trend: HealthTrend, mark: MetricMark, tint: Color, baseline
     val labelStyle = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
     val grey = colors.onSurfaceVariant.copy(alpha = 0.35f)
     val card = colors.surfaceContainerLow
-    Canvas(Modifier.fillMaxWidth().height(92.dp).clearAndSetSemantics {}) {
+    // Room above the plot for a figure standing on its line, at the reader's font size: fixed in dp, the
+    // figure of the higher line was pushed down across the line once the text grew.
+    val labelRoomDp = with(LocalDensity.current) {
+        max(26f, measurer.measure("0", labelStyle).size.height.toDp().value + 8f).dp
+    }
+    Canvas(Modifier.fillMaxWidth().height(66.dp + labelRoomDp).clearAndSetSemantics {}) {
         val values = trend.slots.filterNotNull()
         val lo0 = minOf(values.minOrNull() ?: 0.0, trend.baselineAverage, trend.recentAverage)
         val hi = maxOf(values.maxOrNull() ?: 1.0, trend.baselineAverage, trend.recentAverage)
@@ -137,7 +143,7 @@ fun HealthTrendChart(trend: HealthTrend, mark: MetricMark, tint: Color, baseline
         val span = max(hi - lo, 1e-9)
         val count = trend.slots.size.coerceAtLeast(1)
         val slot = size.width / count
-        val labelRoom = 26.dp.toPx()
+        val labelRoom = labelRoomDp.toPx()
         val plotHeight = size.height - labelRoom
         fun y(v: Double): Float = (labelRoom + plotHeight * (1 - (v - lo) / span)).toFloat()
         fun x(i: Int): Float = slot * (i + 0.5f)

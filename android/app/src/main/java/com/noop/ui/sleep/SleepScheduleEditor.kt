@@ -1,5 +1,7 @@
 package com.noop.ui.sleep
 
+import com.noop.ui.m3.SheetBackdropEffect
+import androidx.compose.ui.unit.Density
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -93,6 +95,7 @@ internal fun SleepScheduleEditor(
     val alarm = if (draft.isBase) inputs.sounding else inputs.sounding && draft.alarm
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+        SheetBackdropEffect()
         Column(Modifier.fillMaxWidth().navigationBarsPadding()) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 TextButton(onClick = onDismiss) { Text(stringResource(R.string.summary_cancel)) }
@@ -326,9 +329,13 @@ internal fun SleepScheduleDial(
                 h % 6 == 0 -> DateTimeFormatter.ofPattern("h a", locale).format(LocalTime.of(h, 0))
                 else -> "${if (h > 12) h - 12 else h}"
             }
+            // The face is a fixed-size picture: its hour names stop growing at 1.3x, where they still clear
+            // each other (at 2x "10", "12 AM" and "2" ran together). The two times above the dial grow in
+            // full, and TalkBack reads them.
             val t = measurer.measure(
                 text,
                 labelStyle.copy(color = if (h % 6 == 0) label else tick),
+                density = Density(density, fontScale.coerceAtMost(1.3f)),
             )
             val p = point(h * 60, faceR * 0.74f)
             drawText(t, topLeft = Offset(p.x - t.size.width / 2, p.y - t.size.height / 2))

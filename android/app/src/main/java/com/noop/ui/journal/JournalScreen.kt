@@ -1,5 +1,7 @@
 package com.noop.ui.journal
 
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -206,7 +208,10 @@ internal fun JournalScreen(vm: AppViewModel, onBack: () -> Unit) {
             val result = snackbar.showSnackbar(
                 message = context.getString(R.string.journal_deleted),
                 actionLabel = context.getString(R.string.journal_undo),
-                withDismissAction = false,
+                // CR-6: an undo never times out by itself; it stays until Undo, its close button, or the
+                // next delete.
+                withDismissAction = true,
+                duration = SnackbarDuration.Indefinite,
             )
             if (result == SnackbarResult.ActionPerformed) {
                 restore()
@@ -444,6 +449,8 @@ private fun DayStrip(
     val letterFormat = remember(locale) { DateTimeFormatter.ofPattern("EEEEE", locale) }
     val a11yFormat = remember(locale) { DateTimeFormatter.ofPattern("EEEE, d MMMM", locale) }
     val track = MaterialTheme.colorScheme.surfaceContainerHighest
+    // The weekday letter's disc holds the letter at the reader's font size (28 dp at the default).
+    val letterDot = with(LocalDensity.current) { maxOf(28.dp, MaterialTheme.typography.labelLarge.lineHeight.toDp() + 6.dp) }
     Row(Modifier.fillMaxWidth()) {
         for (off in JOURNAL_STRIP_OFFSETS) {
             val isSelected = off == selected
@@ -474,7 +481,7 @@ private fun DayStrip(
                 )
                 Box(
                     Modifier
-                        .size(28.dp)
+                        .size(letterDot)
                         .clip(CircleShape)
                         .background(if (isSelected) MaterialTheme.colorScheme.onSurface else Color.Transparent),
                     contentAlignment = Alignment.Center,

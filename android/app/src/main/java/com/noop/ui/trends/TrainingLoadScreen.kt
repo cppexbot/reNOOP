@@ -1,5 +1,7 @@
 package com.noop.ui.trends
 
+import com.noop.ui.m3.labelStride
+import com.noop.ui.m3.labelBand
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -168,7 +170,7 @@ private fun LoadChart(
         val labelW = (ticks.maxOfOrNull { measurer.measure(loadAxis(it, locale), labelStyle).size.width } ?: 0) + 10.dp.toPx()
         val right = size.width - labelW
         val plotTop = 8.dp.toPx()
-        val bottom = size.height - 22.dp.toPx()
+        val bottom = size.height - labelBand(measurer, labelStyle, 22.dp, 6.dp)
         fun y(v: Double) = (plotTop + (1 - v / top) * (bottom - plotTop)).toFloat()
         val totalDays = (window.end.toEpochDay() - window.start.toEpochDay()).coerceAtLeast(1)
         fun x(d: LocalDate, centre: Boolean = true) =
@@ -179,13 +181,21 @@ private fun LoadChart(
             drawText(l, topLeft = Offset(right + 6.dp.toPx(), y(v) - l.size.height / 2f))
         }
         val dash = PathEffect.dashPathEffect(floatArrayOf(2.dp.toPx(), 3.dp.toPx()))
-        xTicks.forEach { d ->
-            val centred = window.range == MetricRange.WEEK
-            val xx = x(d, centre = centred)
+        // When the labels would touch (large text) every other one is drawn, evenly.
+        val centred = window.range == MetricRange.WEEK
+        val tickX = xTicks.map { x(it, centre = centred) }
+        val tickLayouts = xTicks.map { measurer.measure(MetricDateLabels.xTick(it, window.range, locale), labelStyle) }
+        val stride = labelStride(
+            widest = tickLayouts.maxOfOrNull { it.size.width.toFloat() } ?: 0f,
+            spacing = if (tickX.size > 1) (tickX.last() - tickX.first()) / (tickX.size - 1) else 0f,
+            gap = 4.dp.toPx(),
+        )
+        tickX.forEachIndexed { i, xx ->
             drawLine(colors.outlineVariant, Offset(xx, plotTop), Offset(xx, bottom), strokeWidth = 1.dp.toPx(), pathEffect = dash)
-            val l = measurer.measure(MetricDateLabels.xTick(d, window.range, locale), labelStyle)
-            val lx = if (centred) xx - l.size.width / 2f else xx + 3.dp.toPx()
-            drawText(l, topLeft = Offset(lx.coerceIn(0f, size.width - l.size.width), bottom + 4.dp.toPx()))
+            if (i % stride != 0) return@forEachIndexed
+            val l = tickLayouts[i]
+            val lx = (if (centred) xx - l.size.width / 2f else xx + 3.dp.toPx()).coerceIn(0f, (size.width - l.size.width).coerceAtLeast(0f))
+            drawText(l, topLeft = Offset(lx, bottom + 4.dp.toPx()))
         }
         if (rows.size > 1) {
             val fit: Path = monotonePath(rows.map { Offset(x(it.date), y(it.fitness)) })

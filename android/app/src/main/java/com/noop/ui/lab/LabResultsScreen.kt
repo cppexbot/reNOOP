@@ -1,5 +1,7 @@
 package com.noop.ui.lab
 
+import com.noop.ui.m3.labelBand
+import com.noop.ui.m3.axisBand
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -655,14 +657,15 @@ private fun ReadingsChart(numeric: List<LabMarkerRow>, markerKey: String, tint: 
     val first = LabFormat.dayFromKey(numeric.first().day, locale)
     val last = LabFormat.dayFromKey(numeric.last().day, locale)
     Canvas(modifier.clearAndSetSemantics {}) {
-        val axisW = 44.dp.toPx()
-        val labelH = 18.dp.toPx()
+        val tickValues = listOf(lo, (lo + hi) / 2, hi).distinct()
+        val axisW = axisBand(measurer, tickValues.map { LabFormat.displayValue(it, markerKey, locale) }, labelStyle, floor = 44.dp)
+        val labelH = labelBand(measurer, labelStyle, floor = 18.dp)
         val inset = 6.dp.toPx()
         val plotW = size.width - axisW
         val plotH = size.height - labelH
         fun x(t: Long): Float = if (t1 == t0) plotW / 2 else inset + (t - t0).toFloat() / (t1 - t0).toFloat() * (plotW - inset * 2)
         fun y(v: Double): Float = (plotH - (v - yMin) / (yMax - yMin) * plotH).toFloat()
-        for (tick in listOf(lo, (lo + hi) / 2, hi).distinct()) {
+        for (tick in tickValues) {
             val yy = y(tick)
             drawLine(grid, Offset(0f, yy), Offset(plotW, yy), strokeWidth = 0.5.dp.toPx())
             val layout = measurer.measure(LabFormat.displayValue(tick, markerKey, locale), labelStyle)

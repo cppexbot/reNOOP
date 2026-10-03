@@ -1,5 +1,8 @@
 package com.noop.ui.workouts
 
+import com.noop.ui.m3.labelBand
+import com.noop.ui.m3.axisBand
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -321,6 +324,9 @@ private fun Header(row: WorkoutRow, locale: Locale, zone: ZoneId) {
     }
 }
 
+/** The font scale from which a row of two columns becomes two rows (Android's "large text" and up). */
+private const val LARGE_TEXT_SCALE = 1.3f
+
 /** "Workout Details": the figures two to a row, in their colours. */
 @Composable
 private fun DetailsSection(row: WorkoutRow, steps: Int?, imperial: Boolean, locale: Locale) {
@@ -350,11 +356,12 @@ private fun DetailsSection(row: WorkoutRow, steps: Int?, imperial: Boolean, loca
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         DetailSectionTitle(stringResource(R.string.workouts_details))
         HealthCard(verticalSpacing = 0.dp, contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp)) {
-            val pairs = figures.chunked(2)
+            // Two to a row; one to a row once the text is large, so no label is cut short (CR-1).
+            val pairs = figures.chunked(if (LocalDensity.current.fontScale >= LARGE_TEXT_SCALE) 1 else 2)
             pairs.forEachIndexed { i, pair ->
                 Row(Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
                     pair.forEach { FigureCell(it, Modifier.weight(1f)) }
-                    if (pair.size == 1) Spacer(Modifier.weight(1f))
+                    if (pair.size == 1 && figures.size > pairs.size) Spacer(Modifier.weight(1f))
                 }
                 if (i < pairs.lastIndex) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
@@ -366,7 +373,7 @@ private fun DetailsSection(row: WorkoutRow, steps: Int?, imperial: Boolean, loca
 private fun FigureCell(f: Figure, modifier: Modifier) {
     val locale = LocalConfiguration.current.locales[0]
     Column(modifier.semantics(mergeDescendants = true) {}) {
-        Text(f.label, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(f.label, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface, maxLines = 2, overflow = TextOverflow.Ellipsis)
         Row(verticalAlignment = Alignment.Bottom) {
             Text(
                 f.value,
@@ -414,7 +421,8 @@ private fun EffortCard(strain: Double, scale: EffortScale, locale: Locale) {
                 Text(
                     if (scale == EffortScale.WHOOP) "%.1f".format(locale, shown) else shown.roundToInt().toString(),
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                    color = c.effort,
+                    // On the tinted capsule the hue itself reads at 3.5:1; the text colour does at any tint.
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
             }
             Text(word, style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.SemiBold), color = c.effort)
@@ -457,9 +465,15 @@ private fun HeartRateChart(row: WorkoutRow, points: List<Pair<Long, Double>>, lo
         val clock = DateTimeFormatter.ofPattern(if (ClockPrefs.uses24Hour(context)) "HH:mm" else "h:mm a", locale)
         val startLabel = clock.format(Instant.ofEpochSecond(row.startTs).atZone(zone))
         val endLabel = clock.format(Instant.ofEpochSecond(row.endTs).atZone(zone))
-        Canvas(Modifier.fillMaxWidth().height(150.dp).clearAndSetSemantics {}) {
-            val axisW = 36.dp.toPx()
-            val labelH = 16.dp.toPx()
+        // CR-3: the curve says when it ran and between which values, so it is not silent.
+        val spoken = listOfNotNull(
+            stringResource(R.string.workouts_heart_rate),
+            "$startLabel\u2013$endLabel",
+            values.takeIf { it.isNotEmpty() }?.let { "${it.min().roundToInt()}\u2013${it.max().roundToInt()} $bpm" },
+        ).joinToString(", ")
+        Canvas(Modifier.fillMaxWidth().height(150.dp).clearAndSetSemantics { contentDescription = spoken }) {
+            val axisW = axisBand(measurer, listOf(hi.roundToInt().toString()), labelStyle, floor = 36.dp)
+            val labelH = labelBand(measurer, labelStyle, floor = 16.dp, gap = 2.dp)
             val plotW = size.width - axisW
             val plotH = size.height - labelH
             fun y(v: Double) = (plotH - (v - lo) / (hi - lo) * plotH).toFloat()
@@ -493,21 +507,22 @@ private fun ZoneRows(minutes: List<Double>, fromImport: Boolean, profile: Profil
     val longest = (minutes.maxOrNull() ?: 1.0).coerceAtLeast(1.0)
     val zones = remember(profile.hrMax, profile.hrZoneThresholds) { profile.hrZoneSet.zones }
     val bpm = stringResource(R.string.metric_unit_bpm)
+    // At large text the fixed label columns no longer hold their words ("Zone" / "1" on two lines), so the
+    // words take a line of their own and the bar the next (CR-1).
+    val largeText = LocalDensity.current.fontScale >= LARGE_TEXT_SCALE
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         minutes.take(5).forEachIndexed { i, m ->
             val z = i + 1
-            Row(
-                Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
+            val name: @Composable (Modifier) -> Unit = { modifier ->
                 Text(
                     stringResource(R.string.workouts_zone, z),
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
                     color = c.zone(z),
-                    modifier = Modifier.width(64.dp),
+                    modifier = modifier,
                 )
-                Box(Modifier.weight(1f).height(20.dp), contentAlignment = Alignment.CenterStart) {
+            }
+            val bar: @Composable (Modifier) -> Unit = { modifier ->
+                Box(modifier.height(20.dp), contentAlignment = Alignment.CenterStart) {
                     Box(
                         Modifier
                             .fillMaxWidth((m / longest).toFloat().coerceIn(0.03f, 1f))
@@ -516,19 +531,44 @@ private fun ZoneRows(minutes: List<Double>, fromImport: Boolean, profile: Profil
                             .background(c.zone(z)),
                     )
                 }
+            }
+            val time: @Composable () -> Unit = {
                 Text(
                     WorkoutFormat.clock(m * 60),
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold, fontFeatureSettings = "tnum"),
                     color = MaterialTheme.colorScheme.onSurface,
                 )
+            }
+            val band: @Composable (Modifier) -> Unit = { modifier ->
                 if (!fromImport && zones.size >= 5) {
                     Text(
                         zoneBandLabel(i, zones.map { it.lower }, zones.map { it.upper }, bpm),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.width(76.dp),
+                        modifier = modifier,
                         maxLines = 1,
                     )
+                }
+            }
+            if (largeText) {
+                Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        name(Modifier.weight(1f))
+                        time()
+                        band(Modifier)
+                    }
+                    bar(Modifier.fillMaxWidth())
+                }
+            } else {
+                Row(
+                    Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    name(Modifier.width(64.dp))
+                    bar(Modifier.weight(1f))
+                    time()
+                    band(Modifier.width(76.dp))
                 }
             }
         }

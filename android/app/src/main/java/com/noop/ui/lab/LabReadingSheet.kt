@@ -1,5 +1,6 @@
 package com.noop.ui.lab
 
+import com.noop.ui.m3.SheetBackdropEffect
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -181,6 +182,7 @@ internal fun LabReadingSheet(onDismiss: () -> Unit, onSave: (List<LabMarkerRow>)
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surface,
     ) {
+        SheetBackdropEffect(MaterialTheme.colorScheme.surface)
         if (picking) {
             MarkerPicker(
                 translate = translate,

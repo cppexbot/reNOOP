@@ -1,5 +1,7 @@
 package com.noop.ui.metric
 
+import com.noop.ui.m3.labelStride
+import com.noop.ui.m3.labelBand
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -97,7 +99,10 @@ internal fun MetricHealthChart(
                 // touch back to the page scroll. Letting go clears the pick, as Health's charts do.
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
-                    val geometry = ChartGeometry.of(size.width.toFloat(), size.height.toFloat(), yLabelWidth(measurer, yLabels, labelStyle, this), this)
+                    val geometry = ChartGeometry.of(
+                        size.width.toFloat(), size.height.toFloat(),
+                        yLabelWidth(measurer, yLabels, labelStyle, this), labelBand(measurer, labelStyle, 22.dp, 6.dp), this,
+                    )
                     currentOnSelect(nearest(window, geometry.dateAt(down.position.x, window)))
                     var total = Offset.Zero
                     var picking = false
@@ -117,7 +122,10 @@ internal fun MetricHealthChart(
                 }
             },
     ) {
-        val geometry = ChartGeometry.of(size.width, size.height, yLabelWidth(measurer, yLabels, labelStyle, this), this)
+        val geometry = ChartGeometry.of(
+            size.width, size.height,
+            yLabelWidth(measurer, yLabels, labelStyle, this), labelBand(measurer, labelStyle, 22.dp, 6.dp), this,
+        )
         val plot = geometry
         fun yOf(v: Double): Float {
             val span = (domain.endInclusive - domain.start).takeIf { it > 0 } ?: 1.0
@@ -136,14 +144,22 @@ internal fun MetricHealthChart(
         }
         // Dashed verticals at the date ticks + labels under the plot.
         val dash = PathEffect.dashPathEffect(floatArrayOf(2.dp.toPx(), 3.dp.toPx()))
-        xTicks.forEachIndexed { i, d ->
-            val centred = window.range == MetricRange.WEEK
-            val x = if (centred) xOfDay(d.toEpochDay() + 0.5) else xOfDay(d.toEpochDay().toDouble())
+        // When the labels would touch (large text, long weekday names) every other one is drawn, evenly.
+        val centred = window.range == MetricRange.WEEK
+        val tickX = xTicks.map { d -> if (centred) xOfDay(d.toEpochDay() + 0.5) else xOfDay(d.toEpochDay().toDouble()) }
+        val tickLayouts = xLabels.map { measurer.measure(it, labelStyle) }
+        val stride = labelStride(
+            widest = tickLayouts.maxOfOrNull { it.size.width.toFloat() } ?: 0f,
+            spacing = if (tickX.size > 1) (tickX.last() - tickX.first()) / (tickX.size - 1) else 0f,
+            gap = 4.dp.toPx(),
+        )
+        tickX.forEachIndexed { i, x ->
             drawLine(colors.outlineVariant, Offset(x, plot.top), Offset(x, plot.bottom), strokeWidth = hair, pathEffect = dash)
-            drawLabel(
-                measurer, xLabels[i], labelStyle, Offset(x + if (centred) 0f else 3.dp.toPx(), plot.bottom + 4.dp.toPx()),
-                if (centred) LabelAnchor.TOP_CENTRE else LabelAnchor.TOP_START,
-            )
+            if (i % stride != 0) return@forEachIndexed
+            val layout = tickLayouts[i]
+            val w = layout.size.width.toFloat()
+            val left = (if (centred) x - w / 2 else x + 3.dp.toPx()).coerceIn(0f, (size.width - w).coerceAtLeast(0f))
+            drawText(layout, topLeft = Offset(left, plot.bottom + 4.dp.toPx()))
         }
 
         // Rules: the period's average, the band thresholds, zero for a diverging chart, the picked mark.
@@ -272,13 +288,14 @@ private class ChartGeometry(val left: Float, val top: Float, val right: Float, v
     }
 
     companion object {
-        fun of(width: Float, height: Float, yLabelWidth: Float, density: androidx.compose.ui.unit.Density): ChartGeometry =
+        /** [xLabelBand] is the height kept under the plot for the date labels, at the reader's font size. */
+        fun of(width: Float, height: Float, yLabelWidth: Float, xLabelBand: Float, density: androidx.compose.ui.unit.Density): ChartGeometry =
             with(density) {
                 ChartGeometry(
                     left = 0f,
                     top = 8.dp.toPx(),
                     right = width - yLabelWidth - 10.dp.toPx(),
-                    bottom = height - 22.dp.toPx(),
+                    bottom = height - xLabelBand,
                 )
             }
     }
@@ -287,7 +304,7 @@ private class ChartGeometry(val left: Float, val top: Float, val right: Float, v
 private fun yLabelWidth(measurer: TextMeasurer, labels: List<String>, style: TextStyle, density: androidx.compose.ui.unit.Density): Float =
     with(density) { max(labels.maxOfOrNull { measurer.measure(it, style).size.width.toFloat() } ?: 0f, 16.dp.toPx()) }
 
-private enum class LabelAnchor { START_CENTRE, TOP_CENTRE, TOP_START }
+private enum class LabelAnchor { START_CENTRE }
 
 private fun DrawScope.drawLabel(measurer: TextMeasurer, text: String, style: TextStyle, at: Offset, anchor: LabelAnchor) {
     val layout = measurer.measure(text, style)
@@ -295,8 +312,6 @@ private fun DrawScope.drawLabel(measurer: TextMeasurer, text: String, style: Tex
     val h = layout.size.height.toFloat()
     val topLeft = when (anchor) {
         LabelAnchor.START_CENTRE -> Offset(at.x, at.y - h / 2)
-        LabelAnchor.TOP_CENTRE -> Offset(at.x - w / 2, at.y)
-        LabelAnchor.TOP_START -> Offset(at.x, at.y)
     }
     val clamped = Offset(topLeft.x.coerceIn(0f, (size.width - w).coerceAtLeast(0f)), topLeft.y.coerceIn(0f, (size.height - h).coerceAtLeast(0f)))
     drawText(layout, topLeft = clamped)
