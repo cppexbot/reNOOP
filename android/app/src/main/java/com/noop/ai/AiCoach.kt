@@ -74,6 +74,18 @@ class AiCoach(
         .writeTimeout(30, TimeUnit.SECONDS)
         .build()
 
+    /** The streaming request in flight, so the Coach's stop button can end it (CO-2). */
+    @Volatile private var streamingCall: okhttp3.Call? = null
+
+    /**
+     * Ends the reply being streamed, if any: the request is cancelled, so its read throws and the caller
+     * settles what has arrived. Sends nothing; a no-op when nothing streams. Twin of Swift
+     * `AICoachEngine.stop()` (which cancels the reply's task).
+     */
+    fun cancelStreaming() {
+        streamingCall?.cancel()
+    }
+
     /**
      * Send the conversation to [provider] using [model] and return the assistant reply text.
      *
@@ -1045,8 +1057,10 @@ class AiCoach(
         onDelta: (String) -> Unit,
         extractDelta: (String) -> String?,
     ) {
+        val call = http.newCall(request)
+        streamingCall = call
         try {
-            http.newCall(request).execute().use { resp ->
+            call.execute().use { resp ->
                 if (resp.code !in 200..299) {
                     val body = resp.body?.string().orEmpty()
                     throw httpError(provider, resp.code, body)
@@ -1075,6 +1089,8 @@ class AiCoach(
                 )
             }
             throw Exception(msg.ifBlank { "A network error occurred while streaming the reply." })
+        } finally {
+            if (streamingCall === call) streamingCall = null
         }
     }
 

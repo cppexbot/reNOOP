@@ -128,7 +128,6 @@ internal enum class Destination(val route: String) {
     BackupSync("backup_sync"),
     // Settings > Notifications > Wrist alerts.
     Notifications("notifications"),
-    PowerSaving("power_saving"),
     // The Settings root; its own pages register in ui/settings/SettingsGraph.kt.
     Settings("settings"),
     // Experimental: reachable only through Settings > Developer.
@@ -282,7 +281,7 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
             }
             composable(Destination.Coach.route) {
                 // A normal push, so Back returns to the conversation (#2243).
-                CoachScreen(onOpenSettings = { nav.push(Destination.CoachSettings.route) })
+                CoachScreen(onBack = { nav.popBackStack() }, onOpenSettings = { nav.push(Destination.CoachSettings.route) })
             }
             composable(Destination.CoachSettings.route) {
                 // The SAME CoachViewModel the conversation is using, not a fresh one: `viewModel()` resolves
@@ -290,7 +289,7 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                 // against a second instance would leave the conversation sending on the old one. Coach is
                 // always below this entry: it is reachable only from the strip on that screen.
                 val coachEntry = remember(it) { nav.getBackStackEntry(Destination.Coach.route) }
-                CoachSettingsScreen(vm = viewModel(coachEntry))
+                CoachSettingsScreen(vm = viewModel(coachEntry), onBack = { nav.popBackStack() })
             }
             composable(Destination.Insights.route) {
                 InsightsScreen(viewModel, onOpenInsightsHub = { nav.openInTab(MainTab.Browse, Destination.InsightsHub.route) })
@@ -306,7 +305,11 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
             }
             composable(Destination.InsightsHub.route) { InsightsHubScreen(viewModel) }
             composable(Destination.Devices.route) {
-                DevicesScreen(viewModel, onUseFileImport = { nav.push(Destination.DataSources.route) })
+                DevicesScreen(
+                    viewModel,
+                    onBack = { nav.popBackStack() },
+                    onUseFileImport = { nav.push(Destination.DataSources.route) },
+                )
             }
             composable(Destination.Live.route) {
                 LiveScreen(viewModel = viewModel, onManageDevices = { nav.openInTab(MainTab.Browse, Destination.Devices.route) })
@@ -360,7 +363,6 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
             }
             composable(Destination.SleepSchedule.route) { SleepScheduleScreen(viewModel, onBack = { nav.popBackStack() }) }
             composable(Destination.Notifications.route) { NotificationsSettingsScreen(viewModel) }
-            composable(Destination.PowerSaving.route) { PowerSavingScreen(viewModel) }
             // Settings and its pages, with Import (DataSources) and Backup (BackupSync).
             settingsGraph(viewModel, open = { nav.push(it) }, back = { nav.popBackStack() })
             composable(Destination.StepsCalibration.route) {

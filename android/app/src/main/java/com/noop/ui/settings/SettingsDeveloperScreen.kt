@@ -50,8 +50,8 @@ import kotlinx.coroutines.launch
 // the strap log and raw-data exports, the haptic clock, the strap's advertising name, continuous HRV
 // capture, and the default-off research switches. Same keys and the same BLE wiring as before.
 //
-// "Strap" holds the strap's own settings pages (Sync, Power saving, Heart rate broadcast) and the model
-// comparison until Devices lists them under the active strap, where iOS keeps them.
+// "Strap" holds the model comparison. The strap's own settings (Sync, Power saving, Double-tap, Haptics, Heart
+// rate broadcast) live on the Devices screen.
 
 @Composable
 internal fun SettingsDeveloperScreen(vm: AppViewModel, open: (String) -> Unit, onBack: () -> Unit) {
@@ -100,15 +100,6 @@ internal fun SettingsDeveloperScreen(vm: AppViewModel, open: (String) -> Unit, o
         }
         item {
             ListGroup(header = stringResource(R.string.settings_strap)) {
-                item { shape ->
-                    ListRow(shape = shape, title = stringResource(R.string.settings_sync), onClick = { open(SettingsRoutes.STRAP_SYNC) })
-                }
-                item { shape ->
-                    ListRow(shape = shape, title = stringResource(R.string.nav_power_saving), onClick = { open(Destination.PowerSaving.route) })
-                }
-                item { shape ->
-                    ListRow(shape = shape, title = stringResource(R.string.settings_hr_broadcast), onClick = { open(SettingsRoutes.HR_BROADCAST) })
-                }
                 item { shape ->
                     ListRow(shape = shape, title = stringResource(R.string.l10n_settings_screen_whoop_4_0_vs_5_0_2babb05a), onClick = { showComparison = true })
                 }

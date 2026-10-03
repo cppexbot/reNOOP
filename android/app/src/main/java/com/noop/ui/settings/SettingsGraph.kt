@@ -22,8 +22,6 @@ internal object SettingsRoutes {
     const val HEALTH_CONNECT = "settings/health_connect"
     const val ABOUT = "settings/about"
     const val DEVELOPER = "settings/developer"
-    const val STRAP_SYNC = "settings/strap_sync"
-    const val HR_BROADCAST = "settings/hr_broadcast"
 }
 
 /**
@@ -45,6 +43,4 @@ internal fun NavGraphBuilder.settingsGraph(vm: AppViewModel, open: (String) -> U
     composable(Destination.BackupSync.route) { SettingsBackupScreen(vm, back) }
     composable(SettingsRoutes.ABOUT) { SettingsAboutScreen(back) }
     composable(SettingsRoutes.DEVELOPER) { SettingsDeveloperScreen(vm, open, back) }
-    composable(SettingsRoutes.STRAP_SYNC) { StrapSyncScreen(vm, back) }
-    composable(SettingsRoutes.HR_BROADCAST) { HeartRateBroadcastScreen(vm, back) }
 }

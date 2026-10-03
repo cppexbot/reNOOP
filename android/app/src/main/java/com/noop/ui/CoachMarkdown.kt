@@ -21,7 +21,8 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.text.TextStyle
 
 /**
  * A small, dependency-free Markdown renderer for the AI Coach's replies (Android twin of the macOS/iOS
@@ -29,12 +30,13 @@ import androidx.compose.ui.unit.sp
  * paragraphs, **bold** for key numbers, *italics*, `code`, `###` headings, bullet/numbered lists, and
  * GFM pipe tables — exactly the block + inline set handled here. Anything else it doesn't recognise falls
  * through as plain text rather than showing raw symbols, which is strictly better than the old verbatim
- * Text() that rendered `**bold**` literally. Styled from the Strand palette/type so it matches the bubble.
+ * Text() that rendered `**bold**` literally. Styled from the Material type scale and colour scheme so it
+ * matches the reply bubble it sits in.
  *
  * The inline parser (parseInline) is pure and unit-tested in CoachMarkdownTest; block layout is above.
  */
 @Composable
-fun CoachMarkdown(text: String, color: Color = Palette.textPrimary) {
+fun CoachMarkdown(text: String, color: Color = MaterialTheme.colorScheme.onSurface) {
     Column {
         val lines = text.replace("\r\n", "\n").split("\n")
         var i = 0
@@ -56,15 +58,15 @@ fun CoachMarkdown(text: String, color: Color = Palette.textPrimary) {
                 line.isBlank() -> Spacer(Modifier.height(6.dp))
                 line.startsWith("### ") -> {
                     if (!firstBlock) Spacer(Modifier.height(8.dp))
-                    HeadingText(line.removePrefix("### "), 16.sp, color)
+                    HeadingText(line.removePrefix("### "), MaterialTheme.typography.titleSmall, color)
                 }
                 line.startsWith("## ") -> {
                     if (!firstBlock) Spacer(Modifier.height(10.dp))
-                    HeadingText(line.removePrefix("## "), 18.sp, color)
+                    HeadingText(line.removePrefix("## "), MaterialTheme.typography.titleMedium, color)
                 }
                 line.startsWith("# ") -> {
                     if (!firstBlock) Spacer(Modifier.height(10.dp))
-                    HeadingText(line.removePrefix("# "), 20.sp, color)
+                    HeadingText(line.removePrefix("# "), MaterialTheme.typography.titleLarge, color)
                 }
                 line.startsWith("- ") || line.startsWith("* ") || line.startsWith("+ ") ->
                     BulletItem("•", parseInline(line.drop(2), color), color)
@@ -73,7 +75,7 @@ fun CoachMarkdown(text: String, color: Color = Palette.textPrimary) {
                     BulletItem(m.groupValues[1] + ".", parseInline(m.groupValues[2], color), color)
                 }
                 else -> androidx.compose.material3.Text(
-                    parseInline(line, color), style = NoopType.body, color = color,
+                    parseInline(line, color), style = MaterialTheme.typography.bodyLarge, color = color,
                 )
             }
             firstBlock = firstBlock && line.isBlank()
@@ -90,10 +92,10 @@ private fun emphasisOpensAt(s: String, i: Int): Boolean =
     (i == 0 || s[i - 1].isWhitespace()) && i + 1 < s.length && !s[i + 1].isWhitespace()
 
 @Composable
-private fun HeadingText(text: String, size: androidx.compose.ui.unit.TextUnit, color: Color) {
+private fun HeadingText(text: String, style: TextStyle, color: Color) {
     androidx.compose.material3.Text(
         parseInline(text, color),
-        style = NoopType.body.copy(fontSize = size, fontWeight = FontWeight.SemiBold),
+        style = style.copy(fontWeight = FontWeight.SemiBold),
         color = color,
     )
 }
@@ -102,11 +104,11 @@ private fun HeadingText(text: String, size: androidx.compose.ui.unit.TextUnit, c
 private fun BulletItem(marker: String, content: AnnotatedString, color: Color) {
     Row(modifier = Modifier.padding(start = 2.dp)) {
         androidx.compose.material3.Text(
-            marker, style = NoopType.body, color = Palette.textTertiary,
+            marker, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.width(if (marker.length > 2) 22.dp else 14.dp),
         )
         Spacer(Modifier.width(2.dp))
-        androidx.compose.material3.Text(content, style = NoopType.body, color = color)
+        androidx.compose.material3.Text(content, style = MaterialTheme.typography.bodyLarge, color = color)
     }
 }
 
@@ -195,11 +197,11 @@ private fun MarkdownTable(table: MdTable, color: Color) {
     Column(
         modifier = Modifier
             .padding(vertical = 2.dp)
-            .border(1.dp, Palette.hairline, RoundedCornerShape(8.dp)),
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp)),
     ) {
         MarkdownTableRow(table.header, columns, color, header = true)
         for (row in table.rows) {
-            Spacer(Modifier.fillMaxWidth().height(1.dp).background(Palette.hairline))
+            Spacer(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
             MarkdownTableRow(row, columns, color, header = false)
         }
     }
@@ -210,12 +212,12 @@ private fun MarkdownTableRow(cells: List<String>, columns: Int, color: Color, he
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .then(if (header) Modifier.background(Palette.surfaceInset) else Modifier),
+            .then(if (header) Modifier.background(MaterialTheme.colorScheme.surfaceContainerHighest) else Modifier),
     ) {
         for (c in 0 until columns) {
             androidx.compose.material3.Text(
                 parseInline(cells.getOrElse(c) { "" }, color),
-                style = if (header) NoopType.body.copy(fontWeight = FontWeight.SemiBold) else NoopType.body,
+                style = if (header) MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold) else MaterialTheme.typography.bodyMedium,
                 color = color,
                 modifier = Modifier.weight(1f).padding(horizontal = 8.dp, vertical = 6.dp),
             )
