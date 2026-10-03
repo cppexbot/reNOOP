@@ -3,6 +3,8 @@ package com.noop.ui.insights
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +27,7 @@ import androidx.compose.material.icons.outlined.EmojiEmotions
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -52,6 +55,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -72,7 +76,6 @@ import com.noop.ui.m3.ListGroup
 import com.noop.ui.m3.ListRow
 import com.noop.ui.m3.M3Dimens
 import com.noop.ui.m3.MetricHue
-import com.noop.ui.m3.PeriodSegmented
 import com.noop.ui.m3.PushedTopBar
 import com.noop.ui.m3.SectionHeader
 import com.noop.ui.m3.color
@@ -192,11 +195,24 @@ internal fun WhatMovesYouScreen(vm: AppViewModel, onBack: () -> Unit, onOpenJour
             verticalArrangement = Arrangement.spacedBy(M3Dimens.itemGap),
         ) {
             item(key = "outcome") {
-                PeriodSegmented(
-                    options = outcomeLabels,
-                    selectedIndex = outcomeIndex,
-                    onSelect = { outcomeIndex = it },
-                )
+                // Chips, not a segmented control: "Resting HR" is long in most languages («Пульс в покое»),
+                // and a quarter of the width cuts it.
+                val outcomeA11y = stringResource(R.string.wmy_outcome)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .semantics { contentDescription = outcomeA11y },
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    outcomeLabels.forEachIndexed { i, label ->
+                        FilterChip(
+                            selected = i == outcomeIndex,
+                            onClick = { outcomeIndex = i },
+                            label = { Text(label, maxLines = 1) },
+                        )
+                    }
+                }
             }
             if (ranked.isEmpty()) {
                 item(key = "habits-empty") {
