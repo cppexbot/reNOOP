@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name" translatable="false">reNOOP</string>
-    <string name="widget_description">Today\'s Rest, Charge and Effort, with live heart rate and strap battery at a glance.</string>
+    <string name="widget_description">Today\'s Rest, Charge and Effort, with heart rate and strap battery at a glance.</string>
     <string name="widget_hr_name">reNOOP Heart Rate</string>
-    <string name="widget_hr_description">Live heart rate with the last three hours as a trace.</string>
+    <string name="widget_hr_description">Heart rate with the last three hours as a trace.</string>
     <string name="widget_stress_name">reNOOP Stress</string>
     <string name="widget_stress_description">Today\'s stress as an hour-by-hour curve.</string>
     <string name="widget_compact_name">reNOOP Compact</string>
-    <string name="widget_compact_description">Compact Rest, Charge and Effort widget, with live heart rate and strap battery.</string>
+    <string name="widget_compact_description">Compact Rest, Charge and Effort widget, with heart rate and strap battery.</string>
     <string name="widget_error">reNOOP widget couldn\'t draw — it will recover on the next update.</string>
 
     <!-- Navigation: bottom-bar tabs, the More page rows, and the top-bar screen titles. These are the
@@ -714,7 +714,7 @@
     <string name="fgs_title_connected">Connected to your WHOOP</string>
     <string name="fgs_detail_streaming">Streaming in the background</string>
     <string name="fgs_detail_keeping_link">Keeping the link open</string>
-    <string name="fgs_detail_recovery">Recovery %1$d%%</string>
+    <string name="fgs_detail_recovery">Charge %1$d%%</string>
     <string name="fgs_detail_battery">Strap %1$d%%</string>
     <string name="fgs_action_disconnect">Disconnect</string>
     <string name="fgs_channel_name">Strap connection</string>
@@ -729,17 +729,17 @@
     <string name="battery_channel_name">Battery alerts</string>
     <string name="battery_channel_desc">Alerts when the strap battery is low or fully charged.</string>
     <!-- K5: scheduled Coach morning-brief notification. -->
-    <string name="coach_brief_channel_name">Coach morning brief</string>
-    <string name="coach_brief_channel_desc">Today\'s coaching brief, generated on-device at your chosen time.</string>
-    <string name="coach_brief_title">Today\'s coaching brief</string>
-    <string name="coach_brief_unavailable_title">Coach brief unavailable</string>
+    <string name="coach_brief_channel_name">Morning Brief</string>
+    <string name="coach_brief_channel_desc">The Coach’s Morning Brief, generated on-device at your chosen time.</string>
+    <string name="coach_brief_title">Morning Brief</string>
+    <string name="coach_brief_unavailable_title">Morning Brief unavailable</string>
     <string name="coach_brief_unavailable_body">Couldn\'t generate today\'s brief. Open Coach to try again.</string>
     <string name="l10n_app_changelog_battery_saver_quiets_the_gauges_translated_bdbe8650">Battery saver quiets the gauges, translated Android notifications, and instant chart loads</string>
     <string name="l10n_app_changelog_water_and_caffeine_from_apple_health_5123b6b0">Water and caffeine from Apple Health, a sharper Effort score, and an Oura resting-heart-rate fix</string>
     <!-- First-run onboarding copy. Kept in resources so every visible setup string is localizable. -->
     <string name="onboarding_expectation_independent_body">reNOOP is a personal, open project - not the WHOOP app, and not affiliated with WHOOP. It reads a strap you own, on your own device. Treat it as a capable work-in-progress rather than a finished product.</string>
-    <string name="onboarding_expectation_whoop_support_body">WHOOP 4.0 is tested and works end to end. WHOOP 5.0/MG is newer: live heart rate works today, but deeper metrics (recovery, strain, sleep) for 5/MG are still being figured out. reNOOP always tells you what\'s live versus still building.</string>
-    <string name="onboarding_expectation_scores_body">Live heart rate is instant. Recovery, strain and sleep sharpen as reNOOP learns your baseline over your first nights of wear. Want your history now? Import your WHOOP export in Data Sources and it backfills in about a minute.</string>
+    <string name="onboarding_expectation_whoop_support_body">WHOOP 4.0 is tested and works end to end. WHOOP 5.0/MG is newer: live heart rate works today, but deeper metrics (Charge, Effort, sleep) for 5/MG are still being figured out. reNOOP always tells you what\'s live versus still building.</string>
+    <string name="onboarding_expectation_scores_body">Live heart rate is instant. Charge, Effort and Rest sharpen as reNOOP learns your baseline over your first nights of wear. Want your history now? Import your WHOOP export in Data Sources and it backfills in about a minute.</string>
     <string name="onboarding_expectation_local_body">No account, no cloud, no sync. reNOOP talks only to your strap and keeps everything local. Your data is yours alone.</string>
     <string name="onboarding_male">Male</string>
     <string name="onboarding_female">Female</string>
@@ -883,7 +883,7 @@
     <string name="vo2max_method_nes">On-device · Nes 2011</string>
     <string name="vo2max_method_uth">On-device · Uth 2004</string>
     <string name="vo2max_method_unknown">On-device · Unknown method</string>
-    <string name="today_source_whoop">Whoop</string>
+    <string name="today_source_whoop">WHOOP</string>
     <string name="today_source_apple_health">Apple Health</string>
     <string name="today_source_health_connect">Health Connect</string>
     <string name="today_source_mi_band">Mi Band</string>
@@ -897,8 +897,8 @@
     <string name="today_metric_rest">Rest</string>
     <string name="today_metric_hrv">HRV</string>
     <string name="today_metric_resting_hr">Resting HR</string>
-    <string name="today_metric_blood_oxygen">Blood oxygen</string>
-    <string name="today_metric_respiratory">Respiratory</string>
+    <string name="today_metric_blood_oxygen">Blood Oxygen</string>
+    <string name="today_metric_respiratory">Respiratory Rate</string>
     <string name="today_metric_steps">Steps</string>
     <string name="today_metric_weight">Weight</string>
     <string name="today_metric_calories">Calories</string>
@@ -1035,7 +1035,7 @@
     <string name="coach_save_to_journal">Save to Journal</string>
     <string name="coach_listening">Listening…</string>
     <string name="coach_no_reply">(no reply)</string>
-    <string name="coach_brief_widget_title">✦ Coach Brief</string>
+    <string name="coach_brief_widget_title">✦ Morning Brief</string>
     <string name="coach_brief_widget_empty">No brief yet</string>
     <string name="coach_brief_widget_enable">Enable Morning Brief in Coach settings to see today\'s readiness here.</string>
 
@@ -1371,8 +1371,8 @@
     <string name="sleep_stage_rem">REM</string>
     <string name="sleep_stage_core">Core</string>
     <string name="sleep_stage_deep">Deep</string>
-    <string name="sleep_duration_hm">%1$d h %2$d min</string>
-    <string name="sleep_duration_h">%1$d h</string>
+    <string name="sleep_duration_hm">%1$d hr %2$d min</string>
+    <string name="sleep_duration_h">%1$d hr</string>
     <string name="sleep_duration_m">%1$d min</string>
     <string name="sleep_vitals_title">Vitals</string>
     <string name="sleep_vitals_typical">Typical</string>
@@ -1550,7 +1550,7 @@
     <string name="settings_hc_write_not_granted">Health Connect write access not granted.</string>
     <string name="settings_health_connect">Health Connect</string>
     <string name="settings_health_details">Health Details</string>
-    <string name="settings_hours_n">%1$d h</string>
+    <string name="settings_hours_n">%1$d hr</string>
     <string name="settings_how_scores_work">How scores work</string>
     <string name="settings_hr_in_notification">Heart rate in a notification</string>
     <string name="settings_hr_max_auto">Auto · %1$d bpm</string>
@@ -1619,7 +1619,7 @@
     <string name="settings_spo2_strap_estimate">Blood Oxygen: strap estimate</string>
     <string name="settings_steps">Steps</string>
     <string name="settings_steps_auto_confidence">Auto · %1$s confidence</string>
-    <string name="settings_strain_target">Strain target</string>
+    <string name="settings_strain_target">Effort target</string>
     <string name="settings_strap">Strap</string>
     <string name="settings_strap_battery">Strap battery</string>
     <string name="settings_strap_connected_battery">Connected · %1$d%%</string>
@@ -1871,7 +1871,7 @@
     <string name="coach_empty_message">Connect your own AI provider.</string>
     <string name="coach_set_up">Set Up</string>
     <string name="coach_ask">Ask Coach</string>
-    <string name="coach_todays_brief">Today’s Brief</string>
+    <string name="coach_todays_brief">Morning Brief</string>
     <string name="coach_stopped">Stopped</string>
     <string name="coach_not_delivered">Not Delivered</string>
     <string name="coach_try_again">Try Again</string>
@@ -1917,7 +1917,7 @@
     <string name="coach_settings_refresh_models">Refresh Models</string>
     <string name="coach_settings_connect">Connect</string>
     <string name="coach_settings_use_my_data">Use My Data</string>
-    <string name="coach_settings_patterns">Patterns and Lab Book</string>
+    <string name="coach_settings_patterns">Patterns and Lab Results</string>
     <string name="coach_settings_data_footer">%1$s receives Charge, sleep, HRV and workouts with sport, duration, distance and heart rate when you ask.</string>
     <string name="coach_settings_instructions">Instructions</string>
     <string name="coach_settings_default">Default</string>
@@ -2014,7 +2014,7 @@
     <string name="devices_reads_live_hr">Live heart rate</string>
     <string name="devices_reads_hrv">HRV (rMSSD)</string>
     <string name="devices_reads_sleep">Sleep staging</string>
-    <string name="devices_reads_recovery">Recovery &amp; strain</string>
+    <string name="devices_reads_recovery">Charge &amp; Effort</string>
     <string name="devices_reads_resp">Respiratory rate</string>
     <string name="devices_reads_stress">Stress (on-device)</string>
     <string name="devices_reads_workouts">Workout detection</string>
@@ -2140,7 +2140,7 @@
     <string name="journal_mood">Mood</string>
     <string name="journal_caffeine">Caffeine</string>
     <string name="journal_now">Now</string>
-    <string name="journal_hours_ago">%1$dh ago</string>
+    <string name="journal_hours_ago">%1$d hr ago</string>
     <string name="journal_add">Add</string>
     <string name="journal_logged">Logged</string>
     <string name="journal_yes">Yes</string>
