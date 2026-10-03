@@ -928,6 +928,13 @@ public final class BLEManager: NSObject, ObservableObject {
     private var rawCaptureInFlight = false
     private var rawCaptureStoppedAt = Date.distantPast
     private var unexpectedImuStopAt = Date.distantPast
+    /// Experimental WHOOP 4.0 raw-stream probe (default off, see `RawStreamProbe`). Its switch goes out
+    /// as a confirmed write so the probe's own request is never one of several queued in one burst.
+    private lazy var rawStreamProbe = RawStreamProbe(
+        send: { [weak self] on in
+            self?.send(.sendR10R11Realtime, payload: [on ? 0x01 : 0x00], writeType: .withResponse)
+        },
+        log: { [weak self] line in self?.log(line) })
     /// Ordered queue of frames awaiting drain through the serial Backfiller task.
     private var backfillFrameQueue: [[UInt8]] = []
     /// True while the drain task is running (prevents a second drain task from launching).
@@ -3278,6 +3285,7 @@ public final class BLEManager: NSObject, ObservableObject {
         send(.sendR10R11Realtime, payload: [0x01])   // the heavy burst rides alongside the toggle on Live
         reconcileRealtime()                          // arms TOGGLE_REALTIME_HR(1) on the off→on edge
         realtimeArmedAt = Date()       // start the arm→drop stopwatch for the marginal-radio detector
+        if selectedModel.deviceFamily == .whoop4 { rawStreamProbe.liveStarted() }
     }
     /// Stop the Live-tab realtime streams. The lightweight 0x2A37 HR keeps recording if firmware emits it.
     /// The TOGGLE only actually disarms if the continuous-capture preference no longer wants it either —
@@ -3291,6 +3299,7 @@ public final class BLEManager: NSObject, ObservableObject {
         // what continuous capture keeps; the reconciler decides whether to disarm that.
         send(.sendR10R11Realtime, payload: [0x00])
         reconcileRealtime()
+        if selectedModel.deviceFamily == .whoop4 { rawStreamProbe.liveStopped() }
     }
 
     /// The "Continuous HRV capture" preference flipped: hold the realtime stream open with no Live screen
@@ -6257,6 +6266,7 @@ extension BLEManager: @preconcurrency CBCentralManagerDelegate {
         connectSettledSignaled = false
         restoreNeedsResubscribe = false    // #613: a real reconnect isn't a restore — never force-toggle here
         realtimeArmedAt = nil   // cleared after the marginal-radio detector above read it (#80)
+        rawStreamProbe.disconnected()
         // Reset backfill state so the next connect starts a fresh offload (incl. the syncing pill —
         // a dropped link mid-offload must not leave "Syncing strap history…" stuck on, #77).
         backfillStarted = false
@@ -7013,6 +7023,9 @@ extension BLEManager: @preconcurrency CBPeripheralDelegate {
         state.connectSettled &+= 1
         restoreNeedsResubscribe = false   // #613: forced re-subscribe pass is done — keep-alive resumes normal
         log("Connect settled: handshake done + cmd-notify confirmed — alarm re-arm (if due) can fire now")
+        if selectedModel.deviceFamily == .whoop4 {
+            rawStreamProbe.connectSettled(liveWanted: screenWantsRealtime)
+        }
     }
 
     /// SET_CLOCK(10) payload — the 8-byte form `[seconds u32 LE][subseconds u32 LE]`, subseconds in
@@ -7353,6 +7366,13 @@ extension BLEManager: @preconcurrency CBPeripheralDelegate {
                 // Devices dialog (raw hex + payload triage + capture diff). Sibling of the #451 dump below.
                 if frame.count > 6, frame[6] == WhoopCommand.getExtendedBatteryInfo.rawValue {
                     handleExtendedBatteryProbeResponse(frame, isWhoop5: false)
+                }
+                // The raw-stream probe's acknowledgement. Unlike the probe replies around it this one
+                // drives state (it stops the probe's retries and clears its "stream is on" marker), so
+                // it is taken only from an intact COMMAND_RESPONSE, never from a bare opcode byte.
+                if parsed.ok, parsed.typeName == "COMMAND_RESPONSE", frame.count > 6,
+                   frame[6] == WhoopCommand.sendR10R11Realtime.rawValue {
+                    rawStreamProbe.responseReceived()
                 }
                 // #690: the read-only body-location probe's COMMAND_RESPONSE (in-flight-guarded inside).
                 if frame.count > 6, frame[6] == WhoopCommand.getBodyLocationAndStatus.rawValue {
