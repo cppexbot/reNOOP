@@ -488,11 +488,13 @@ private fun MarkerPage(
                         } else null,
                     ) {
                         item { shape ->
-                            Box {
-                                ListRow(
-                                    shape = shape,
-                                    title = stringResource(R.string.lab_signal),
-                                    trailing = {
+                            ListRow(
+                                shape = shape,
+                                title = stringResource(R.string.lab_signal),
+                                onClick = { signalMenu = true },
+                                // The menu hangs from the value it changes, at the row's trailing edge.
+                                trailing = {
+                                    Box {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Text(
                                                 signal?.let { stringResource(it.titleRes) } ?: stringResource(R.string.lab_none),
@@ -501,22 +503,21 @@ private fun MarkerPage(
                                             )
                                             Icon(Icons.Filled.ArrowDropDown, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                         }
-                                    },
-                                    onClick = { signalMenu = true },
-                                )
-                                DropdownMenu(expanded = signalMenu, onDismissRequest = { signalMenu = false }) {
-                                    DropdownMenuItem(
-                                        text = { Text(stringResource(R.string.lab_none)) },
-                                        onClick = { signalMenu = false; signalKey = "" },
-                                    )
-                                    for (option in LabSignals.options) {
-                                        DropdownMenuItem(
-                                            text = { Text(stringResource(option.titleRes)) },
-                                            onClick = { signalMenu = false; signalKey = option.key },
-                                        )
+                                        DropdownMenu(expanded = signalMenu, onDismissRequest = { signalMenu = false }) {
+                                            DropdownMenuItem(
+                                                text = { Text(stringResource(R.string.lab_none)) },
+                                                onClick = { signalMenu = false; signalKey = "" },
+                                            )
+                                            for (option in LabSignals.options) {
+                                                DropdownMenuItem(
+                                                    text = { Text(stringResource(option.titleRes)) },
+                                                    onClick = { signalMenu = false; signalKey = option.key },
+                                                )
+                                            }
+                                        }
                                     }
-                                }
-                            }
+                                },
+                            )
                         }
                         if (signal != null) {
                             item { shape ->

@@ -158,7 +158,12 @@ internal fun HeartRateScreen(
                 WhoopModel.WHOOP5_MG -> SpotHrvReading.Source.OPTICAL_PPG
                 WhoopModel.WHOOP4 -> SpotHrvReading.Source.CHEST_STRAP
             }
-            HrvSnapshotScreen(viewModel = vm, source = source, onClose = { showHrv = false })
+            HrvSnapshotScreen(
+                viewModel = vm,
+                source = source,
+                onOpenDevices = { showHrv = false; onOpenDevices() },
+                onClose = { showHrv = false },
+            )
         }
     }
 
