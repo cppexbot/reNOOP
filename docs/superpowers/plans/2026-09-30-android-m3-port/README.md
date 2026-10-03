@@ -22,5 +22,5 @@ palette (Charge green, Effort blue, Rest violet); the Summary offers two layouts
 | 05 Workouts | todo | |
 | 06 Settings | todo | |
 | 07 Coach, Devices, Onboarding | todo | |
-| 08 Heart Rate, Mindfulness, Journal, What Moves You, Lab Results | todo | |
+| 08 Heart Rate, Mindfulness, Journal, What Moves You, Lab Results | done (branch `m3-08-live-mind-journal-lab`; the unreachable Hydration screen is deleted, its Settings switch stays; HRV reading restyled) | 1e8c40a0, 8137052e, 3a8d2548, 27f0d705, 0da73668, a67cdb47, c859bd11 |
 | 09 Audit, widgets, notifications, i18n, dead code, dark pass | todo | |
