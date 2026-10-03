@@ -260,7 +260,9 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
             composable(Destination.Insights.route) {
                 com.noop.ui.journal.JournalScreen(vm = viewModel, onBack = { nav.popBackStack() })
             }
-            composable(Destination.LabBook.route) { LabBookScreen(viewModel) }
+            composable(Destination.LabBook.route) {
+                com.noop.ui.lab.LabResultsScreen(vm = viewModel, onBack = { nav.popBackStack() })
+            }
             composable(Destination.Trends.route) {
                 TrendsScreen(
                     viewModel,
