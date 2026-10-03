@@ -205,7 +205,11 @@ internal fun WorkoutsHomeScreen(vm: AppViewModel, nav: WorkoutsNav) {
                 }
             }
         }
-        PullToRefreshContainer(state = pull, modifier = Modifier.align(Alignment.TopCenter))
+        // Only while a pull or a refresh is running: at rest the container draws a stray disc under the
+        // status bar (it showed on this tab and through every full-screen dialog opened from it).
+        if (pull.progress > 0f || pull.isRefreshing) {
+            PullToRefreshContainer(state = pull, modifier = Modifier.align(Alignment.TopCenter))
+        }
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(horizontal = 8.dp))
     }
 

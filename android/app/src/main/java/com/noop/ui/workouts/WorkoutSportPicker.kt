@@ -1,5 +1,7 @@
 package com.noop.ui.workouts
 
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.DisposableEffect
 import android.view.WindowManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
@@ -67,9 +69,18 @@ import java.util.Locale
 /**
  * A Material full-screen dialog: the window fills the space between the system bars without a scrim, so the
  * app's own status and navigation bars stay as they are around it, and the content draws its own top bar.
+ *
+ * Compose sizes a dialog's window to its content and caps the content at the screen height, so the window
+ * cannot reach under the gesture bar: the strip below it is the activity. While a dialog is up it counts
+ * itself in [FullScreenDialogBackdrop], and the app shell paints that strip in the dialog's surface colour
+ * instead of the navigation bar's, which showed as a band along the bottom of every such dialog.
  */
 @Composable
 internal fun FullScreenDialog(onDismiss: () -> Unit, content: @Composable () -> Unit) {
+    DisposableEffect(Unit) {
+        FullScreenDialogBackdrop.open++
+        onDispose { FullScreenDialogBackdrop.open-- }
+    }
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
@@ -94,6 +105,11 @@ internal fun FullScreenDialog(onDismiss: () -> Unit, content: @Composable () -> 
                 .background(MaterialTheme.colorScheme.surface),
         ) { content() }
     }
+}
+
+/** How many full-screen dialogs are showing; the app shell reads it to match the strip under the gesture bar. */
+internal object FullScreenDialogBackdrop {
+    var open by mutableIntStateOf(0)
 }
 
 /** The activity list presented to begin a session: picking a row starts it (the caller closes the list). */

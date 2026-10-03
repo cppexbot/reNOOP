@@ -1,5 +1,12 @@
 package com.noop.ui
 
+import com.noop.ui.workouts.FullScreenDialogBackdrop
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.windowInsetsBottomHeight
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.background
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
@@ -405,6 +412,18 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
         }
     }
 
+
+    // Under a full-screen dialog the strip below the gesture bar is this activity (the dialog's window
+    // stops at the bar): the dialog's surface colour there, not the navigation bar's.
+    if (FullScreenDialogBackdrop.open > 0) {
+        Box(
+            Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .windowInsetsBottomHeight(WindowInsets.navigationBars)
+                .background(MaterialTheme.colorScheme.surface),
+        )
+    }
 
     // The recording screen, always dark, sliding up over the whole app (bars included).
     val shown = when (expanded) {
