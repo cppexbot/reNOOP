@@ -21,6 +21,6 @@ palette (Charge green, Effort blue, Rest violet); the Summary offers two layouts
 | 04 Sleep, Vitals, More Sleep Data, Sleep Schedule | done (WIP 8246e461 finished on the PC, merged with main's sleep fixes) | 8246e461 + merge |
 | 05 Workouts | todo | |
 | 06 Settings | todo | |
-| 07 Coach, Devices, Onboarding | todo | |
+| 07 Coach, Devices, Onboarding | done (branch m3-07-coach-devices-onboarding) | e9b2d356, 5c7a784e, 97a4c49f, 1eca0586 |
 | 08 Heart Rate, Mindfulness, Journal, What Moves You, Lab Results | todo | |
 | 09 Audit, widgets, notifications, i18n, dead code, dark pass | todo | |
