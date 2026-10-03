@@ -97,6 +97,10 @@ final class Backfiller {
     private var rejectFramesSeen = 0
     private var rejectHexSuppressedNoted = false
 
+    /// Whether a restore has replaced the database under this process (`LiveStoreReplacement`). A seam so
+    /// the held-ack path is testable without latching the test host for good.
+    var storeReplaced: () -> Bool = { LiveStoreReplacement.happened }
+
     /// Per-session offload cadence, instrumentation only. The strap sends a chunk, waits for our ack, then
     /// sends the next, so each chunk costs `phone` (its HISTORY_END to our ack: decode, commit, cursor) plus
     /// `strap` (our ack to its next HISTORY_START: radio round trip and the strap's flash read). Summed per
@@ -622,6 +626,19 @@ final class Backfiller {
 
     private func finishChunk(unix: UInt32, trim: UInt32, endFrame: [UInt8]) async {
         guard let endData = Backfiller.endData(from: endFrame, family: family) else { return }
+
+        // A restore replaced the database under this process (`LiveStoreReplacement`). Whatever the
+        // insert below reports, the rows cannot reach the restored store, so acking would let the strap
+        // trim history nobody kept. Hold the ack exactly like a persist failure; the relaunched process
+        // is offered the same chunks again.
+        if storeReplaced() {
+            if !persistStalled {
+                log?("Backfill: the database was replaced by a restore — NOT acking trim=\(trim); reopen reNOOP so the strap re-sends this history.")
+            }
+            persistStalled = true
+            chunk.removeAll(keepingCapacity: true)
+            return
+        }
 
         // #773: corrupt future-RTC detection. A HISTORY_END carries the strap's own clock; a genuine offload
         // is always PAST-dated (it's banked history), so an end dated days into the future can only be a

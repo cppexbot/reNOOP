@@ -509,6 +509,8 @@ private struct iOSRootView: View {
     /// Starts false so a cold-launch external action can't race this view's onAppear decision about the
     /// automatic What's New sheet. It becomes true only when no sheet is due or its dismissal completes.
     @State private var automaticLaunchSheetResolved = false
+    /// A restored backup is only usable from a fresh process; see `LiveStoreReplacement`.
+    @ObservedObject private var storeRestart = StoreRestartPrompt.shared
 
     var body: some View {
         #if DEBUG
@@ -596,6 +598,16 @@ private struct iOSRootView: View {
             }
         }
         .onChange(of: acceptedTerms) { _, _ in showWhatsNewIfDue() }
+        // One button on purpose: every other answer leaves the app running on a store it cannot write,
+        // and backgrounding it instead brings the question back on the next return.
+        .alert(String(localized: "Reopen reNOOP"), isPresented: $storeRestart.isPresented) {
+            Button(String(localized: "Close reNOOP")) { storeRestart.closeApp() }
+        } message: {
+            Text("The backup is restored. reNOOP has to start again to use it — until then nothing from your strap is saved.")
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            storeRestart.present()
+        }
     }
 
     /// DEBUG: launched with --demo-seed, skip the first-run gates (onboarding / terms / What's New) so the
