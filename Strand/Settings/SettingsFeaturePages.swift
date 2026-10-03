@@ -70,10 +70,11 @@ struct ScoresSettingsPage: View {
             }
 
             Section {
-                // #139/#132: daily steps = @57 counter ticks ÷ this divisor. Variable increment.
+                // #139/#132: daily steps = counter ticks ÷ this divisor (5/MG @57, WHOOP 4.0 @92).
+                // Variable increment, shown to two places because the grid is 0.01 below 1.5.
                 LabeledContent("Step calibration") {
                     Stepper {
-                        Text(String(format: "%.1f", profile.stepTicksPerStep))
+                        Text(String(format: "%.2f", profile.stepTicksPerStep))
                             .monospacedDigit()
                     } onIncrement: {
                         profile.stepTicksPerStep = ProfileStore.steppedStepScale(profile.stepTicksPerStep, up: true)
@@ -81,7 +82,7 @@ struct ScoresSettingsPage: View {
                         profile.stepTicksPerStep = ProfileStore.steppedStepScale(profile.stepTicksPerStep, up: false)
                     }
                     .fixedSize()
-                    .accessibilityLabel("Step calibration, \(String(format: "%.1f", profile.stepTicksPerStep)) counter ticks per step")
+                    .accessibilityLabel("Step calibration, \(String(format: "%.2f", profile.stepTicksPerStep)) counter ticks per step")
                 }
                 // WHOOP 4.0 steps ESTIMATE (a separate thing from the 5/MG counter divisor above). Opens a
                 // sheet, which a row marks with its value alone; a chevron promises a push (ST-10).
