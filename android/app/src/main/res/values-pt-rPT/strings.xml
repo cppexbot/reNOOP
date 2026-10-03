@@ -3638,4 +3638,21 @@
     <string name="hrv_snapshot_a11y_incomplete">Leitura incompleta</string>
     <string name="hrv_snapshot_how_measured">Como é que isso é medido</string>
     <string name="widget_no_data">Sem dados</string>
+    <string name="notif_channel_illness_name">Alerta precoce de doença</string>
+    <string name="notif_channel_illness_desc">Um aviso quando a frequência cardíaca em repouso, a sua variabilidade, a temperatura da pele ou a respiração se desviam em conjunto da sua linha de base.</string>
+    <string name="notif_channel_inactivity_name">Lembrete de inatividade</string>
+    <string name="notif_channel_inactivity_desc">Um lembrete para se mexer depois de muito tempo sentado.</string>
+    <string name="notif_channel_alarm_name">Alarme inteligente</string>
+    <string name="notif_channel_alarm_desc">O seu despertador: o alarme do telemóvel dentro da janela de despertar e um aviso quando o alarme da bracelete toca.</string>
+    <string name="notif_channel_reports_name">Relatórios diários</string>
+    <string name="notif_channel_reports_desc">Um resumo matinal e outro após o treino, depois de a bracelete sincronizar.</string>
+    <string name="notif_channel_winddown_name">Lembrete para relaxar</string>
+    <string name="notif_channel_winddown_desc">Um lembrete opcional ao fim do dia para começar a relaxar antes de dormir.</string>
+    <string name="illness_alert_disclaimer">Estimativa no dispositivo (aproximada), não um diagnóstico.</string>
+    <string name="inactivity_body_minutes">Está sentado há cerca de %1$d min. Hora de se mexer.</string>
+    <string name="inactivity_body">Hora de se mexer. Está sentado há algum tempo.</string>
+    <string name="smart_alarm_phone_body_light">Está numa fase de sono mais leve. Hora de acordar.</string>
+    <string name="smart_alarm_phone_body_deadline">A sua janela de despertar terminou. Hora de se levantar.</string>
+    <string name="wind_down_notif_title">Hora de relaxar</string>
+    <string name="wind_down_notif_body">Uma hora calma agora ajuda-o a acordar bem descansado à hora pretendida.</string>
 </resources>

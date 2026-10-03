@@ -3673,4 +3673,21 @@
     <string name="hrv_snapshot_a11y_incomplete">Reading incomplete</string>
     <string name="hrv_snapshot_how_measured">How this is measured</string>
     <string name="widget_no_data">No data</string>
+    <string name="notif_channel_illness_name">Illness early-warning</string>
+    <string name="notif_channel_illness_desc">A heads-up when your resting heart rate, heart rate variability, skin temperature or breathing drift from your baseline together.</string>
+    <string name="notif_channel_inactivity_name">Inactivity reminder</string>
+    <string name="notif_channel_inactivity_desc">A nudge to move after a long sedentary stretch.</string>
+    <string name="notif_channel_alarm_name">Smart alarm</string>
+    <string name="notif_channel_alarm_desc">Your wake alarm: the phone alarm inside your wake window, and a notice when the strap\'s alarm goes off.</string>
+    <string name="notif_channel_reports_name">Daily reports</string>
+    <string name="notif_channel_reports_desc">A morning recap and a post-workout summary, after your strap syncs.</string>
+    <string name="notif_channel_winddown_name">Wind-down reminder</string>
+    <string name="notif_channel_winddown_desc">An optional evening reminder to start winding down before bed.</string>
+    <string name="illness_alert_disclaimer">On-device estimate (approximate), not a diagnosis.</string>
+    <string name="inactivity_body_minutes">You\'ve been seated for about %1$d min. Time to move.</string>
+    <string name="inactivity_body">Time to move. You\'ve been seated a while.</string>
+    <string name="smart_alarm_phone_body_light">You\'re in a lighter sleep phase. Time to wake up.</string>
+    <string name="smart_alarm_phone_body_deadline">Your wake window has ended. Time to get up.</string>
+    <string name="wind_down_notif_title">Time to wind down</string>
+    <string name="wind_down_notif_body">A calm hour now helps you hit your wake time well-rested.</string>
 </resources>

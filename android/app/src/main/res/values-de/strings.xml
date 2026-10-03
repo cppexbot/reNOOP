@@ -3659,4 +3659,21 @@
     <string name="hrv_snapshot_a11y_incomplete">Messung unvollständig</string>
     <string name="hrv_snapshot_how_measured">So wird das gemessen</string>
     <string name="widget_no_data">Keine Daten</string>
+    <string name="notif_channel_illness_name">Krankheits-Frühwarnung</string>
+    <string name="notif_channel_illness_desc">Ein Hinweis, wenn Ruheherzfrequenz, Herzfrequenzvariabilität, Hauttemperatur oder Atmung gemeinsam von deiner Basislinie abweichen.</string>
+    <string name="notif_channel_inactivity_name">Inaktivitätserinnerung</string>
+    <string name="notif_channel_inactivity_desc">Ein Anstoß, dich nach langem Sitzen zu bewegen.</string>
+    <string name="notif_channel_alarm_name">Smart-Wecker</string>
+    <string name="notif_channel_alarm_desc">Dein Wecker: der Telefonalarm in deinem Aufwachfenster und ein Hinweis, wenn der Wecker des Straps auslöst.</string>
+    <string name="notif_channel_reports_name">Tägliche Berichte</string>
+    <string name="notif_channel_reports_desc">Ein Morgenrückblick und eine Zusammenfassung nach dem Workout, sobald dein Strap synchronisiert ist.</string>
+    <string name="notif_channel_winddown_name">Erinnerung zum Runterkommen</string>
+    <string name="notif_channel_winddown_desc">Eine optionale Abenderinnerung, vor dem Schlafengehen zur Ruhe zu kommen.</string>
+    <string name="illness_alert_disclaimer">Schätzung auf dem Gerät (ungefähr), keine Diagnose.</string>
+    <string name="inactivity_body_minutes">Du sitzt seit etwa %1$d Min. Zeit für Bewegung.</string>
+    <string name="inactivity_body">Zeit für Bewegung. Du sitzt schon eine Weile.</string>
+    <string name="smart_alarm_phone_body_light">Du bist in einer leichteren Schlafphase. Zeit aufzuwachen.</string>
+    <string name="smart_alarm_phone_body_deadline">Dein Aufwachfenster ist vorbei. Zeit aufzustehen.</string>
+    <string name="wind_down_notif_title">Zeit zum Runterkommen</string>
+    <string name="wind_down_notif_body">Eine ruhige Stunde jetzt hilft dir, deine Aufwachzeit ausgeruht zu erreichen.</string>
 </resources>

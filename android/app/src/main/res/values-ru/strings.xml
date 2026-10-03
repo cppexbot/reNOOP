@@ -3575,4 +3575,21 @@
     <string name="hrv_snapshot_a11y_incomplete">Считывание не завершено</string>
     <string name="hrv_snapshot_how_measured">Как это измеряется</string>
     <string name="widget_no_data">Нет данных</string>
+    <string name="notif_channel_illness_name">Раннее предупреждение о болезни</string>
+    <string name="notif_channel_illness_desc">Предупреждение, когда пульс в покое, вариабельность сердечного ритма, температура кожи или дыхание одновременно отклоняются от вашей нормы.</string>
+    <string name="notif_channel_inactivity_name">Напоминание о неактивности</string>
+    <string name="notif_channel_inactivity_desc">Напоминание подвигаться после долгого сидения.</string>
+    <string name="notif_channel_alarm_name">Умный будильник</string>
+    <string name="notif_channel_alarm_desc">Ваш будильник: сигнал телефона в выбранном окне пробуждения и уведомление, когда срабатывает будильник браслета.</string>
+    <string name="notif_channel_reports_name">Ежедневные отчёты</string>
+    <string name="notif_channel_reports_desc">Утренняя сводка и итоги тренировки после синхронизации браслета.</string>
+    <string name="notif_channel_winddown_name">Напоминание о подготовке ко сну</string>
+    <string name="notif_channel_winddown_desc">Необязательное вечернее напоминание начать готовиться ко сну.</string>
+    <string name="illness_alert_disclaimer">Оценка на устройстве (приблизительная), не диагноз.</string>
+    <string name="inactivity_body_minutes">Вы сидите уже около %1$d мин. Пора подвигаться.</string>
+    <string name="inactivity_body">Пора подвигаться. Вы долго сидели.</string>
+    <string name="smart_alarm_phone_body_light">Сейчас у вас более лёгкая фаза сна. Пора просыпаться.</string>
+    <string name="smart_alarm_phone_body_deadline">Окно пробуждения закончилось. Пора вставать.</string>
+    <string name="wind_down_notif_title">Пора расслабиться</string>
+    <string name="wind_down_notif_body">Спокойный час сейчас поможет вам проснуться отдохнувшим к нужному времени.</string>
 </resources>

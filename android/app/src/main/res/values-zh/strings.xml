@@ -3611,4 +3611,21 @@
     <string name="hrv_snapshot_a11y_incomplete">读数不完整</string>
     <string name="hrv_snapshot_how_measured">这是如何测量的</string>
     <string name="widget_no_data">无数据</string>
+    <string name="notif_channel_illness_name">疾病早期预警</string>
+    <string name="notif_channel_illness_desc">当静息心率、心率变异性、皮肤温度或呼吸同时偏离你的基线时提醒你。</string>
+    <string name="notif_channel_inactivity_name">久坐提醒</string>
+    <string name="notif_channel_inactivity_desc">久坐之后提醒你活动一下。</string>
+    <string name="notif_channel_alarm_name">智能闹钟</string>
+    <string name="notif_channel_alarm_desc">你的起床闹钟：手机在唤醒时段内响铃，并在手环闹钟响起时通知你。</string>
+    <string name="notif_channel_reports_name">每日报告</string>
+    <string name="notif_channel_reports_desc">手环同步后的晨间回顾与锻炼后总结。</string>
+    <string name="notif_channel_winddown_name">放松提醒</string>
+    <string name="notif_channel_winddown_desc">可选的晚间提醒，提示你在睡前开始放松。</string>
+    <string name="illness_alert_disclaimer">设备端估算（近似值），不是诊断。</string>
+    <string name="inactivity_body_minutes">你已经坐了约 %1$d 分钟。该动一动了。</string>
+    <string name="inactivity_body">该动一动了。你已经坐了一阵子。</string>
+    <string name="smart_alarm_phone_body_light">你正处于较浅的睡眠阶段。该起床了。</string>
+    <string name="smart_alarm_phone_body_deadline">你的唤醒时段已结束。该起床了。</string>
+    <string name="wind_down_notif_title">该放松入睡了</string>
+    <string name="wind_down_notif_body">现在安静一小时，有助于你在起床时间精力充沛地醒来。</string>
 </resources>

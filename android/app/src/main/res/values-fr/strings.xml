@@ -3645,4 +3645,21 @@
     <string name="hrv_snapshot_a11y_incomplete">Lecture incomplète</string>
     <string name="hrv_snapshot_how_measured">Comment ceci est mesuré</string>
     <string name="widget_no_data">Pas de données</string>
+    <string name="notif_channel_illness_name">Alerte précoce de maladie</string>
+    <string name="notif_channel_illness_desc">Un avertissement lorsque votre fréquence cardiaque au repos, sa variabilité, votre température cutanée ou votre respiration s’écartent ensemble de votre référence.</string>
+    <string name="notif_channel_inactivity_name">Rappel d\'inactivité</string>
+    <string name="notif_channel_inactivity_desc">Un rappel pour bouger après une longue période assise.</string>
+    <string name="notif_channel_alarm_name">Alarme intelligente</string>
+    <string name="notif_channel_alarm_desc">Votre réveil : l’alarme du téléphone dans votre fenêtre de réveil et un avis lorsque l’alarme du bracelet se déclenche.</string>
+    <string name="notif_channel_reports_name">Rapports quotidiens</string>
+    <string name="notif_channel_reports_desc">Un récapitulatif matinal et un résumé après l’entraînement, une fois votre bracelet synchronisé.</string>
+    <string name="notif_channel_winddown_name">Rappel de détente</string>
+    <string name="notif_channel_winddown_desc">Un rappel facultatif le soir pour commencer à vous détendre avant le coucher.</string>
+    <string name="illness_alert_disclaimer">Estimation sur l\'appareil (approximative), pas un diagnostic.</string>
+    <string name="inactivity_body_minutes">Vous êtes assis depuis environ %1$d min. Il est temps de bouger.</string>
+    <string name="inactivity_body">Il est temps de bouger. Vous êtes assis depuis un moment.</string>
+    <string name="smart_alarm_phone_body_light">Vous êtes dans une phase de sommeil plus léger. Il est temps de vous réveiller.</string>
+    <string name="smart_alarm_phone_body_deadline">Votre fenêtre de réveil est terminée. Il est temps de vous lever.</string>
+    <string name="wind_down_notif_title">Il est temps de vous détendre</string>
+    <string name="wind_down_notif_body">Une heure calme maintenant vous aide à atteindre votre heure de réveil bien reposé.</string>
 </resources>

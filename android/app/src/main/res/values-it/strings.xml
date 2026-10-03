@@ -3614,4 +3614,21 @@
     <string name="hrv_snapshot_a11y_incomplete">Lettura incompleta</string>
     <string name="hrv_snapshot_how_measured">Come si misura questo</string>
     <string name="widget_no_data">Nessun dato</string>
+    <string name="notif_channel_illness_name">Allerta precoce di malattia</string>
+    <string name="notif_channel_illness_desc">Un avviso quando frequenza cardiaca a riposo, variabilità della frequenza cardiaca, temperatura cutanea o respirazione si discostano insieme dalla tua linea di base.</string>
+    <string name="notif_channel_inactivity_name">Promemoria di inattività</string>
+    <string name="notif_channel_inactivity_desc">Un promemoria per muoverti dopo molto tempo seduto.</string>
+    <string name="notif_channel_alarm_name">Sveglia smart</string>
+    <string name="notif_channel_alarm_desc">La tua sveglia: l’allarme del telefono nella finestra di risveglio e un avviso quando suona la sveglia della fascia.</string>
+    <string name="notif_channel_reports_name">Report giornalieri</string>
+    <string name="notif_channel_reports_desc">Un riepilogo mattutino e uno dopo l’allenamento, dopo la sincronizzazione della fascia.</string>
+    <string name="notif_channel_winddown_name">Promemoria per il rilassamento</string>
+    <string name="notif_channel_winddown_desc">Un promemoria serale facoltativo per iniziare a rilassarti prima di dormire.</string>
+    <string name="illness_alert_disclaimer">Stima sul dispositivo (approssimativa), non una diagnosi.</string>
+    <string name="inactivity_body_minutes">Sei seduto da circa %1$d min. È ora di muoversi.</string>
+    <string name="inactivity_body">È ora di muoversi. Sei seduto da un po\'.</string>
+    <string name="smart_alarm_phone_body_light">Sei in una fase di sonno più leggero. È ora di svegliarsi.</string>
+    <string name="smart_alarm_phone_body_deadline">La tua finestra di risveglio è terminata. È ora di alzarsi.</string>
+    <string name="wind_down_notif_title">È ora di rilassarsi</string>
+    <string name="wind_down_notif_body">Un\'ora tranquilla adesso ti aiuta ad arrivare riposato alla tua ora di risveglio.</string>
 </resources>

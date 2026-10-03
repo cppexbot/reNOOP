@@ -3672,4 +3672,21 @@
     <string name="hrv_snapshot_a11y_incomplete">Odczyt niekompletny</string>
     <string name="hrv_snapshot_how_measured">Jak to się mierzy</string>
     <string name="widget_no_data">Brak danych</string>
+    <string name="notif_channel_illness_name">Wczesne ostrzeganie o chorobie</string>
+    <string name="notif_channel_illness_desc">Ostrzeżenie, gdy tętno spoczynkowe, zmienność tętna, temperatura skóry lub oddech jednocześnie odbiegają od Twojej normy.</string>
+    <string name="notif_channel_inactivity_name">Przypomnienie o braku aktywności</string>
+    <string name="notif_channel_inactivity_desc">Przypomnienie, by się poruszać po długim siedzeniu.</string>
+    <string name="notif_channel_alarm_name">Inteligentny alarm</string>
+    <string name="notif_channel_alarm_desc">Twój budzik: alarm telefonu w wybranym oknie pobudki oraz powiadomienie, gdy włączy się alarm paska.</string>
+    <string name="notif_channel_reports_name">Raporty dzienne</string>
+    <string name="notif_channel_reports_desc">Poranne podsumowanie i podsumowanie po treningu, po synchronizacji paska.</string>
+    <string name="notif_channel_winddown_name">Przypomnienie o wyciszeniu</string>
+    <string name="notif_channel_winddown_desc">Opcjonalne wieczorne przypomnienie, by zacząć się wyciszać przed snem.</string>
+    <string name="illness_alert_disclaimer">Ocena na urządzeniu (przybliżona), a nie diagnoza.</string>
+    <string name="inactivity_body_minutes">Siedzisz już od około %1$d min. Czas się ruszyć.</string>
+    <string name="inactivity_body">Czas się ruszyć. Siedzisz już jakiś czas.</string>
+    <string name="smart_alarm_phone_body_light">Jesteś w lżejszej fazie snu. Czas się obudzić.</string>
+    <string name="smart_alarm_phone_body_deadline">Twoje okno pobudki dobiegło końca. Czas wstawać.</string>
+    <string name="wind_down_notif_title">Czas się uspokoić</string>
+    <string name="wind_down_notif_body">Spokojna godzina teraz pomoże Ci obudzić się wypoczętym o wybranej porze.</string>
 </resources>

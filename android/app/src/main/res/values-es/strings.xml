@@ -3646,4 +3646,21 @@
     <string name="hrv_snapshot_a11y_incomplete">Lectura incompleta</string>
     <string name="hrv_snapshot_how_measured">Cómo se mide esto</string>
     <string name="widget_no_data">Sin datos</string>
+    <string name="notif_channel_illness_name">Alerta temprana de enfermedad</string>
+    <string name="notif_channel_illness_desc">Un aviso cuando tu frecuencia cardíaca en reposo, su variabilidad, la temperatura de la piel o la respiración se desvían a la vez de tu línea base.</string>
+    <string name="notif_channel_inactivity_name">Recordatorio de inactividad</string>
+    <string name="notif_channel_inactivity_desc">Un aviso para moverte tras un largo rato sentado.</string>
+    <string name="notif_channel_alarm_name">Alarma inteligente</string>
+    <string name="notif_channel_alarm_desc">Tu despertador: la alarma del teléfono dentro de tu ventana de despertar y un aviso cuando suena la alarma de la pulsera.</string>
+    <string name="notif_channel_reports_name">Informes diarios</string>
+    <string name="notif_channel_reports_desc">Un resumen matutino y otro tras el entrenamiento, cuando tu pulsera se sincroniza.</string>
+    <string name="notif_channel_winddown_name">Recordatorio de relajación</string>
+    <string name="notif_channel_winddown_desc">Un recordatorio opcional por la noche para empezar a relajarte antes de dormir.</string>
+    <string name="illness_alert_disclaimer">Estimación en el dispositivo (aproximada), no un diagnóstico.</string>
+    <string name="inactivity_body_minutes">Llevas sentado unos %1$d min. Hora de moverte.</string>
+    <string name="inactivity_body">Hora de moverte. Llevas un rato sentado.</string>
+    <string name="smart_alarm_phone_body_light">Estás en una fase de sueño más ligera. Hora de despertar.</string>
+    <string name="smart_alarm_phone_body_deadline">Tu ventana de despertar ha terminado. Hora de levantarte.</string>
+    <string name="wind_down_notif_title">Hora de relajarte</string>
+    <string name="wind_down_notif_body">Una hora tranquila ahora te ayuda a llegar bien descansado a tu hora de despertar.</string>
 </resources>
