@@ -404,7 +404,7 @@ fun ListRow(
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (enabled) 1f else 0.38f),
                 )
             }
         }
@@ -420,10 +420,16 @@ fun RowIcon(icon: ImageVector, tint: Color = MaterialTheme.colorScheme.onSurface
 
 /** Material 3 switch with the check-mark thumb Google's apps use. */
 @Composable
-fun M3Switch(checked: Boolean, onCheckedChange: ((Boolean) -> Unit)?, enabled: Boolean = true) {
+fun M3Switch(
+    checked: Boolean,
+    onCheckedChange: ((Boolean) -> Unit)?,
+    enabled: Boolean = true,
+    modifier: Modifier = Modifier,
+) {
     Switch(
         checked = checked,
         onCheckedChange = onCheckedChange,
+        modifier = modifier,
         enabled = enabled,
         thumbContent = if (checked) {
             { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(SwitchDefaults.IconSize)) }

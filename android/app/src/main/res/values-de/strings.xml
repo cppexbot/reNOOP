@@ -3658,4 +3658,23 @@
     <string name="hrv_snapshot_a11y_result">RMSSD %1$d Millisekunden</string>
     <string name="hrv_snapshot_a11y_incomplete">Messung unvollständig</string>
     <string name="hrv_snapshot_how_measured">So wird das gemessen</string>
+    <string name="settings_automations_summary_naps">Nickerchen-Erkennung</string>
+    <string name="automations_nap_footer">Bei jeder Synchronisierung sucht reNOOP in Bewegung und Herzfrequenz des Straps nach einem wahrscheinlichen Nickerchen und fragt nach, bevor es deinem Schlaf hinzugefügt wird.</string>
+    <string name="automations_nap_review">Zu prüfen</string>
+    <string name="automations_nap_window">%1$s–%2$s, etwa %3$d Min.</string>
+    <string name="automations_nap_mean_hr">Durchschnittliche Herzfrequenz etwa %1$d bpm</string>
+    <string name="automations_nap_keep">Dieses Nickerchen behalten</string>
+    <string name="automations_nap_skip">Dieses Nickerchen überspringen</string>
+    <string name="settings_wrist_pattern_value">Vibrationsmuster: %1$s</string>
+    <string name="settings_wrist_pattern_single">Einfach</string>
+    <string name="settings_wrist_pattern_double">Doppelt</string>
+    <string name="settings_wrist_pattern_triple">Dreifach</string>
+    <string name="settings_wrist_pattern_long">Lang</string>
+    <string name="settings_wrist_cat_email">E-Mail</string>
+    <string name="settings_wrist_cat_messaging">Nachrichten</string>
+    <string name="settings_wrist_cat_meetings">Meetings</string>
+    <string name="settings_wrist_cat_calendar">Kalender &amp; Erinnerungen</string>
+    <string name="settings_wrist_timer_alarm_desc">Wenn die Uhr-App deines Telefons einen Timer beendet oder einen Wecker klingeln lässt</string>
+    <string name="settings_wrist_other_apps_desc">Apps, die oben nicht aufgeführt sind</string>
+    <string name="settings_wrist_phone_calls_desc">Benötigt die Telefon-Berechtigung. reNOOP liest weder Nummern noch Anruflisten.</string>
 </resources>

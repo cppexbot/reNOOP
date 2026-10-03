@@ -3610,4 +3610,23 @@
     <string name="hrv_snapshot_a11y_result">RMSSD %1$d 毫秒</string>
     <string name="hrv_snapshot_a11y_incomplete">读数不完整</string>
     <string name="hrv_snapshot_how_measured">这是如何测量的</string>
+    <string name="settings_automations_summary_naps">小睡侦测</string>
+    <string name="automations_nap_footer">每次同步时，reNOOP 会根据手环的动作和心率查找可能的小睡，并在添加到睡眠记录前征求你的确认。</string>
+    <string name="automations_nap_review">待确认</string>
+    <string name="automations_nap_window">%1$s–%2$s，约 %3$d 分钟</string>
+    <string name="automations_nap_mean_hr">平均心率约 %1$d bpm</string>
+    <string name="automations_nap_keep">保留这次小睡</string>
+    <string name="automations_nap_skip">跳过这次小睡</string>
+    <string name="settings_wrist_pattern_value">震动模式：%1$s</string>
+    <string name="settings_wrist_pattern_single">单次</string>
+    <string name="settings_wrist_pattern_double">两次</string>
+    <string name="settings_wrist_pattern_triple">三次</string>
+    <string name="settings_wrist_pattern_long">长震动</string>
+    <string name="settings_wrist_cat_email">邮件</string>
+    <string name="settings_wrist_cat_messaging">消息</string>
+    <string name="settings_wrist_cat_meetings">会议</string>
+    <string name="settings_wrist_cat_calendar">日历与提醒</string>
+    <string name="settings_wrist_timer_alarm_desc">当手机“时钟”应用的计时器结束或闹钟响起时</string>
+    <string name="settings_wrist_other_apps_desc">上方未列出的应用</string>
+    <string name="settings_wrist_phone_calls_desc">需要“电话”权限。reNOOP 不会读取号码或通话记录。</string>
 </resources>

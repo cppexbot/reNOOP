@@ -3613,4 +3613,23 @@
     <string name="hrv_snapshot_a11y_result">RMSSD %1$d millisecondi</string>
     <string name="hrv_snapshot_a11y_incomplete">Lettura incompleta</string>
     <string name="hrv_snapshot_how_measured">Come si misura questo</string>
+    <string name="settings_automations_summary_naps">Rilevamento dei sonnellini</string>
+    <string name="automations_nap_footer">A ogni sincronizzazione reNOOP cerca un probabile sonnellino nel movimento e nella frequenza cardiaca della fascia e ti chiede conferma prima di aggiungerlo al sonno.</string>
+    <string name="automations_nap_review">Da rivedere</string>
+    <string name="automations_nap_window">%1$s–%2$s, circa %3$d min</string>
+    <string name="automations_nap_mean_hr">Frequenza cardiaca media di circa %1$d bpm</string>
+    <string name="automations_nap_keep">Conserva questo sonnellino</string>
+    <string name="automations_nap_skip">Salta questo sonnellino</string>
+    <string name="settings_wrist_pattern_value">Tipo di vibrazione: %1$s</string>
+    <string name="settings_wrist_pattern_single">Singola</string>
+    <string name="settings_wrist_pattern_double">Doppia</string>
+    <string name="settings_wrist_pattern_triple">Tripla</string>
+    <string name="settings_wrist_pattern_long">Lunga</string>
+    <string name="settings_wrist_cat_email">Email</string>
+    <string name="settings_wrist_cat_messaging">Messaggi</string>
+    <string name="settings_wrist_cat_meetings">Riunioni</string>
+    <string name="settings_wrist_cat_calendar">Calendario e promemoria</string>
+    <string name="settings_wrist_timer_alarm_desc">Quando l’app Orologio del telefono termina un timer o fa suonare una sveglia</string>
+    <string name="settings_wrist_other_apps_desc">Le app non elencate sopra</string>
+    <string name="settings_wrist_phone_calls_desc">Richiede l’autorizzazione Telefono. reNOOP non legge mai numeri né registri delle chiamate.</string>
 </resources>

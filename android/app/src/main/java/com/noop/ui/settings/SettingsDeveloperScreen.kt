@@ -35,7 +35,6 @@ import com.noop.ui.ClockPrefs
 import com.noop.ui.Destination
 import com.noop.ui.LogExport
 import com.noop.ui.NoopPrefs
-import com.noop.ui.WhoopModelComparisonScreen
 import com.noop.ui.m3.ConfirmDialog
 import com.noop.ui.m3.HealthCard
 import com.noop.ui.m3.ListGroup
@@ -50,8 +49,8 @@ import kotlinx.coroutines.launch
 // the strap log and raw-data exports, the haptic clock, the strap's advertising name, continuous HRV
 // capture, and the default-off research switches. Same keys and the same BLE wiring as before.
 //
-// "Strap" holds the model comparison. The strap's own settings (Sync, Power saving, Double-tap, Haptics, Heart
-// rate broadcast) live on the Devices screen.
+// The strap's own settings (Sync, Power saving, Double-tap, Haptics, Heart rate broadcast) live on the Devices
+// screen, and what each WHOOP model can be read for is the device page's "What reNOOP Reads": one home each.
 
 @Composable
 internal fun SettingsDeveloperScreen(vm: AppViewModel, open: (String) -> Unit, onBack: () -> Unit) {
@@ -75,7 +74,6 @@ internal fun SettingsDeveloperScreen(vm: AppViewModel, open: (String) -> Unit, o
 
     var strapLogBusy by remember { mutableStateOf(false) }
     var rawBusy by remember { mutableStateOf(false) }
-    var showComparison by remember { mutableStateOf(false) }
     var continuousHrv by remember { mutableStateOf(NoopPrefs.continuousHrv(context)) }
     var overnightOnly by remember { mutableStateOf(NoopPrefs.continuousHrvOvernight(context)) }
     var sleepV2 by remember(rev) { mutableStateOf(puffin.experimentalSleepV2) }
@@ -95,13 +93,6 @@ internal fun SettingsDeveloperScreen(vm: AppViewModel, open: (String) -> Unit, o
                     ListRow(shape = shape, title = stringResource(R.string.nav_self_hosted_push), onClick = {
                         open(Destination.SelfHostedPush.route)
                     })
-                }
-            }
-        }
-        item {
-            ListGroup(header = stringResource(R.string.settings_strap)) {
-                item { shape ->
-                    ListRow(shape = shape, title = stringResource(R.string.l10n_settings_screen_whoop_4_0_vs_5_0_2babb05a), onClick = { showComparison = true })
                 }
             }
         }
@@ -198,9 +189,6 @@ internal fun SettingsDeveloperScreen(vm: AppViewModel, open: (String) -> Unit, o
         }
     }
 
-    if (showComparison) {
-        FullScreenSheet(onDismiss = { showComparison = false }) { WhoopModelComparisonScreen(onClose = { showComparison = false }) }
-    }
 }
 
 /**

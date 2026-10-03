@@ -3672,4 +3672,23 @@
     <string name="hrv_snapshot_a11y_result">RMSSD %1$d milliseconds</string>
     <string name="hrv_snapshot_a11y_incomplete">Reading incomplete</string>
     <string name="hrv_snapshot_how_measured">How this is measured</string>
+    <string name="settings_automations_summary_naps">Nap detection</string>
+    <string name="automations_nap_footer">At each sync reNOOP looks for a likely daytime nap in the strap’s motion and heart rate, then asks you before adding it to your sleep.</string>
+    <string name="automations_nap_review">To Review</string>
+    <string name="automations_nap_window">%1$s–%2$s, about %3$d min</string>
+    <string name="automations_nap_mean_hr">Average heart rate about %1$d bpm</string>
+    <string name="automations_nap_keep">Keep this nap</string>
+    <string name="automations_nap_skip">Skip this nap</string>
+    <string name="settings_wrist_pattern_value">Buzz pattern: %1$s</string>
+    <string name="settings_wrist_pattern_single">Single</string>
+    <string name="settings_wrist_pattern_double">Double</string>
+    <string name="settings_wrist_pattern_triple">Triple</string>
+    <string name="settings_wrist_pattern_long">Long</string>
+    <string name="settings_wrist_cat_email">Email</string>
+    <string name="settings_wrist_cat_messaging">Messaging</string>
+    <string name="settings_wrist_cat_meetings">Meetings</string>
+    <string name="settings_wrist_cat_calendar">Calendar &amp; Reminders</string>
+    <string name="settings_wrist_timer_alarm_desc">When your phone’s Clock app finishes a timer or rings an alarm</string>
+    <string name="settings_wrist_other_apps_desc">Apps that are not listed above</string>
+    <string name="settings_wrist_phone_calls_desc">Needs the Phone permission. reNOOP never reads numbers or call logs.</string>
 </resources>

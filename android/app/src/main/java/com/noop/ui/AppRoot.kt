@@ -363,7 +363,7 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
             }
             composable(Destination.TrainingLoad.route) { TrainingLoadScreen(viewModel, onBack = { nav.popBackStack() }) }
             composable(Destination.FullDay.route) { FullDayChartScreen(vm = viewModel, onBack = { nav.popBackStack() }) }
-            composable(Destination.Automations.route) { AutomationsScreen(viewModel) }
+            composable(Destination.Automations.route) { AutomationsScreen(viewModel, onBack = { nav.popBackStack() }) }
             composable(Destination.SleepMoreData.route, arguments = listOf(navArgument("offset") { type = NavType.IntType })) { entry ->
                 SleepMoreDataScreen(viewModel, entry.arguments?.getInt("offset") ?: 0, onBack = { nav.popBackStack() })
             }
@@ -379,7 +379,7 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                 SleepHighlightsScreen(viewModel, entry.arguments?.getInt("offset") ?: 0, onBack = { nav.popBackStack() })
             }
             composable(Destination.SleepSchedule.route) { SleepScheduleScreen(viewModel, onBack = { nav.popBackStack() }) }
-            composable(Destination.Notifications.route) { NotificationsSettingsScreen(viewModel) }
+            composable(Destination.Notifications.route) { NotificationsSettingsScreen(viewModel, onBack = { nav.popBackStack() }) }
             // Settings and its pages, with Import (DataSources) and Backup (BackupSync).
             settingsGraph(viewModel, open = { nav.push(it) }, back = { nav.popBackStack() })
             composable(Destination.StepsCalibration.route) {

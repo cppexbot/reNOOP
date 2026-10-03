@@ -3671,4 +3671,23 @@
     <string name="hrv_snapshot_a11y_result">RMSSD %1$d milisekundy</string>
     <string name="hrv_snapshot_a11y_incomplete">Odczyt niekompletny</string>
     <string name="hrv_snapshot_how_measured">Jak to się mierzy</string>
+    <string name="settings_automations_summary_naps">Wykrywanie drzemek</string>
+    <string name="automations_nap_footer">Przy każdej synchronizacji reNOOP szuka prawdopodobnej drzemki w ruchu i tętnie z paska i pyta, zanim doda ją do snu.</string>
+    <string name="automations_nap_review">Do sprawdzenia</string>
+    <string name="automations_nap_window">%1$s–%2$s, około %3$d min</string>
+    <string name="automations_nap_mean_hr">Średnie tętno około %1$d bpm</string>
+    <string name="automations_nap_keep">Zachowaj tę drzemkę</string>
+    <string name="automations_nap_skip">Pomiń tę drzemkę</string>
+    <string name="settings_wrist_pattern_value">Wzór wibracji: %1$s</string>
+    <string name="settings_wrist_pattern_single">Pojedynczy</string>
+    <string name="settings_wrist_pattern_double">Podwójny</string>
+    <string name="settings_wrist_pattern_triple">Potrójny</string>
+    <string name="settings_wrist_pattern_long">Długi</string>
+    <string name="settings_wrist_cat_email">E-mail</string>
+    <string name="settings_wrist_cat_messaging">Wiadomości</string>
+    <string name="settings_wrist_cat_meetings">Spotkania</string>
+    <string name="settings_wrist_cat_calendar">Kalendarz i przypomnienia</string>
+    <string name="settings_wrist_timer_alarm_desc">Gdy aplikacja Zegar w telefonie kończy minutnik lub włącza budzik</string>
+    <string name="settings_wrist_other_apps_desc">Aplikacje, których nie ma powyżej</string>
+    <string name="settings_wrist_phone_calls_desc">Wymaga uprawnienia Telefon. reNOOP nigdy nie czyta numerów ani rejestru połączeń.</string>
 </resources>

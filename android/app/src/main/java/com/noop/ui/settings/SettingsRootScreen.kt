@@ -121,7 +121,7 @@ internal fun SettingsRootScreen(vm: AppViewModel, open: (String) -> Unit, onBack
                 }
                 item { shape ->
                     IconRow(shape, Icons.Filled.Bolt, tones.purple, stringResource(R.string.nav_automations),
-                        stringResource(R.string.settings_automations_summary)) { open(Destination.Automations.route) }
+                        stringResource(R.string.settings_automations_summary_naps)) { open(Destination.Automations.route) }
                 }
             }
         }
