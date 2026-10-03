@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">reNOOP</string>
     <string name="widget_description">Dzisiejsze Odpoczynek, Energia i Wysiłek, z podglądem tętna na żywo i baterią paska.</string>
     <string name="widget_compact_name">reNOOP Kompaktowy</string>
     <string name="widget_compact_description">Kompaktowy widget Odpoczynek, Energia i Wysiłek z bieżącym pomiarem tętna i baterią paska.</string>
@@ -2385,4 +2384,6 @@
     <string name="hrv_snapshot_a11y_result">RMSSD %1$d milisekundy</string>
     <string name="hrv_snapshot_a11y_incomplete">Odczyt niekompletny</string>
     <string name="hrv_snapshot_how_measured">Jak to się mierzy</string>
+    <string name="hrv_snapshot_caveat">To pomiar chwilowy z krótkiego zapisu w bezruchu, a nie Twój nocny poziom bazowy HRV. Wykonuj go na siedząco, w bezruchu i o stałej porze dnia, aby wyniki były porównywalne. Pokazywany jest tylko pomiar z wystarczającą liczbą czystych uderzeń.</string>
+    <string name="hrv_snapshot_caveat_optical">W WHOOP 5.0/MG interwały pochodzą z optycznego sygnału tętna, który jest bardziej zaszumiony niż pas piersiowy, więc traktuj wynik jako przybliżone oszacowanie.</string>
 </resources>

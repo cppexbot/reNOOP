@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">reNOOP</string>
+    <string name="app_name" translatable="false">reNOOP</string>
     <string name="widget_description">Today\'s Rest, Charge and Effort, with live heart rate and strap battery at a glance.</string>
     <string name="widget_hr_name">reNOOP Heart Rate</string>
     <string name="widget_hr_description">Live heart rate with the last three hours as a trace.</string>
@@ -2410,4 +2410,6 @@
     <string name="hrv_snapshot_a11y_result">RMSSD %1$d milliseconds</string>
     <string name="hrv_snapshot_a11y_incomplete">Reading incomplete</string>
     <string name="hrv_snapshot_how_measured">How this is measured</string>
+    <string name="hrv_snapshot_caveat">This is a spot reading over a short, still capture, not your overnight HRV baseline. Take it seated, still, and at a consistent time of day for comparable numbers, and only a reading with enough clean beats is shown.</string>
+    <string name="hrv_snapshot_caveat_optical">On a WHOOP 5.0/MG the intervals come from the optical pulse signal, which is noisier than a chest strap, so treat the number as a rough estimate.</string>
 </resources>

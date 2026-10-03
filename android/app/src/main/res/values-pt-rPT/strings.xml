@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Portuguese (Portugal) localization. -->
-    <string name="app_name">reNOOP</string>
     <string name="widget_description">Descanso, Carga e Esforço de hoje, com frequência cardíaca em direto e bateria da bracelete num relance.</string>
     <string name="widget_compact_name">reNOOP Compacto</string>
     <string name="widget_compact_description">Widget compacto de Descanso, Carga e Esforço, com frequência cardíaca em direto e bateria da bracelete.</string>
@@ -2378,4 +2377,6 @@
     <string name="hrv_snapshot_a11y_result">RMSSD %1$d milissegundos</string>
     <string name="hrv_snapshot_a11y_incomplete">Leitura incompleta</string>
     <string name="hrv_snapshot_how_measured">Como é que isso é medido</string>
+    <string name="hrv_snapshot_caveat">Esta é uma leitura pontual feita numa captura curta e em repouso, não a tua linha de base noturna de HRV. Faz a leitura sentado, quieto e sempre à mesma hora do dia para obter valores comparáveis. Só é mostrada uma leitura com batimentos limpos suficientes.</string>
+    <string name="hrv_snapshot_caveat_optical">Num WHOOP 5.0/MG os intervalos provêm do sinal ótico do pulso, que tem mais ruído do que uma banda peitoral, por isso encara o valor como uma estimativa aproximada.</string>
 </resources>

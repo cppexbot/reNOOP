@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">reNOOP</string>
     <string name="widget_description">今日的恢复、充能与负荷情况，以及实时心率和手环电量，一目了然。</string>
     <string name="widget_compact_name">reNOOP 迷你组件</string>
     <string name="widget_compact_description">精简版的恢复、充能与负荷小组件，带实时心率与手环电量显示。</string>
@@ -2365,4 +2364,6 @@
     <string name="hrv_snapshot_a11y_result">RMSSD %1$d 毫秒</string>
     <string name="hrv_snapshot_a11y_incomplete">读数不完整</string>
     <string name="hrv_snapshot_how_measured">这是如何测量的</string>
+    <string name="hrv_snapshot_caveat">这是在短时间静止采集下的单次读数，并非你的夜间 HRV 基线。请坐着保持不动，并在每天固定的时间测量，这样数值才有可比性。只有包含足够干净心跳的读数才会显示。</string>
+    <string name="hrv_snapshot_caveat_optical">在 WHOOP 5.0/MG 上，心跳间期来自光学脉搏信号，噪声比胸带更大，因此请将该数值视为粗略估计。</string>
 </resources>

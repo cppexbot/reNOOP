@@ -505,7 +505,6 @@
     <string name="l10n_today_screen_value_bpm_8f3a90c3">%1$s bpm</string>
 
     <!-- #453 base-catalog locale completion -->
-    <string name="app_name">reNOOP</string>
     <string name="widget_description">Hoy \'s Descanso, carga y esfuerzo, con frecuencia cardíaca viva y batería de correa a un vistazo.</string>
     <string name="widget_compact_name">reNOOP Compacto</string>
     <string name="widget_compact_description">Resto compacto, carga y effort widget, con frecuencia cardíaca viva y batería de correa.</string>
@@ -2384,4 +2383,6 @@
     <string name="hrv_snapshot_a11y_result">RMSSD %1$d milisegundos</string>
     <string name="hrv_snapshot_a11y_incomplete">Lectura incompleta</string>
     <string name="hrv_snapshot_how_measured">Cómo se mide esto</string>
+    <string name="hrv_snapshot_caveat">Es una lectura puntual durante una captura corta y en reposo, no tu línea base nocturna de VFC. Tómala sentado, quieto y a la misma hora del día para que los valores sean comparables. Solo se muestra una lectura con suficientes latidos limpios.</string>
+    <string name="hrv_snapshot_caveat_optical">En un WHOOP 5.0/MG los intervalos proceden de la señal óptica del pulso, que tiene más ruido que una banda pectoral, así que toma el valor como una estimación aproximada.</string>
 </resources>

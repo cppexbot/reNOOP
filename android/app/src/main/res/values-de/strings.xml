@@ -2397,4 +2397,6 @@
     <string name="hrv_snapshot_a11y_result">RMSSD %1$d Millisekunden</string>
     <string name="hrv_snapshot_a11y_incomplete">Messung unvollständig</string>
     <string name="hrv_snapshot_how_measured">So wird das gemessen</string>
+    <string name="hrv_snapshot_caveat">Dies ist eine Momentaufnahme über eine kurze, ruhige Messung, nicht dein nächtlicher HRV-Normalwert. Miss im Sitzen, in Ruhe und immer zur gleichen Tageszeit, damit die Werte vergleichbar sind. Angezeigt wird nur eine Messung mit genügend sauberen Herzschlägen.</string>
+    <string name="hrv_snapshot_caveat_optical">Beim WHOOP 5.0/MG stammen die Intervalle aus dem optischen Pulssignal, das stärker rauscht als ein Brustgurt. Betrachte den Wert daher als grobe Schätzung.</string>
 </resources>

@@ -506,7 +506,6 @@
     <string name="l10n_today_screen_value_bpm_8f3a90c3">%1$s bpm</string>
 
     <!-- #453 base-catalog locale completion -->
-    <string name="app_name">reNOOP</string>
     <string name="widget_description">Le repos, la charge et l\'effort d\'aujourd\'hui, avec la fréquence cardiaque et le bracelet en un coup d\'oeil.</string>
     <string name="widget_compact_name">Compact reNOOP</string>
     <string name="widget_compact_description">Widget Compact Repos, Charge et Effort, avec fréquence cardiaque et batterie du bracelet.</string>
@@ -2383,4 +2382,6 @@
     <string name="hrv_snapshot_a11y_result">RMSSD %1$d millisecondes</string>
     <string name="hrv_snapshot_a11y_incomplete">Lecture incomplète</string>
     <string name="hrv_snapshot_how_measured">Comment ceci est mesuré</string>
+    <string name="hrv_snapshot_caveat">Il s’agit d’une mesure ponctuelle sur une courte capture au repos, pas de votre référence de VFC nocturne. Prenez-la assis, immobile et à heure fixe pour obtenir des valeurs comparables. Seule une mesure comportant assez de battements propres est affichée.</string>
+    <string name="hrv_snapshot_caveat_optical">Sur un WHOOP 5.0/MG, les intervalles proviennent du signal optique du pouls, plus bruité que celui d’une ceinture thoracique : considérez la valeur comme une estimation approximative.</string>
 </resources>

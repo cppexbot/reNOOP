@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">reNOOP</string>
     <string name="widget_description">Riposo, Carica e Sforzo di oggi, con frequenza cardiaca in diretta e batteria della fascia a colpo d\'occhio.</string>
     <string name="widget_hr_name">reNOOP Frequenza cardiaca</string>
     <string name="widget_hr_description">Frequenza cardiaca in diretta con il tracciato delle ultime tre ore.</string>
@@ -2356,4 +2355,6 @@
     <string name="hrv_snapshot_a11y_result">RMSSD %1$d millisecondi</string>
     <string name="hrv_snapshot_a11y_incomplete">Lettura incompleta</string>
     <string name="hrv_snapshot_how_measured">Come si misura questo</string>
+    <string name="hrv_snapshot_caveat">È una lettura puntuale su una breve acquisizione da fermi, non la tua linea di base notturna dell’HRV. Eseguila da seduto, fermo e sempre alla stessa ora per avere valori confrontabili. Viene mostrata solo una lettura con abbastanza battiti puliti.</string>
+    <string name="hrv_snapshot_caveat_optical">Su un WHOOP 5.0/MG gli intervalli derivano dal segnale ottico del polso, più rumoroso di una fascia toracica: considera il valore una stima approssimativa.</string>
 </resources>
