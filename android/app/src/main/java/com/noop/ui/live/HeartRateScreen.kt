@@ -1,5 +1,7 @@
 package com.noop.ui.live
 
+import com.noop.ui.m3.labelBand
+import com.noop.ui.m3.axisBand
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -460,8 +462,8 @@ private fun HourRangeChart(hours: List<HeartRateHour>, modifier: Modifier = Modi
     val ticks = remember(domain) { heartRateYTicks(domain) }
     val description = stringResource(R.string.heart_rate_chart_a11y)
     Canvas(modifier.semantics { contentDescription = description }) {
-        val axisW = 30.dp.toPx()
-        val labelH = 16.dp.toPx()
+        val axisW = axisBand(measurer, ticks.map { "$it" }, labelStyle, floor = 30.dp)
+        val labelH = labelBand(measurer, labelStyle, floor = 16.dp, gap = 2.dp)
         val plotW = size.width - axisW
         val plotH = size.height - labelH
         val span = (domain.endInclusive - domain.start).coerceAtLeast(1.0)

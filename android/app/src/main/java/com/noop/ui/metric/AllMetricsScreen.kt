@@ -1,5 +1,6 @@
 package com.noop.ui.metric
 
+import com.noop.ui.m3.SearchField
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -48,6 +49,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.noop.R
+import com.noop.ui.AppToday
 import com.noop.ui.AppViewModel
 import com.noop.ui.m3.CardTitleRow
 import com.noop.ui.m3.ChevronRight
@@ -99,6 +101,9 @@ fun AllMetricsScreen(vm: AppViewModel, onBack: () -> Unit, onOpenMetric: (Metric
     val units = remember { metricUnits(context) }
     val days by vm.recentDays.collectAsStateWithLifecycle()
     val revision = remember(days) { days.size to days.lastOrNull() }
+    // The list's one today: each card's week ends on it and each stamp counts from it, as on the Summary.
+    val todayRow by vm.today.collectAsStateWithLifecycle()
+    val today = remember(todayRow?.day, revision) { AppToday.now(todayRow?.day) }
 
     var readings by remember { mutableStateOf<Map<String, AllMetricsReading>>(emptyMap()) }
     var loaded by remember { mutableStateOf(false) }
@@ -106,11 +111,11 @@ fun AllMetricsScreen(vm: AppViewModel, onBack: () -> Unit, onOpenMetric: (Metric
     var showsEmpty by rememberSaveable { mutableStateOf(false) }
 
     // Which metrics hold readings at all, then those only, together and off the main thread.
-    LaunchedEffect(revision) {
+    LaunchedEffect(revision, today) {
         val ctx = MetricSeriesLoader.context(vm, context)
         val nonEmpty = MetricSeriesLoader.nonEmptyIds(MetricCatalog.all, ctx)
         val candidates = MetricCatalog.all.filter { it.id in nonEmpty }
-        readings = allMetricsReadings(MetricSeriesLoader.loadAll(candidates, ctx), candidates, LocalDate.now(), firstDay)
+        readings = allMetricsReadings(MetricSeriesLoader.loadAll(candidates, ctx), candidates, today.date, firstDay)
         loaded = true
     }
 
@@ -130,7 +135,6 @@ fun AllMetricsScreen(vm: AppViewModel, onBack: () -> Unit, onOpenMetric: (Metric
     val sections = AllMetricsCatalog.sections(withData.filter(::matches), locale, categoryTitle, titleOf)
     val empty = if (loaded) withoutData.filter(::matches) else emptyList()
     val trimmed = query.trim()
-    val today = LocalDate.now()
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
@@ -140,25 +144,14 @@ fun AllMetricsScreen(vm: AppViewModel, onBack: () -> Unit, onOpenMetric: (Metric
             large = true,
             scrollBehavior = scrollBehavior,
         )
-        DockedSearchBar(
+        SearchField(
             query = query,
             onQueryChange = { query = it },
+            placeholder = stringResource(R.string.metric_search),
+            clearLabel = stringResource(R.string.l10n_workouts_screen_clear_search_67300d0f),
+            modifier = Modifier.padding(start = M3Dimens.screenPadding, end = M3Dimens.screenPadding, bottom = 8.dp),
             onSearch = { focusManager.clearFocus() },
-            active = false,
-            onActiveChange = {},
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = M3Dimens.screenPadding, end = M3Dimens.screenPadding, bottom = 8.dp),
-            placeholder = { Text(stringResource(R.string.metric_search)) },
-            leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
-            trailingIcon = if (query.isNotEmpty()) {
-                {
-                    IconButton(onClick = { query = "" }) {
-                        Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.l10n_workouts_screen_clear_search_67300d0f))
-                    }
-                }
-            } else null,
-        ) {}
+        )
 
         LazyColumn(
             modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -202,7 +195,7 @@ private fun MetricCard(
     metric: MetricDescriptor,
     reading: AllMetricsReading,
     category: HealthCategory,
-    today: LocalDate,
+    today: AppToday,
     locale: java.util.Locale,
     units: MetricUnits,
     onClick: () -> Unit,

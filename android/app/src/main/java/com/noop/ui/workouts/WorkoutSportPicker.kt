@@ -1,5 +1,6 @@
 package com.noop.ui.workouts
 
+import com.noop.ui.m3.FullScreenDialogBackdropEffect
 import android.view.WindowManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
@@ -67,9 +68,16 @@ import java.util.Locale
 /**
  * A Material full-screen dialog: the window fills the space between the system bars without a scrim, so the
  * app's own status and navigation bars stay as they are around it, and the content draws its own top bar.
+ *
+ * Compose sizes a dialog's window to its content and caps the content at the screen height, so the window
+ * cannot reach under the gesture bar: the strip below it is the activity. While a dialog is up it counts
+ * itself in the shell's nav-bar backdrop ([FullScreenDialogBackdropEffect]), and the app shell paints that
+ * strip in the dialog's surface colour instead of the navigation bar's, which showed as a band along the
+ * bottom of every such dialog.
  */
 @Composable
 internal fun FullScreenDialog(onDismiss: () -> Unit, content: @Composable () -> Unit) {
+    FullScreenDialogBackdropEffect()
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),

@@ -1,5 +1,8 @@
 package com.noop.ui.sleep
 
+import com.noop.ui.m3.labelStride
+import com.noop.ui.metric.MetricDateLabels
+import com.noop.ui.m3.labelBand
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -390,11 +393,20 @@ private fun SleepDebtCard(ledger: SleepDebtLedger, locale: Locale) {
             )
         }
         val labels = nights.map { n -> runCatching { LocalDate.parse(n.day).dayOfMonth.toString() }.getOrDefault("") }
-        Canvas(Modifier.fillMaxWidth().height(80.dp).clearAndSetSemantics {}) {
-            val labelH = 14.dp.toPx()
+        // CR-3: each night's surplus or shortfall in words, so the bars are not silent.
+        val spoken = nights.map { n ->
+            val sign = if (n.deltaMin >= 0) "+" else "\u2212"
+            "${MetricDateLabels.shortDate(n.day, locale)}: $sign${sleepDuration(abs(n.deltaMin))}"
+        }.joinToString(", ")
+        Canvas(Modifier.fillMaxWidth().height(80.dp).clearAndSetSemantics { contentDescription = spoken }) {
+            val labelH = labelBand(measurer, labelStyle, floor = 14.dp, gap = 2.dp)
             val h = size.height - labelH
             val half = h / 2
             val slot = size.width / max(1, nights.size)
+            // When the day numbers would touch (large text) every other one is drawn, counted back from
+            // the latest night so that one always shows.
+            val dayTexts = labels.map { measurer.measure(it, labelStyle) }
+            val stride = labelStride(dayTexts.maxOfOrNull { it.size.width.toFloat() } ?: 0f, slot, 2.dp.toPx())
             drawLine(axis, Offset(0f, half), Offset(size.width, half), 1.dp.toPx())
             nights.forEachIndexed { i, n ->
                 val bh = max(2.dp.toPx(), (half * min(1.0, abs(n.deltaMin) / peak)).toFloat())
@@ -402,8 +414,10 @@ private fun SleepDebtCard(ledger: SleepDebtLedger, locale: Locale) {
                 val x = i * slot + (slot - w) / 2
                 val y = if (n.deltaMin >= 0) half - bh else half
                 drawRoundRect(if (n.deltaMin >= 0) surplus else deficit, Offset(x, y), Size(w, bh), CornerRadius(2.dp.toPx(), 2.dp.toPx()))
-                val t = measurer.measure(labels[i], labelStyle)
-                drawText(t, topLeft = Offset(i * slot + (slot - t.size.width) / 2, h + 2.dp.toPx()))
+                if ((nights.lastIndex - i) % stride == 0) {
+                    val t = dayTexts[i]
+                    drawText(t, topLeft = Offset(i * slot + (slot - t.size.width) / 2, h + 2.dp.toPx()))
+                }
             }
         }
     }
@@ -428,23 +442,30 @@ private fun SleepRangeChart(
     val labelStyle = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
     val (lo, hi) = SleepHistory.domain(window)
     val avg = window.averageAsleepMin
-    val spoken = avg?.let { stringResource(R.string.sleep_more_average, sleepDuration(it)) } ?: ""
+    // CR-3: a period with no nights says so, rather than reading out as an empty element.
+    val spoken = avg?.let { stringResource(R.string.sleep_more_average, sleepDuration(it)) } ?: stringResource(R.string.sleep_no_data)
     val slotLabels = window.slotStarts.mapIndexed { slot, start -> slotLabel(window, slot, start, locale) }
     Canvas(modifier.clearAndSetSemantics { contentDescription = spoken }) {
         val hourLabels = generateSequence(lo) { it + 120 }.takeWhile { it <= hi }.toList()
         val hourTexts = hourLabels.map { measurer.measure(nightClock(it, is24h, locale), labelStyle) }
         val axisW = (hourTexts.maxOfOrNull { it.size.width } ?: 0) + 6.dp.toPx()
-        val slotH = 18.dp.toPx()
+        val slotH = labelBand(measurer, labelStyle, floor = 18.dp)
         val w = size.width - axisW
         val h = size.height - slotH
         fun y(m: Double) = ((m - lo) / (hi - lo) * h).toFloat()
         val n = max(1, window.slotStarts.size)
         fun cx(slot: Int) = (slot + 0.5f) * w / n
+        // An hour whose label would sit on the one above it is ruled but not labelled (large text).
+        var hourEdge = Float.NEGATIVE_INFINITY
         hourLabels.forEachIndexed { i, m ->
             val yy = y(m)
             drawLine(grid, Offset(0f, yy), Offset(w, yy), 1.dp.toPx())
             val t = hourTexts[i]
-            drawText(t, topLeft = Offset(w + 6.dp.toPx(), (yy - t.size.height / 2).coerceIn(0f, h - t.size.height)))
+            val top = (yy - t.size.height / 2).coerceIn(0f, (h - t.size.height).coerceAtLeast(0f))
+            if (top >= hourEdge) {
+                drawText(t, topLeft = Offset(w + 6.dp.toPx(), top))
+                hourEdge = top + t.size.height
+            }
         }
         val barW = max(3.dp.toPx(), min(22.dp.toPx(), w / n * 0.55f))
         val dim = if (overlay.isEmpty()) 1f else 0.35f
@@ -476,10 +497,17 @@ private fun SleepRangeChart(
             val r = if (n > 10) 2.5.dp.toPx() else 4.dp.toPx()
             pts.forEach { drawCircle(overlayColor, r, it) }
         }
-        slotLabels.forEachIndexed { slot, text ->
-            if (text == null) return@forEachIndexed
-            val t = measurer.measure(text, labelStyle)
-            drawText(t, topLeft = Offset((cx(slot) - t.size.width / 2).coerceIn(0f, w - t.size.width), h + 3.dp.toPx()))
+        // When the slot labels would touch (large text) every other one is drawn, evenly.
+        val labelled = slotLabels.mapIndexedNotNull { slot, text -> text?.let { slot to measurer.measure(it, labelStyle) } }
+        val stride = labelStride(
+            widest = labelled.maxOfOrNull { it.second.size.width.toFloat() } ?: 0f,
+            spacing = if (labelled.size > 1) (cx(labelled.last().first) - cx(labelled.first().first)) / (labelled.size - 1) else 0f,
+            gap = 4.dp.toPx(),
+        )
+        labelled.forEachIndexed { i, (slot, t) ->
+            if (i % stride != 0) return@forEachIndexed
+            val left = (cx(slot) - t.size.width / 2).coerceIn(0f, (w - t.size.width).coerceAtLeast(0f))
+            drawText(t, topLeft = Offset(left, h + 3.dp.toPx()))
         }
     }
 }

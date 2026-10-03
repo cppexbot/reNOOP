@@ -83,7 +83,7 @@ private val CompactTileMinHeight = 150.dp
 @Composable
 internal fun CompactTopRow(pager: SummaryPager, actions: SummaryActions) {
     Row(
-        modifier = Modifier.fillMaxWidth().height(64.dp).padding(start = 20.dp, end = 8.dp),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(start = 20.dp, end = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
@@ -349,7 +349,7 @@ private fun StageShareBar(stages: Stages, modifier: Modifier) {
 /** "All Metrics" as an outlined button, full width. */
 @Composable
 internal fun AllMetricsButton(onClick: () -> Unit) {
-    OutlinedButton(onClick = onClick, modifier = Modifier.fillMaxWidth().height(48.dp)) {
+    OutlinedButton(onClick = onClick, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
         Text(stringResource(R.string.browse_all_metrics))
     }
 }

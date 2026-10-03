@@ -1,5 +1,8 @@
 package com.noop.ui
 
+import com.noop.ui.m3.NavBarBackdropStrip
+import com.noop.ui.m3.CappedFontScale
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
@@ -223,8 +226,18 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
         nav.selectTab(MainTab.Summary)
     }
 
+    // The recording screen (a workout or the interval timer) is drawn over everything. While it is up it is
+    // modal for TalkBack and switch access too: the tabs and the page under it leave the accessibility tree,
+    // as they have left the screen (CR-7; they were still reachable, and operable, underneath).
+    val recordingShown = when (expanded) {
+        NowRunning.Kind.Workout -> if (activeWorkout != null) NowRunning.Kind.Workout else null
+        NowRunning.Kind.Intervals -> NowRunning.Kind.Intervals
+        null -> null
+    }
+
     Box(Modifier.fillMaxSize()) {
     Scaffold(
+        modifier = if (recordingShown != null) Modifier.clearAndSetSemantics {} else Modifier,
         containerColor = MaterialTheme.colorScheme.surface,
         bottomBar = {
             // Shown on tab roots and on pushed screens alike, as iOS keeps its tab bar. No recording is a
@@ -232,17 +245,21 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
             // away it docks as the mini-player above the bar.
             Column {
             NowRunningBar(viewModel)
-            NavigationBar {
-                MainTab.entries.forEach { tab ->
-                    val selected = tab == currentTab
-                    NavigationBarItem(
-                        selected = selected,
-                        onClick = { onTabTapped(tab) },
-                        icon = {
-                            Icon(if (selected) tab.selectedIcon else tab.unselectedIcon, contentDescription = null)
-                        },
-                        label = { Text(stringResource(tab.labelRes), maxLines = 1) },
-                    )
+            // Four labels share the bar's width, so they stop growing at 1.3x (at 2x "Summary" and
+            // "Workouts" lost their last letter); TalkBack still reads each name in full (CR-1).
+            CappedFontScale(max = 1.3f) {
+                NavigationBar {
+                    MainTab.entries.forEach { tab ->
+                        val selected = tab == currentTab
+                        NavigationBarItem(
+                            selected = selected,
+                            onClick = { onTabTapped(tab) },
+                            icon = {
+                                Icon(if (selected) tab.selectedIcon else tab.unselectedIcon, contentDescription = null)
+                            },
+                            label = { Text(stringResource(tab.labelRes), maxLines = 1) },
+                        )
+                    }
                 }
             }
             }
@@ -396,7 +413,7 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
             }
             composable(Destination.TrainingLoad.route) { TrainingLoadScreen(viewModel, onBack = { nav.popBackStack() }) }
             composable(Destination.FullDay.route) { FullDayChartScreen(vm = viewModel, onBack = { nav.popBackStack() }) }
-            composable(Destination.Automations.route) { AutomationsScreen(viewModel) }
+            composable(Destination.Automations.route) { AutomationsScreen(viewModel, onBack = { nav.popBackStack() }) }
             composable(Destination.SleepMoreData.route, arguments = listOf(navArgument("offset") { type = NavType.IntType })) { entry ->
                 SleepMoreDataScreen(viewModel, entry.arguments?.getInt("offset") ?: 0, onBack = { nav.popBackStack() })
             }
@@ -412,7 +429,7 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                 SleepHighlightsScreen(viewModel, entry.arguments?.getInt("offset") ?: 0, onBack = { nav.popBackStack() })
             }
             composable(Destination.SleepSchedule.route) { SleepScheduleScreen(viewModel, onBack = { nav.popBackStack() }) }
-            composable(Destination.Notifications.route) { NotificationsSettingsScreen(viewModel) }
+            composable(Destination.Notifications.route) { NotificationsSettingsScreen(viewModel, onBack = { nav.popBackStack() }) }
             // Settings and its pages, with Import (DataSources) and Backup (BackupSync).
             settingsGraph(viewModel, open = { nav.push(it) }, back = { nav.popBackStack() })
             composable(Destination.StepsCalibration.route) {
@@ -439,12 +456,12 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
     }
 
 
+    // Under a full-screen dialog or a bottom sheet the strip below the gesture bar is this activity (their
+    // windows stop at the bar): their own surface colour there, not the navigation bar's.
+    NavBarBackdropStrip()
+
     // The recording screen, always dark, sliding up over the whole app (bars included).
-    val shown = when (expanded) {
-        NowRunning.Kind.Workout -> if (activeWorkout != null) NowRunning.Kind.Workout else null
-        NowRunning.Kind.Intervals -> NowRunning.Kind.Intervals
-        null -> null
-    }
+    val shown = recordingShown
     var lastShown by remember { mutableStateOf<NowRunning.Kind?>(null) }
     if (shown != null) lastShown = shown
     AnimatedVisibility(

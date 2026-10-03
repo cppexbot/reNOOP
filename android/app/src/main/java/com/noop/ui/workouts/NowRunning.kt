@@ -1,5 +1,6 @@
 package com.noop.ui.workouts
 
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -250,7 +251,8 @@ private fun RunningBarRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 8.dp)
-            .height(64.dp)
+            // At least 64 dp, taller when the two lines need it at the reader's font size (CR-1).
+            .heightIn(min = 64.dp)
             .clip(RoundedCornerShape(20.dp))
             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .clickable(onClick = onOpen, onClickLabel = openLabel, role = Role.Button)
@@ -260,7 +262,7 @@ private fun RunningBarRow(
                 onClick(label = openLabel) { onOpen(); true }
                 customActions = listOf(CustomAccessibilityAction(controlLabel) { onControl(); true })
             }
-            .padding(start = 12.dp, end = 4.dp),
+            .padding(start = 12.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {

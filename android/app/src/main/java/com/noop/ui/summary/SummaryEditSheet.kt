@@ -1,5 +1,6 @@
 package com.noop.ui.summary
 
+import com.noop.ui.m3.SheetBackdropEffect
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -76,6 +77,7 @@ internal fun SummaryEditSheet(
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
     ) {
+        SheetBackdropEffect(MaterialTheme.colorScheme.surfaceContainer)
         Column(
             modifier = Modifier
                 .fillMaxWidth()

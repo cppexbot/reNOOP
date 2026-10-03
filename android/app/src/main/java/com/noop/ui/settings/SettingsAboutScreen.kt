@@ -1,5 +1,6 @@
 package com.noop.ui.settings
 
+import com.noop.ui.workouts.FullScreenDialog
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.fillMaxSize
@@ -153,10 +154,13 @@ internal fun SettingsAboutScreen(onBack: () -> Unit) {
     }
 }
 
-/** One of the app's explainer sheets, full screen over the page (they carry their own close button). */
+/**
+ * One of the app's explainer sheets, full screen over the page (they carry their own close button): the
+ * same edge-to-edge window as every other full-screen dialog.
+ */
 @Composable
 internal fun FullScreenSheet(onDismiss: () -> Unit, content: @Composable () -> Unit) {
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+    FullScreenDialog(onDismiss = onDismiss) {
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) { content() }
     }
 }

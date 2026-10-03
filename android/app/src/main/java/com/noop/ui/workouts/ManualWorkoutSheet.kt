@@ -1,5 +1,6 @@
 package com.noop.ui.workouts
 
+import androidx.compose.ui.platform.LocalDensity
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -345,7 +346,11 @@ private fun NumberRow(
                     textStyle = style,
                     cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                     keyboardOptions = KeyboardOptions(keyboardType = if (decimal) KeyboardType.Decimal else KeyboardType.Number),
-                    modifier = Modifier.width(120.dp).focusRequester(focus).semantics { contentDescription = label },
+                    // Wide enough for the placeholder and a few digits at the reader's font size.
+                    modifier = Modifier
+                        .width(120.dp * LocalDensity.current.fontScale.coerceIn(1f, 1.6f))
+                        .focusRequester(focus)
+                        .semantics { contentDescription = label },
                     decorationBox = { inner ->
                         if (value.isEmpty()) {
                             Text(

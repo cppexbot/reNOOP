@@ -3658,4 +3658,23 @@
     <string name="notif_channel_workout_name">Treino em curso</string>
     <string name="notif_channel_workout_desc">O desporto, o tempo e a frequência cardíaca do treino que está a gravar, com Pausar e Terminar.</string>
     <string name="illness_alert_public">Aviso de saúde</string>
+    <string name="settings_automations_summary_naps">Deteção de sestas</string>
+    <string name="automations_nap_footer">A cada sincronização, o reNOOP procura uma sesta provável no movimento e na frequência cardíaca da pulseira e pergunta-lhe antes de a adicionar ao seu sono.</string>
+    <string name="automations_nap_review">Para rever</string>
+    <string name="automations_nap_window">%1$s–%2$s, cerca de %3$d min</string>
+    <string name="automations_nap_mean_hr">Frequência cardíaca média de cerca de %1$d bpm</string>
+    <string name="automations_nap_keep">Guardar esta sesta</string>
+    <string name="automations_nap_skip">Ignorar esta sesta</string>
+    <string name="settings_wrist_pattern_value">Padrão de vibração: %1$s</string>
+    <string name="settings_wrist_pattern_single">Simples</string>
+    <string name="settings_wrist_pattern_double">Dupla</string>
+    <string name="settings_wrist_pattern_triple">Tripla</string>
+    <string name="settings_wrist_pattern_long">Longa</string>
+    <string name="settings_wrist_cat_email">E-mail</string>
+    <string name="settings_wrist_cat_messaging">Mensagens</string>
+    <string name="settings_wrist_cat_meetings">Reuniões</string>
+    <string name="settings_wrist_cat_calendar">Calendário e lembretes</string>
+    <string name="settings_wrist_timer_alarm_desc">Quando a app Relógio do telemóvel termina um temporizador ou toca um alarme</string>
+    <string name="settings_wrist_other_apps_desc">Apps que não aparecem acima</string>
+    <string name="settings_wrist_phone_calls_desc">Precisa da permissão Telefone. O reNOOP nunca lê números nem registos de chamadas.</string>
 </resources>

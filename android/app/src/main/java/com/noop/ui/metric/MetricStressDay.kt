@@ -1,5 +1,6 @@
 package com.noop.ui.metric
 
+import com.noop.ui.m3.labelBand
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +28,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import com.noop.R
 import com.noop.analytics.DaytimeStress
+import com.noop.ui.AppToday
 import com.noop.ui.AppViewModel
 import com.noop.ui.m3.HealthCard
 import com.noop.ui.m3.SectionHeader
@@ -76,9 +78,23 @@ internal suspend fun loadStressDay(vm: AppViewModel, personalBaseline: Boolean):
         DaytimeStress.analyze(hr, rr, gravity, tzOffsetSeconds, mode)
     }
 
+/**
+ * The header of the hours card. The hours are the CALENDAR day's ([loadStressDay] scores midnight to now),
+ * which between midnight and 04:00 is a day ahead of the app's today, so the header names it through the
+ * same [AppToday] as "Latest": "Today" only when the two are one day, else that day's date.
+ */
+private fun stressDayHeader(today: AppToday, locale: Locale): String =
+    MetricDateLabels.stamp(today.calendarKey, today, locale)
+
 /** The "Today" section: the day's average stress and its hours as bars on a 0–3 scale. */
 @Composable
-internal fun MetricStressDayCard(day: DaytimeStress.Result, figure: @Composable (Double) -> Unit, tint: Color, locale: Locale) {
+internal fun MetricStressDayCard(
+    day: DaytimeStress.Result,
+    figure: @Composable (Double) -> Unit,
+    tint: Color,
+    locale: Locale,
+    today: AppToday,
+) {
     if (day.scored.isEmpty()) return
     val colors = MaterialTheme.colorScheme
     val measurer = rememberTextMeasurer()
@@ -90,7 +106,7 @@ internal fun MetricStressDayCard(day: DaytimeStress.Result, figure: @Composable 
     val description = day.scored.joinToString(", ") { "${hourLabel(it.hour)} ${MetricHealthStyle.number(it.level ?: 0.0, 1, locale)}" }
 
     Column {
-        SectionHeader(stringResource(R.string.metric_today))
+        SectionHeader(stressDayHeader(today, locale))
         HealthCard(verticalSpacing = 2.dp) {
             Text(
                 stringResource(R.string.metric_caption_average),
@@ -108,7 +124,7 @@ internal fun MetricStressDayCard(day: DaytimeStress.Result, figure: @Composable 
                 val labelW = measurer.measure("3", labelStyle).size.width + 10.dp.toPx()
                 val right = size.width - labelW
                 val top = 6.dp.toPx()
-                val bottom = size.height - 20.dp.toPx()
+                val bottom = size.height - labelBand(measurer, labelStyle, 20.dp)
                 fun yOf(v: Double) = (top + (1 - v / 3.0) * (bottom - top)).toFloat()
                 for (v in 0..3) {
                     val y = yOf(v.toDouble())
@@ -151,9 +167,9 @@ internal fun MetricStressDayCard(day: DaytimeStress.Result, figure: @Composable 
  * looked like a day with no data. Same header and card as [MetricStressDayCard] so the swap is quiet.
  */
 @Composable
-internal fun MetricStressDayLoading() {
+internal fun MetricStressDayLoading(today: AppToday, locale: Locale) {
     Column {
-        SectionHeader(stringResource(R.string.metric_today))
+        SectionHeader(stressDayHeader(today, locale))
         HealthCard {
             Box(Modifier.fillMaxWidth().height(160.dp), contentAlignment = Alignment.Center) {
                 Text(

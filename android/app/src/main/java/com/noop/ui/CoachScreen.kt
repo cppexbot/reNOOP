@@ -184,41 +184,40 @@ internal fun CoachAvatar(size: androidx.compose.ui.unit.Dp = 40.dp) {
 @Composable
 private fun CoachTopBar(provider: AiProvider, onBack: () -> Unit, onOpenSettings: () -> Unit) {
     val who = if (provider == AiProvider.CUSTOM) stringResource(R.string.coach_your_server) else provider.displayName
-    TopAppBar(
-        navigationIcon = {
+    // A bar of its own rather than a TopAppBar: that one is 64 dp whatever the text size, and its two lines
+    // (the name and who answers, the AI disclosure) were cut off at large font sizes. This one is at least
+    // 64 dp and grows with them (CR-1). The app Scaffold already pads its content below the status bar.
+    Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(horizontal = 4.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             IconButton(onClick = onBack) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.nav_back))
             }
-        },
-        title = {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                CoachAvatar()
-                Column(Modifier.semantics(mergeDescendants = true) { heading() }) {
-                    Text(
-                        stringResource(R.string.coach_title),
-                        style = MaterialTheme.typography.titleMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        stringResource(R.string.coach_subtitle, who),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
+            Spacer(Modifier.width(4.dp))
+            CoachAvatar()
+            Column(Modifier.weight(1f).padding(horizontal = 12.dp).semantics(mergeDescendants = true) { heading() }) {
+                Text(
+                    stringResource(R.string.coach_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    stringResource(R.string.coach_subtitle, who),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
-        },
-        actions = {
             IconButton(onClick = onOpenSettings) {
                 Icon(Icons.Filled.Tune, contentDescription = stringResource(R.string.coach_settings))
             }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-        // The app Scaffold already pads its content below the status bar.
-        windowInsets = WindowInsets(0, 0, 0, 0),
-    )
+        }
+    }
 }
 
 // MARK: - Conversation

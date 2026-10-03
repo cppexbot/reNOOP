@@ -1,5 +1,23 @@
 package com.noop.ui.m3
 
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TextField
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -404,7 +422,7 @@ fun ListRow(
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (enabled) 1f else 0.38f),
                 )
             }
         }
@@ -420,10 +438,16 @@ fun RowIcon(icon: ImageVector, tint: Color = MaterialTheme.colorScheme.onSurface
 
 /** Material 3 switch with the check-mark thumb Google's apps use. */
 @Composable
-fun M3Switch(checked: Boolean, onCheckedChange: ((Boolean) -> Unit)?, enabled: Boolean = true) {
+fun M3Switch(
+    checked: Boolean,
+    onCheckedChange: ((Boolean) -> Unit)?,
+    enabled: Boolean = true,
+    modifier: Modifier = Modifier,
+) {
     Switch(
         checked = checked,
         onCheckedChange = onCheckedChange,
+        modifier = modifier,
         enabled = enabled,
         thumbContent = if (checked) {
             { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(SwitchDefaults.IconSize)) }
@@ -475,9 +499,101 @@ fun PeriodSegmented(
                 modifier = if (contentDescriptions != null) {
                     Modifier.semantics { this.contentDescription = contentDescriptions[i] }
                 } else Modifier,
-            ) { Text(label, maxLines = 1) }
+            ) { FitLabel(label, reserve = if (i == selectedIndex) SegmentCheckWidth else 0.dp) }
         }
     }
+}
+
+/** The selected segment's check mark (18 dp) and the gap after it: the width its label gives up. */
+private val SegmentCheckWidth = 26.dp
+
+/**
+ * A one-line label that steps its size down until it fits its slot less [reserve]. A segment has a fixed
+ * share of the row, so a long word at a large font scale ("Comparisons") was cut off; it now stays whole,
+ * as large as the segment allows, never under half the reader's size. Plain layout only: a segmented
+ * button asks its label for intrinsic sizes, which a subcomposing layout cannot answer.
+ */
+@Composable
+private fun FitLabel(text: String, reserve: Dp = 0.dp) {
+    val style = LocalTextStyle.current
+    var scale by remember(text, style.fontSize, reserve) { mutableFloatStateOf(1f) }
+    var settled by remember(text, style.fontSize, reserve) { mutableStateOf(false) }
+    Text(
+        text,
+        maxLines = 1,
+        softWrap = false,
+        overflow = TextOverflow.Ellipsis,
+        style = if (scale < 1f) style.copy(fontSize = style.fontSize * scale) else style,
+        onTextLayout = { result ->
+            if ((result.hasVisualOverflow || result.isLineEllipsized(0)) && scale > 0.5f) scale -= 0.05f else settled = true
+        },
+        modifier = Modifier
+            // The label is measured in the segment's width less the check mark's, and reports its own size.
+            .layout { measurable, constraints ->
+                val room = if (constraints.hasBoundedWidth) {
+                    constraints.copy(minWidth = 0, maxWidth = (constraints.maxWidth - reserve.roundToPx()).coerceAtLeast(0))
+                } else constraints
+                val placeable = measurable.measure(room)
+                layout(placeable.width, placeable.height) { placeable.place(0, 0) }
+            }
+            // Nothing is drawn while the size is still stepping down, so the label does not flicker.
+            .drawWithContent { if (settled) drawContent() },
+    )
+}
+
+/**
+ * Runs [content] with the reader's font scale capped at [max]. Only for chrome whose items share a fixed
+ * width (the navigation bar's four labels): the text still grows, to a point, and TalkBack reads the full
+ * name. Content text is never capped; it reflows.
+ */
+@Composable
+fun CappedFontScale(max: Float, content: @Composable () -> Unit) {
+    val density = LocalDensity.current
+    if (density.fontScale <= max) {
+        content()
+    } else {
+        CompositionLocalProvider(LocalDensity provides Density(density.density, max), content = content)
+    }
+}
+
+/**
+ * The search field of a list page (Browse, All Metrics): a pill with the search glyph and, once something
+ * is typed, a clear button. A text field rather than a docked search bar, whose fixed 56 dp clips the text
+ * at large font sizes; this one grows with it.
+ */
+@Composable
+fun SearchField(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    placeholder: String,
+    clearLabel: String,
+    modifier: Modifier = Modifier,
+    onSearch: () -> Unit = {},
+) {
+    TextField(
+        value = query,
+        onValueChange = onQueryChange,
+        modifier = modifier.fillMaxWidth(),
+        placeholder = { Text(placeholder, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+        trailingIcon = if (query.isNotEmpty()) {
+            {
+                IconButton(onClick = { onQueryChange("") }) {
+                    Icon(Icons.Filled.Close, contentDescription = clearLabel)
+                }
+            }
+        } else null,
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        keyboardActions = KeyboardActions(onSearch = { onSearch() }),
+        shape = RoundedCornerShape(28.dp),
+        colors = TextFieldDefaults.colors(
+            focusedIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent,
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        ),
+    )
 }
 
 /** The quiet sync line at the foot of the Summary: "Updated just now" / "Syncing…". */

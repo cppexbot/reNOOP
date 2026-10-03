@@ -1,5 +1,6 @@
 package com.noop.ui.sleep
 
+import com.noop.ui.m3.SheetBackdropEffect
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -108,6 +109,7 @@ internal fun SleepTimeEditorSheet(
     val wakeLabel = stringResource(if (request.nap) R.string.sleep_edit_nap_ended else R.string.sleep_edit_woke)
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+        SheetBackdropEffect()
         Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(bottom = 16.dp)) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                 TextButton(onClick = onDismiss) { Text(stringResource(R.string.summary_cancel)) }

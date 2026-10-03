@@ -1,5 +1,9 @@
 package com.noop.ui.m3
 
+import kotlin.math.ceil
+import kotlin.math.max
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -31,6 +35,28 @@ import androidx.compose.ui.unit.dp
 // with an end dot for levels (HRV, resting HR, SpO₂…), capsule bars with the latest one solid for totals
 // (steps, calories). Fewer than three points draws nothing — two dots are not a trend. Plus the three
 // concentric score rings and a single progress ring. All pure drawing: callers pass fractions/values.
+
+/**
+ * The band a chart leaves for one line of labels in [style], in px: the text's real height at the reader's
+ * font size plus [gap], never under [floor]. A band fixed in dp clips the labels, or lets them run into the
+ * plot, once the font scale grows (CR-1).
+ */
+fun Density.labelBand(measurer: TextMeasurer, style: TextStyle, floor: Dp, gap: Dp = 4.dp): Float =
+    max(floor.toPx(), measurer.measure("0", style).size.height + gap.toPx())
+
+/**
+ * Every how-many-th of a row of evenly spaced labels a chart draws so that neighbours do not touch: 1 when
+ * they all fit, 2 for every other one, and so on. [widest] is the widest label, [spacing] the distance
+ * between two neighbouring label positions, [gap] the clear space wanted between two labels (all px).
+ * Thinning evenly keeps the row regular ("Sun · Tue · Thu · Sat") where dropping only the labels that
+ * collide would not.
+ */
+fun labelStride(widest: Float, spacing: Float, gap: Float): Int =
+    if (spacing <= 0f || widest <= 0f) 1 else ceil((widest + gap) / spacing).toInt().coerceAtLeast(1)
+
+/** The width a chart's trailing value axis needs for [labels] in [style], in px, never under [floor]. */
+fun Density.axisBand(measurer: TextMeasurer, labels: List<String>, style: TextStyle, floor: Dp, gap: Dp = 8.dp): Float =
+    max(floor.toPx(), (labels.maxOfOrNull { measurer.measure(it, style).size.width } ?: 0) + gap.toPx())
 
 /** Fraction of [max] a value fills, clamped to 0..1; null stays null (an empty ring, not a zero one). */
 fun ringFraction(value: Double?, max: Double): Float? {
@@ -120,7 +146,7 @@ fun WeekColumnsChart(
     val semantics = if (description != null) Modifier.semantics { contentDescription = description } else Modifier
     Canvas(modifier.then(semantics)) {
         val n = values.size.coerceAtLeast(1)
-        val labelH = 14.dp.toPx()
+        val labelH = labelBand(measurer, labelStyle, floor = 14.dp, gap = 0.dp)
         val plotH = size.height - labelH - 2.dp.toPx()
         val colW = size.width / n
         for (i in 1 until n) {

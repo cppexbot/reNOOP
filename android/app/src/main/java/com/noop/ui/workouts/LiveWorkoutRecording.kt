@@ -55,6 +55,7 @@ import com.noop.R
 import com.noop.analytics.Calories
 import com.noop.analytics.StrainScorer
 import com.noop.ble.StandardHrSource
+import com.noop.ui.AppToday
 import com.noop.ui.AppViewModel
 import com.noop.ui.EffortScale
 import com.noop.ui.NoopPrefs
@@ -117,7 +118,8 @@ internal fun LiveWorkoutRecording(vm: AppViewModel, onMinimize: () -> Unit) {
     var rings by remember { mutableStateOf<TodayRings?>(null) }
     LaunchedEffect(Unit) {
         val snap = runCatching {
-            SummaryLoader.load(vm, context, 0, vm.recentDays.value, vm.today.value, null, emptyMap())
+            val todayRow = vm.today.value
+            SummaryLoader.load(vm, context, 0, vm.recentDays.value, todayRow, null, emptyMap(), AppToday.now(todayRow?.day))
         }.getOrNull()
         if (snap != null) {
             rings = TodayRings(ringFraction(snap.charge.pct, 100.0), ringFraction(snap.effort, 100.0), ringFraction(snap.rest, 100.0))

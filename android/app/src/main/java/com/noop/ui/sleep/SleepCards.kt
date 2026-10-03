@@ -1,5 +1,7 @@
 package com.noop.ui.sleep
 
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -397,20 +399,27 @@ internal fun SleepStagesHighlightCard(night: SleepNightDetail, locale: Locale, i
         CardTitleRow(icon = Icons.Filled.Bed, title = stringResource(R.string.sleep_hl_stages), tint = Health.colors.sleep, chevron = false)
         Text(stringResource(R.string.sleep_hl_stages_sentence, sleepDuration(night.asleepMin)), style = MaterialTheme.typography.bodyLarge)
         if (night.spans.isEmpty()) {
-            SleepStagesChart(night.spans, night.onsetTs, night.stages, Modifier.fillMaxWidth().height(160.dp))
+            // At least 160 dp, and as tall as its four labelled bars need at the reader's font size.
+            SleepStagesChart(night.spans, night.onsetTs, night.stages, Modifier.fillMaxWidth().heightIn(min = 160.dp))
         } else {
             val summary = stagesSummary(night.stages)
+            // A row is as tall as its two lines of text at the reader's font size, never under 52 dp; the
+            // chart beside it is four of them.
+            val rowHeight = with(LocalDensity.current) {
+                val text = MaterialTheme.typography.labelLarge.lineHeight.toDp() + MaterialTheme.typography.labelMedium.lineHeight.toDp()
+                maxOf(52.dp, text + 8.dp)
+            }
             Row(Modifier.fillMaxWidth().semantics(mergeDescendants = true) { contentDescription = summary }, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Column(Modifier.height(208.dp)) {
+                Column(Modifier.height(rowHeight * 4)) {
                     SleepStageRow.entries.forEach { row ->
-                        Column(Modifier.height(52.dp), verticalArrangement = Arrangement.Center) {
+                        Column(Modifier.height(rowHeight), verticalArrangement = Arrangement.Center) {
                             Text(stageName(row), style = MaterialTheme.typography.labelLarge)
                             Text(sleepDuration(night.stages.minutes(row)), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
                 Column(Modifier.weight(1f)) {
-                    Box(Modifier.fillMaxWidth().height(208.dp)) {
+                    Box(Modifier.fillMaxWidth().height(rowHeight * 4)) {
                         RowRules(Modifier.matchParentSize())
                         SleepStagesChart(night.spans, night.onsetTs, night.stages, Modifier.matchParentSize(), compact = true)
                     }

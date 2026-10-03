@@ -3595,4 +3595,23 @@
     <string name="notif_channel_workout_name">Идёт тренировка</string>
     <string name="notif_channel_workout_desc">Вид спорта, время и пульс тренировки, которая сейчас записывается, с кнопками «Пауза» и «Завершить».</string>
     <string name="illness_alert_public">Уведомление о здоровье</string>
+    <string name="settings_automations_summary_naps">Определение дневного сна</string>
+    <string name="automations_nap_footer">При каждой синхронизации reNOOP ищет в движении и пульсе с браслета отрезок, похожий на дневной сон, и спрашивает вас, прежде чем добавить его ко сну.</string>
+    <string name="automations_nap_review">На проверку</string>
+    <string name="automations_nap_window">%1$s–%2$s, около %3$d мин</string>
+    <string name="automations_nap_mean_hr">Средний пульс около %1$d уд/мин</string>
+    <string name="automations_nap_keep">Сохранить этот сон</string>
+    <string name="automations_nap_skip">Пропустить этот сон</string>
+    <string name="settings_wrist_pattern_value">Вибрация: %1$s</string>
+    <string name="settings_wrist_pattern_single">Одиночная</string>
+    <string name="settings_wrist_pattern_double">Двойная</string>
+    <string name="settings_wrist_pattern_triple">Тройная</string>
+    <string name="settings_wrist_pattern_long">Длинная</string>
+    <string name="settings_wrist_cat_email">Почта</string>
+    <string name="settings_wrist_cat_messaging">Сообщения</string>
+    <string name="settings_wrist_cat_meetings">Встречи</string>
+    <string name="settings_wrist_cat_calendar">Календарь и напоминания</string>
+    <string name="settings_wrist_timer_alarm_desc">Когда в приложении «Часы» на телефоне срабатывает таймер или будильник</string>
+    <string name="settings_wrist_other_apps_desc">Приложения, которых нет в списках выше</string>
+    <string name="settings_wrist_phone_calls_desc">Нужно разрешение «Телефон». reNOOP не читает номера и журнал звонков.</string>
 </resources>

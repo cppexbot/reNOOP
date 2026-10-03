@@ -3665,4 +3665,23 @@
     <string name="notif_channel_workout_name">Entraînement en cours</string>
     <string name="notif_channel_workout_desc">Le sport, le chrono et la fréquence cardiaque de l’entraînement en cours d’enregistrement, avec Pause et Terminer.</string>
     <string name="illness_alert_public">Avis de santé</string>
+    <string name="settings_automations_summary_naps">Détection des siestes</string>
+    <string name="automations_nap_footer">À chaque synchronisation, reNOOP cherche une sieste probable dans les mouvements et la fréquence cardiaque du bracelet, puis vous demande avant de l’ajouter à votre sommeil.</string>
+    <string name="automations_nap_review">À vérifier</string>
+    <string name="automations_nap_window">%1$s–%2$s, environ %3$d min</string>
+    <string name="automations_nap_mean_hr">Fréquence cardiaque moyenne d’environ %1$d bpm</string>
+    <string name="automations_nap_keep">Garder cette sieste</string>
+    <string name="automations_nap_skip">Ignorer cette sieste</string>
+    <string name="settings_wrist_pattern_value">Type de vibration : %1$s</string>
+    <string name="settings_wrist_pattern_single">Simple</string>
+    <string name="settings_wrist_pattern_double">Double</string>
+    <string name="settings_wrist_pattern_triple">Triple</string>
+    <string name="settings_wrist_pattern_long">Longue</string>
+    <string name="settings_wrist_cat_email">E-mail</string>
+    <string name="settings_wrist_cat_messaging">Messagerie</string>
+    <string name="settings_wrist_cat_meetings">Réunions</string>
+    <string name="settings_wrist_cat_calendar">Calendrier et rappels</string>
+    <string name="settings_wrist_timer_alarm_desc">Quand l’app Horloge du téléphone termine un minuteur ou fait sonner une alarme</string>
+    <string name="settings_wrist_other_apps_desc">Les apps qui ne figurent pas ci-dessus</string>
+    <string name="settings_wrist_phone_calls_desc">Nécessite l’autorisation Téléphone. reNOOP ne lit jamais les numéros ni le journal d’appels.</string>
 </resources>

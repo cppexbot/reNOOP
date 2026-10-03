@@ -1,5 +1,6 @@
 package com.noop.ui.workouts
 
+import com.noop.ui.TypedNumber
 import com.noop.data.WorkoutRow
 import com.noop.ui.WorkoutEditing
 import java.text.DecimalFormatSymbols
@@ -76,30 +77,12 @@ internal fun activeSeconds(row: WorkoutRow): Double =
     row.durationS?.takeIf { it.isFinite() && it >= 0 } ?: (row.endTs - row.startTs).coerceAtLeast(0L).toDouble()
 
 /**
- * Numbers typed by hand (CR-11): a comma decimal ("5,2") reads as well as a point ("5.2"), whatever the
- * phone's language, as the decimal pads of both kinds of locale offer one or the other. Spaces (including
- * the no-break spaces French and Russian group thousands with) are dropped; when BOTH separators appear the
- * last one is the decimal mark and the other groups thousands ("1,234.5", "1.234,5").
+ * Numbers typed by hand (CR-11). A decimal is read by the app's one reader, [TypedNumber], shared with Lab
+ * Results and the Journal: a comma decimal ("5,2") reads as well as a point ("5.2"), whatever the phone's
+ * language.
  */
 internal object WorkoutNumbers {
-    fun parse(text: String): Double? {
-        val compact = text.filterNot { it.isWhitespace() || it == ' ' || it == ' ' }
-        if (compact.isEmpty()) return null
-        val lastComma = compact.lastIndexOf(',')
-        val lastDot = compact.lastIndexOf('.')
-        val normalized = when {
-            lastComma >= 0 && lastDot >= 0 -> {
-                val decimal = if (lastComma > lastDot) ',' else '.'
-                val grouping = if (decimal == ',') '.' else ','
-                compact.replace(grouping.toString(), "").replace(decimal, '.')
-            }
-            lastComma >= 0 -> compact.replace(',', '.')
-            else -> compact
-        }
-        if (normalized.count { it == '.' } > 1) return null
-        if (!normalized.all { it.isDigit() || it == '.' || it == '-' || it == '+' }) return null
-        return normalized.toDoubleOrNull()?.takeIf { it.isFinite() }
-    }
+    fun parse(text: String): Double? = TypedNumber.parse(text)
 
     /** A whole number ("148"), or null for anything else (a decimal heart rate is not one). */
     fun parseWhole(text: String): Int? {

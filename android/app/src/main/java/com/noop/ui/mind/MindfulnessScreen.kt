@@ -1,5 +1,6 @@
 package com.noop.ui.mind
 
+import com.noop.ui.m3.SheetBackdropEffect
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -307,6 +308,7 @@ internal fun MindfulnessScreen(vm: AppViewModel, onBack: () -> Unit, onOpenDevic
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             containerColor = MaterialTheme.colorScheme.surface,
         ) {
+            SheetBackdropEffect(MaterialTheme.colorScheme.surface)
             Column(Modifier.padding(start = M3Dimens.screenPadding, end = M3Dimens.screenPadding, bottom = 32.dp)) {
                 Text(
                     resonanceTitle,
@@ -353,6 +355,7 @@ internal fun MindfulnessScreen(vm: AppViewModel, onBack: () -> Unit, onOpenDevic
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             containerColor = MaterialTheme.colorScheme.surface,
         ) {
+            SheetBackdropEffect(MaterialTheme.colorScheme.surface)
             Column(
                 Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, bottom = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,

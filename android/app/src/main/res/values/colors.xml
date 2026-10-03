@@ -23,13 +23,13 @@
     <color name="widget_chip">#FFCFE9D9</color>
     <color name="widget_on_chip">#FF0A1F16</color>
     <color name="widget_ring_track">#FFDBE5DD</color>
-    <color name="widget_charge">#FF1B8F5A</color>
-    <color name="widget_effort">#FF2F6FDB</color>
-    <color name="widget_rest">#FF7C4DDB</color>
+    <color name="widget_charge">#FF187E4F</color>
+    <color name="widget_effort">#FF286ADA</color>
+    <color name="widget_rest">#FF7848DA</color>
     <color name="widget_heart">#FFC8356B</color>
     <color name="widget_stress">#FF00788A</color>
     <!-- The accent a notification's small icon is drawn in. -->
     <color name="notification_accent">#FF006C4C</color>
     <!-- The live-workout notification: the fitness green of the recording screen's clock. -->
-    <color name="notification_workout">#FF2E7D32</color>
+    <color name="notification_workout">#FF2B752F</color>
 </resources>
