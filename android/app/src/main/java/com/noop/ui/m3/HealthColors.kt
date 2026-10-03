@@ -65,10 +65,14 @@ data class HealthColors(
     fun zone(zone: Int): Color = zones[(zone - 1).coerceIn(0, zones.lastIndex)]
 }
 
+// CR-2: every hue that carries TEXT in the light set reads at 4.5:1 or better on the surfaces it sits on (the
+// page, a card, and for the fitness / rest / paused clocks the mini-player), and every mark at 3:1; the dark
+// set clears both with room to spare. HealthColorsContrastTest computes the ratios, so a new hue or a
+// lightened one fails there rather than on a reader's screen.
 val LightHealthColors = HealthColors(
-    charge = Color(0xFF1B8F5A),
-    effort = Color(0xFF2F6FDB),
-    rest = Color(0xFF7C4DDB),
+    charge = Color(0xFF187E4F),
+    effort = Color(0xFF286ADA),
+    rest = Color(0xFF7848DA),
     heart = Color(0xFFC8356B),
     respiratory = Color(0xFF007C76),
     oxygen = Color(0xFF1476A4),
@@ -76,30 +80,30 @@ val LightHealthColors = HealthColors(
     body = Color(0xFF9C3BD0),
     mind = Color(0xFF00788A),
     nutrition = Color(0xFF2E7D32),
-    activity = Color(0xFFD23F16),
+    activity = Color(0xFFC93C15),
     sleep = Color(0xFF5B4FD8),
     stageAwake = Color(0xFFE4572E),
-    stageRem = Color(0xFF1E9CC8),
+    stageRem = Color(0xFF1D97C2),
     stageCore = Color(0xFF2F6FDB),
     stageDeep = Color(0xFF3F33A6),
     scoreDuration = Color(0xFF3E62FF),
     scoreInterruptions = Color(0xFFE4572E),
     scoreDeepRem = Color(0xFF9A5BE0),
-    scoreRegularity = Color(0xFF00A08F),
-    vitalsTypical = Color(0xFF2F80D8),
-    vitalsOutlier = Color(0xFFD63CB8),
-    fitness = Color(0xFF2E7D32),
+    scoreRegularity = Color(0xFF009D8C),
+    vitalsTypical = Color(0xFF2570C3),
+    vitalsOutlier = Color(0xFFC329A5),
+    fitness = Color(0xFF2B752F),
     fitnessContainer = Color(0xFFC8F0C4),
     onFitnessContainer = Color(0xFF00210A),
-    paused = Color(0xFF8C6A00),
+    paused = Color(0xFF836300),
     zones = listOf(
-        Color(0xFF3A80D6), Color(0xFF00A08F), Color(0xFFB08400), Color(0xFFD2691E), Color(0xFFC62828),
+        Color(0xFF296FC5), Color(0xFF007D70), Color(0xFF8C6900), Color(0xFFAE5719), Color(0xFFC62828),
     ),
-    positive = Color(0xFF1B8F5A),
+    positive = Color(0xFF187E4F),
     warning = Color(0xFF9C6125),
     bandLow = Color(0xFFC62828),
     bandMid = Color(0xFFB08400),
-    bandHigh = Color(0xFF1B8F5A),
+    bandHigh = Color(0xFF187E4F),
 )
 
 val DarkHealthColors = HealthColors(
