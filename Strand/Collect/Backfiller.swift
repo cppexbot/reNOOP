@@ -97,6 +97,37 @@ final class Backfiller {
     private var rejectFramesSeen = 0
     private var rejectHexSuppressedNoted = false
 
+    /// Per-session offload cadence, instrumentation only. The strap sends a chunk, waits for our ack, then
+    /// sends the next, so each chunk costs `phone` (its HISTORY_END to our ack: decode, commit, cursor) plus
+    /// `strap` (our ack to its next HISTORY_START: radio round trip and the strap's flash read). Summed per
+    /// session so a strap log says which side the offload's time went to (2026-09-30: the phone was
+    /// suspected and the store measured ~1 ms a chunk, but nothing on-device could split the rest).
+    private(set) var sessionChunkTiming = ChunkTiming()
+    private var chunkEndAt: UInt64?
+    private var lastAckAt: UInt64?
+
+    struct ChunkTiming: Equatable {
+        var phoneCount = 0, phoneTotalMs = 0, phoneMaxMs = 0
+        var strapCount = 0, strapTotalMs = 0, strapMaxMs = 0
+
+        mutating func addPhone(_ ms: Int) { phoneCount += 1; phoneTotalMs += ms; phoneMaxMs = max(phoneMaxMs, ms) }
+        mutating func addStrap(_ ms: Int) { strapCount += 1; strapTotalMs += ms; strapMaxMs = max(strapMaxMs, ms) }
+
+        /// nil when no chunk was acked this session.
+        var logLine: String? {
+            guard phoneCount > 0 else { return nil }
+            let strap = strapCount > 0
+                ? "strap avg=\(strapTotalMs / strapCount)ms max=\(strapMaxMs)ms"
+                : "strap n/a"
+            return "Backfill: timing chunks=\(phoneCount) phone(end→ack) avg=\(phoneTotalMs / phoneCount)ms "
+                + "max=\(phoneMaxMs)ms · \(strap) (ack→next start)"
+        }
+    }
+
+    private static func elapsedMs(since start: UInt64) -> Int {
+        Int((DispatchTime.now().uptimeNanoseconds &- start) / 1_000_000)
+    }
+
     /// Per-session persistence tally — the success-side observability the log forensics flagged as the
     /// blind spot (#150): we logged FAILURES (decoded-to-0) but never SUCCESSES, so a strap log couldn't
     /// tell a banking strap from a broken one. Reset at begin(); read by BLEManager at session end to emit
@@ -350,6 +381,9 @@ final class Backfiller {
         spo2Dumped = 0
         spo2DumpedByVersion = [:]
         spo2Examined = 0
+        sessionChunkTiming = ChunkTiming()
+        chunkEndAt = nil
+        lastAckAt = nil
         // #547: the range markers belong to a connection's GET_DATA_RANGE, which BLEManager re-sets per
         // connect; clear them here so a fresh session never reuses a previous strap's window. BLEManager
         // re-publishes them as soon as the range reply arrives.
@@ -364,7 +398,12 @@ final class Backfiller {
             isBackfilling = true
             chunk.removeAll(keepingCapacity: true)
             chunkOpen = true
+            if let acked = lastAckAt {
+                sessionChunkTiming.addStrap(Backfiller.elapsedMs(since: acked))
+                lastAckAt = nil
+            }
         case .end(let unix, let trim):
+            chunkEndAt = DispatchTime.now().uptimeNanoseconds
             await finishChunk(unix: unix, trim: trim, endFrame: frame)
         case .complete:
             isBackfilling = false
@@ -625,7 +664,10 @@ final class Backfiller {
             let dev = ref.device, wall = ref.wall
             let oldest = sessionOldestUnix, newest = sessionNewestUnix
             let extractFn = extract   // keep the injected Extractor seam (tests override it); prod == extractHistoricalStreams
-            let d = await Task.detached(priority: .utility) { () -> DecodedChunk in
+            // `.userInitiated`, not `.utility`: the strap sends nothing more until this chunk is acked, so
+            // the decode sits on the offload's critical path, and a utility-QoS task is the first thing iOS
+            // defers while a background re-score or the UI is busy.
+            let d = await Task.detached(priority: .userInitiated) { () -> DecodedChunk in
                 let parsed = frames.map { parseFrame($0, family: fam) }
                 let decoded = extractFn(parsed, dev, wall, fam, oldest, newest)
                 let rejected = rejectedHistoricalRecords(frames, family: fam)
@@ -969,6 +1011,9 @@ final class Backfiller {
 
         ackTrim(trim, endData)
         lastAckedTrim = trim   // #364: record the advanced cursor for the auto-continue spin-detector
+        if let ended = chunkEndAt { sessionChunkTiming.addPhone(Backfiller.elapsedMs(since: ended)) }
+        chunkEndAt = nil
+        lastAckAt = DispatchTime.now().uptimeNanoseconds
     }
 
     /// Called when a backfill watchdog timer fires (strap went silent mid-offload).
