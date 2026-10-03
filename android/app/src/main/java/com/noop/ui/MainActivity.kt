@@ -89,9 +89,6 @@ class MainActivity : ComponentActivity() {
             }
             return
         }
-        // Load the saved "Card transparency" so every frosted card renders at the chosen opacity from launch.
-        CardAppearance.init(this)
-
         // Demo build only: preload a full synthetic dataset so every screen is populated
         // out of the box (no strap, no import). No-op once seeded; never runs on the full app.
         if (BuildConfig.ENABLE_DEMO) {
@@ -137,18 +134,10 @@ class MainActivity : ComponentActivity() {
             runCatching { SelfHostedPushScheduler.enqueueLaunchCatchUp(applicationContext) }
         }
 
-        // Load the Light/Dark/System + chart-colour preferences before first composition so the theme
-        // and chart ramps are correct from the very first frame (no flash).
-        AppearancePrefs.load(this)
-        ChartStylePrefs.load(this)
-        AccentPrefs.load(this)   // chrome accent colour (mint / WHOOP blue / custom), live snapshot state
         // Decode the optional on-device profile photo (if set) before first composition so the Today
         // header + Settings avatars show it from the first frame. No-op when no photo is set.
         ProfileAvatarStore.load(this)
 
-        // Decode the optional custom background image (if set) + its toggles before first composition so
-        // the backdrop is right from the first frame on every tab. No-op when no image is set.
-        BackgroundImageStore.load(this)
         CoachEnabledStore.load(this)   // the AI Coach master switch, read before first composition
 
         setContent {
@@ -323,19 +312,6 @@ object NoopPrefs {
     fun effortMethod(context: Context): com.noop.analytics.StrainScorer.Method =
         if (banisterEffort(context)) com.noop.analytics.StrainScorer.Method.BANISTER
         else com.noop.analytics.StrainScorer.Method.EDWARDS
-
-    /** The calendar day (yyyy-MM-dd) on which the morning-journal nudge was last shown, keeps the
-     *  Sleep screen's "Good morning" sheet to at most once per day. */
-    const val KEY_LAST_JOURNAL_PROMPT = "noop.lastJournalPromptDay"
-
-    /** "Journal reminder" (#627). When ON, Today shows a dismissible card whenever nothing has been
-     *  logged to today's journal yet, and the Sleep screen's morning sheet may fire — one switch gates
-     *  both surfaces. Default ON. Mirrors iOS @AppStorage("noopJournalReminder"). */
-    const val KEY_JOURNAL_REMINDER_ENABLED = "noop.journalReminder"
-
-    /** The calendar day (yyyy-MM-dd) on which the Today journal-reminder card was last dismissed, so an
-     *  X hides it until the next day (per-day, like [KEY_LAST_JOURNAL_PROMPT]). */
-    const val KEY_JOURNAL_REMINDER_DISMISSED_DAY = "noop.journalReminderDismissedDay"
 
     /** "Debug logging", when on, the strap log is also written to logcat (`adb`). Default OFF so a
      *  normal user never emits the connection log to the system log; the in-app ring buffer (and the
@@ -743,10 +719,6 @@ object NoopPrefs {
         of(context).edit().putBoolean(KEY_APP_ICON_NAVY, navy).apply()
     }
 
-    /** #1821: Clock format ("system" / "twelveHour" / "twentyFourHour"). Shares its stored vocabulary
-     *  with the Apple @AppStorage binding via [com.noop.analytics.ClockFormatPreference]. */
-    const val KEY_CLOCK_FORMAT = com.noop.analytics.ClockFormatPreference.PREFS_KEY
-
     /** Display-only unit preferences; stored data stays SI. `units.system` remains the body preference
      *  for compatibility, while exercise distance can override it independently. */
     const val KEY_UNIT_SYSTEM = "units.system"
@@ -993,125 +965,6 @@ object NoopPrefs {
         of(context).edit().putBoolean(KEY_HYDRATION_TRACKING, enabled).apply()
     }
 
-    /** "Day-cycle background" (#698): the time-of-day scene (sunrise / day / dusk / night) behind the
-     *  Today screen. Default ON, it's the v7 atmosphere. Some people find the moving scene distracting
-     *  and want a plain dark canvas, so turning this off makes TodayScreen drop the SceneScreenBackground
-     *  and fall back to the flat surface; the cards already sit on an opaque canvas, so they stay just as
-     *  readable. Mirrors macOS @AppStorage("noop.showDayCycleBackground"). */
-    const val KEY_SHOW_DAY_CYCLE_BACKGROUND = "noop.showDayCycleBackground"
-
-    fun showDayCycleBackground(context: Context): Boolean =
-        of(context).getBoolean(KEY_SHOW_DAY_CYCLE_BACKGROUND, true)
-
-    fun setShowDayCycleBackground(context: Context, enabled: Boolean) {
-        of(context).edit().putBoolean(KEY_SHOW_DAY_CYCLE_BACKGROUND, enabled).apply()
-    }
-
-    /** Card-surface opacity as a PERCENT (0 = fully see-through, 100 = solid; default 100). Drives the
-     *  "Card transparency" setting — every frosted card (Heart Rate, Key Metrics, Recovery Vitals, …)
-     *  reads it via [CardAppearance]. Only the glass surface fades; the card content stays readable. */
-    const val KEY_CARD_OPACITY = "noop.cardOpacityPercent"
-
-    fun cardOpacityPercent(context: Context): Int =
-        of(context).getInt(KEY_CARD_OPACITY, 100).coerceIn(0, 100)
-
-    fun setCardOpacityPercent(context: Context, percent: Int) {
-        of(context).edit().putInt(KEY_CARD_OPACITY, percent.coerceIn(0, 100)).apply()
-    }
-
-    /** "Sky behind cards" (opt-in, default OFF): extend the day-cycle sky behind the WHOLE Today scroll
-     *  (not just the top band) so the Card-transparency slider reveals it under every card. Pairs with
-     *  [showDayCycleBackground] — no effect when the scene is off. Read once on Today entry. */
-    const val KEY_SKY_BEHIND_CARDS = "noop.skyBehindCards"
-
-    // Default ON: the day-cycle sky extends behind the whole scroll out of the box. Still user-toggleable
-    // in Settings ("Sky behind cards"); only never-toggled users pick up the new default. Twin of the iOS
-    // @AppStorage(SkyBehindCardsPrefs.enabledKey) defaults.
-    fun skyBehindCards(context: Context): Boolean =
-        of(context).getBoolean(KEY_SKY_BEHIND_CARDS, true)
-
-    fun setSkyBehindCards(context: Context, enabled: Boolean) {
-        of(context).edit().putBoolean(KEY_SKY_BEHIND_CARDS, enabled).apply()
-    }
-
-    /** Custom background image (#custom-background): a user-picked photo drawn full-bleed behind every
-     *  screen, REPLACING the day-cycle sky when enabled (precedence: image > sky > flat canvas). The
-     *  image itself is a device-local file (see [BackgroundImageStore]) — like the avatar it is
-     *  deliberately kept OUT of the .noopbak whitelist. The three key strings are byte-identical to the
-     *  iOS BackgroundImagePrefs. */
-    const val KEY_BACKGROUND_IMAGE_ENABLED = "noop.backgroundImageEnabled"
-
-    fun backgroundImageEnabled(context: Context): Boolean =
-        of(context).getBoolean(KEY_BACKGROUND_IMAGE_ENABLED, false)
-
-    fun setBackgroundImageEnabled(context: Context, enabled: Boolean) {
-        of(context).edit().putBoolean(KEY_BACKGROUND_IMAGE_ENABLED, enabled).apply()
-    }
-
-    /** The [BackgroundFillMode] rawValue (default "fill"). */
-    const val KEY_BACKGROUND_FILL_MODE = "noop.backgroundFillMode"
-
-    fun backgroundFillMode(context: Context): BackgroundFillMode =
-        BackgroundFillMode.fromStorage(of(context).getString(KEY_BACKGROUND_FILL_MODE, null))
-
-    fun setBackgroundFillMode(context: Context, mode: BackgroundFillMode) {
-        of(context).edit().putString(KEY_BACKGROUND_FILL_MODE, mode.storageValue).apply()
-    }
-
-    /** Whether a background image file has been stored (so the UI can offer Remove and the backdrop can
-     *  skip a decode when absent). Default false. */
-    const val KEY_BACKGROUND_IMAGE_PRESENT = "noop.backgroundImagePresent"
-
-    fun backgroundImagePresent(context: Context): Boolean =
-        of(context).getBoolean(KEY_BACKGROUND_IMAGE_PRESENT, false)
-
-    fun setBackgroundImagePresent(context: Context, present: Boolean) {
-        of(context).edit().putBoolean(KEY_BACKGROUND_IMAGE_PRESENT, present).apply()
-    }
-
-    /** Recent background images (MRU, up to 3), serialized as `"<file>,<fillMode>;…"` — see
-     *  BackgroundImageStore. Default "". Device-local like the image files, NOT in the .noopbak whitelist. */
-    const val KEY_BACKGROUND_RECENTS = "noop.backgroundRecents"
-
-    fun backgroundRecents(context: Context): String =
-        of(context).getString(KEY_BACKGROUND_RECENTS, "") ?: ""
-
-    fun setBackgroundRecents(context: Context, value: String) {
-        of(context).edit().putString(KEY_BACKGROUND_RECENTS, value).apply()
-    }
-
-    /** "Reduce motion in NOOP" (opt-in, default OFF). The literal key matches Apple so the setting has
-     *  one cross-platform identity. [rememberQuietMotion] observes it live for every looping surface. */
-    const val KEY_QUIET_MOTION = "noop.quietMotion"
-
-    fun quietMotion(context: Context): Boolean =
-        of(context).getBoolean(KEY_QUIET_MOTION, false)
-
-    fun setQuietMotion(context: Context, enabled: Boolean) {
-        of(context).edit().putBoolean(KEY_QUIET_MOTION, enabled).apply()
-    }
-
-    /** Which gauge Today draws: the GlowRing arc (default) or the liquid vessel it replaced (#2311).
-     *
-     *  Android-only, and deliberately NOT Apple's `noop.liquidTodayEnabled`. That key switches between two
-     *  whole Today SCREENS on iOS and macOS, `LiquidTodayView` (the default there) and the classic
-     *  `TodayView`. Android has a single Today screen, so this chooses a gauge inside it and nothing else.
-     *
-     *  Sharing the key would also INVERT it: `true` means liquid on Apple and rings (not liquid) here, so
-     *  one stored value would drive two opposite looks. Two unrelated meanings on one setting, and a future
-     *  divergence on either platform silently wrong.
-     *
-     *  Defaults to the rings, which is what #2311 shipped; the vessels stay available for anyone who
-     *  preferred them. */
-    const val KEY_TODAY_RING_GAUGES = "noop.todayRingGauges"
-
-    fun todayRingGauges(context: Context): Boolean =
-        of(context).getBoolean(KEY_TODAY_RING_GAUGES, true)
-
-    fun setTodayRingGauges(context: Context, enabled: Boolean) {
-        of(context).edit().putBoolean(KEY_TODAY_RING_GAUGES, enabled).apply()
-    }
-
     /**
      * When the live /models catalogue was last pulled for a provider, epoch millis, keyed per
      * provider so switching does not hide a stale list behind another provider's refresh.
@@ -1200,13 +1053,6 @@ object NoopPrefs {
 
     fun setAutoDetectWorkouts(context: Context, enabled: Boolean) {
         of(context).edit().putBoolean(KEY_AUTO_DETECT_WORKOUTS, enabled).apply()
-    }
-
-    fun journalReminderEnabled(context: Context): Boolean =
-        of(context).getBoolean(KEY_JOURNAL_REMINDER_ENABLED, true)
-
-    fun setJournalReminderEnabled(context: Context, enabled: Boolean) {
-        of(context).edit().putBoolean(KEY_JOURNAL_REMINDER_ENABLED, enabled).apply()
     }
 
     /** Last local day (ISO yyyy-MM-dd) an illness notification was posted, the once-a-day gate,
@@ -1387,29 +1233,6 @@ object NoopPrefs {
 
     fun setReportLastWorkoutTs(context: Context, ts: Long) {
         of(context).edit().putLong(KEY_REPORT_LAST_WORKOUT_TS, ts).apply()
-    }
-
-    /** Caffeine late-intake nudge (PR#566, mvanhorn), opt-in, default OFF. When on, the Caffeine card
-     *  shows a cutoff time (the latest you can have caffeine and still clear it below a target residual by
-     *  bedtime) and flags an intake logged after that cutoff. [KEY_CAFFEINE_BEDTIME_MIN] is the user's
-     *  bedtime as minutes-since-midnight (default 23:00) the cutoff is computed back from. On-device, no
-     *  notification, a quiet inline hint, matching the manual-first caffeine card. */
-    const val KEY_CAFFEINE_CUTOFF = "noop.caffeine.cutoffNudge"
-    const val KEY_CAFFEINE_BEDTIME_MIN = "noop.caffeine.bedtimeMinutes"
-
-    fun caffeineCutoffEnabled(context: Context): Boolean =
-        of(context).getBoolean(KEY_CAFFEINE_CUTOFF, false)
-
-    fun setCaffeineCutoffEnabled(context: Context, enabled: Boolean) {
-        of(context).edit().putBoolean(KEY_CAFFEINE_CUTOFF, enabled).apply()
-    }
-
-    /** Bedtime as minutes since midnight the caffeine cutoff is reckoned back from (default 1380 = 23:00). */
-    fun caffeineBedtimeMinutes(context: Context): Int =
-        of(context).getInt(KEY_CAFFEINE_BEDTIME_MIN, 23 * 60)
-
-    fun setCaffeineBedtimeMinutes(context: Context, minutes: Int) {
-        of(context).edit().putInt(KEY_CAFFEINE_BEDTIME_MIN, minutes.coerceIn(0, 24 * 60 - 1)).apply()
     }
 
     /** Whether the one-shot #313 full-history Effort rescore has run. Set true once it completes so the

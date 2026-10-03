@@ -2,52 +2,6 @@ package com.noop.ui
 
 import com.noop.R
 import androidx.annotation.StringRes
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import com.noop.analytics.FitnessAgeEngine
-import java.util.Locale
-
-// MARK: - Vital gates
-//
-// The pure gates the old vital detail screen carried, which Today and Settings still read: the cycle
-// opt-in, the Fitness Age bound symbol, and the Blood Oxygen empty state (#1617) the metric page shows
-// when a strap cannot fill that metric. The screen itself became the metric page (ui/metric).
-
-/**
- * #801: whether the cycle-awareness OPT-IN invitation should be offered for a profile with this [sex]
- * value. Cycle phase is read from the menstrual skin-temperature shift, so the invitation is NOT offered
- * for a male profile; "female"/"nonbinary" (and any unrecognised value, default-show rather than hide)
- * qualify. Pure so it's unit-tested directly; mirrors the iOS SkinTempSection.cycleOptInApplies
- * (`profile.sex.lowercased() != "male"`). ProfileStore.sex is "male" | "female" | "nonbinary".
- */
-internal fun cycleOptInApplies(sex: String): Boolean = sex.lowercase(Locale.US) != "male"
-
-/** #hide-cycle: whether the cycle-awareness OFFER is VISIBLE — eligible by sex AND not hidden by the
- *  user's "not for me" opt-out. USER-controlled, never age-based. Pure, unit-tested; twin of iOS
- *  ProfileStore.cycleAwarenessVisible(sex:hidden:). */
-internal fun cycleAwarenessVisible(sex: String, hidden: Boolean): Boolean =
-    cycleOptInApplies(sex) && !hidden
-
-/**
- * The symbol a stored Fitness Age needs when it is sitting on a reporting bound (#2173).
- *
- * `FitnessAgeEngine` clamps to [minAge, maxAge], so every model output below 20 is stored as exactly
- * 20.0 and every output above 80 as exactly 80.0. A reader cannot tell those from a genuine 20 or 80,
- * and the number looks as exact as any other, which is what makes a floored reading read like a sync
- * or scoring fault rather than the edge of the scale.
- *
- * Decided from the value rather than carried out of the engine deliberately. The clamp returns the
- * bound constant itself, so equality is exact and needs no tolerance, and deciding here covers the
- * weekly rows already persisted, which no flag added today could reach. The cost is that a reading
- * that is genuinely 20.0 is also called "20 or younger", which is true of it, so nothing is claimed
- * that is not known. Saying "<20" would need the unclamped value, and that is gone by the time
- * anything is stored.
- */
-internal fun fitnessAgeBoundSymbol(value: Double): String = when {
-    value <= FitnessAgeEngine.minAge -> "≤"
-    value >= FitnessAgeEngine.maxAge -> "≥"
-    else -> ""
-}
 
 /**
  * #1617: which empty-state copy a vital with fewer than two readings should show.

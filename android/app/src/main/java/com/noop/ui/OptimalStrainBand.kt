@@ -23,13 +23,3 @@ internal fun optimalStrainRange(recovery: Double?): OptimalStrainRange? {
     }
 }
 
-/**
- * The optimal strain band as a 0..1 fraction range of the 0-21 axis, for ring target arcs.
- * null when recovery is unknown, so the caller renders no target zone.
- */
-internal fun optimalFractionRange(recovery: Double?): ClosedFloatingPointRange<Float>? {
-    val band = optimalStrainRange(recovery) ?: return null
-    val low = (band.low.toDouble() / 21.0).coerceIn(0.0, 1.0).toFloat()
-    val high = (band.high.toDouble() / 21.0).coerceIn(0.0, 1.0).toFloat()
-    return low..high
-}

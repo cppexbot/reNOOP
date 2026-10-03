@@ -46,10 +46,6 @@ internal fun deviceLink(
     else -> DeviceLink.NOT_CONNECTED
 }
 
-/** The observed banked-history record layout, for the Test Centre row ("v25 history"). */
-internal fun historyLayoutLine(version: Int?): String? =
-    version?.let { "v$it history" }
-
 /**
  * One device's live state, read off [LiveState] for THIS device only: the live link, its charge and its
  * bond belong to whichever device is active, never to the others.

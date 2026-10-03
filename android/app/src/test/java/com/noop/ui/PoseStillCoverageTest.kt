@@ -21,9 +21,9 @@ import java.io.File
  * each call site's control flow, deliberately: it cannot be fooled by a loop that is gated in a helper,
  * and it fails loudly the moment a NEW animating file appears ungated, which is the case worth catching.
  *
- * One-shot animations are out of scope on purpose. `CountUpText`, `staggeredAppear` and the 160 ms
- * `liquidPress` tween settle and stop, so they are not the cost battery saver is asking to avoid, and the
- * Apple change this mirrors gated only its `TimelineView`s. They keep asking `rememberReduceMotion` alone.
+ * One-shot animations are out of scope on purpose: a tween that settles and stops is not the cost
+ * battery saver is asking to avoid, and the Apple change this mirrors gated only its `TimelineView`s.
+ * Those keep asking `rememberReduceMotion` alone.
  *
  * Fails rather than skips when it cannot find the source, for the reason
  * [com.noop.data.HrFrontierQueryShapeTest] documents: a guard whose absence reads as a pass is not a guard.
@@ -63,16 +63,15 @@ class PoseStillCoverageTest {
     /**
      * Frame loops that are DIRECT MANIPULATION, not idle animation, and must keep running in battery saver.
      *
-     * `SleepScreen.kt` drives drag-reorder auto-scroll from `withFrameNanos`, deliberately time-based so a
-     * 120 Hz panel does not scroll twice as fast. It runs only `while (sleepSectionDrag.key != null)` — while
-     * the user's finger is down. Quieting it would not save idle power (there is no idle: the user is
-     * dragging); it would break the interaction by stripping the auto-scroll out from under them. Its only
-     * `withFrameNanos` IS that loop.
+     * Empty today. Its one entry was the old Sleep screen's drag-reorder auto-scroll, a `withFrameNanos`
+     * loop that ran only while the user's finger was down; that screen is gone and no file runs such a loop
+     * now. Quieting one would not save idle power (there is no idle: the user is dragging); it would break
+     * the interaction by stripping the auto-scroll out from under them.
      *
      * The distinction this file draws is idle-vs-driven, not animated-vs-still. Anything added here needs a
      * reason of that shape.
      */
-    private val directManipulation = setOf("SleepScreen.kt")
+    private val directManipulation = emptySet<String>()
 
     private fun animatingFiles(): List<File> =
         uiDir().walkTopDown()

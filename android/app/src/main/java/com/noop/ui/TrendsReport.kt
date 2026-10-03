@@ -1,6 +1,5 @@
 package com.noop.ui
 
-import com.noop.R
 import android.content.Context
 import android.content.Intent
 import android.graphics.Canvas
@@ -11,22 +10,9 @@ import android.graphics.RectF
 import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import android.widget.Toast
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.IosShare
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.noop.analytics.MetricRangeStat
 import com.noop.analytics.RangeReport
 import com.noop.analytics.RangeReportEngine
@@ -676,63 +662,3 @@ object TrendsReportShare {
     }
 }
 
-// MARK: - Export section (embeddable Composable for Settings / Trends)
-
-/**
- * The trends-report export entry: a short blurb, a range SegmentedPillControl, the resolved
- * range's day-count, and a gold "Export PDF" CTA. Built only from the locked component system.
- * Drop it into Settings (or Trends). Reads the merged history off [vm].
- */
-@Composable
-fun TrendsReportExportSection(vm: AppViewModel, modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    val days by vm.recentDays.collectAsStateWithLifecycle()
-    var range by remember { mutableStateOf(ReportRange.Days90) }
-
-    // Stored daily stress series ("yyyy-MM-dd" → 0–3) for the Stress row (#457). Loaded once
-    // from the same "my-whoop" series the Stress screen reads; empty until it arrives.
-    var stressByDay by remember { mutableStateOf<Map<String, Double>>(emptyMap()) }
-    androidx.compose.runtime.LaunchedEffect(Unit) {
-        val rows = runCatching {
-            vm.repo.metricSeries("my-whoop", "stress", "0000-01-01", "9999-12-31")
-        }.getOrDefault(emptyList())
-        stressByDay = rows.associate { it.day to it.value }
-    }
-
-    NoopCard(modifier = modifier, tint = Palette.accent) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Overline("Export")
-            Text(uiString(R.string.l10n_trends_report_trends_report_pdf_481e8a5f), style = NoopType.title2, color = Palette.textPrimary)
-            Text(
-                uiString(R.string.l10n_trends_report_a_clean_shareable_one_page_pdf_a3c4f889),
-                style = NoopType.subhead,
-                color = Palette.textSecondary,
-            )
-
-            Overline("Range", color = Palette.textTertiary)
-            SegmentedPillControl(
-                items = ReportRange.entries.toList(),
-                selection = range,
-                label = { it.label },
-                onSelect = { range = it },
-            )
-            Text(range.longName, style = NoopType.footnote, color = Palette.textTertiary)
-
-            // Routed through the unified NoopButton (crisp filled accent, no gold) — the same button
-            // system every other CTA uses, mirroring the iOS exportReportRow.
-            NoopButton(
-                text = uiString(R.string.l10n_trends_report_export_pdf_3dd7d56a),
-                leadingIcon = Icons.Filled.IosShare,
-                kind = NoopButtonKind.Primary,
-                fullWidth = true,
-                onClick = { TrendsReportShare.export(context, days, range, stressByDay) },
-            )
-
-            Text(
-                uiString(R.string.l10n_trends_report_the_share_sheet_can_save_the_ecddbca7),
-                style = NoopType.footnote,
-                color = Palette.textTertiary,
-            )
-        }
-    }
-}

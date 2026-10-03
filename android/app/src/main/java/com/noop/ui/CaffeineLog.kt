@@ -1,11 +1,9 @@
 package com.noop.ui
 
 import android.content.Context
-import com.noop.analytics.CaffeineDecay
 import com.noop.analytics.CaffeineIntake
 import org.json.JSONArray
 import org.json.JSONObject
-import java.util.Calendar
 import java.util.UUID
 
 // MARK: - Caffeine window (#526) — pure persistence helpers (the Journal logs and lists intakes).
@@ -77,17 +75,3 @@ internal fun removeCaffeineIntake(context: Context, id: String): List<CaffeineIn
     return next
 }
 
-// MARK: - Cutoff window (PR#566, mvanhorn) — local-time helpers over the pure CaffeineDecay math.
-
-/** Minutes since local midnight for an epoch-seconds timestamp — so an intake's clock time can be
- *  compared against the cutoff. Pure given a fixed clock; uses the device timezone. */
-internal fun localMinutesOfDay(epochSec: Long): Int {
-    val cal = Calendar.getInstance().apply { timeInMillis = epochSec * 1000L }
-    return cal.get(Calendar.HOUR_OF_DAY) * 60 + cal.get(Calendar.MINUTE)
-}
-
-/** True when [intake] was logged after the caffeine cutoff for [bedtimeMinutes] (so it's likely still
- *  active at bedtime). Delegates the decay math to [CaffeineDecay.isPastCutoff]; only the clock mapping
- *  lives here. */
-internal fun isIntakePastCutoff(intake: CaffeineIntake, bedtimeMinutes: Int): Boolean =
-    CaffeineDecay.isPastCutoff(localMinutesOfDay(intake.atEpochSec), bedtimeMinutes)
