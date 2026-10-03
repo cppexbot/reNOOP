@@ -48,6 +48,10 @@ struct ScoresSettingsPage: View {
     /// #141: whole night or deep sleep only. Changes the number, so a switch re-scores.
     @AppStorage(UnitPrefs.hrvWindowKey) private var hrvWindowRaw = HrvWindow.whole.rawValue
 
+    /// Experimental, default off: learn the WHOOP 4.0 ticks-per-step divisor from short raw-accelerometer
+    /// measurements instead of using the manual one. Changes each day's step total, so a switch re-scores.
+    @AppStorage(StepCalibrationStore.enabledKey) private var stepAutoCalibrationEnabled = false
+
     @State private var showScoringGuide = false
     @State private var showRecalibrateConfirm = false
     @State private var showStepsCalibration = false
@@ -83,6 +87,13 @@ struct ScoresSettingsPage: View {
                     }
                     .fixedSize()
                     .accessibilityLabel("Step calibration, \(String(format: "%.2f", profile.stepTicksPerStep)) counter ticks per step")
+                }
+                Toggle("Auto step calibration (WHOOP 4.0)", isOn: $stepAutoCalibrationEnabled)
+                    .onChangeCompat(of: stepAutoCalibrationEnabled) { _ in
+                        Task { await model.intelligence.analyzeRecent(); await model.repo.refresh() }
+                    }
+                if stepAutoCalibrationEnabled {
+                    LabeledContent("Learned divisor today", value: stepAutoCalibrationSummary)
                 }
                 // WHOOP 4.0 steps ESTIMATE (a separate thing from the 5/MG counter divisor above). Opens a
                 // sheet, which a row marks with its value alone; a chevron promises a push (ST-10).
@@ -135,6 +146,15 @@ struct ScoresSettingsPage: View {
     }
 
     /// Manual, the auto-fit confidence, or not yet calibrated.
+    /// Today's learned divisor and how many measurements stand behind the calibration so far.
+    private var stepAutoCalibrationSummary: String {
+        let tz = TimeZone.current.secondsFromGMT()
+        let today = AnalyticsEngine.dayString(Int(Date().timeIntervalSince1970), offsetSec: tz)
+        let snapshot = StepCalibrationStore.snapshot(manual: profile.stepTicksPerStep, today: today)
+        let accepted = snapshot.state?.accepted ?? 0
+        return String(format: "%.2f", snapshot.factor(day: today)) + " (\(accepted))"
+    }
+
     private var stepsCalibrationSummary: String {
         if profile.stepsManualCoefficient > 0 { return String(localized: "Manual") }
         if profile.stepsCalibrationCoefficient > 0 {

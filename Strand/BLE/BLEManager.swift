@@ -935,6 +935,15 @@ public final class BLEManager: NSObject, ObservableObject {
             self?.send(.sendR10R11Realtime, payload: [on ? 0x01 : 0x00], writeType: .withResponse)
         },
         log: { [weak self] line in self?.log(line) })
+    /// Experimental WHOOP 4.0 step auto-calibration (default off, see `StepAutoCalibrator`).
+    private lazy var stepCalibrator = StepAutoCalibrator(
+        startStream: { [weak self] in self?.rawStreamProbe.burstStarted() },
+        stopStream: { [weak self] in self?.rawStreamProbe.burstStopped() },
+        steps: { [weak self] from, to in await self?.collector?.stepSamples(from: from, to: to) ?? [] },
+        log: { [weak self] line in self?.log(line) })
+    /// Bumped at every offload end, so of several offloads ending back to back only the last one's
+    /// delayed step-calibration check runs.
+    private var stepCalibrationCheck = 0
     /// Ordered queue of frames awaiting drain through the serial Backfiller task.
     private var backfillFrameQueue: [[UInt8]] = []
     /// True while the drain task is running (prevents a second drain task from launching).
@@ -2724,6 +2733,26 @@ public final class BLEManager: NSObject, ObservableObject {
         // Inactivity reminder (#419): read-only hook on the natural offload completion (no cadence
         // change). Only on a true HISTORY_COMPLETE — a timeout/disconnect didn't bring a fresh window.
         if reason == "HISTORY_COMPLETE" { maybeBuzzInactivity() }
+        // Step auto-calibration reads the history this offload just banked. Offloads often end in
+        // quick succession, so it waits a few seconds and runs only if none is in flight by then.
+        if reason == "HISTORY_COMPLETE", selectedModel.deviceFamily == .whoop4 {
+            stepCalibrationCheck &+= 1
+            let check = stepCalibrationCheck
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
+                guard let self, check == self.stepCalibrationCheck, !self.backfilling,
+                      self.state.connected else { return }
+                // On the Mac the app being frontmost says nothing about how the wearer walks.
+                #if os(iOS)
+                let appOnScreen = UIApplication.shared.applicationState == .active
+                #else
+                let appOnScreen = false
+                #endif
+                Task { @MainActor in
+                    await self.stepCalibrator.offloadSettled(batteryPct: self.state.batteryPct,
+                                                             appOnScreen: appOnScreen)
+                }
+            }
+        }
         // Success-side summary (#150 forensics): we logged failures (decoded-to-0) but never successes,
         // so a strap log couldn't tell a banking strap from a broken one. Emit the per-session persistence
         // tally whenever anything actually landed — the win-rate signal a log previously lacked.
@@ -6267,6 +6296,7 @@ extension BLEManager: @preconcurrency CBCentralManagerDelegate {
         restoreNeedsResubscribe = false    // #613: a real reconnect isn't a restore — never force-toggle here
         realtimeArmedAt = nil   // cleared after the marginal-radio detector above read it (#80)
         rawStreamProbe.disconnected()
+        stepCalibrator.disconnected()
         // Reset backfill state so the next connect starts a fresh offload (incl. the syncing pill —
         // a dropped link mid-offload must not leave "Syncing strap history…" stuck on, #77).
         backfillStarted = false
@@ -7328,6 +7358,11 @@ extension BLEManager: @preconcurrency CBPeripheralDelegate {
                     // …and the strap's own console narration, which it emits precisely DURING a sync.
                     router.mirrorStrapConsoleIfPresent(frame: frame)
                     continue
+                }
+                // A step-calibration burst reads the accelerometer block of the raw IMU packets. With no
+                // burst running the guard is one stored Bool, so this costs nothing per frame.
+                if stepCalibrator.wantsFrames, let imu = Whoop4RawImu.accel(frame) {
+                    stepCalibrator.accept(imu)
                 }
                 // #47: decode this live WHOOP4 frame ONCE here and thread the result to every consumer
                 // (router / clock-correlation / collector) instead of each re-parsing it — steady-state
