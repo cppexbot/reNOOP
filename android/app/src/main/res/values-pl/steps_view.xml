@@ -1,5 +1,0 @@
-<resources>
-    <string name="steps_average_30">Średnia kroków z 30 dni</string>
-    <string name="steps_average_subtitle">Średnia krocząca z ostatnich 30 dni</string>
-    <string name="steps_average_coverage">Zarejestrowane dni: %1$d z 30</string>
-</resources>

@@ -1,5 +1,0 @@
-<resources>
-    <string name="steps_average_30">30 天平均步数</string>
-    <string name="steps_average_subtitle">最近 30 天的滚动平均值</string>
-    <string name="steps_average_coverage">30 天中有 %1$d 天有记录</string>
-</resources>

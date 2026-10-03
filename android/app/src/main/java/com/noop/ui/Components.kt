@@ -266,7 +266,7 @@ private fun PulsingDotHalo(tone: StrandTone, size: Dp) {
             animation = tween(Motion.breathPeriodMs, easing = Motion.easeInOut),
             repeatMode = RepeatMode.Reverse,
         ),
-        label = uiString(R.string.l10n_components_dotscale_5bc02101),
+        label = "dotScale",
     )
     val haloAlpha by transition.animateFloat(
         initialValue = 0.5f,
@@ -275,7 +275,7 @@ private fun PulsingDotHalo(tone: StrandTone, size: Dp) {
             animation = tween(Motion.breathPeriodMs, easing = Motion.easeInOut),
             repeatMode = RepeatMode.Reverse,
         ),
-        label = uiString(R.string.l10n_components_dothalo_3332546c),
+        label = "dotHalo",
     )
     Box(
         modifier = Modifier
@@ -488,12 +488,12 @@ fun GlowRing(
         animFraction = animateFloatAsState(
             targetValue = if (started) target else 0f,
             animationSpec = spring(dampingRatio = 0.86f, stiffness = Spring.StiffnessMediumLow),
-            label = uiString(R.string.l10n_components_glowring_fraction_5bcc7cd7),
+            label = "glowring-fraction",
         ).value
         animValue = animateFloatAsState(
             targetValue = if (started) value.toFloat() else 0f,
             animationSpec = tween(durationMillis = 850, easing = FastOutSlowInEasing),
-            label = uiString(R.string.l10n_components_glowring_value_ac0e87de),
+            label = "glowring-value",
         ).value
     }
     val trackColor = Palette.textPrimary.copy(alpha = 0.10f)

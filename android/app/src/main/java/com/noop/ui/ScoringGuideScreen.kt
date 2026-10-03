@@ -285,7 +285,7 @@ private fun ScoreCard(
     // Deep-link highlight: a brief accent ring when arrived at via an ⓘ, fading back to the hairline.
     val ringColor by animateColorAsState(
         targetValue = if (highlighted) section.accent else Palette.hairline,
-        label = uiString(R.string.l10n_scoring_guide_screen_scorecardhighlight_4af6985c),
+        label = "scoreCardHighlight",
     )
     val shape = RoundedCornerShape(Metrics.cardRadius)
     Box(
