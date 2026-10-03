@@ -67,3 +67,18 @@ object LiveConsoleReadout {
         // Swift's .rounded() is half-away-from-zero, identical over the 0..100 this sees.
         if (activeIsWhoop) whoopPct?.let { Math.round(it).toInt() } else ringPct
 }
+
+/**
+ * Coarse relative-time label ("just now", "5 min ago", "3 h ago", "2 d ago"). Pure + unit-tested
+ * (RelativeAgoTest); [nowSec] is injectable for determinism. Moved here from the retired Live console
+ * (now the Heart Rate page), which no longer prints a sync line; Devices still reads it. (PR #85)
+ */
+internal fun relativeAgo(epochSec: Long, nowSec: Long = System.currentTimeMillis() / 1000L): String {
+    val d = (nowSec - epochSec).coerceAtLeast(0)
+    return when {
+        d < 60L -> "just now"
+        d < 3600L -> "${d / 60L} min ago"
+        d < 86_400L -> "${d / 3600L} h ago"
+        else -> "${d / 86_400L} d ago"
+    }
+}

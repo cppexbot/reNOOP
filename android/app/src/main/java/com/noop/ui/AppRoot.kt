@@ -115,7 +115,6 @@ internal enum class Destination(val route: String) {
     MetricData("metric_data/{key}?source={source}"),
     TrainingLoad("training_load"),
     FullDay("full_day"),
-    Hydration("hydration"),
     Automations("automations"),
     // The Sleep tab's pages: More Sleep Data on a night (offset 0 = newest), a night's Vitals, Sleep
     // Highlights, and the Sleep Schedule (the one alarm surface, which replaced the Alarms screen).
@@ -292,9 +291,11 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                 CoachSettingsScreen(vm = viewModel(coachEntry), onBack = { nav.popBackStack() })
             }
             composable(Destination.Insights.route) {
-                InsightsScreen(viewModel, onOpenInsightsHub = { nav.openInTab(MainTab.Browse, Destination.InsightsHub.route) })
+                com.noop.ui.journal.JournalScreen(vm = viewModel, onBack = { nav.popBackStack() })
             }
-            composable(Destination.LabBook.route) { LabBookScreen(viewModel) }
+            composable(Destination.LabBook.route) {
+                com.noop.ui.lab.LabResultsScreen(vm = viewModel, onBack = { nav.popBackStack() })
+            }
             composable(Destination.Trends.route) {
                 TrendsScreen(
                     viewModel,
@@ -303,7 +304,13 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                     onOpenTrainingLoad = { nav.push(Destination.TrainingLoad.route) },
                 )
             }
-            composable(Destination.InsightsHub.route) { InsightsHubScreen(viewModel) }
+            composable(Destination.InsightsHub.route) {
+                com.noop.ui.insights.WhatMovesYouScreen(
+                    vm = viewModel,
+                    onBack = { nav.popBackStack() },
+                    onOpenJournal = { nav.push(Destination.Insights.route) },
+                )
+            }
             composable(Destination.Devices.route) {
                 DevicesScreen(
                     viewModel,
@@ -312,9 +319,20 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
                 )
             }
             composable(Destination.Live.route) {
-                LiveScreen(viewModel = viewModel, onManageDevices = { nav.openInTab(MainTab.Browse, Destination.Devices.route) })
+                com.noop.ui.live.HeartRateScreen(
+                    vm = viewModel,
+                    onBack = { nav.popBackStack() },
+                    onOpenDevices = { nav.openInTab(MainTab.Browse, Destination.Devices.route) },
+                    onOpenActiveWorkout = { NowRunning.expand(NowRunning.Kind.Workout) },
+                )
             }
-            composable(Destination.Breathe.route) { BreatheScreen(viewModel) }
+            composable(Destination.Breathe.route) {
+                com.noop.ui.mind.MindfulnessScreen(
+                    vm = viewModel,
+                    onBack = { nav.popBackStack() },
+                    onOpenDevices = { nav.openInTab(MainTab.Browse, Destination.Devices.route) },
+                )
+            }
 
             // --- Pushed from a screen ---
             composable(Destination.Intervals.route) { IntervalsSetupScreen(onBack = { nav.popBackStack() }) }
@@ -345,7 +363,6 @@ fun AppRoot(viewModel: AppViewModel = viewModel()) {
             }
             composable(Destination.TrainingLoad.route) { TrainingLoadScreen(viewModel, onBack = { nav.popBackStack() }) }
             composable(Destination.FullDay.route) { FullDayChartScreen(vm = viewModel, onBack = { nav.popBackStack() }) }
-            composable(Destination.Hydration.route) { HydrationScreen(viewModel) }
             composable(Destination.Automations.route) { AutomationsScreen(viewModel) }
             composable(Destination.SleepMoreData.route, arguments = listOf(navArgument("offset") { type = NavType.IntType })) { entry ->
                 SleepMoreDataScreen(viewModel, entry.arguments?.getInt("offset") ?: 0, onBack = { nav.popBackStack() })
