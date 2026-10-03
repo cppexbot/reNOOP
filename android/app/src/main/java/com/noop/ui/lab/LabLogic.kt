@@ -1,5 +1,6 @@
 package com.noop.ui.lab
 
+import com.noop.ui.TypedNumber
 import com.noop.R
 import com.noop.analytics.LabMarkerCategory
 import com.noop.analytics.MarkerCatalog
@@ -103,8 +104,8 @@ internal object LabFormat {
     fun markerKeys(rows: List<LabMarkerRow>, category: LabMarkerCategory, translate: (Int) -> String): List<String> =
         rows.filter { it.category == category.raw }.map { it.markerKey }.distinct().sortedBy { name(it, translate) }
 
-    /** A typed number, accepting the comma a decimal pad types in a comma locale ("3,1"). */
-    fun parse(s: String): Double? = s.trim().replace(',', '.').toDoubleOrNull()?.takeIf { it.isFinite() }
+    /** A typed number, through the app's one reader ([TypedNumber]): "3,1" and "3.1" are the same value. */
+    fun parse(s: String): Double? = TypedNumber.parse(s)
 
     private val MARKER_NAMES: Map<String, Int> = mapOf(
         "total_cholesterol" to R.string.lab_marker_total_cholesterol,

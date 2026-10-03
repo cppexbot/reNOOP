@@ -1,5 +1,6 @@
 package com.noop.ui.journal
 
+import com.noop.ui.TypedNumber
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -303,7 +304,7 @@ private fun NumberField(value: Double?, unit: String?, onValue: (Double?) -> Uni
                 text = t
                 val trimmed = t.trim()
                 if (trimmed.isEmpty()) onValue(null)
-                else trimmed.replace(',', '.').toDoubleOrNull()?.takeIf { it.isFinite() }?.let(onValue)
+                else TypedNumber.parse(trimmed)?.let(onValue)
             },
             placeholder = { Text("—") },
             singleLine = true,
