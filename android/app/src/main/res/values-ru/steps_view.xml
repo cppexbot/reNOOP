@@ -1,5 +1,0 @@
-<resources>
-    <string name="steps_average_30">Среднее число шагов за 30 дней</string>
-    <string name="steps_average_subtitle">Скользящее среднее за последние 30 дней</string>
-    <string name="steps_average_coverage">Дней с данными: %1$d из 30</string>
-</resources>

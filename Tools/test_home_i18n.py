@@ -21,7 +21,9 @@ import i18n_audit as audit
 ROOT = Path(__file__).resolve().parents[1]
 
 # The Android Home (the Summary tab, which replaced the old Today screen) plus the Today-era helpers
-# it still reads. AppRoot is deliberately handled separately below: most of that file is unrelated
+# it still reads. The helpers only the old Today screen used (day navigation, section layout, the "Your
+# cards" registry, the auto-workout nudge) were deleted with it, and so were the assertions that pinned
+# their strings. AppRoot is deliberately handled separately below: most of that file is unrelated
 # navigation UI, while only its Summary tab resource belongs here.
 ANDROID_SUMMARY_FILES = {
     "android/app/src/main/java/com/noop/ui/summary/SummaryScreen.kt",
@@ -33,14 +35,10 @@ ANDROID_SUMMARY_FILES = {
     "android/app/src/main/java/com/noop/ui/summary/SummaryPrefs.kt",
 }
 ANDROID_HOME_FILES = ANDROID_SUMMARY_FILES | {
-    "android/app/src/main/java/com/noop/ui/TodayDayNav.kt",
-    "android/app/src/main/java/com/noop/ui/TodayLayoutPrefs.kt",
     "android/app/src/main/java/com/noop/ui/TodayMetricsLogic.kt",
     "android/app/src/main/java/com/noop/ui/TodayProvenance.kt",
     "android/app/src/main/java/com/noop/ui/TodayScoring.kt",
-    "android/app/src/main/java/com/noop/ui/AutoWorkoutNudge.kt",
     "android/app/src/main/java/com/noop/ui/KeyMetricPrefs.kt",
-    "android/app/src/main/java/com/noop/ui/DashboardCards.kt",
     "android/app/src/main/java/com/noop/analytics/ReadinessEngine.kt",
     "android/app/src/main/java/com/noop/analytics/StepsEstimateEngine.kt",
     "android/app/src/main/java/com/noop/analytics/RecoveryDrivers.kt",
@@ -68,7 +66,6 @@ APPLE_HOME_SHELL_CATALOG_KEYS = {
 # data-flow back from Text(variable).  Scan every literal in them conservatively.  The
 # allowlist contains only persistence/source identifiers and date formats, never copy.
 ANDROID_DISPLAY_HELPERS = {
-    "android/app/src/main/java/com/noop/ui/TodayLayoutPrefs.kt",
     "android/app/src/main/java/com/noop/ui/TodayMetricsLogic.kt",
     "android/app/src/main/java/com/noop/ui/TodayProvenance.kt",
     "android/app/src/main/java/com/noop/ui/TodayScoring.kt",
@@ -80,24 +77,15 @@ ANDROID_DISPLAY_HELPERS = {
 ANDROID_INDIRECT_COPY_FILES = {
     "android/app/src/main/java/com/noop/analytics/ReadinessEngine.kt",
     "android/app/src/main/java/com/noop/analytics/StepsEstimateEngine.kt",
-    "android/app/src/main/java/com/noop/ui/AutoWorkoutNudge.kt",
     "android/app/src/main/java/com/noop/ui/KeyMetricPrefs.kt",
-    "android/app/src/main/java/com/noop/ui/DashboardCards.kt",
     "android/app/src/main/java/com/noop/analytics/RecoveryDrivers.kt",
 }
 ANDROID_INDIRECT_NON_UI_LITERALS = {
     # Engine keys, metric units and numeric format specs.
     "hrv", "rhr", "respRate", "acwr", "monotony", "ms", "bpm", "rpm", "%.1f",
-    # Auto-workout source/wire values. Workout is the persisted generic sport tag, not rendered copy.
-    "my-whoop", "Workout", "apple-health", "health-connect", "lifting", "autoDetect",
     # Stable KeyMetric raw values + preferences.
     "charge", "effort", "rest", "restingHr", "bloodOxygen", "respiratory", "steps",
-    "weight", "calories", "today.keyMetrics", "today.keyMetricsDetailed",
-    "today.keyMetricsWindowDays", ",",
-    # Stable DashboardCard raw values + preference; units remain measurement metadata.
-    "stress", "fitnessAge", "vo2max", "vitality", "skinTemp", "sleep", "hydration", "coupled",
-    "coach", "stepsAverage30",
-    "today.dashboardCards", "yrs", "kcal", "",
+    "weight", "calories", "skinTemp", "today.keyMetrics", ",", "",
 }
 
 # Confirmed runtime copy that reaches Today through variables, lambdas, model fields or accessibility
@@ -117,13 +105,8 @@ ANDROID_TODAY_RUNTIME_COPY = {
     "7-day trend", "14-day trend", "30-day trend", "1 week", "2 weeks", "1 month",
 }
 ANDROID_HELPER_NON_UI_LITERALS = {
-    # TodayLayoutPrefs stable backup/persistence wire values.
-    "hero", "liveSession", "synthesis", "keyMetrics", "workouts", "heartRate",
-    "recoveryVitals", "yourCards", "menstrualCycle", "journal", "addedCards",
-    "today.sectionOrder", "today.hiddenSections",
     # TodayScoring parse/default formats.
-    "9999-12-31", "d MMM", "24h", "12h", "6h", "3h", "1h",
-    "<1m", "${secs / 60}m", "${secs / 3600}h", "${secs / 86_400}d",
+    "9999-12-31",
     # TodayProvenance source ids and metric dictionary keys.
     "-noop", "recovery", "strain", "sleep_performance", "oura-import", "oura-api",
     "fitbit-import", "garmin-import", "xiaomi-band",
@@ -240,8 +223,7 @@ class HomeLocalizationTest(unittest.TestCase):
             if _is_helper_copy(literal)
             and literal not in {
                 "${(sampleFraction * 100).roundToInt()}",
-                "noop_scoring_guide_prefs",
-                "scoringGuideCardSeen",
+                "scoreCardHighlight",  # an animation label for tooling, never shown
             }
         ]
         self.assertEqual([], findings, "Raw Android score-explainer copy:\n" + _format_findings(findings))
@@ -258,47 +240,6 @@ class HomeLocalizationTest(unittest.TestCase):
         self.assertNotIn("com.noop.R", source)
         self.assertNotIn("androidx.annotation.StringRes", source)
         self.assertIn("enum class Copy", source)
-
-    def test_android_english_home_contract_preserves_head_semantics(self) -> None:
-        root = ET.parse(ROOT / "android/app/src/main/res/values/strings.xml").getroot()
-        strings = {node.attrib["name"]: (node.text or "").replace("\\'", "'") for node in root.findall("string")}
-        expected = {
-            "today_card_hrv": "HRV", "today_card_hrv_subtitle": "Heart-rate variability",
-            "today_card_resting_hr": "Resting HR", "today_card_resting_hr_subtitle": "Resting heart rate",
-            "today_card_respiratory": "Respiratory", "today_card_respiratory_subtitle": "Breaths per minute",
-            "today_card_steps": "Steps", "today_card_steps_subtitle": "Today",
-            "today_card_stress": "Stress", "today_card_stress_subtitle": "Autonomic load",
-            "today_card_fitness_age": "Fitness Age", "today_card_fitness_age_subtitle": "Updated weekly",
-            "today_card_vo2max": "VO₂ Max", "today_card_vo2max_subtitle": "Estimated, updated weekly",
-            "today_card_vitality": "Vitality", "today_card_vitality_subtitle": "Wellness score",
-            "today_card_blood_oxygen": "Blood Oxygen", "today_card_blood_oxygen_subtitle": "Blood oxygen",
-            "today_card_skin_temp": "Skin Temp", "today_card_skin_temp_subtitle": "Skin temperature",
-            "today_card_sleep": "Sleep", "today_card_sleep_subtitle": "Last night",
-            "today_card_calories": "Calories", "today_card_calories_subtitle": "Active energy",
-            "today_card_hydration": "Hydration", "today_card_hydration_subtitle": "Today's fluid",
-            "today_readiness_wear_for_nights": "Wear the strap for a few nights and your readiness read will appear here.",
-            "today_readiness_hrv_good": "above your baseline - well recovered",
-            "today_readiness_normal_range": "in your normal range",
-            "today_readiness_hrv_watch": "a touch below baseline",
-            "today_readiness_hrv_bad": "suppressed - a sign of autonomic fatigue",
-            "today_readiness_rhr_good": "at or below baseline",
-            "today_readiness_rhr_watch": "running a little high",
-            "today_readiness_rhr_bad": "elevated - overtraining or illness can do this",
-            "today_readiness_resp_bad": "up vs baseline - sometimes an early sign of getting sick",
-            "today_readiness_resp_watch": "slightly raised vs baseline",
-            "today_readiness_monotony_watch": "low - similar strain every day raises strain/illness risk",
-            "today_readiness_load_ramping_down": "ramping down (acute:chronic %1$s) - room to build",
-            "today_readiness_load_sweet_spot": "in the sweet spot (acute:chronic %1$s)",
-            "today_readiness_load_building_fast": "building fast (acute:chronic %1$s) - watch fatigue",
-            "today_readiness_load_spiking": "spiking (acute:chronic %1$s) - higher injury risk",
-            "today_readiness_more_nights": "A few more nights of data and your readiness read will sharpen.",
-            "today_readiness_run_down_summary": "Several signals are down at once. Treat today as recovery - easy movement, real sleep tonight.",
-            "today_readiness_strained_summary": "One of your signals is flagging. You can train, but keep it controlled and bank the recovery.",
-            "today_readiness_primed_summary": "Your signals are aligned and your load is supported. A harder session is well backed today.",
-            "today_readiness_balanced_summary": "Nothing's flagging. Train to feel - your body's holding steady.",
-            "today_readiness_evidence_monotony": "monotony %1$s",
-        }
-        self.assertEqual({}, {key: (strings.get(key), value) for key, value in expected.items() if strings.get(key) != value})
 
     def test_android_today_chrome_and_click_labels_are_resource_backed(self) -> None:
         patterns = {
@@ -326,11 +267,6 @@ class HomeLocalizationTest(unittest.TestCase):
             )
         self.assertEqual([], findings, "US-pinned Android Home display formatting:\n" + _format_findings(findings))
 
-    def test_android_source_joiner_preserves_spaces_through_aapt(self) -> None:
-        root = ET.parse(ROOT / "android/app/src/main/res/values/strings.xml").getroot()
-        node = next(n for n in root.findall("string") if n.attrib.get("name") == "today_source_joiner")
-        self.assertEqual('" + "', node.text, "Quote source_joiner so aapt preserves both spaces")
-
     def test_android_home_resources_cover_focus_locales(self) -> None:
         used = set(ANDROID_HOME_SHELL_RESOURCES)
         for relative in ANDROID_HOME_FILES:
@@ -353,29 +289,6 @@ class HomeLocalizationTest(unittest.TestCase):
             }
             missing.extend(f"{lang}: {name}" for name in sorted(used - names))
         self.assertEqual([], missing, "Missing Android Home resources:\n" + "\n".join(missing))
-
-    def test_android_home_locale_context_values_are_natural_and_complete(self) -> None:
-        expected = {
-            "pl": {
-                "l10n_today_screen_no_cardio_load_yet_effort_builds_e952006c":
-                    "Nie ma jeszcze obciążenia kardio. Wysiłek zwiększa się, gdy tętno osiągnie strefę wysiłku (około 50% rezerwy tętna). Spokojny dzień szczerze odczytuje się w pobliżu zera.",
-            },
-            "zh": {
-                "l10n_today_screen_edit_key_metrics_f95e61a4": "编辑关键指标",
-                "l10n_today_screen_no_new_nights_from_your_strap_for_stale_days_8863bcfe":
-                    "你的手环已有 %1$d 天没有记录到新的夜间数据。请检查它是否已连接并正在保存数据。",
-            },
-            "pt-rPT": {"l10n_today_screen_synthesis_876bc749": "SÍNTESE"},
-            "es": {"l10n_today_screen_unitformatter_effortdisplay_strain_effortscale_effort_53dbd951": "%1$s Esfuerzo"},
-        }
-        mismatches = {}
-        for directory, locale_values in expected.items():
-            root = ET.parse(ROOT / f"android/app/src/main/res/values-{directory}/strings.xml").getroot()
-            strings = {node.attrib["name"]: node.text or "" for node in root.findall("string")}
-            for key, value in locale_values.items():
-                if strings.get(key) != value:
-                    mismatches[f"{directory}:{key}"] = (strings.get(key), value)
-        self.assertEqual({}, mismatches)
 
     def test_apple_home_has_no_audit_findings(self) -> None:
         findings, _ = audit.scan_ios()

@@ -246,7 +246,12 @@ fun HrvSnapshotScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(stringResource(R.string.l10n_hrv_snapshot_screen_a_60_second_snapshot_of_your_35f03f7c))
-                    Text(SpotHrvReading.caveatFor(source))
+                    // The wording of SpotHrvReading.caveatFor, from resources so it follows the app language
+                    // (HrvSnapshotCaveatStringsTest pins the English to the analytics text).
+                    Text(stringResource(R.string.hrv_snapshot_caveat))
+                    if (source == SpotHrvReading.Source.OPTICAL_PPG) {
+                        Text(stringResource(R.string.hrv_snapshot_caveat_optical))
+                    }
                 }
             },
             confirmButton = { TextButton(onClick = { showAbout = false }) { Text(stringResource(R.string.journal_done)) } },

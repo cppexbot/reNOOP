@@ -1,5 +1,0 @@
-<resources>
-    <string name="steps_average_30">Moyenne des pas sur 30 jours</string>
-    <string name="steps_average_subtitle">Moyenne glissante sur les 30 derniers jours</string>
-    <string name="steps_average_coverage">%1$d jours enregistrés sur 30</string>
-</resources>

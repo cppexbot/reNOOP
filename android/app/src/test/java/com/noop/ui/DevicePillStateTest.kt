@@ -5,7 +5,6 @@ import com.noop.data.PairedDeviceRow
 import com.noop.data.SourceKind
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -53,12 +52,6 @@ class DevicePillStateTest {
             DeviceLink.REMOVED,
             deviceLink(isArchived = true, isActive = true, isReconnecting = true, bondRefused = true, isLiveConnected = true),
         )
-    }
-
-    @Test
-    fun historyLayoutLine_formatsObservedHistoricalRecordVersion() {
-        assertEquals("v25 history", historyLayoutLine(25))
-        assertNull(historyLayoutLine(null))
     }
 
     private fun row(kind: SourceKind, brand: String = "X", model: String = "Y", nickname: String? = null) = PairedDeviceRow(

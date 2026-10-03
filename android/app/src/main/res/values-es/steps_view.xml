@@ -1,5 +1,0 @@
-<resources>
-    <string name="steps_average_30">Promedio de pasos de 30 días</string>
-    <string name="steps_average_subtitle">Promedio móvil de los últimos 30 días</string>
-    <string name="steps_average_coverage">%1$d de 30 días registrados</string>
-</resources>

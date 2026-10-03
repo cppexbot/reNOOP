@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="steps_average_30">Media dei passi su 30 giorni</string>
-    <string name="steps_average_subtitle">Media mobile degli ultimi 30 giorni</string>
-    <string name="steps_average_coverage">%1$d giorni su 30 registrati</string>
-</resources>

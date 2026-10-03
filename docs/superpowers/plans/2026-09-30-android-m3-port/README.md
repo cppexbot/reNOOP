@@ -23,4 +23,4 @@ palette (Charge green, Effort blue, Rest violet); the Summary offers two layouts
 | 06 Settings | done | c6b5f47a, 9af446e5, 172fa05c, ab0e6c3c |
 | 07 Coach, Devices, Onboarding | done (not run against a real strap; Gemini chart image not ported) | e9b2d356, 5c7a784e, 97a4c49f, 1eca0586 |
 | 08 Heart Rate, Mindfulness, Journal, What Moves You, Lab Results | done (the unreachable Hydration screen is deleted, its Settings switch stays; HRV reading restyled) | 1e8c40a0, 8137052e, 3a8d2548, 27f0d705, 0da73668, a67cdb47, c859bd11 |
-| 09 Audit, widgets, notifications, i18n, dead code, dark pass | todo | |
+| 09 Audit, widgets, notifications, i18n, dead code, dark pass | done in three parts: 09a widgets and notifications, 09b audit and dark pass, 09c terminology, i18n and dead code (open: widget Rest vs Summary Rest, parity dispositions for deleted twins, import messages still English) | 2334bac1..9611b627, 92419bca..af6e5ecb, 5aa063d1..f7da2b92 |
