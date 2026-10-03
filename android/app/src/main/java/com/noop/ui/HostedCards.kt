@@ -102,8 +102,6 @@ enum class HostedCard(
  * DATA rather than a callback, because a callback cannot live on an enum and a mapping that lives
  * inside the composable that draws it is unreachable from any test. The failure it guards is silent: a
  * card wired to the wrong destination still renders, still taps, and simply lands somewhere else.
- *
- * Twin of the Swift `HostedCard.route`.
  */
 sealed interface HostedDestination {
     /** Opens nothing. The tap-to-log card, whose buttons ARE its purpose. */
