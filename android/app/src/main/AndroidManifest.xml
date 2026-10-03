@@ -56,6 +56,9 @@
     <!-- Android 13+ (API 33+): the ongoing "strap connected" notification is user-dismissable and
          must be granted at runtime. Requested in MainActivity alongside the BLE permissions. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Android 16+: lets the live workout's ongoing notification be promoted to a Live Update (the
+         status-bar chip and the pinned lock-screen card). A normal permission; older systems ignore it. -->
+    <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
 
     <!-- Optional call alerts. Requested only when the user enables "Phone calls"; NOOP does not
          request READ_CALL_LOG and never reads incoming numbers, contacts, or call history. -->
@@ -368,6 +371,12 @@
              raises a low-key notification. Not exported. -->
         <receiver
             android:name="com.noop.alarm.WindDownReceiver"
+            android:exported="false" />
+
+        <!-- The live workout notification's Pause / Resume button. Not exported: only the app's own
+             PendingIntent reaches it. -->
+        <receiver
+            android:name="com.noop.notif.LiveWorkoutActionReceiver"
             android:exported="false" />
 
         <!-- Shares the strap log (a cache file) for bug reports. Not exported; read access is granted

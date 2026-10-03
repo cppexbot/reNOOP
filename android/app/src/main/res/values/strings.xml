@@ -3690,4 +3690,6 @@
     <string name="smart_alarm_phone_body_deadline">Your wake window has ended. Time to get up.</string>
     <string name="wind_down_notif_title">Time to wind down</string>
     <string name="wind_down_notif_body">A calm hour now helps you hit your wake time well-rested.</string>
+    <string name="notif_channel_workout_name">Workout in progress</string>
+    <string name="notif_channel_workout_desc">The sport, clock and heart rate of the workout you are recording, with Pause and Finish.</string>
 </resources>

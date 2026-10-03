@@ -3663,4 +3663,6 @@
     <string name="smart_alarm_phone_body_deadline">Tu ventana de despertar ha terminado. Hora de levantarte.</string>
     <string name="wind_down_notif_title">Hora de relajarte</string>
     <string name="wind_down_notif_body">Una hora tranquila ahora te ayuda a llegar bien descansado a tu hora de despertar.</string>
+    <string name="notif_channel_workout_name">Entrenamiento en curso</string>
+    <string name="notif_channel_workout_desc">El deporte, el tiempo y la frecuencia cardíaca del entrenamiento que estás grabando, con Pausar y Finalizar.</string>
 </resources>

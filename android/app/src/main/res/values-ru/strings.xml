@@ -3592,4 +3592,6 @@
     <string name="smart_alarm_phone_body_deadline">Окно пробуждения закончилось. Пора вставать.</string>
     <string name="wind_down_notif_title">Пора расслабиться</string>
     <string name="wind_down_notif_body">Спокойный час сейчас поможет вам проснуться отдохнувшим к нужному времени.</string>
+    <string name="notif_channel_workout_name">Идёт тренировка</string>
+    <string name="notif_channel_workout_desc">Вид спорта, время и пульс тренировки, которая сейчас записывается, с кнопками «Пауза» и «Завершить».</string>
 </resources>

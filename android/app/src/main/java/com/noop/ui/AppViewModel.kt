@@ -2514,6 +2514,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         // snapshot so an OS kill mid-session can still be ended + saved (#529). Order matters: a live GPS
         // session wins; the non-GPS path only fills in when [_activeWorkout] is still null.
         rehydrateActiveNonGpsWorkout()
+        // The live-workout notification (Settings > Workouts) follows the workout and the heart rate from
+        // here, the same two flows the recording screen reads, and goes with this ViewModel's scope.
+        com.noop.notif.LiveWorkoutNotifier.follow(
+            appContext, viewModelScope, activeWorkout, bpm, ::toggleWorkoutPause,
+        )
     }
 
     /** Flip auto-sync. Persists and, on enable, kicks an immediate import; thereafter it catches up on

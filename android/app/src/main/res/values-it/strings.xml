@@ -3631,4 +3631,6 @@
     <string name="smart_alarm_phone_body_deadline">La tua finestra di risveglio è terminata. È ora di alzarsi.</string>
     <string name="wind_down_notif_title">È ora di rilassarsi</string>
     <string name="wind_down_notif_body">Un\'ora tranquilla adesso ti aiuta ad arrivare riposato alla tua ora di risveglio.</string>
+    <string name="notif_channel_workout_name">Allenamento in corso</string>
+    <string name="notif_channel_workout_desc">Lo sport, il tempo e la frequenza cardiaca dell’allenamento che stai registrando, con Pausa e Fine.</string>
 </resources>

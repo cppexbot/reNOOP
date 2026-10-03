@@ -3628,4 +3628,6 @@
     <string name="smart_alarm_phone_body_deadline">你的唤醒时段已结束。该起床了。</string>
     <string name="wind_down_notif_title">该放松入睡了</string>
     <string name="wind_down_notif_body">现在安静一小时，有助于你在起床时间精力充沛地醒来。</string>
+    <string name="notif_channel_workout_name">正在进行的锻炼</string>
+    <string name="notif_channel_workout_desc">正在记录的锻炼的项目、用时和心率，可暂停或完成。</string>
 </resources>

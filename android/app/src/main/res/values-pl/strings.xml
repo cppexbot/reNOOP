@@ -3689,4 +3689,6 @@
     <string name="smart_alarm_phone_body_deadline">Twoje okno pobudki dobiegło końca. Czas wstawać.</string>
     <string name="wind_down_notif_title">Czas się uspokoić</string>
     <string name="wind_down_notif_body">Spokojna godzina teraz pomoże Ci obudzić się wypoczętym o wybranej porze.</string>
+    <string name="notif_channel_workout_name">Trening w toku</string>
+    <string name="notif_channel_workout_desc">Dyscyplina, czas i tętno treningu, który właśnie nagrywasz, z przyciskami wstrzymania i zakończenia.</string>
 </resources>

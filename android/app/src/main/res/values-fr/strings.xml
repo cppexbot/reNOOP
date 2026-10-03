@@ -3662,4 +3662,6 @@
     <string name="smart_alarm_phone_body_deadline">Votre fenêtre de réveil est terminée. Il est temps de vous lever.</string>
     <string name="wind_down_notif_title">Il est temps de vous détendre</string>
     <string name="wind_down_notif_body">Une heure calme maintenant vous aide à atteindre votre heure de réveil bien reposé.</string>
+    <string name="notif_channel_workout_name">Entraînement en cours</string>
+    <string name="notif_channel_workout_desc">Le sport, le chrono et la fréquence cardiaque de l’entraînement en cours d’enregistrement, avec Pause et Terminer.</string>
 </resources>
